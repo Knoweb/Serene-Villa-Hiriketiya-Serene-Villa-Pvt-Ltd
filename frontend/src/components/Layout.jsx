@@ -8,6 +8,7 @@ import {
   Building,
   ChevronDown
 } from 'lucide-react';
+import logoImg from '../assets/logo.jpeg';
 
 const Layout = ({ children }) => {
   const { user, logout, currentProperty } = useAuth();
@@ -45,9 +46,7 @@ const Layout = ({ children }) => {
           {/* Logo & Property Area */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-                <Building className="h-5 w-5" />
-              </div>
+              <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain" />
               <div>
                 <span className="font-bold text-slate-900 tracking-tight text-base">Serene Villa</span>
                 <span className="text-xs text-emerald-600 block -mt-1 font-medium">{currentProperty.name}</span>
