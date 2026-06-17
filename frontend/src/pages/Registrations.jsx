@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
 const Registrations = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -83,7 +85,7 @@ const Registrations = () => {
     try {
       // Fetch registrations
       const regRes = await fetch(
-        `http://localhost:8080/api/guest-registrations?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&page=${page}&size=${pageSize}`
+        `${API_BASE}/guest-registrations?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&page=${page}&size=${pageSize}`
       );
       if (!regRes.ok) throw new Error('Failed to fetch registrations');
       const regData = await regRes.json();
@@ -92,13 +94,17 @@ const Registrations = () => {
       setTotalElements(regData.totalElements);
 
       // Fetch all bookings to cross-reference allocation
-      const bookingRes = await fetch('http://localhost:8080/api/bookings');
+      const bookingRes = await fetch(`${API_BASE}/bookings`);
       if (bookingRes.ok) {
         const bookingData = await bookingRes.json();
         setBookings(bookingData);
       }
     } catch (err) {
-      setError(err.message || 'An error occurred while loading registrations.');
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        setError('Server is currently offline. Please ensure the backend server is running on port 8080 and try again.');
+      } else {
+        setError(err.message || 'An error occurred while loading registrations.');
+      }
     } finally {
       setLoading(false);
     }
@@ -113,7 +119,7 @@ const Registrations = () => {
     e.stopPropagation(); // Prevent opening details panel
     const endpoint = reg.isHiddenFromFrontOffice ? 'unhide' : 'hide';
     try {
-      const response = await fetch(`http://localhost:8080/api/guest-registrations/${reg.id}/${endpoint}`, {
+      const response = await fetch(`${API_BASE}/guest-registrations/${reg.id}/${endpoint}`, {
         method: 'PUT'
       });
       if (response.ok) {
@@ -169,7 +175,7 @@ const Registrations = () => {
     setBookingSuccess(false);
 
     try {
-      const response = await fetch(`http://localhost:8080/api/guest-registrations/${selectedReg.id}/booking-details`, {
+      const response = await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'

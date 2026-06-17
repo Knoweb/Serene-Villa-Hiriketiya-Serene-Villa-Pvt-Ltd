@@ -16,6 +16,8 @@ import {
   Loader
 } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
 const Reports = () => {
   const { user } = useAuth();
 
@@ -53,13 +55,13 @@ const Reports = () => {
     try {
       let url = '';
       if (reportType === 'Daily') {
-        url = `http://localhost:8080/api/reports/daily?date=${date}`;
+        url = `${API_BASE}/reports/daily?date=${date}`;
       } else if (reportType === 'Weekly') {
-        url = `http://localhost:8080/api/reports/weekly?startDate=${startDate}&endDate=${endDate}`;
+        url = `${API_BASE}/reports/weekly?startDate=${startDate}&endDate=${endDate}`;
       } else if (reportType === 'Monthly') {
-        url = `http://localhost:8080/api/reports/monthly?year=${year}&month=${month}`;
+        url = `${API_BASE}/reports/monthly?year=${year}&month=${month}`;
       } else if (reportType === 'Custom') {
-        url = `http://localhost:8080/api/reports/range?startDate=${startDate}&endDate=${endDate}`;
+        url = `${API_BASE}/reports/range?startDate=${startDate}&endDate=${endDate}`;
       }
 
       const response = await fetch(url);
@@ -69,7 +71,11 @@ const Reports = () => {
       const result = await response.json();
       setData(result);
     } catch (err) {
-      setError(err.message || 'An error occurred while fetching reports.');
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        setError('Server is currently offline. Please ensure the backend server is running on port 8080 and try again.');
+      } else {
+        setError(err.message || 'An error occurred while fetching reports.');
+      }
     } finally {
       setLoading(false);
     }

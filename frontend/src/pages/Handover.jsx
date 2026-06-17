@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Check, X, Send, CreditCard } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
 const Handover = () => {
   const { user } = useAuth();
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
@@ -29,7 +31,7 @@ const Handover = () => {
         
         // Try to fetch from real API if backend is running (optional/fallback)
         try {
-          const res = await fetch('http://localhost:8080/api/payments/booking/501'); // test check
+          const res = await fetch(`${API_BASE}/payments/booking/501`); // test check
           if (res.ok) {
             // If API works, use it or fallback
           }
@@ -39,7 +41,7 @@ const Handover = () => {
       } else {
         // Accountant/Admin: Fetch pending from `/api/billing/accountant/pending`
         try {
-          const res = await fetch('http://localhost:8080/api/billing/accountant/pending');
+          const res = await fetch(`${API_BASE}/billing/accountant/pending`);
           if (res.ok) {
             const data = await res.json();
             if (data && data.length > 0) {
@@ -80,7 +82,7 @@ const Handover = () => {
     if (selectedIds.length === 0) return;
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/billing/accountant/send', {
+      const response = await fetch(`${API_BASE}/billing/accountant/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invoiceIds: selectedIds })
@@ -110,7 +112,7 @@ const Handover = () => {
     if (selectedIds.length === 0) return;
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/billing/accountant/accept', {
+      const response = await fetch(`${API_BASE}/billing/accountant/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invoiceIds: selectedIds })

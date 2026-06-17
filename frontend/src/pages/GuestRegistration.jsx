@@ -78,7 +78,9 @@ const GuestRegistration = () => {
       passportBackPath: `/uploads/${formData.passportBack.name}`
     };
 
-    fetch('http://localhost:8080/api/public/guest-registrations', {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+    fetch(`${API_BASE}/public/guest-registrations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -95,7 +97,11 @@ const GuestRegistration = () => {
       setSubmitted(true);
     })
     .catch(err => {
-      setError(err.message || 'Network error occurred. Please try again.');
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        setError('Server is currently offline. Please ensure the backend server is running on port 8080 and try again.');
+      } else {
+        setError(err.message || 'Network error occurred. Please try again.');
+      }
     });
   };
 
