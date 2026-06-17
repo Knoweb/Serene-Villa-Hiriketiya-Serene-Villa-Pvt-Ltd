@@ -18,7 +18,6 @@ public interface GuestRegistrationRepository extends JpaRepository<GuestRegistra
            "LOWER(g.guestName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(g.passportNumber) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(g.whatsappNumber) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(g.whatsAppNumber) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(g.nationality) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
            "(:status IS NULL OR :status = '' OR LOWER(g.paymentStatus) = LOWER(:status))")
     Page<GuestRegistration> searchRegistrations(
