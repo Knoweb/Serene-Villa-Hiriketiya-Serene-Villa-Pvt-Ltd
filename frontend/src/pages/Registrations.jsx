@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, CheckCircle, Plus } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, Plus, QrCode } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Registrations = () => {
@@ -8,6 +8,8 @@ const Registrations = () => {
   const navigate = useNavigate();
   const isAdmin = user.role === 'ADMIN';
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
+
+  const [showQr, setShowQr] = useState(false);
 
   const [registrations, setRegistrations] = useState([
     {
@@ -58,19 +60,30 @@ const Registrations = () => {
     (reg) => !isFrontOfficer || !reg.isHiddenFromFO
   );
 
+  const qrUrl = window.location.origin + '/qr-register';
+  const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrUrl)}`;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Guest Registrations</h2>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">Self submissions via public QR code form</p>
+          <p className="text-xs text-slate-505 font-medium mt-0.5">Self submissions via public QR code form</p>
         </div>
-        <button 
-          onClick={() => navigate('/qr-register')} 
-          className="bg-emerald-650 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-emerald-500/10"
-        >
-          <Plus className="h-4 w-4" /> Guest QR Form Link
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setShowQr(true)} 
+            className="bg-white border border-slate-100 hover:bg-slate-50 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
+          >
+            <QrCode className="h-4 w-4 text-emerald-600" /> Guest Registration QR Code
+          </button>
+          <button 
+            onClick={() => navigate('/qr-register')} 
+            className="bg-emerald-600 hover:bg-emerald-650 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-emerald-500/10"
+          >
+            <Plus className="h-4 w-4" /> Guest QR Form Link
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
@@ -85,7 +98,7 @@ const Registrations = () => {
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 text-slate-650 font-semibold">
+          <tbody className="divide-y divide-slate-50 text-slate-655 font-semibold">
             {visibleRegistrations.map((reg) => (
               <tr key={reg.id} className="hover:bg-slate-50/20 transition">
                 <td className="p-4">
@@ -140,6 +153,47 @@ const Registrations = () => {
           </tbody>
         </table>
       </div>
+
+      {/* QR Code Modal Flyer */}
+      {showQr && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-100 w-full max-w-sm rounded-2xl p-8 space-y-6 text-center shadow-xl relative">
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900">Serene Villa Check-In QR</h3>
+              <p className="text-xs text-slate-505 font-medium mt-1">Scan this QR code to fill the Guest Registration Form</p>
+            </div>
+            
+            <div className="flex justify-center p-4 bg-emerald-50/20 border border-emerald-100/40 rounded-2xl max-w-[270px] mx-auto">
+              <img 
+                src={qrImageSrc} 
+                alt="Registration QR Code" 
+                className="w-full h-auto object-contain rounded"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[10px] text-slate-450 break-all bg-slate-50 p-2 rounded-lg font-mono select-all">
+                {qrUrl}
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-2 pt-2 text-xs">
+              <button 
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition"
+              >
+                Print Flyer
+              </button>
+              <button 
+                onClick={() => setShowQr(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
