@@ -63,7 +63,40 @@ const GuestRegistration = () => {
     }
 
     setError('');
-    setSubmitted(true);
+    
+    const payload = {
+      guestName: formData.guestName,
+      checkInDate: formData.checkInDate,
+      checkOutDate: formData.checkOutDate,
+      passportNumber: formData.passportNumber,
+      whatsappNumber: formData.whatsAppNumber,
+      nationality: formData.nationality,
+      adults: parseInt(formData.adults),
+      children: parseInt(formData.children),
+      guestPhotoPath: `/uploads/${formData.guestPhoto.name}`,
+      passportFrontPath: `/uploads/${formData.passportFront.name}`,
+      passportBackPath: `/uploads/${formData.passportBack.name}`
+    };
+
+    fetch('http://localhost:8080/api/public/guest-registrations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error('Failed to submit guest registration to server');
+      }
+      return res.json();
+    })
+    .then(() => {
+      setSubmitted(true);
+    })
+    .catch(err => {
+      setError(err.message || 'Network error occurred. Please try again.');
+    });
   };
 
   if (submitted) {
