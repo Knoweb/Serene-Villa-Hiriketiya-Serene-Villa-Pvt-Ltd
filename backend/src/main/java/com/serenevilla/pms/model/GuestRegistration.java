@@ -31,7 +31,7 @@ public class GuestRegistration {
     @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate checkOutDate;
 
-    private int numberOfNights;
+    private Integer numberOfNights;
 
     private String passportFrontPath;
     private String passportBackPath;
@@ -45,8 +45,8 @@ public class GuestRegistration {
     @Column(nullable = false)
     private String nationality;
 
-    private int adults = 1;
-    private int children = 0;
+    private Integer adults = 1;
+    private Integer children = 0;
 
     private String paymentStatus = "Pending"; // Paid, Unpaid, Pending
     private String registrationStatus = "Pending"; // Pending, CheckedIn, CheckedOut, Cancelled
@@ -111,11 +111,11 @@ public class GuestRegistration {
         this.whatsappNumber = whatsAppNumber;
     }
 
-    public int getNights() {
+    public Integer getNights() {
         return numberOfNights;
     }
 
-    public void setNights(int nights) {
+    public void setNights(Integer nights) {
         this.numberOfNights = nights;
     }
 }
