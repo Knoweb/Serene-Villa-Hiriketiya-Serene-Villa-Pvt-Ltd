@@ -73,4 +73,14 @@ public class GuestRegistrationController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        ex.printStackTrace();
+        return ResponseEntity.badRequest().body(java.util.Map.of(
+            "error", "HttpMessageNotReadableException",
+            "message", ex.getMessage(),
+            "cause", ex.getCause() != null ? ex.getCause().getMessage() : "No cause"
+        ));
+    }
 }
