@@ -24,9 +24,11 @@ public class GuestRegistration {
     private String guestPhotoPath;
 
     @Column(nullable = false)
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate checkInDate;
 
     @Column(nullable = false)
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate checkOutDate;
 
     private int numberOfNights;

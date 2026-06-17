@@ -18,8 +18,13 @@ public class GuestRegistrationController {
 
     // Public QR Code Submission Form
     @PostMapping("/api/public/guest-registrations")
-    public ResponseEntity<GuestRegistration> registerGuestPublic(@RequestBody GuestRegistration registration) {
-        return ResponseEntity.ok(guestRegistrationService.createPublicRegistration(registration));
+    public ResponseEntity<?> registerGuestPublic(@RequestBody GuestRegistration registration) {
+        try {
+            return ResponseEntity.ok(guestRegistrationService.createPublicRegistration(registration));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage(), "error", e.getClass().getName()));
+        }
     }
 
     // Paginated Search & Filter Guest Registrations
