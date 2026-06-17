@@ -47,7 +47,7 @@ const Discounts = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Discount Approval Requests</h2>
-        <p className="text-xs text-slate-505 font-medium mt-0.5">
+        <p className="text-xs text-slate-500 font-medium mt-0.5">
           {isAdmin 
             ? 'Review and Approve/Reject discount requests submitted by Front Office staff' 
             : 'Track the approval status of your submitted discount requests.'}
@@ -67,7 +67,7 @@ const Discounts = () => {
               {isAdmin && <th className="p-4 text-right">Actions</th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 text-slate-650 font-semibold">
+          <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
             {requests.map((req) => (
               <tr key={req.id} className="hover:bg-slate-50/20 transition">
                 <td className="p-4 font-mono text-emerald-700 font-bold">{req.bookingRef}</td>
@@ -76,7 +76,7 @@ const Discounts = () => {
                   <p className="text-[9px] text-slate-400 font-bold mt-0.5">By: {req.requestedBy}</p>
                 </td>
                 <td className="p-4 font-mono">LKR {req.totalAmount.toLocaleString()}</td>
-                <td className="p-4 text-emerald-650 font-extrabold font-mono">{req.requestedDiscount}</td>
+                <td className="p-4 text-emerald-700 font-extrabold font-mono">{req.requestedDiscount}</td>
                 <td className="p-4 text-slate-500 font-normal">{req.reason}</td>
                 <td className="p-4">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${

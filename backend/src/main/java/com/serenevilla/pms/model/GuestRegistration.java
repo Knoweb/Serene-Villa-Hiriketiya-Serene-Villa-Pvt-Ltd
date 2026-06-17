@@ -51,7 +51,7 @@ public class GuestRegistration {
     private String paymentStatus = "Pending"; // Paid, Unpaid, Pending
     private String registrationStatus = "Pending"; // Pending, CheckedIn, CheckedOut, Cancelled
 
-    private boolean isHiddenFromFrontOffice = false;
+    private Boolean isHiddenFromFrontOffice = false;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -117,5 +117,21 @@ public class GuestRegistration {
 
     public void setNights(Integer nights) {
         this.numberOfNights = nights;
+    }
+
+    public Boolean getIsHiddenFromFrontOffice() {
+        return isHiddenFromFrontOffice;
+    }
+
+    public void setIsHiddenFromFrontOffice(Boolean isHiddenFromFrontOffice) {
+        this.isHiddenFromFrontOffice = isHiddenFromFrontOffice;
+    }
+
+    public boolean isHiddenFromFrontOffice() {
+        return isHiddenFromFrontOffice != null && isHiddenFromFrontOffice;
+    }
+
+    public void setHiddenFromFrontOffice(boolean hiddenFromFrontOffice) {
+        this.isHiddenFromFrontOffice = hiddenFromFrontOffice;
     }
 }

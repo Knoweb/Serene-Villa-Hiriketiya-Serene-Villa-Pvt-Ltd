@@ -62,7 +62,7 @@ const Users = () => {
     <div className="space-y-8">
       <div>
         <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Staff Management & Role Control</h2>
-        <p className="text-xs text-slate-505 font-medium mt-0.5">Create staff accounts, allocate roles, and audit individual activity logs</p>
+        <p className="text-xs text-slate-500 font-medium mt-0.5">Create staff accounts, allocate roles, and audit individual activity logs</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -72,7 +72,7 @@ const Users = () => {
             <UserPlus className="h-4.5 w-4.5 text-emerald-600" /> Create Account
           </h3>
           
-          <form onSubmit={handleAddUser} className="space-y-4 text-xs font-semibold text-slate-650">
+          <form onSubmit={handleAddUser} className="space-y-4 text-xs font-semibold text-slate-600">
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Username</label>
               <input
@@ -98,7 +98,7 @@ const Users = () => {
             </div>
             <button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-650 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition"
             >
               Add User Account
             </button>
@@ -119,7 +119,7 @@ const Users = () => {
                   <th className="p-3">Last Active</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 text-slate-655 font-semibold">
+              <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
                 {staff.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50/20 transition">
                     <td className="p-3 font-bold text-slate-900">{s.username}</td>

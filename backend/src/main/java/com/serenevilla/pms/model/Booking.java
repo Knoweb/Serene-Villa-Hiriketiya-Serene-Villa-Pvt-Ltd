@@ -37,6 +37,8 @@ public class Booking {
 
     private String status = "Confirmed"; // Confirmed, CheckedIn, CheckedOut, Cancelled
 
+    private String paymentStatus = "Pending";
+
     @Column(name = "property_id")
     private Long propertyId = 1L;
 }

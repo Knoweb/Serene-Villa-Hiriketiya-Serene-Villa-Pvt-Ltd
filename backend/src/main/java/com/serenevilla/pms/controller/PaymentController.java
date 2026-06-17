@@ -23,6 +23,9 @@ public class PaymentController {
 
     @PostMapping
     public ResponseEntity<Payment> recordPayment(@RequestBody Payment payment) {
+        if (payment.getAccountantTransferStatus() == null) {
+            payment.setAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.NONE);
+        }
         // Compute LKR equivalent at standard rate or custom rate
         double rate = 1.0;
         if (!"LKR".equalsIgnoreCase(payment.getCurrency())) {
@@ -38,6 +41,59 @@ public class PaymentController {
     @GetMapping("/booking/{bookingId}")
     public ResponseEntity<List<Payment>> getPaymentsByBooking(@PathVariable(name = "bookingId") Long bookingId) {
         return ResponseEntity.ok(paymentRepository.findByBookingId(bookingId));
+    }
+
+    @PostMapping("/advance")
+    public ResponseEntity<Payment> createAdvancePayment(@RequestBody Payment payment) {
+        payment.setAdvancePayment(true);
+        payment.setPaymentType("ADVANCE");
+        if (payment.getAccountantTransferStatus() == null) {
+            payment.setAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.NONE);
+        }
+        
+        // Sync duplicate fields
+        if (payment.getAmount() == 0 && payment.getAmountInCurrency() != 0) {
+            payment.setAmount(payment.getAmountInCurrency());
+        } else if (payment.getAmount() != 0 && payment.getAmountInCurrency() == 0) {
+            payment.setAmountInCurrency(payment.getAmount());
+        }
+        
+        if (payment.getCurrencyCode() == null && payment.getCurrency() != null) {
+            payment.setCurrencyCode(payment.getCurrency());
+        } else if (payment.getCurrencyCode() != null && payment.getCurrency() == null) {
+            payment.setCurrency(payment.getCurrencyCode());
+        }
+
+        if (payment.getConvertedAmountLkr() == 0 && payment.getAmountLkr() != 0) {
+            payment.setConvertedAmountLkr(payment.getAmountLkr());
+        } else if (payment.getConvertedAmountLkr() != 0 && payment.getAmountLkr() == 0) {
+            payment.setAmountLkr(payment.getConvertedAmountLkr());
+        }
+
+        if (payment.getSlipPath() == null && payment.getPaymentSlipUrl() != null) {
+            payment.setSlipPath(payment.getPaymentSlipUrl());
+        } else if (payment.getSlipPath() != null && payment.getPaymentSlipUrl() == null) {
+            payment.setPaymentSlipUrl(payment.getSlipPath());
+        }
+
+        if (payment.getReferenceNumber() == null && payment.getReceiptNumber() != null) {
+            payment.setReferenceNumber(payment.getReceiptNumber());
+        } else if (payment.getReferenceNumber() != null && payment.getReceiptNumber() == null) {
+            payment.setReceiptNumber(payment.getReferenceNumber());
+        }
+
+        payment.setPaymentDate(java.time.LocalDate.now());
+        payment.setCreatedAt(java.time.LocalDateTime.now());
+        
+        return ResponseEntity.ok(paymentRepository.save(payment));
+    }
+
+    @GetMapping("/advance/{bookingId}")
+    public ResponseEntity<List<Payment>> getAdvancePayments(@PathVariable(name = "bookingId") Long bookingId) {
+        List<Payment> list = paymentRepository.findByBookingId(bookingId).stream()
+                .filter(p -> "ADVANCE".equalsIgnoreCase(p.getPaymentType()) || p.isAdvancePayment())
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(list);
     }
 
     @PutMapping("/rates")

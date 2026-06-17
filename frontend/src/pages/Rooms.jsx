@@ -59,7 +59,7 @@ const Rooms = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Room Inventory & Management</h2>
-        <p className="text-xs text-slate-505 font-medium mt-0.5">Total rooms: 6 (Serene Villa Pvt Ltd context)</p>
+        <p className="text-xs text-slate-500 font-medium mt-0.5">Total rooms: 6 (Serene Villa Pvt Ltd context)</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -145,7 +145,7 @@ const Rooms = () => {
 
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">All Facilities & Amenities</p>
-                <ul className="grid grid-cols-2 gap-2 text-xs text-slate-650 font-semibold">
+                <ul className="grid grid-cols-2 gap-2 text-xs text-slate-600 font-semibold">
                   {selectedRoom.facilities.map((fac, idx) => (
                     <li key={idx} className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />

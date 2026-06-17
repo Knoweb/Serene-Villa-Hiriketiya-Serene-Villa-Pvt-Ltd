@@ -21,17 +21,17 @@ public class Payment {
     @Column(name = "booking_id", nullable = false)
     private Long bookingId;
 
-    private double amountInCurrency;
+    private Double amountInCurrency;
 
     private String currency; // LKR, USD, EUR, GBP
 
-    private double exchangeRate = 1.0;
+    private Double exchangeRate = 1.0;
 
-    private double amountLkr;
+    private Double amountLkr;
 
     private String paymentSlipUrl; // For advance slips
 
-    private boolean isAdvancePayment = false;
+    private Boolean isAdvancePayment = false;
 
     private String paymentMethod; // Cash, Card, Bank Transfer
 
@@ -54,4 +54,54 @@ public class Payment {
 
     @Column(name = "accepted_by_accountant_id")
     private Long acceptedByAccountantId;
+
+    @Column(name = "guest_registration_id")
+    private Long guestRegistrationId;
+
+    @Column(name = "payment_type")
+    private String paymentType = "ADVANCE"; // ADVANCE
+
+    private Double amount;
+
+    private String currencyCode;
+
+    private Double convertedAmountLkr;
+
+    private String referenceNumber;
+
+    private String slipPath;
+
+    private String remarks;
+
+    private String createdBy;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    public double getAmountLkr() {
+        return amountLkr != null ? amountLkr : 0.0;
+    }
+    
+    public double getAmountInCurrency() {
+        return amountInCurrency != null ? amountInCurrency : 0.0;
+    }
+
+    public double getExchangeRate() {
+        return exchangeRate != null ? exchangeRate : 1.0;
+    }
+
+    public Boolean getIsAdvancePayment() {
+        return isAdvancePayment;
+    }
+
+    public void setIsAdvancePayment(Boolean isAdvancePayment) {
+        this.isAdvancePayment = isAdvancePayment;
+    }
+
+    public boolean isAdvancePayment() {
+        return isAdvancePayment != null && isAdvancePayment;
+    }
+
+    public void setAdvancePayment(boolean isAdvancePayment) {
+        this.isAdvancePayment = isAdvancePayment;
+    }
 }

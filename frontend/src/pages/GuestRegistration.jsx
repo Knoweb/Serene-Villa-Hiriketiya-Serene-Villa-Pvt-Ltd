@@ -109,7 +109,7 @@ const GuestRegistration = () => {
     return (
       <div className="min-h-screen bg-emerald-50/40 text-slate-800 flex items-center justify-center p-6">
         <div className="w-full max-w-md bg-white border border-emerald-100 rounded-2xl shadow-xl p-8 text-center space-y-6">
-          <div className="mx-auto h-16 w-16 bg-emerald-50 border border-emerald-550 rounded-full flex items-center justify-center text-emerald-600">
+          <div className="mx-auto h-16 w-16 bg-emerald-50 border border-emerald-600 rounded-full flex items-center justify-center text-emerald-600">
             <CheckCircle2 className="h-8 w-8" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Registration Submitted</h2>

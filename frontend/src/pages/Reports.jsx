@@ -27,7 +27,7 @@ const Reports = () => {
       <div className="bg-white border border-slate-100 rounded-2xl p-8 text-center text-rose-600 shadow-sm space-y-3">
         <AlertCircle className="h-10 w-10 mx-auto" />
         <h3 className="text-base font-bold text-slate-800">Access Denied</h3>
-        <p className="text-xs text-slate-505 max-w-sm mx-auto leading-relaxed">
+        <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
           Front Office users are restricted from viewing financial analytics, profit margins, and reports.
         </p>
       </div>
@@ -149,7 +149,7 @@ const Reports = () => {
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 no-print">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Reports & Financial Statements</h2>
-          <p className="text-sm text-slate-505 font-medium mt-1">Generate dynamic operational and financial statements for Serene Villa</p>
+          <p className="text-sm text-slate-500 font-medium mt-1">Generate dynamic operational and financial statements for Serene Villa</p>
         </div>
         
         {/* Date Filter Panel */}
@@ -267,7 +267,7 @@ const Reports = () => {
             </button>
             <button 
               onClick={handleExportCSV}
-              className="bg-emerald-600 hover:bg-emerald-650 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition flex items-center gap-1.5 shadow-md shadow-emerald-500/10"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition flex items-center gap-1.5 shadow-md shadow-emerald-500/10"
               title="Export CSV"
             >
               <FileDown className="h-4 w-4" /> CSV
@@ -279,7 +279,7 @@ const Reports = () => {
       {/* Loading & Error Messages */}
       {loading && (
         <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-slate-100 shadow-sm">
-          <Loader className="h-8 w-8 text-emerald-650 animate-spin mr-3" />
+          <Loader className="h-8 w-8 text-emerald-700 animate-spin mr-3" />
           <span className="font-bold text-slate-600">Generating report data...</span>
         </div>
       )}
@@ -313,7 +313,7 @@ const Reports = () => {
                 <DollarSign className="h-4 w-4 text-emerald-600" />
               </div>
               <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{formatLKR(data.totalRevenue)}</h3>
-              <p className="text-[10px] text-emerald-650 mt-1 flex items-center gap-1 font-bold">
+              <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1 font-bold">
                 <TrendingUp className="h-3 w-3" /> Settled payments
               </p>
             </div>
@@ -450,7 +450,7 @@ const Reports = () => {
                     <th className="p-4 text-right">Remaining</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50 text-slate-650 font-semibold">
+                <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
                   {data.rows.map((row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/20 transition">
                       <td className="p-4 font-bold text-slate-900">{row.invoiceNumber}</td>

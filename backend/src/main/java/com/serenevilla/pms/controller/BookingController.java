@@ -15,6 +15,9 @@ public class BookingController {
     @Autowired
     private BookingRepository bookingRepository;
 
+    @Autowired
+    private com.serenevilla.pms.repository.GuestRegistrationRepository guestRegistrationRepository;
+
     @PostMapping
     public ResponseEntity<Booking> createBooking(@RequestBody Booking booking) {
         return ResponseEntity.ok(bookingRepository.save(booking));
@@ -33,6 +36,26 @@ public class BookingController {
         return bookingRepository.findById(id).map(b -> {
             b.setStatus(status);
             return ResponseEntity.ok(bookingRepository.save(b));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{bookingId}/payment-status")
+    public ResponseEntity<Booking> updatePaymentStatus(
+            @PathVariable(name = "bookingId") Long bookingId,
+            @RequestParam(name = "paymentStatus") String paymentStatus) {
+        
+        return bookingRepository.findById(bookingId).map(b -> {
+            b.setPaymentStatus(paymentStatus);
+            Booking saved = bookingRepository.save(b);
+            
+            // Also update associated guest registration
+            if (b.getGuestRegistrationId() != null) {
+                guestRegistrationRepository.findById(b.getGuestRegistrationId()).ifPresent(reg -> {
+                    reg.setPaymentStatus(paymentStatus);
+                    guestRegistrationRepository.save(reg);
+                });
+            }
+            return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
 }

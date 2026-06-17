@@ -199,7 +199,7 @@ const Bookings = () => {
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Complete Booking for {allocationForm.guestName}</h3>
             <button onClick={() => setAllocationForm(null)} className="text-xs text-rose-600 font-bold hover:underline">Cancel</button>
           </div>
-          <form onSubmit={handleCreateBooking} className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold text-slate-650">
+          <form onSubmit={handleCreateBooking} className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold text-slate-600">
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Booking Number</label>
               <input 
@@ -285,7 +285,7 @@ const Bookings = () => {
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 text-slate-650 font-semibold">
+          <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
             {bookings.map((booking) => (
               <tr key={booking.id} className="hover:bg-slate-50/20 transition">
                 <td className="p-4">
@@ -351,7 +351,7 @@ const Bookings = () => {
                     {booking.paymentStatus !== 'Paid' ? (
                       <button
                         onClick={() => handleCheckoutPayment(booking, 3)}
-                        className="py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-650 text-white font-bold transition"
+                        className="py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition"
                       >
                         Checkout
                       </button>
@@ -404,7 +404,7 @@ const Bookings = () => {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-650 text-white rounded-xl font-bold">
+                <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold">
                   Generate Receipt
                 </button>
               </div>
@@ -447,7 +447,7 @@ const Bookings = () => {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-650 text-white rounded-xl font-bold">
+                <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold">
                   Submit Request
                 </button>
               </div>
@@ -523,12 +523,12 @@ const Bookings = () => {
             </div>
 
             <div className="flex justify-between items-center text-[9px] text-slate-500">
-              <span className="flex items-center gap-1 text-emerald-650 font-bold">
+              <span className="flex items-center gap-1 text-emerald-700 font-bold">
                 <FileCheck className="h-4 w-4" /> Shared via WhatsApp
               </span>
               <button 
                 onClick={() => setInvoiceView(null)}
-                className="bg-emerald-600 hover:bg-emerald-650 text-white font-bold py-1.5 px-4 rounded-lg"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-4 rounded-lg"
               >
                 Close & Print
               </button>

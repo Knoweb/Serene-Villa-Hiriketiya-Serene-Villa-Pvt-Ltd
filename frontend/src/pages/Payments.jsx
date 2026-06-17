@@ -137,7 +137,7 @@ const Payments = () => {
               </button>
               <button
                 onClick={saveRates}
-                className="bg-emerald-600 hover:bg-emerald-650 text-white px-4 py-1.5 rounded-lg font-bold flex items-center gap-1.5"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg font-bold flex items-center gap-1.5"
               >
                 <Save className="h-3.5 w-3.5" /> Save
               </button>
@@ -150,7 +150,7 @@ const Payments = () => {
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
             <CreditCard className="h-4.5 w-4.5 text-emerald-600" /> Record Multi-Currency Payment
           </h3>
-          <form onSubmit={handleAddPayment} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-slate-650">
+          <form onSubmit={handleAddPayment} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-slate-600">
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Booking Ref</label>
               <input
@@ -224,7 +224,7 @@ const Payments = () => {
             <div className="md:col-span-2 flex justify-end">
               <button
                 type="submit"
-                className="bg-emerald-600 hover:bg-emerald-650 text-white font-bold py-2.5 px-6 rounded-xl transition"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl transition"
               >
                 Record Transaction
               </button>
@@ -246,7 +246,7 @@ const Payments = () => {
               <th className="p-4 text-right">LKR Equivalent</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 text-slate-650 font-semibold">
+          <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
             {payments.map((p) => (
               <tr key={p.id} className="hover:bg-slate-50/20 transition">
                 <td className="p-4 font-mono text-slate-500">{p.date}</td>

@@ -210,7 +210,7 @@ const Dashboard = () => {
         <div className="space-y-6">
           <div>
             <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Admin Control Panel</h2>
-            <p className="text-xs text-slate-505 font-medium mt-1">Property Management Systems & Settings</p>
+            <p className="text-xs text-slate-500 font-medium mt-1">Property Management Systems & Settings</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -278,7 +278,7 @@ const Dashboard = () => {
         <div className="space-y-6">
           <div>
             <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Accountant Ledger</h2>
-            <p className="text-xs text-slate-505 font-medium mt-1">Shift handovers, invoice statements, and payment records</p>
+            <p className="text-xs text-slate-500 font-medium mt-1">Shift handovers, invoice statements, and payment records</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -305,7 +305,7 @@ const Dashboard = () => {
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                 <FileText className="h-4.5 w-4.5 text-emerald-600" /> Accounting Reports
               </h3>
-              <div className="space-y-2 text-xs font-semibold text-slate-650">
+              <div className="space-y-2 text-xs font-semibold text-slate-600">
                 <a href="#reports" className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
                   <span>Daily Revenue Report</span>
                   <ArrowUpRight className="h-3.5 w-3.5 text-slate-400" />

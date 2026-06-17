@@ -140,7 +140,7 @@ const Handover = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Shift Reconciliation Handover</h2>
-          <p className="text-xs text-slate-505 font-medium mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             {isFrontOfficer 
               ? 'Select daily transactions to transfer to the Accountant' 
               : 'Review and approve transaction handovers submitted by the Front Office'}
@@ -162,7 +162,7 @@ const Handover = () => {
           {selectedIds.length > 0 && (
             <button
               onClick={isFrontOfficer ? handleSendToAccountant : handleAcceptTransactions}
-              className="bg-emerald-600 hover:bg-emerald-650 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
             >
               {isFrontOfficer ? <Send className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
               {isFrontOfficer ? 'Send to Accountant' : 'Accept Transactions'}
@@ -182,7 +182,7 @@ const Handover = () => {
               <th className="p-4 text-right">LKR Equivalent</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 text-slate-655 font-semibold">
+          <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
             {payments.map((p) => (
               <tr key={p.id} className="hover:bg-slate-50/20 transition">
                 <td className="p-4">
