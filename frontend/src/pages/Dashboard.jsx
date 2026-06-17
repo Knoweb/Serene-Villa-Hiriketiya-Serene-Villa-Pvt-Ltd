@@ -62,7 +62,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white border border-emerald-100/60 p-5 rounded-2xl shadow-sm shadow-emerald-500/5 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Today's Guests</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Guests</p>
                 <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{foCards.todayGuests}</h3>
               </div>
               <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
@@ -72,7 +72,7 @@ const Dashboard = () => {
 
             <div className="bg-white border border-emerald-100/60 p-5 rounded-2xl shadow-sm shadow-emerald-500/5 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currently Staying</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Currently Staying</p>
                 <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{foCards.currentlyStaying}</h3>
               </div>
               <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
@@ -82,7 +82,7 @@ const Dashboard = () => {
 
             <div className="bg-white border border-emerald-100/60 p-5 rounded-2xl shadow-sm shadow-emerald-500/5 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Today Leaving</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today Leaving</p>
                 <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{foCards.todayLeaving}</h3>
               </div>
               <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
@@ -92,7 +92,7 @@ const Dashboard = () => {
 
             <div className="bg-white border border-emerald-100/60 p-5 rounded-2xl shadow-sm shadow-emerald-500/5 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Upcoming Bookings</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Upcoming Bookings</p>
                 <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{foCards.upcomingBookings}</h3>
               </div>
               <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
@@ -105,7 +105,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Guest Registrations</h3>
+                <h3 className="text-base font-bold text-slate-800 uppercase tracking-wider">Guest Registrations</h3>
                 {/* Search */}
                 <div className="relative w-full sm:w-64">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -114,13 +114,13 @@ const Dashboard = () => {
                     placeholder="Search by name/passport..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-9 pr-4 text-xs focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-9 pr-4 text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase">
                       <th className="py-3">Guest</th>
@@ -140,7 +140,7 @@ const Dashboard = () => {
                         <td className="py-3.5 font-mono">{g.passport}</td>
                         <td className="py-3.5">Room {g.room}</td>
                         <td className="py-3.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                             g.status === 'Paid' 
                               ? 'bg-emerald-100 text-emerald-800' 
                               : g.status === 'Pending' 
@@ -159,16 +159,16 @@ const Dashboard = () => {
 
             {/* Guest Details Panel */}
             <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Guest Details</h3>
+              <h3 className="text-base font-bold text-slate-800 uppercase tracking-wider">Guest Details</h3>
               {selectedGuest ? (
-                <div className="space-y-4 text-xs text-slate-600 font-semibold">
+                <div className="space-y-4 text-sm text-slate-600 font-semibold">
                   <div className="flex items-center gap-3 pb-3 border-b border-slate-50">
                     <div className="h-10 w-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-800 font-extrabold text-sm">
                       {selectedGuest.name.charAt(0)}
                     </div>
                     <div>
                       <p className="text-sm font-extrabold text-slate-900">{selectedGuest.name}</p>
-                      <p className="text-[10px] text-slate-400 font-bold">{selectedGuest.nationality}</p>
+                      <p className="text-xs text-slate-400 font-bold">{selectedGuest.nationality}</p>
                     </div>
                   </div>
 
@@ -196,7 +196,7 @@ const Dashboard = () => {
                   </div>
                 </div>
               ) : (
-                <div className="py-12 text-center text-slate-450 text-xs">
+                <div className="py-12 text-center text-slate-450 text-sm">
                   Select a guest from the list to view complete registration records.
                 </div>
               )}

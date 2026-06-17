@@ -150,14 +150,34 @@ const GuestRegistration = () => {
             {/* Nationality */}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nationality *</label>
-              <input
-                type="text"
+              <select
                 name="nationality"
-                placeholder="e.g. British"
                 value={formData.nationality}
                 onChange={handleInputChange}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-emerald-500 transition"
-              />
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-emerald-500 transition cursor-pointer text-slate-800"
+              >
+                <option value="">Select Nationality</option>
+                <option value="Sri Lankan">Sri Lankan</option>
+                <option value="British">British</option>
+                <option value="German">German</option>
+                <option value="Russian">Russian</option>
+                <option value="French">French</option>
+                <option value="Indian">Indian</option>
+                <option value="Australian">Australian</option>
+                <option value="Chinese">Chinese</option>
+                <option value="Maldivian">Maldivian</option>
+                <option value="American">American</option>
+                <option value="Canadian">Canadian</option>
+                <option value="Italian">Italian</option>
+                <option value="Swiss">Swiss</option>
+                <option value="Dutch">Dutch</option>
+                <option value="Swedish">Swedish</option>
+                <option value="Japanese">Japanese</option>
+                <option value="Ukrainian">Ukrainian</option>
+                <option value="Polish">Polish</option>
+                <option value="Spanish">Spanish</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
             {/* Dates */}

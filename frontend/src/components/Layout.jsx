@@ -46,15 +46,15 @@ const Layout = ({ children }) => {
           {/* Logo & Property Area */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain" />
+              <img src={logoImg} alt="Serene Villa Logo" className="h-11 w-11 object-contain" />
               <div>
-                <span className="font-bold text-slate-900 tracking-tight text-base">Serene Villa</span>
-                <span className="text-xs text-emerald-600 block -mt-1 font-medium">{currentProperty.name}</span>
+                <span className="font-bold text-slate-900 tracking-tight text-lg">Serene Villa</span>
+                <span className="text-sm text-emerald-600 block -mt-1 font-medium">{currentProperty.name}</span>
               </div>
             </div>
 
             {/* Navigation Tabs */}
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-8 ml-8">
               {navItems
                 .filter((item) => item.roles.includes(user.role))
                 .map((item) => {
@@ -63,10 +63,10 @@ const Layout = ({ children }) => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                      className={`px-1 py-1.5 text-base font-semibold tracking-wide transition-all border-b-2 ${
                         isActive
-                          ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100/50'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                           ? 'border-emerald-600 text-emerald-600'
+                           : 'border-transparent text-slate-600 hover:text-emerald-600'
                       }`}
                     >
                       {item.name}
@@ -79,36 +79,36 @@ const Layout = ({ children }) => {
           {/* Right Area: Notifications & Profile Dropdown */}
           <div className="flex items-center gap-4">
             {/* Notification Icon */}
-            <button className="h-9 w-9 rounded-full bg-slate-50 hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 flex items-center justify-center border border-slate-100 transition relative">
-              <Bell className="h-4.5 w-4.5" />
-              <span className="absolute top-2 right-2.5 h-2 w-2 bg-emerald-600 rounded-full"></span>
+            <button className="h-10 w-10 rounded-full bg-slate-50 hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 flex items-center justify-center border border-slate-100 transition relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-2.5 right-3 h-2 w-2 bg-emerald-600 rounded-full"></span>
             </button>
 
             {/* User Profile Dropdown */}
             <div className="relative">
               <button 
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-slate-50 hover:bg-emerald-50 border border-slate-100 transition text-left"
+                className="flex items-center gap-2.5 pl-2 pr-3 py-2 rounded-full bg-slate-50 hover:bg-emerald-50 border border-slate-100 transition text-left"
               >
-                <div className="h-7 w-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-750 font-bold text-xs">
+                <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-750 font-bold text-sm">
                   {user.username.charAt(0).toUpperCase()}
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-[11px] font-bold text-slate-900 leading-tight">{user.username}</p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none mt-0.5">{user.role}</p>
+                  <p className="text-sm font-bold text-slate-900 leading-tight">{user.username}</p>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider leading-none mt-0.5">{user.role}</p>
                 </div>
-                <ChevronDown className="h-3 w-3 text-slate-400" />
+                <ChevronDown className="h-4 w-4 text-slate-400" />
               </button>
 
               {profileDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg py-1 z-50">
-                  <div className="px-4 py-2 border-b border-slate-50 text-xs">
+                  <div className="px-4 py-2 border-b border-slate-50 text-sm">
                     <p className="text-slate-400">Signed in as</p>
                     <p className="font-bold text-slate-800 truncate">{user.username}</p>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 font-medium transition"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 font-medium transition"
                   >
                     <LogOut className="h-4 w-4" />
                     Sign Out

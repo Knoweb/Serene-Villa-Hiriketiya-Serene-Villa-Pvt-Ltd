@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    font-size: 17px;
+  }
   body {
     @apply bg-emerald-50/40 text-slate-800 font-sans antialiased selection:bg-emerald-100 selection:text-emerald-800;
   }
