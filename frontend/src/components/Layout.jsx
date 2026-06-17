@@ -6,7 +6,10 @@ import {
   User as UserIcon, 
   LogOut,
   Building,
-  ChevronDown
+  ChevronDown,
+  Instagram,
+  Facebook,
+  Mail
 } from 'lucide-react';
 import logoImg from '../assets/logo.jpeg';
 
@@ -61,13 +64,13 @@ const Layout = ({ children }) => {
                   const isActive = location.pathname === item.path;
                   return (
                     <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`px-1 py-1.5 text-base font-semibold tracking-wide transition-all border-b-2 ${
-                        isActive
-                           ? 'border-emerald-600 text-emerald-600'
-                           : 'border-transparent text-slate-600 hover:text-emerald-600'
-                      }`}
+                       key={item.path}
+                       to={item.path}
+                       className={`px-1 py-1.5 text-base font-semibold tracking-wide transition-all border-b-2 ${
+                         isActive
+                            ? 'border-emerald-600 text-emerald-600'
+                            : 'border-transparent text-slate-600 hover:text-emerald-600'
+                       }`}
                     >
                       {item.name}
                     </Link>
@@ -124,6 +127,47 @@ const Layout = ({ children }) => {
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8">
         {children}
       </main>
+
+      {/* Footer Section */}
+      <footer className="bg-gradient-to-b from-slate-900 to-emerald-950 text-slate-300 py-8 border-t border-emerald-900/40 print:hidden mt-10">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center space-y-5">
+          
+          {/* Logo */}
+          <div className="bg-white p-1 rounded shadow-md flex items-center justify-center">
+            <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain" />
+          </div>
+
+          {/* Tagline */}
+          <p className="text-[11px] md:text-xs text-slate-400 font-medium tracking-wide text-center">
+            Discover a Range of Exceptional Services Tailored to Enhance Your Experience
+          </p>
+
+          {/* Divider */}
+          <div className="w-full border-t border-slate-800/80"></div>
+
+          {/* Bottom Bar */}
+          <div className="w-full flex flex-col md:flex-row items-center justify-between gap-3 text-[10px] text-slate-550 font-bold">
+            {/* Copyright */}
+            <p>
+              © 2026 Serene Villa. Designed & Developed by <a href="https://knowebsolutions.com" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-500 transition">knowebsolutions</a>.
+            </p>
+
+            {/* Social Icons */}
+            <div className="flex items-center gap-2">
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="h-7 w-7 rounded bg-slate-800/60 hover:bg-emerald-800/30 border border-slate-700/60 hover:border-emerald-600/40 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition">
+                <Instagram size={12} />
+              </a>
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="h-7 w-7 rounded bg-slate-800/60 hover:bg-emerald-800/30 border border-slate-700/60 hover:border-emerald-600/40 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition">
+                <Facebook size={12} />
+              </a>
+              <a href="mailto:reservations@serenevilla.com" className="h-7 w-7 rounded bg-slate-800/60 hover:bg-emerald-800/30 border border-slate-700/60 hover:border-emerald-600/40 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition">
+                <Mail size={12} />
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </footer>
     </div>
   );
 };
