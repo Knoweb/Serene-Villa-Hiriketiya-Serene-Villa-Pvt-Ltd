@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payments")
@@ -37,4 +38,20 @@ public class Payment {
     private LocalDate paymentDate = LocalDate.now();
 
     private String receiptNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "accountant_transfer_status", nullable = false)
+    private AccountantTransferStatus accountantTransferStatus = AccountantTransferStatus.NONE;
+
+    @Column(name = "sent_to_accountant_at")
+    private LocalDateTime sentToAccountantAt;
+
+    @Column(name = "sent_to_accountant_by_id")
+    private Long sentToAccountantById;
+
+    @Column(name = "accepted_by_accountant_at")
+    private LocalDateTime acceptedByAccountantAt;
+
+    @Column(name = "accepted_by_accountant_id")
+    private Long acceptedByAccountantId;
 }
