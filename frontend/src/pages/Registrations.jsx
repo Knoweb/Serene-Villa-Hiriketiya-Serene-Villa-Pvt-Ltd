@@ -19,6 +19,7 @@ import {
   FileText,
   MapPin,
   Check,
+  FileDown,
   X,
   Share2,
   Printer,
@@ -352,6 +353,30 @@ const Registrations = () => {
 
   const qrUrl = window.location.origin + '/qr-register';
   const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrUrl)}`;
+
+  const handleDownloadQr = async () => {
+    try {
+      const response = await fetch(qrImageSrc);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'serene_villa_checkin_qr.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download QR code', error);
+      alert('Could not download QR code. Please try again or right-click the image to save.');
+    }
+  };
+
+  const handleShareQr = () => {
+    const shareText = `Scan this QR code or click the link to fill out the Serene Villa Guest Registration Form: ${qrUrl}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(whatsappUrl, '_blank');
+  };
 
   const associatedBooking = selectedReg ? getBookingForReg(selectedReg.id) : null;
 
@@ -1025,16 +1050,28 @@ const Registrations = () => {
               </p>
             </div>
 
-            <div className="flex justify-center gap-2 pt-2 text-xs">
+            <div className="flex flex-col sm:flex-row justify-center gap-2 pt-2 text-xs no-print">
+              <button 
+                onClick={handleDownloadQr}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <FileDown size={14} /> Download QR
+              </button>
+              <button 
+                onClick={handleShareQr}
+                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Share2 size={14} /> Share Link
+              </button>
               <button 
                 onClick={() => window.print()}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition"
+                className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Print Flyer
+                <Printer size={14} /> Print Flyer
               </button>
               <button 
                 onClick={() => setShowQr(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition"
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition cursor-pointer"
               >
                 Close
               </button>
