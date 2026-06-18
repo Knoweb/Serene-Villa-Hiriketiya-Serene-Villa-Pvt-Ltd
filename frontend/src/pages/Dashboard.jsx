@@ -216,8 +216,8 @@ const Dashboard = () => {
               </h3>
               <p className="text-xs text-slate-500">Create, manage, and monitor activities performed by Front Office and Accountant roles.</p>
               <div className="flex gap-2">
-                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold">3 FO Staff</span>
-                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold">1 Accountant</span>
+                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold">0 FO Staff</span>
+                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold">0 Accountant</span>
               </div>
             </div>
 
@@ -236,11 +236,11 @@ const Dashboard = () => {
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-slate-500 font-semibold">Direct Bookings</span>
-                  <span className="font-bold text-slate-800">14 (38%)</span>
+                  <span className="font-bold text-slate-800">0 (0%)</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500 font-semibold">Booking.com</span>
-                  <span className="font-bold text-slate-800">22 (62%)</span>
+                  <span className="font-bold text-slate-800">0 (0%)</span>
                 </div>
               </div>
             </div>
@@ -250,18 +250,8 @@ const Dashboard = () => {
                 <Percent className="h-4.5 w-4.5 text-emerald-600" /> Pending Discount Approvals
               </h3>
               <div className="border border-slate-50 rounded-xl overflow-hidden text-xs">
-                <div className="flex justify-between bg-slate-50/50 p-3 font-bold text-slate-400 uppercase">
-                  <span>Guest</span>
-                  <span>Amount Requested</span>
-                  <span>Reason</span>
-                </div>
-                <div className="p-3 flex justify-between items-center hover:bg-slate-50/30">
-                  <div>
-                    <p className="font-bold text-slate-800">Hiroshi Tanaka</p>
-                    <p className="text-[10px] text-slate-400">Booking Ref: SV-2026-0002</p>
-                  </div>
-                  <span className="font-bold text-slate-900">LKR 15,000</span>
-                  <span className="text-slate-500">Loyalty guest request</span>
+                <div className="p-8 text-center text-slate-400 font-bold">
+                  No pending discount approval requests.
                 </div>
               </div>
             </div>
@@ -284,15 +274,8 @@ const Dashboard = () => {
                 <CheckCircle className="h-4.5 w-4.5 text-emerald-600" /> Pending Shift Handover approvals
               </h3>
               
-              <div className="border border-slate-50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs bg-slate-50/30">
-                <div>
-                  <p className="font-bold text-slate-850">Shift Date: 2026-06-16</p>
-                  <p className="text-[10px] text-slate-400">Submitted by: fo_user • 2 Transactions</p>
-                </div>
-                <div>
-                  <span className="text-xs font-extrabold text-slate-900 block sm:text-right">LKR 100,000</span>
-                  <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded uppercase tracking-wider block mt-1 text-center">Pending Review</span>
-                </div>
+              <div className="border border-slate-55 rounded-xl p-8 text-center text-slate-400 font-bold">
+                No pending shift handovers waiting for approval.
               </div>
             </div>
 
