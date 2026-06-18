@@ -48,6 +48,10 @@ const Reports = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // UI layout tabs
+  const [activeMainTab, setActiveMainTab] = useState('overview');
+  const [breakdownTab, setBreakdownTab] = useState('payments');
+
   // Fetch report data from API
   const fetchReport = async () => {
     setLoading(true);
@@ -293,7 +297,7 @@ const Reports = () => {
 
       {/* Report Body */}
       {!loading && !error && data && (
-        <div className="space-y-8">
+        <div className="space-y-6">
           
           {/* Print Only Header Banner */}
           <div className="hidden print:block border-b border-emerald-500 pb-4 mb-6">
@@ -305,204 +309,273 @@ const Reports = () => {
             </p>
           </div>
 
-          {/* Stats Widgets */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between text-slate-400">
-                <p className="text-[10px] font-bold uppercase tracking-wider">Total Revenue</p>
-                <DollarSign className="h-4 w-4 text-emerald-600" />
-              </div>
-              <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{formatLKR(data.totalRevenue)}</h3>
-              <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1 font-bold">
-                <TrendingUp className="h-3 w-3" /> Settled payments
-              </p>
-            </div>
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between text-slate-400">
-                <p className="text-[10px] font-bold uppercase tracking-wider">Bookings Volume</p>
-                <Calendar className="h-4 w-4 text-emerald-600" />
-              </div>
-              <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{data.totalBookings}</h3>
-              <p className="text-[10px] text-slate-400 font-bold mt-1">Stays in period</p>
-            </div>
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between text-slate-400">
-                <p className="text-[10px] font-bold uppercase tracking-wider">Invoices Count</p>
-                <FileText className="h-4 w-4 text-emerald-600" />
-              </div>
-              <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{data.totalInvoices}</h3>
-              <p className="text-[10px] text-slate-400 font-bold mt-1">Transactions recorded</p>
-            </div>
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between text-slate-400">
-                <p className="text-[10px] font-bold uppercase tracking-wider">Outstanding Amount</p>
-                <AlertCircle className="h-4 w-4 text-rose-500" />
-              </div>
-              <h3 className="text-2xl font-extrabold text-rose-600 mt-1">{formatLKR(data.totalOutstandingAmount)}</h3>
-              <p className="text-[10px] text-rose-600 font-bold mt-1 flex items-center gap-1">
-                Collect at check-out
-              </p>
-            </div>
+          {/* Main Tab Switcher (no-print) */}
+          <div className="flex gap-2 border-b border-slate-100 pb-px no-print">
+            <button
+              onClick={() => setActiveMainTab('overview')}
+              className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition cursor-pointer ${
+                activeMainTab === 'overview'
+                  ? 'border-emerald-600 text-emerald-800 font-extrabold'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              Overview Summary
+            </button>
+            <button
+              onClick={() => setActiveMainTab('ledger')}
+              className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition cursor-pointer ${
+                activeMainTab === 'ledger'
+                  ? 'border-emerald-600 text-emerald-800 font-extrabold'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              Transaction Ledger
+            </button>
           </div>
 
-          {/* Breakdown / Secondary Summary Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            {/* Payment Methods */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-50 pb-2">Payment Methods</h4>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Cash:</span>
-                  <span className="text-slate-900 font-bold">{formatLKR(data.cashRevenue)}</span>
+          {/* 1. OVERVIEW VIEW */}
+          {(activeMainTab === 'overview' || window.matchMedia('print').matches) && (
+            <div className="space-y-6">
+              {/* Stats Widgets */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <p className="text-[10px] font-bold uppercase tracking-wider">Total Revenue</p>
+                    <DollarSign className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{formatLKR(data.totalRevenue)}</h3>
+                  <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1 font-bold">
+                    <TrendingUp className="h-3 w-3" /> Settled payments
+                  </p>
                 </div>
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Card:</span>
-                  <span className="text-slate-900 font-bold">{formatLKR(data.cardRevenue)}</span>
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <p className="text-[10px] font-bold uppercase tracking-wider">Bookings Volume</p>
+                    <Calendar className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{data.totalBookings}</h3>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">Stays in period</p>
                 </div>
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Bank Transfer:</span>
-                  <span className="text-slate-900 font-bold">{formatLKR(data.bankTransferRevenue)}</span>
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <p className="text-[10px] font-bold uppercase tracking-wider">Invoices Count</p>
+                    <FileText className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{data.totalInvoices}</h3>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">Transactions recorded</p>
                 </div>
-              </div>
-            </div>
-
-            {/* Guest Counts */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-50 pb-2">Occupancy & Guests</h4>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Total Check-Ins:</span>
-                  <span className="text-slate-900 font-bold">{data.totalCheckIns}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Total Check-Outs:</span>
-                  <span className="text-slate-900 font-bold">{data.totalCheckOuts}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Guests (Adults / Kids):</span>
-                  <span className="text-slate-900 font-bold">{data.totalGuests} ({data.totalAdults} / {data.totalChildren})</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Booking Sources */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-50 pb-2">Booking Channels</h4>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Direct Bookings:</span>
-                  <span className="text-slate-900 font-bold">{data.directBookingCount}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Booking.com:</span>
-                  <span className="text-slate-900 font-bold">{data.bookingComCount}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Advance Payments:</span>
-                  <span className="text-emerald-700 font-extrabold">{formatLKR(data.totalAdvancePayments)}</span>
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <p className="text-[10px] font-bold uppercase tracking-wider">Outstanding Amount</p>
+                    <AlertCircle className="h-4 w-4 text-rose-500" />
+                  </div>
+                  <h3 className="text-2xl font-extrabold text-rose-600 mt-1">{formatLKR(data.totalOutstandingAmount)}</h3>
+                  <p className="text-[10px] text-rose-600 font-bold mt-1 flex items-center gap-1">
+                    Collect at check-out
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Discounts */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-50 pb-2">Discounts & Rebates</h4>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Approved Total:</span>
-                  <span className="text-rose-600 font-bold">{formatLKR(data.approvedDiscountTotal)}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Pending Requests:</span>
-                  <span className="text-amber-600 font-bold">{data.pendingDiscountRequestCount}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Remaining Balance:</span>
-                  <span className="text-slate-900 font-bold">{formatLKR(data.totalRemainingBalance)}</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Ledger Table */}
-          <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Ledger & Transaction Log</h3>
-              <span className="bg-slate-50 border border-slate-100 rounded-full px-3 py-1 text-[10px] font-bold text-slate-500">
-                {data.rows.length} Transactions
-              </span>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
-                <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
-                    <th className="p-4">Receipt</th>
-                    <th className="p-4">Booking</th>
-                    <th className="p-4">Guest</th>
-                    <th className="p-4">Room</th>
-                    <th className="p-4">Stay Dates</th>
-                    <th className="p-4">Method</th>
-                    <th className="p-4">Paid Currency</th>
-                    <th className="p-4 text-right">LKR Paid</th>
-                    <th className="p-4 text-right">Remaining</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
-                  {data.rows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/20 transition">
-                      <td className="p-4 font-bold text-slate-900">{row.invoiceNumber}</td>
-                      <td className="p-4">{row.bookingNumber}</td>
-                      <td className="p-4">
-                        <div>
-                          <p className="font-bold text-slate-800">{row.guestName}</p>
-                          <p className="text-[10px] text-slate-400">{row.passportNumber}</p>
-                        </div>
-                      </td>
-                      <td className="p-4">{row.roomName}</td>
-                      <td className="p-4">
-                        {row.checkInDate} to {row.checkOutDate}
-                        <span className="text-[10px] text-slate-400 block font-normal">{row.numberOfNights} Nights ({row.bookingSource})</span>
-                      </td>
-                      <td className="p-4">
-                        <span className="bg-slate-50 text-slate-600 border border-slate-100 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">
-                          {row.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        {row.currencyCode} {row.paidAmount} 
-                        {row.currencyCode !== 'LKR' && (
-                          <span className="text-[10px] text-slate-405 block">Rate: {row.exchangeRate}</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-right font-mono font-bold text-slate-900">
-                        {formatLKR(row.convertedAmount)}
-                      </td>
-                      <td className="p-4 text-right font-mono text-slate-500">
-                        {formatLKR(row.remainingBalance)}
-                      </td>
-                    </tr>
+              {/* Simplified consolidated breakdown panel */}
+              <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+                <div className="border-b border-slate-100 bg-slate-50/50 p-2 flex flex-wrap gap-1.5 no-print">
+                  {[
+                    { id: 'payments', label: 'Payment Methods' },
+                    { id: 'occupancy', label: 'Occupancy & Guests' },
+                    { id: 'channels', label: 'Booking Channels' },
+                    { id: 'discounts', label: 'Discounts & Rebates' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setBreakdownTab(tab.id)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                        breakdownTab === tab.id
+                          ? 'bg-emerald-600 text-white shadow-sm border border-emerald-600'
+                          : 'text-slate-500 hover:bg-slate-100 border border-transparent'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
                   ))}
+                </div>
 
-                  {data.rows.length === 0 && (
-                    <tr>
-                      <td colSpan="9" className="p-8 text-center text-slate-400 font-bold">
-                        No transactions recorded for the selected period.
-                      </td>
-                    </tr>
+                {/* Print mode displays all breakdowns sequentially */}
+                <div className="p-6">
+                  {/* Payments Segment */}
+                  {(breakdownTab === 'payments' || window.matchMedia('print').matches) && (
+                    <div className="space-y-4 max-w-md print:mb-6">
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <CreditCard className="h-4 w-4 text-emerald-600" /> Revenue by Payment Method
+                      </h4>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Cash:</span>
+                          <span className="text-slate-900 font-bold">{formatLKR(data.cashRevenue)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Card:</span>
+                          <span className="text-slate-900 font-bold">{formatLKR(data.cardRevenue)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Bank Transfer:</span>
+                          <span className="text-slate-900 font-bold">{formatLKR(data.bankTransferRevenue)}</span>
+                        </div>
+                      </div>
+                    </div>
                   )}
 
-                  <tr className="bg-slate-50/30 font-bold border-t border-slate-100">
-                    <td colSpan="7" className="p-4 text-slate-400 text-right uppercase">Total Revenue (Settled):</td>
-                    <td className="p-4 text-right font-mono text-emerald-700 text-sm">{formatLKR(data.totalRevenue)}</td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
+                  {/* Occupancy Segment */}
+                  {(breakdownTab === 'occupancy' || window.matchMedia('print').matches) && (
+                    <div className={`space-y-4 max-w-md print:mb-6 ${breakdownTab !== 'occupancy' ? 'hidden print:block' : ''}`}>
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Users className="h-4 w-4 text-emerald-600" /> Occupancy & Guest Details
+                      </h4>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Total Check-Ins:</span>
+                          <span className="text-slate-900 font-bold">{data.totalCheckIns}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Total Check-Outs:</span>
+                          <span className="text-slate-900 font-bold">{data.totalCheckOuts}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Guests (Adults / Kids):</span>
+                          <span className="text-slate-900 font-bold">{data.totalGuests} ({data.totalAdults} / {data.totalChildren})</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Channels Segment */}
+                  {(breakdownTab === 'channels' || window.matchMedia('print').matches) && (
+                    <div className={`space-y-4 max-w-md print:mb-6 ${breakdownTab !== 'channels' ? 'hidden print:block' : ''}`}>
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Building className="h-4 w-4 text-emerald-600" /> Booking Channels & Sources
+                      </h4>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Direct Bookings:</span>
+                          <span className="text-slate-900 font-bold">{data.directBookingCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Booking.com:</span>
+                          <span className="text-slate-900 font-bold">{data.bookingComCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Advance Payments:</span>
+                          <span className="text-emerald-700 font-extrabold">{formatLKR(data.totalAdvancePayments)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Discounts Segment */}
+                  {(breakdownTab === 'discounts' || window.matchMedia('print').matches) && (
+                    <div className={`space-y-4 max-w-md ${breakdownTab !== 'discounts' ? 'hidden print:block' : ''}`}>
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Percent className="h-4 w-4 text-emerald-600" /> Discounts & Outstandings
+                      </h4>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Approved Total:</span>
+                          <span className="text-rose-600 font-bold">{formatLKR(data.approvedDiscountTotal)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Pending Requests:</span>
+                          <span className="text-amber-600 font-bold">{data.pendingDiscountRequestCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Remaining Balance:</span>
+                          <span className="text-slate-900 font-bold">{formatLKR(data.totalRemainingBalance)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* 2. LEDGER VIEW */}
+          {(activeMainTab === 'ledger' || window.matchMedia('print').matches) && (
+            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between no-print">
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Ledger & Transaction Log</h3>
+                <span className="bg-slate-50 border border-slate-100 rounded-full px-3 py-1 text-[10px] font-bold text-slate-500">
+                  {data.rows.length} Transactions
+                </span>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="p-4">Receipt</th>
+                      <th className="p-4">Booking</th>
+                      <th className="p-4">Guest</th>
+                      <th className="p-4">Room</th>
+                      <th className="p-4">Stay Dates</th>
+                      <th className="p-4">Method</th>
+                      <th className="p-4">Paid Currency</th>
+                      <th className="p-4 text-right">LKR Paid</th>
+                      <th className="p-4 text-right">Remaining</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
+                    {data.rows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/20 transition">
+                        <td className="p-4 font-bold text-slate-900">{row.invoiceNumber}</td>
+                        <td className="p-4">{row.bookingNumber}</td>
+                        <td className="p-4">
+                          <div>
+                            <p className="font-bold text-slate-800">{row.guestName}</p>
+                            <p className="text-[10px] text-slate-400">{row.passportNumber}</p>
+                          </div>
+                        </td>
+                        <td className="p-4">{row.roomName}</td>
+                        <td className="p-4">
+                          {row.checkInDate} to {row.checkOutDate}
+                          <span className="text-[10px] text-slate-400 block font-normal">{row.numberOfNights} Nights ({row.bookingSource})</span>
+                        </td>
+                        <td className="p-4">
+                          <span className="bg-slate-50 text-slate-600 border border-slate-100 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">
+                            {row.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          {row.currencyCode} {row.paidAmount} 
+                          {row.currencyCode !== 'LKR' && (
+                            <span className="text-[10px] text-slate-405 block">Rate: {row.exchangeRate}</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right font-mono font-bold text-slate-900">
+                          {formatLKR(row.convertedAmount)}
+                        </td>
+                        <td className="p-4 text-right font-mono text-slate-500">
+                          {formatLKR(row.remainingBalance)}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {data.rows.length === 0 && (
+                      <tr>
+                        <td colSpan="9" className="p-8 text-center text-slate-400 font-bold">
+                          No transactions recorded for the selected period.
+                        </td>
+                      </tr>
+                    )}
+
+                    <tr className="bg-slate-50/30 font-bold border-t border-slate-100">
+                      <td colSpan="7" className="p-4 text-slate-400 text-right uppercase">Total Revenue (Settled):</td>
+                      <td className="p-4 text-right font-mono text-emerald-700 text-sm">{formatLKR(data.totalRevenue)}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
         </div>
       )}
