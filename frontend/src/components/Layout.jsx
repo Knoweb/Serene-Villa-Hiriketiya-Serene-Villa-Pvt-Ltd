@@ -47,17 +47,17 @@ const Layout = ({ children }) => {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           
           {/* Logo & Property Area */}
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <img src={logoImg} alt="Serene Villa Logo" className="h-11 w-11 object-contain" />
-              <div>
-                <span className="font-bold text-slate-900 tracking-tight text-lg">Serene Villa</span>
-                <span className="text-sm text-emerald-600 block -mt-1 font-medium">{currentProperty.name}</span>
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-2 shrink-0">
+              <img src={logoImg} alt="Serene Villa Logo" className="h-11 w-11 object-contain shrink-0" />
+              <div className="shrink-0">
+                <span className="font-bold text-slate-900 tracking-tight text-base whitespace-nowrap block">Serene Villa</span>
+                <span className="text-xs text-emerald-600 block -mt-1 font-medium whitespace-nowrap">{currentProperty.name}</span>
               </div>
             </div>
 
             {/* Navigation Tabs */}
-            <nav className="hidden lg:flex items-center gap-8 ml-8">
+            <nav className="hidden xl:flex items-center gap-3.5 ml-4 shrink-0">
               {navItems
                 .filter((item) => item.roles.includes(user.role))
                 .map((item) => {
@@ -66,10 +66,32 @@ const Layout = ({ children }) => {
                     <Link
                        key={item.path}
                        to={item.path}
-                       className={`px-1 py-1.5 text-base font-semibold tracking-wide transition-all border-b-2 ${
+                       className={`px-1 py-1.5 text-xs font-bold tracking-wide transition-all border-b-2 whitespace-nowrap ${
                          isActive
                             ? 'border-emerald-600 text-emerald-600'
-                            : 'border-transparent text-slate-600 hover:text-emerald-600'
+                            : 'border-transparent text-slate-500 hover:text-emerald-600'
+                       }`}
+                    >
+                      {item.name}
+                    </Link>
+                  );
+                })}
+            </nav>
+            
+            {/* Fallback for smaller desktop displays to show a compact scrollable list */}
+            <nav className="hidden lg:flex xl:hidden items-center gap-2.5 ml-3 overflow-x-auto no-scrollbar py-1 shrink">
+              {navItems
+                .filter((item) => item.roles.includes(user.role))
+                .map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                       key={item.path}
+                       to={item.path}
+                       className={`px-1 py-1 text-[11px] font-bold tracking-wide transition-all border-b-2 whitespace-nowrap ${
+                         isActive
+                            ? 'border-emerald-600 text-emerald-600'
+                            : 'border-transparent text-slate-500 hover:text-emerald-600'
                        }`}
                     >
                       {item.name}
