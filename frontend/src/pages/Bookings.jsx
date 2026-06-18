@@ -18,49 +18,7 @@ const Bookings = () => {
 
   const initialAllocation = location.state?.allocateFromReg || null;
 
-  const [bookings, setBookings] = useState([
-    {
-      id: 501,
-      bookingNumber: 'SV-2026-0001',
-      guestName: 'Liam Johnson',
-      roomNumber: '101',
-      roomType: 'Deluxe Ocean View',
-      checkInDate: '2026-06-18',
-      checkOutDate: '2026-06-25',
-      nights: 7,
-      boardBasis: 'Full Board',
-      bookingType: 'Direct',
-      totalAmount: 140000,
-      advancePaid: 40000,
-      paymentSlipUploaded: true,
-      discountRequested: false,
-      discountApproved: false,
-      discountAmount: 0,
-      paymentStatus: 'Partial',
-      status: 'Confirmed'
-    },
-    {
-      id: 502,
-      bookingNumber: 'SV-2026-0002',
-      guestName: 'Hiroshi Tanaka',
-      roomNumber: '201',
-      roomType: 'Tropical Plunge Suite',
-      checkInDate: '2026-06-22',
-      checkOutDate: '2026-06-28',
-      nights: 6,
-      boardBasis: 'Room Only',
-      bookingType: 'Booking.com',
-      totalAmount: 180000,
-      advancePaid: 0,
-      paymentSlipUploaded: false,
-      discountRequested: true,
-      discountApproved: false,
-      discountAmount: 15000,
-      discountReason: 'Loyalty guest request',
-      paymentStatus: 'Unpaid',
-      status: 'Confirmed'
-    }
-  ]);
+  const [bookings, setBookings] = useState([]);
 
   const [allocationForm, setAllocationForm] = useState(initialAllocation ? {
     guestName: initialAllocation.guestName,

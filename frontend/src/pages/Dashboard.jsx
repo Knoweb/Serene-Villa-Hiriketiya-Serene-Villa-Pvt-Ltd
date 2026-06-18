@@ -30,17 +30,13 @@ const Dashboard = () => {
 
   // Front Office Mock Data
   const foCards = {
-    todayGuests: 14,
-    currentlyStaying: 28,
-    todayLeaving: 6,
-    upcomingBookings: 19
+    todayGuests: 0,
+    currentlyStaying: 0,
+    todayLeaving: 0,
+    upcomingBookings: 0
   };
 
-  const guestRegistrations = [
-    { id: 1, name: 'Liam Johnson', passport: 'UK998877A', status: 'Paid', room: '101', in: '2026-06-18', out: '2026-06-25', phone: '+44 7911 123456', nationality: 'British' },
-    { id: 2, name: 'Sophia Miller', passport: 'DE556677B', status: 'Pending', room: '102', in: '2026-06-20', out: '2026-06-24', phone: '+49 170 1234567', nationality: 'German' },
-    { id: 3, name: 'Hiroshi Tanaka', passport: 'JP112233C', status: 'Unpaid', room: '201', in: '2026-06-22', out: '2026-06-28', phone: '+81 90 1234 5678', nationality: 'Japanese' }
-  ];
+  const guestRegistrations = [];
 
   const filteredGuests = guestRegistrations.filter(g => 
     g.name.toLowerCase().includes(searchQuery.toLowerCase()) || 

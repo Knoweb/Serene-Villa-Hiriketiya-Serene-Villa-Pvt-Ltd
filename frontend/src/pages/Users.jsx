@@ -22,12 +22,7 @@ const Users = () => {
   const [loading, setLoading] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
 
-  const [activities, setActivities] = useState([
-    { id: 101, staff: 'fo_user', action: 'Allocated Room 101 for Liam Johnson', time: '2026-06-16 09:15' },
-    { id: 102, staff: 'fo_user', action: 'Uploaded Advance Slip - LKR 40,000 for SV-2026-0001', time: '2026-06-16 09:18' },
-    { id: 103, staff: 'admin_user', action: 'Approved Discount LKR 15,000 for SV-2026-0002', time: '2026-06-16 09:20' },
-    { id: 104, staff: 'fo_user', action: 'Requested discount for Liam Johnson', time: '2026-06-16 09:22' }
-  ]);
+  const [activities, setActivities] = useState([]);
 
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');

@@ -15,32 +15,7 @@ const Payments = () => {
   const [rateEdit, setRateEdit] = useState({ ...exchangeRates });
   const [editing, setEditing] = useState(false);
 
-  const [payments, setPayments] = useState([
-    {
-      id: 1,
-      bookingRef: 'SV-2026-0001',
-      guestName: 'Liam Johnson',
-      amountInCurrency: 132.23,
-      currency: 'USD',
-      rate: 302.50,
-      amountLkr: 40000,
-      type: 'Advance Payment',
-      date: '2026-06-16',
-      method: 'Bank Transfer'
-    },
-    {
-      id: 2,
-      bookingRef: 'SV-2026-0001',
-      guestName: 'Liam Johnson',
-      amountInCurrency: 100000,
-      currency: 'LKR',
-      rate: 1.0,
-      amountLkr: 100000,
-      type: 'Final Payment',
-      date: '2026-06-16',
-      method: 'Cash'
-    }
-  ]);
+  const [payments, setPayments] = useState([]);
 
   const [newPayment, setNewPayment] = useState({
     bookingRef: '',

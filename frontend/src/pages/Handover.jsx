@@ -23,11 +23,7 @@ const Handover = () => {
       if (isFrontOfficer) {
         // Front Office: Fetch LKR payments from local list (NONE status to send)
         // Here we simulate fetching FO payments that need handover
-        const mockFOPayments = [
-          { id: 1, bookingRef: 'SV-2026-0001', guestName: 'Liam Johnson', amountLkr: 40000, currency: 'USD', method: 'Bank Transfer', accountantTransferStatus: 'NONE', date: '2026-06-16' },
-          { id: 2, bookingRef: 'SV-2026-0001', guestName: 'Liam Johnson', amountLkr: 100000, currency: 'LKR', method: 'Cash', accountantTransferStatus: 'NONE', date: '2026-06-16' },
-          { id: 3, bookingRef: 'SV-2026-0002', guestName: 'Hiroshi Tanaka', amountLkr: 165000, currency: 'LKR', method: 'Card', accountantTransferStatus: 'NONE', date: '2026-06-17' }
-        ];
+        const mockFOPayments = [];
         
         // Try to fetch from real API if backend is running (optional/fallback)
         try {
@@ -36,7 +32,7 @@ const Handover = () => {
             // If API works, use it or fallback
           }
         } catch(e) {}
-
+ 
         setPayments(mockFOPayments);
       } else {
         // Accountant/Admin: Fetch pending from `/api/billing/accountant/pending`
@@ -54,10 +50,7 @@ const Handover = () => {
         }
         
         // Mock pending accountant handovers
-        setPayments([
-          { id: 10, bookingRef: 'SV-2026-0001', guestName: 'Liam Johnson', amountLkr: 40000, currency: 'USD', method: 'Bank Transfer', accountantTransferStatus: 'PENDING', date: '2026-06-16' },
-          { id: 11, bookingRef: 'SV-2026-0001', guestName: 'Liam Johnson', amountLkr: 100000, currency: 'LKR', method: 'Cash', accountantTransferStatus: 'PENDING', date: '2026-06-16' }
-        ]);
+        setPayments([]);
       }
     } catch (err) {
       console.error(err);
