@@ -19,11 +19,16 @@ const Login = () => {
       return;
     }
 
-    // Auto-detect role based on input
+    // Auto-detect role and validate credentials
     let determinedRole = 'FRONT_OFFICER';
     const lowerUser = username.toLowerCase();
+    
     if (lowerUser.includes('admin')) {
       determinedRole = 'ADMIN';
+      if (username !== 'admin@serene.com' || password !== 'admin@serene123') {
+        setError('Invalid admin credentials');
+        return;
+      }
     } else if (lowerUser.includes('account')) {
       determinedRole = 'ACCOUNTANT';
     }
