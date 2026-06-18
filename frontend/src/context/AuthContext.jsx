@@ -15,17 +15,29 @@ export const AuthProvider = ({ children }) => {
     invoiceStartNumber: 0,
   });
 
-  const login = (username, password, role) => {
-    // Basic simulated authentication for base system setup
-    const userData = {
-      username,
-      role: role.toUpperCase(), // ADMIN, ACCOUNTANT, FRONT_OFFICER
-      token: 'simulated-jwt-token-xyz',
-      propertyId: currentProperty.id,
-    };
-    setUser(userData);
-    localStorage.setItem('pms_user', JSON.stringify(userData));
-    return true;
+  const login = async (username, password) => {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
+        localStorage.setItem('pms_user', JSON.stringify(userData));
+        return { success: true };
+      } else {
+        const errData = await res.json();
+        return { success: false, message: errData.message || 'Invalid credentials' };
+      }
+    } catch (err) {
+      return { success: false, message: 'Server is currently offline. Please ensure the backend is running.' };
+    }
   };
 
   const logout = () => {

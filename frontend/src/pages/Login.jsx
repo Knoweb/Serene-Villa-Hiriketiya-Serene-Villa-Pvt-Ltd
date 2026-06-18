@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Building, Mail, Lock } from 'lucide-react';
+import { Building, Mail, Lock, Loader } from 'lucide-react';
 import logoImg from '../assets/logo.jpeg';
 
 const Login = () => {
@@ -9,35 +9,26 @@ const Login = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('ADMIN');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username) {
-      setError('Please enter your email or username');
+    if (!username || !password) {
+      setError('Please enter both email/username and password');
       return;
     }
 
-    // Auto-detect role and validate credentials
-    let determinedRole = 'FRONT_OFFICER';
-    const lowerUser = username.toLowerCase();
-    
-    if (lowerUser.includes('admin')) {
-      determinedRole = 'ADMIN';
-      if (username !== 'admin@serene.com' || password !== 'admin@serene123') {
-        setError('Invalid admin credentials');
-        return;
-      }
-    } else if (lowerUser.includes('account')) {
-      determinedRole = 'ACCOUNTANT';
-    }
+    setLoading(true);
+    setError('');
 
-    const success = login(username, password, determinedRole);
-    if (success) {
+    const res = await login(username, password);
+    setLoading(false);
+    
+    if (res.success) {
       navigate('/dashboard');
     } else {
-      setError('Invalid credentials');
+      setError(res.message || 'Invalid username or password');
     }
   };
 
@@ -117,8 +108,10 @@ const Login = () => {
 
             <button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-md"
+              disabled={loading}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-600/60 text-white font-bold py-3 rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
+              {loading && <Loader className="h-4 w-4 animate-spin" />}
               Login
             </button>
           </form>

@@ -19,14 +19,27 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
-        String roleStr = credentials.get("role");
+        String password = credentials.get("password");
         
-        // Skeletal login logic
+        java.util.Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("message", "User not found"));
+        }
+        
+        User user = userOpt.get();
+        if (!user.getPassword().equals(password)) {
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid password"));
+        }
+        
+        if (!user.isActive()) {
+            return ResponseEntity.status(401).body(Map.of("message", "User account is inactive"));
+        }
+        
         return ResponseEntity.ok(Map.of(
-            "username", username,
-            "role", roleStr,
-            "token", "simulated-jwt-token",
-            "propertyId", 1L
+            "username", user.getUsername(),
+            "role", user.getRole().name(),
+            "token", "simulated-jwt-token-xyz",
+            "propertyId", user.getPropertyId() != null ? user.getPropertyId() : 1L
         ));
     }
 
