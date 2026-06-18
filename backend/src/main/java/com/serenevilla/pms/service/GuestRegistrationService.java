@@ -11,12 +11,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.serenevilla.pms.handler.RegistrationWebSocketHandler;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class GuestRegistrationService {
+
+    @Autowired
+    private RegistrationWebSocketHandler webSocketHandler;
 
     @Autowired
     private GuestRegistrationRepository guestRegistrationRepository;
@@ -35,7 +39,9 @@ public class GuestRegistrationService {
         registration.setHiddenFromFrontOffice(false);
         registration.setCreatedBy("Public QR Code");
 
-        return guestRegistrationRepository.save(registration);
+        GuestRegistration saved = guestRegistrationRepository.save(registration);
+        webSocketHandler.broadcast("update");
+        return saved;
     }
 
     public Page<GuestRegistration> searchRegistrations(String search, String status, String role, int page, int size) {
@@ -55,7 +61,9 @@ public class GuestRegistrationService {
     public Optional<GuestRegistration> setVisibility(Long id, boolean hide) {
         return guestRegistrationRepository.findById(id).map(reg -> {
             reg.setHiddenFromFrontOffice(hide);
-            return guestRegistrationRepository.save(reg);
+            GuestRegistration saved = guestRegistrationRepository.save(reg);
+            webSocketHandler.broadcast("update");
+            return saved;
         });
     }
 
@@ -110,6 +118,7 @@ public class GuestRegistrationService {
             }
 
             bookingRepository.save(booking);
+            webSocketHandler.broadcast("update");
             return savedReg;
         });
     }

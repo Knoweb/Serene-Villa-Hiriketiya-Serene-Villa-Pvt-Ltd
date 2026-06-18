@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import logoImg from '../assets/logo.jpeg';
+import deluxeRoomImg from '../assets/deluxe_room.png';
+import suiteRoomImg from '../assets/suite_room.png';
+import standardRoomImg from '../assets/standard_room.png';
+import budgetRoomImg from '../assets/budget_room.png';
 import { useAuth } from '../context/AuthContext';
 import { 
   Eye, 
@@ -29,6 +33,29 @@ import { useNavigate } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
+const ROOM_TEMPLATES = {
+  'Deluxe Room': {
+    image: deluxeRoomImg,
+    occupancy: '2 Adults',
+    features: ['AC', 'Free Wi-Fi', 'King Bed', 'Ocean/Balcony View', 'Minibar', 'Hot Water']
+  },
+  'Suite Room': {
+    image: suiteRoomImg,
+    occupancy: '3 Adults',
+    features: ['Private Plunge Pool', 'Ocean View', 'King Bed', 'Free Wi-Fi', 'Lounge Area', 'AC']
+  },
+  'Standard Room': {
+    image: standardRoomImg,
+    occupancy: '2 Adults',
+    features: ['AC', 'Free Wi-Fi', 'Queen Bed', 'Garden View', 'Hot Water']
+  },
+  'Budget Room': {
+    image: budgetRoomImg,
+    occupancy: '2 Adults',
+    features: ['AC', 'Free Wi-Fi', 'Queen Bed', 'Hot Water']
+  }
+};
+
 const Registrations = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -47,6 +74,7 @@ const Registrations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showQr, setShowQr] = useState(false);
+  const [customHost, setCustomHost] = useState(() => window.location.hostname);
 
   // Selected Guest for Details Panel
   const [selectedReg, setSelectedReg] = useState(null);
@@ -135,6 +163,53 @@ const Registrations = () => {
   useEffect(() => {
     fetchRegistrations();
   }, [debouncedSearch, statusFilter, page]);
+
+  const fetchRegistrationsRef = React.useRef(fetchRegistrations);
+  useEffect(() => {
+    fetchRegistrationsRef.current = fetchRegistrations;
+  }, [fetchRegistrations]);
+
+  useEffect(() => {
+    let wsUrl;
+    try {
+      const url = new URL(API_BASE);
+      const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${url.host}/ws/registrations`;
+    } catch (e) {
+      wsUrl = `ws://${window.location.hostname}:8080/ws/registrations`;
+    }
+
+    let socket;
+    let reconnectTimeout;
+
+    const connect = () => {
+      socket = new WebSocket(wsUrl);
+
+      socket.onmessage = (event) => {
+        if (event.data === 'update') {
+          fetchRegistrationsRef.current();
+        }
+      };
+
+      socket.onclose = () => {
+        reconnectTimeout = setTimeout(connect, 5000);
+      };
+
+      socket.onerror = () => {
+        socket.close();
+      };
+    };
+
+    connect();
+
+    return () => {
+      if (socket) {
+        socket.onclose = null;
+        socket.close();
+      }
+      clearTimeout(reconnectTimeout);
+    };
+  }, []);
 
   // Toggle Visibility (Admin Only)
   const handleToggleVisibility = async (reg, e) => {
@@ -351,7 +426,8 @@ const Registrations = () => {
     return bookings.find(b => b.guestRegistrationId === regId);
   };
 
-  const qrUrl = window.location.origin + '/qr-register';
+  const qrPort = window.location.port ? `:${window.location.port}` : '';
+  const qrUrl = `${window.location.protocol}//${customHost}${qrPort}/qr-register`;
   const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrUrl)}`;
 
   const handleDownloadQr = async () => {
@@ -694,6 +770,44 @@ const Registrations = () => {
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
                     />
                   </div>
+
+                  {/* Room Preview Card */}
+                  {ROOM_TEMPLATES[bookingForm.roomType] && (
+                    <div className="col-span-2 mt-1 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex flex-col sm:flex-row gap-3 p-3 select-none">
+                      <div className="w-full sm:w-[120px] h-[90px] rounded-lg overflow-hidden relative shrink-0">
+                        <img 
+                          src={ROOM_TEMPLATES[bookingForm.roomType].image} 
+                          alt={bookingForm.roomType}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent flex items-end p-1.5">
+                          <span className="text-[8px] text-white font-bold bg-slate-900/30 backdrop-blur-xs px-1.5 py-0.5 rounded">
+                            Max: {ROOM_TEMPLATES[bookingForm.roomType].occupancy}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between py-0.5">
+                        <div>
+                          <h5 className="text-[11px] font-bold text-slate-800">{bookingForm.roomType} Preview</h5>
+                          <p className="text-[9px] text-slate-400 leading-normal">
+                            Premium room layout equipped with modern amenities for a serene guest experience.
+                          </p>
+                        </div>
+                        <div className="mt-1">
+                          <div className="flex flex-wrap gap-1">
+                            {ROOM_TEMPLATES[bookingForm.roomType].features.map((feat, idx) => (
+                              <span 
+                                key={idx} 
+                                className="text-[8px] bg-white border border-slate-200/50 text-slate-500 font-bold px-1.5 py-0.5 rounded"
+                              >
+                                {feat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Booking Type */}
                   <div className="space-y-1.5">
@@ -1042,6 +1156,24 @@ const Registrations = () => {
                 alt="Registration QR Code" 
                 className="w-full h-auto object-contain rounded"
               />
+            </div>
+
+            <div className="space-y-3 no-print">
+              <label className="block text-xs font-bold text-slate-700 text-left">
+                Configuration Host/IP:
+              </label>
+              <input
+                type="text"
+                value={customHost}
+                onChange={(e) => setCustomHost(e.target.value)}
+                placeholder="e.g. 192.168.8.127"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              {(customHost === 'localhost' || customHost === '127.0.0.1') && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[10px] text-amber-800 text-left font-medium">
+                  ⚠️ <strong>Warning:</strong> "localhost" is only accessible from this computer. To allow mobile devices to scan and connect, please enter your computer's local network IP (e.g. 192.168.8.127).
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

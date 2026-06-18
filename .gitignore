@@ -8,3 +8,7 @@ backend/target/
 !frontend/public/deluxe.png
 !frontend/public/suite.png
 !frontend/public/login_bg.png
+!frontend/src/assets/deluxe_room.png
+!frontend/src/assets/suite_room.png
+!frontend/src/assets/standard_room.png
+!frontend/src/assets/budget_room.png
