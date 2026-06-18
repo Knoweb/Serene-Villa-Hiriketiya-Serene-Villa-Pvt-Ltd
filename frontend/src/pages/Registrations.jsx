@@ -27,7 +27,8 @@ import {
   X,
   Share2,
   Printer,
-  Receipt
+  Receipt,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -579,9 +580,26 @@ const Registrations = () => {
                             isSelected ? 'bg-emerald-50/30 hover:bg-emerald-50/40' : ''
                           }`}
                         >
-                          <td className="p-4">
-                            <p className="font-extrabold text-slate-900 text-sm">{reg.guestName}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{reg.nationality}</p>
+                          <td className="p-4 flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100/60 shrink-0 flex items-center justify-center font-bold text-emerald-800 text-sm">
+                              {reg.guestPhotoPath ? (
+                                <img 
+                                  src={reg.guestPhotoPath} 
+                                  alt={reg.guestName}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    // Hide image and fallback to initials
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                reg.guestName.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-extrabold text-slate-900 text-sm">{reg.guestName}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{reg.nationality}</p>
+                            </div>
                           </td>
                           <td className="p-4">
                             <p className="font-mono text-slate-800">{reg.passportNumber}</p>
@@ -699,8 +717,19 @@ const Registrations = () => {
               {/* Header Info */}
               <div className="flex items-start justify-between border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-855 text-lg font-bold uppercase shadow-sm">
-                    {selectedReg.guestName.charAt(0)}
+                  <div className="h-12 w-12 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-855 text-lg font-bold uppercase shadow-sm">
+                    {selectedReg.guestPhotoPath ? (
+                      <img 
+                        src={selectedReg.guestPhotoPath} 
+                        alt={selectedReg.guestName}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      selectedReg.guestName.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div>
                     <h3 className="font-extrabold text-slate-900 text-base leading-tight">{selectedReg.guestName}</h3>
@@ -752,6 +781,76 @@ const Registrations = () => {
                   <div className="space-y-1 col-span-2 flex justify-between">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Pax (Adults / Kids):</span>
                     <span className="font-extrabold text-slate-800">{selectedReg.adults} Adults / {selectedReg.children} Children</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guest Uploaded Documents */}
+              <div className="space-y-3 text-xs bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1">
+                  <ImageIcon className="h-3.5 w-3.5 text-slate-400" /> Uploaded Documents
+                </h4>
+                <div className="space-y-3.5">
+                  {/* Guest Photo */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Guest Photo</p>
+                    {selectedReg.guestPhotoPath ? (
+                      <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                        <img 
+                          src={selectedReg.guestPhotoPath} 
+                          alt="Guest Profile" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-slate-450 italic text-[10px]">No photo uploaded</p>
+                    )}
+                  </div>
+
+                  {/* Passports */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">Passport Front</p>
+                      {selectedReg.passportFrontPath ? (
+                        <a 
+                          href={selectedReg.passportFrontPath} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="block aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition cursor-pointer"
+                        >
+                          <img 
+                            src={selectedReg.passportFrontPath} 
+                            alt="Passport Front" 
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <p className="text-slate-450 italic text-[10px]">Not uploaded</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">Passport Back</p>
+                      {selectedReg.passportBackPath ? (
+                        <a 
+                          href={selectedReg.passportBackPath} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="block aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition cursor-pointer"
+                        >
+                          <img 
+                            src={selectedReg.passportBackPath} 
+                            alt="Passport Back" 
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <p className="text-slate-450 italic text-[10px]">Not uploaded</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

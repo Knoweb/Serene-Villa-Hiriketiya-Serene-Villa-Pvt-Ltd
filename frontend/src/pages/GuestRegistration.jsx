@@ -44,7 +44,16 @@ const GuestRegistration = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const mandatory = [
       'guestName', 'checkInDate', 'checkOutDate', 
@@ -64,45 +73,47 @@ const GuestRegistration = () => {
 
     setError('');
     
-    const payload = {
-      guestName: formData.guestName,
-      checkInDate: formData.checkInDate,
-      checkOutDate: formData.checkOutDate,
-      passportNumber: formData.passportNumber,
-      whatsappNumber: formData.whatsAppNumber,
-      nationality: formData.nationality,
-      adults: parseInt(formData.adults),
-      children: parseInt(formData.children),
-      guestPhotoPath: `/uploads/${formData.guestPhoto.name}`,
-      passportFrontPath: `/uploads/${formData.passportFront.name}`,
-      passportBackPath: `/uploads/${formData.passportBack.name}`
-    };
+    try {
+      const guestPhotoBase64 = await fileToBase64(formData.guestPhoto);
+      const passportFrontBase64 = await fileToBase64(formData.passportFront);
+      const passportBackBase64 = await fileToBase64(formData.passportBack);
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+      const payload = {
+        guestName: formData.guestName,
+        checkInDate: formData.checkInDate,
+        checkOutDate: formData.checkOutDate,
+        passportNumber: formData.passportNumber,
+        whatsappNumber: formData.whatsAppNumber,
+        nationality: formData.nationality,
+        adults: parseInt(formData.adults),
+        children: parseInt(formData.children),
+        guestPhotoPath: guestPhotoBase64,
+        passportFrontPath: passportFrontBase64,
+        passportBackPath: passportBackBase64
+      };
 
-    fetch(`${API_BASE}/public/guest-registrations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-    .then(res => {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+      const res = await fetch(`${API_BASE}/public/guest-registrations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
       if (!res.ok) {
         throw new Error('Failed to submit guest registration to server');
       }
-      return res.json();
-    })
-    .then(() => {
+
       setSubmitted(true);
-    })
-    .catch(err => {
+    } catch (err) {
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
         setError('Server is currently offline. Please ensure the backend server is running on port 8080 and try again.');
       } else {
         setError(err.message || 'Network error occurred. Please try again.');
       }
-    });
+    }
   };
 
   if (submitted) {

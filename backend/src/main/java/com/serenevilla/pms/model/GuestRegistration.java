@@ -21,6 +21,8 @@ public class GuestRegistration {
     @Column(nullable = false)
     private String guestName;
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String guestPhotoPath;
 
     @Column(nullable = false)
@@ -33,7 +35,12 @@ public class GuestRegistration {
 
     private Integer numberOfNights;
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String passportFrontPath;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String passportBackPath;
 
     @Column(nullable = false)
