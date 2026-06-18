@@ -75,6 +75,31 @@ const Registrations = () => {
   const [error, setError] = useState('');
   const [showQr, setShowQr] = useState(false);
   const [customHost, setCustomHost] = useState(() => window.location.hostname);
+  const [showRoomSelector, setShowRoomSelector] = useState(false);
+  const [rooms, setRooms] = useState(() => {
+    const saved = localStorage.getItem('pms_rooms');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.map(r => {
+        let img = r.image;
+        if (r.roomType.toLowerCase().includes('deluxe')) img = deluxeRoomImg;
+        else if (r.roomType.toLowerCase().includes('suite')) img = suiteRoomImg;
+        else if (r.roomType.toLowerCase().includes('standard')) img = standardRoomImg;
+        else if (r.roomType.toLowerCase().includes('budget')) img = budgetRoomImg;
+        return { ...r, image: img };
+      });
+    }
+    return [
+      { id: 101, roomNumber: '101', roomType: 'Deluxe Room', image: deluxeRoomImg, facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi'], status: 'Available' },
+      { id: 102, roomNumber: '102', roomType: 'Deluxe Room', image: deluxeRoomImg, facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi'], status: 'Occupied' },
+      { id: 103, roomNumber: '103', roomType: 'Deluxe Room', image: deluxeRoomImg, facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi'], status: 'Available' },
+      { id: 201, roomNumber: '201', roomType: 'Suite Room', image: suiteRoomImg, facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar'], status: 'Available' },
+      { id: 202, roomNumber: '202', roomType: 'Suite Room', image: suiteRoomImg, facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar'], status: 'Maintenance' },
+      { id: 203, roomNumber: '203', roomType: 'Suite Room', image: suiteRoomImg, facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar'], status: 'Occupied' },
+      { id: 301, roomNumber: '301', roomType: 'Standard Room', image: standardRoomImg, facilities: ['Queen Bed', 'AC', 'Garden View', 'High-speed Wi-Fi'], status: 'Available' },
+      { id: 401, roomNumber: '401', roomType: 'Budget Room', image: budgetRoomImg, facilities: ['Queen Bed', 'AC', 'High-speed Wi-Fi'], status: 'Available' }
+    ];
+  });
 
   // Selected Guest for Details Panel
   const [selectedReg, setSelectedReg] = useState(null);
@@ -761,14 +786,24 @@ const Registrations = () => {
                   {/* Room */}
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 101"
-                      disabled={isFrontOfficer === false && isAdmin === false}
-                      value={bookingForm.room}
-                      onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="e.g. 101"
+                        disabled={isFrontOfficer === false && isAdmin === false}
+                        value={bookingForm.room}
+                        onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
+                        className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRoomSelector(true)}
+                        disabled={isFrontOfficer === false && isAdmin === false}
+                        className="px-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-lg font-bold transition flex items-center justify-center border border-slate-200 cursor-pointer text-xs"
+                      >
+                        Browse
+                      </button>
+                    </div>
                   </div>
 
                   {/* Room Preview Card */}
@@ -1211,6 +1246,103 @@ const Registrations = () => {
           </div>
         </div>
       )}
+      {/* Select a Room Modal */}
+      {showRoomSelector && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-100 w-full max-w-4xl rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
+            <div className="p-4 bg-emerald-600 text-white rounded-t-2xl flex items-center justify-between select-none">
+              <h3 className="text-base font-extrabold">Select a Room</h3>
+              <button 
+                type="button" 
+                onClick={() => setShowRoomSelector(false)} 
+                className="text-white hover:text-slate-100 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {rooms.map((room) => {
+                  const isAvailable = room.status === 'Available';
+                  return (
+                    <div 
+                      key={room.id} 
+                      className={`bg-white border rounded-xl overflow-hidden shadow-sm transition flex flex-col justify-between ${
+                        isAvailable ? 'border-slate-200' : 'border-slate-100 opacity-75'
+                      }`}
+                    >
+                      <div>
+                        <div className="aspect-[16/10] overflow-hidden relative bg-slate-100">
+                          <img 
+                            src={room.image || deluxeRoomImg} 
+                            alt={room.roomType}
+                            className="w-full h-full object-cover"
+                          />
+                          <span className={`absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm ${
+                            room.status === 'Available' ? 'bg-emerald-500 text-white' : 
+                            room.status === 'Occupied' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'
+                          }`}>
+                            {room.status}
+                          </span>
+                        </div>
+                        <div className="p-3.5 space-y-2">
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-800">
+                              {room.roomType} - Room No. {room.roomNumber}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
+                              Enjoy comfortable boutique stays equipped with top amenities at Hiriketiya.
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {room.facilities && room.facilities.slice(0, 4).map((fac, idx) => (
+                              <span 
+                                key={idx} 
+                                className="text-[8px] bg-slate-100 text-slate-500 font-semibold px-1.5 py-0.5 rounded"
+                              >
+                                {fac}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-3 pt-0 flex gap-2">
+                        <button
+                          type="button"
+                          disabled={!isAvailable}
+                          onClick={() => {
+                            let mappedType = room.roomType;
+                            if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
+                            else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
+                            else if (mappedType.toLowerCase().includes('standard')) mappedType = 'Standard Room';
+                            else if (mappedType.toLowerCase().includes('budget')) mappedType = 'Budget Room';
+
+                            setBookingForm({
+                              ...bookingForm,
+                              roomType: mappedType,
+                              room: room.roomNumber
+                            });
+                            setShowRoomSelector(false);
+                          }}
+                          className={`w-full py-1.5 rounded-lg font-bold text-center text-xs transition cursor-pointer ${
+                            isAvailable 
+                              ? 'bg-emerald-650 hover:bg-emerald-700 text-white' 
+                              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {isAvailable ? 'Select' : room.status}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Receipt Modal */}
       {showReceiptModal && receiptData && selectedPaymentForReceipt && (() => {
         const associatedBooking = getBookingForReg(selectedReg.id);
