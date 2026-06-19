@@ -15,6 +15,8 @@ const Handover = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // Fetch payments based on role
   const fetchPayments = async () => {
@@ -112,16 +114,17 @@ const Handover = () => {
   const handleSendToAccountant = async () => {
     if (selectedIds.length === 0) return;
     setLoading(true);
+    const idsToFilter = [...selectedIds];
     try {
       const response = await fetch(`${API_BASE}/billing/accountant/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoiceIds: selectedIds })
+        body: JSON.stringify({ invoiceIds: idsToFilter })
       });
       if (response.ok) {
         setMessage('Transactions sent to accountant successfully.');
         setSelectedIds([]);
-        setPayments(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        setPayments(prev => prev.filter(p => !idsToFilter.includes(p.id)));
       } else {
         setMessage('Failed to send transactions.');
       }
@@ -137,16 +140,17 @@ const Handover = () => {
   const handleAcceptTransactions = async () => {
     if (selectedIds.length === 0) return;
     setLoading(true);
+    const idsToFilter = [...selectedIds];
     try {
       const response = await fetch(`${API_BASE}/billing/accountant/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoiceIds: selectedIds })
+        body: JSON.stringify({ invoiceIds: idsToFilter })
       });
       if (response.ok) {
         setMessage('Transactions accepted successfully.');
         setSelectedIds([]);
-        setPayments(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        setPayments(prev => prev.filter(p => !idsToFilter.includes(p.id)));
       } else {
         setMessage('Failed to accept transactions.');
       }
@@ -161,20 +165,27 @@ const Handover = () => {
   // Reject Handover (Accountant)
   const handleRejectTransactions = async () => {
     if (selectedIds.length === 0) return;
-    const reason = prompt('Please enter the reason for rejection:');
-    if (reason === null) return; // cancelled
+    if (!rejectionReason.trim()) {
+      alert('Please enter the reason for rejection.');
+      return;
+    }
     
     setLoading(true);
+    const idsToFilter = [...selectedIds];
+    const reasonToSend = rejectionReason;
+    setShowRejectModal(false);
+    setRejectionReason('');
+    
     try {
       const response = await fetch(`${API_BASE}/billing/accountant/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoiceIds: selectedIds, reason })
+        body: JSON.stringify({ invoiceIds: idsToFilter, reason: reasonToSend })
       });
       if (response.ok) {
         setMessage('Transactions rejected successfully.');
         setSelectedIds([]);
-        setPayments(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        setPayments(prev => prev.filter(p => !idsToFilter.includes(p.id)));
       } else {
         setMessage('Failed to reject transactions.');
       }
@@ -214,7 +225,7 @@ const Handover = () => {
             <div className="flex gap-2">
               {isAccountant && (
                 <button
-                  onClick={handleRejectTransactions}
+                  onClick={() => setShowRejectModal(true)}
                   className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
                 >
                   <X className="h-3.5 w-3.5" /> Reject
@@ -317,6 +328,65 @@ const Handover = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Reject Reason Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-100 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 text-rose-700">
+                <X className="h-4 w-4" /> Reject Transactions
+              </h3>
+              <button 
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectionReason('');
+                }} 
+                className="text-xs text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold text-slate-500">
+                Please enter a reason for rejecting the selected {selectedIds.length} transaction(s). This will be shown to the Front Office staff for corrections.
+              </p>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Rejection Reason</label>
+                <textarea 
+                  required
+                  rows="3"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="e.g. Reference slip uploaded is incorrect or amount doesn't match."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-700 focus:outline-none focus:border-rose-500 min-h-[80px]"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 text-xs font-bold">
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectionReason('');
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={handleRejectTransactions}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md shadow-rose-500/10 transition"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -40,6 +40,7 @@ public class BillingController {
                 payment.setAccountantTransferStatus(AccountantTransferStatus.PENDING);
                 payment.setSentToAccountantAt(now);
                 payment.setSentToAccountantById(1L); // Simulated Front Office User ID
+                payment.setRemarks(""); // Clear any previous rejection reason
                 paymentRepository.save(payment);
             });
         }
