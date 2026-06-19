@@ -616,10 +616,10 @@ const Registrations = () => {
       </div>
 
       {/* Main Content Grid: Table + Sidebar Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Guest Table Area */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-7 space-y-4">
           {loading && (
             <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-slate-100 shadow-sm">
               <Loader className="h-6 w-6 text-emerald-700 animate-spin mr-2" />
@@ -790,7 +790,7 @@ const Registrations = () => {
         </div>
 
         {/* Sidebar Details and Booking Form Panel */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-6">
+        <div className="lg:col-span-5 bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-6">
           {selectedReg ? (
             <div className="space-y-6">
               
