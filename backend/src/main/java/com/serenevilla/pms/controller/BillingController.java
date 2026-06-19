@@ -29,20 +29,24 @@ public class BillingController {
 
     @PostMapping("/send")
     public ResponseEntity<?> sendToAccountant(@RequestBody Map<String, Object> request) {
-        List<Integer> rawIds = (List<Integer>) request.get("invoiceIds");
-        if (rawIds == null) {
+        Object rawIdsObj = request.get("invoiceIds");
+        if (!(rawIdsObj instanceof List)) {
             return ResponseEntity.badRequest().body("invoiceIds list is required");
         }
+        List<?> rawIds = (List<?>) rawIdsObj;
         
         LocalDateTime now = LocalDateTime.now();
-        for (Integer rawId : rawIds) {
-            paymentRepository.findById(rawId.longValue()).ifPresent(payment -> {
-                payment.setAccountantTransferStatus(AccountantTransferStatus.PENDING);
-                payment.setSentToAccountantAt(now);
-                payment.setSentToAccountantById(1L); // Simulated Front Office User ID
-                payment.setRemarks(""); // Clear any previous rejection reason
-                paymentRepository.save(payment);
-            });
+        for (Object rawId : rawIds) {
+            if (rawId instanceof Number) {
+                long id = ((Number) rawId).longValue();
+                paymentRepository.findById(id).ifPresent(payment -> {
+                    payment.setAccountantTransferStatus(AccountantTransferStatus.PENDING);
+                    payment.setSentToAccountantAt(now);
+                    payment.setSentToAccountantById(1L); // Simulated Front Office User ID
+                    payment.setRemarks(""); // Clear any previous rejection reason
+                    paymentRepository.save(payment);
+                });
+            }
         }
         return ResponseEntity.ok(Map.of("message", "Transactions sent to accountant successfully."));
     }
@@ -95,37 +99,45 @@ public class BillingController {
 
     @PostMapping("/accept")
     public ResponseEntity<?> acceptTransactions(@RequestBody Map<String, Object> request) {
-        List<Integer> rawIds = (List<Integer>) request.get("invoiceIds");
-        if (rawIds == null) {
+        Object rawIdsObj = request.get("invoiceIds");
+        if (!(rawIdsObj instanceof List)) {
             return ResponseEntity.badRequest().body("invoiceIds list is required");
         }
+        List<?> rawIds = (List<?>) rawIdsObj;
         
         LocalDateTime now = LocalDateTime.now();
-        for (Integer rawId : rawIds) {
-            paymentRepository.findById(rawId.longValue()).ifPresent(payment -> {
-                payment.setAccountantTransferStatus(AccountantTransferStatus.ACCEPTED);
-                payment.setAcceptedByAccountantAt(now);
-                payment.setAcceptedByAccountantId(2L); // Simulated Accountant User ID
-                paymentRepository.save(payment);
-            });
+        for (Object rawId : rawIds) {
+            if (rawId instanceof Number) {
+                long id = ((Number) rawId).longValue();
+                paymentRepository.findById(id).ifPresent(payment -> {
+                    payment.setAccountantTransferStatus(AccountantTransferStatus.ACCEPTED);
+                    payment.setAcceptedByAccountantAt(now);
+                    payment.setAcceptedByAccountantId(2L); // Simulated Accountant User ID
+                    paymentRepository.save(payment);
+                });
+            }
         }
         return ResponseEntity.ok(Map.of("message", "Transactions accepted successfully."));
     }
 
     @PostMapping("/reject")
     public ResponseEntity<?> rejectTransactions(@RequestBody Map<String, Object> request) {
-        List<Integer> rawIds = (List<Integer>) request.get("invoiceIds");
+        Object rawIdsObj = request.get("invoiceIds");
         String reason = (String) request.get("reason");
-        if (rawIds == null) {
+        if (!(rawIdsObj instanceof List)) {
             return ResponseEntity.badRequest().body("invoiceIds list is required");
         }
+        List<?> rawIds = (List<?>) rawIdsObj;
         
-        for (Integer rawId : rawIds) {
-            paymentRepository.findById(rawId.longValue()).ifPresent(payment -> {
-                payment.setAccountantTransferStatus(AccountantTransferStatus.REJECTED);
-                payment.setRemarks(reason != null && !reason.trim().isEmpty() ? "Rejected: " + reason : "Rejected by Accountant");
-                paymentRepository.save(payment);
-            });
+        for (Object rawId : rawIds) {
+            if (rawId instanceof Number) {
+                long id = ((Number) rawId).longValue();
+                paymentRepository.findById(id).ifPresent(payment -> {
+                    payment.setAccountantTransferStatus(AccountantTransferStatus.REJECTED);
+                    payment.setRemarks(reason != null && !reason.trim().isEmpty() ? "Rejected: " + reason : "Rejected by Accountant");
+                    paymentRepository.save(payment);
+                });
+            }
         }
         return ResponseEntity.ok(Map.of("message", "Transactions rejected successfully."));
     }
