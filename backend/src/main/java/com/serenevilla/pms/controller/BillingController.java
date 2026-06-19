@@ -55,7 +55,9 @@ public class BillingController {
 
     @GetMapping("/fo-pending")
     public ResponseEntity<List<Payment>> getFoPendingTransactions() {
-        List<Payment> nonePayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.NONE);
+        List<Payment> nonePayments = new java.util.ArrayList<>(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.NONE));
+        List<Payment> rejectedPayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.REJECTED);
+        nonePayments.addAll(rejectedPayments);
         
         List<Payment> eligiblePayments = nonePayments.stream()
             .filter(payment -> {
@@ -107,5 +109,23 @@ public class BillingController {
             });
         }
         return ResponseEntity.ok(Map.of("message", "Transactions accepted successfully."));
+    }
+
+    @PostMapping("/reject")
+    public ResponseEntity<?> rejectTransactions(@RequestBody Map<String, Object> request) {
+        List<Integer> rawIds = (List<Integer>) request.get("invoiceIds");
+        String reason = (String) request.get("reason");
+        if (rawIds == null) {
+            return ResponseEntity.badRequest().body("invoiceIds list is required");
+        }
+        
+        for (Integer rawId : rawIds) {
+            paymentRepository.findById(rawId.longValue()).ifPresent(payment -> {
+                payment.setAccountantTransferStatus(AccountantTransferStatus.REJECTED);
+                payment.setRemarks(reason != null && !reason.trim().isEmpty() ? "Rejected: " + reason : "Rejected by Accountant");
+                paymentRepository.save(payment);
+            });
+        }
+        return ResponseEntity.ok(Map.of("message", "Transactions rejected successfully."));
     }
 }

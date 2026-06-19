@@ -56,7 +56,8 @@ const Handover = () => {
           totalAmountLkr: 0,
           date: p.paymentDate || p.date || '',
           method: new Set(),
-          status: p.accountantTransferStatus
+          status: p.accountantTransferStatus,
+          rejectionReasons: []
         };
       }
       groups[ref].payments.push(p);
@@ -67,6 +68,21 @@ const Handover = () => {
       const pDate = p.paymentDate || p.date;
       if (pDate && (!groups[ref].date || pDate > groups[ref].date)) {
         groups[ref].date = pDate;
+      }
+      
+      // Determine overall group status
+      if (p.accountantTransferStatus === 'REJECTED') {
+        groups[ref].status = 'REJECTED';
+      } else if (p.accountantTransferStatus === 'PENDING' && groups[ref].status !== 'REJECTED') {
+        groups[ref].status = 'PENDING';
+      }
+      
+      if (p.accountantTransferStatus === 'REJECTED' && p.remarks) {
+        // Strip "Rejected: " prefix if present for clean display
+        const cleanReason = p.remarks.startsWith('Rejected: ') ? p.remarks.substring(10) : p.remarks;
+        if (!groups[ref].rejectionReasons.includes(cleanReason)) {
+          groups[ref].rejectionReasons.push(cleanReason);
+        }
       }
     });
     return Object.values(groups);
@@ -142,6 +158,34 @@ const Handover = () => {
     }
   };
 
+  // Reject Handover (Accountant)
+  const handleRejectTransactions = async () => {
+    if (selectedIds.length === 0) return;
+    const reason = prompt('Please enter the reason for rejection:');
+    if (reason === null) return; // cancelled
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/billing/accountant/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceIds: selectedIds, reason })
+      });
+      if (response.ok) {
+        setMessage('Transactions rejected successfully.');
+        setSelectedIds([]);
+        setPayments(prev => prev.filter(p => !selectedIds.includes(p.id)));
+      } else {
+        setMessage('Failed to reject transactions.');
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage('Error rejecting transactions.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -167,13 +211,23 @@ const Handover = () => {
             {selectedIds.length} Transactions Selected
           </span>
           {selectedIds.length > 0 && (
-            <button
-              onClick={isFrontOfficer ? handleSendToAccountant : handleAcceptTransactions}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
-            >
-              {isFrontOfficer ? <Send className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
-              {isFrontOfficer ? 'Send to Accountant' : 'Accept Transactions'}
-            </button>
+            <div className="flex gap-2">
+              {isAccountant && (
+                <button
+                  onClick={handleRejectTransactions}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <X className="h-3.5 w-3.5" /> Reject
+                </button>
+              )}
+              <button
+                onClick={isFrontOfficer ? handleSendToAccountant : handleAcceptTransactions}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
+              >
+                {isFrontOfficer ? <Send className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                {isFrontOfficer ? 'Send to Accountant' : 'Accept Transactions'}
+              </button>
+            </div>
           )}
         </div>
 
@@ -228,15 +282,24 @@ const Handover = () => {
                   </td>
                   <td className="p-4 font-medium text-slate-700">{Array.from(group.method).join(', ')}</td>
                   <td className="p-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      group.status === 'ACCEPTED' 
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-100/30' 
-                        : group.status === 'PENDING' 
-                        ? 'bg-amber-50 text-amber-800 border border-amber-100/30' 
-                        : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {group.status}
-                    </span>
+                    <div className="space-y-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        group.status === 'ACCEPTED' 
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-100/30' 
+                          : group.status === 'PENDING' 
+                          ? 'bg-amber-50 text-amber-800 border border-amber-100/30' 
+                          : group.status === 'REJECTED'
+                          ? 'bg-rose-50 text-rose-800 border border-rose-100/30'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {group.status}
+                      </span>
+                      {group.status === 'REJECTED' && group.rejectionReasons && group.rejectionReasons.length > 0 && (
+                        <p className="text-[9px] text-rose-600 font-bold max-w-[150px] break-words">
+                          Reason: {group.rejectionReasons.join(', ')}
+                        </p>
+                      )}
+                    </div>
                   </td>
                   <td className="p-4 text-right font-mono text-slate-900 font-bold">
                     LKR {group.totalAmountLkr.toLocaleString()}
