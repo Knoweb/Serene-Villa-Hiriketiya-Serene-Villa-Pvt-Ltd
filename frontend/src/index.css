@@ -10,14 +10,25 @@
 }
 
 @media print {
+  @page {
+    margin: 10mm;
+    size: A4;
+  }
+
+  /* Hide everything by default */
   body * {
     visibility: hidden;
   }
-  #printable-receipt-modal, #printable-receipt-modal * {
+
+  /* Show only the receipt modal */
+  #printable-receipt-modal,
+  #printable-receipt-modal * {
     visibility: visible;
   }
+
+  /* Position the receipt at the top-left corner of the page */
   #printable-receipt-modal {
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
     width: 100%;
@@ -25,5 +36,14 @@
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    background: #fff !important;
+    font-size: 11px;
+  }
+
+  /* Force background colors to print (for colored table headers etc.) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
+

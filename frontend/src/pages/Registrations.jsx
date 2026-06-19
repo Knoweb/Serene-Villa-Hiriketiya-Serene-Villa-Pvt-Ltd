@@ -144,82 +144,12 @@ const Registrations = () => {
   // Auto-print ref — set to true to trigger print when receipt modal opens
   const autoPrintRef = React.useRef(false);
 
-  // Print only the receipt content avoiding popup blockers
+  // Print only the receipt content.
+  // index.css @media print already hides everything except #printable-receipt-modal.
   const printReceiptOnly = () => {
     const el = document.getElementById('printable-receipt-modal');
     if (!el) return;
-
-    // Create a hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-
-    // Get all stylesheet links from the current page
-    const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-      .map(link => `<link rel="stylesheet" href="${link.href}" />`);
-
-    // Get inline styles too
-    const styleBlocks = Array.from(document.querySelectorAll('style'))
-      .map(s => `<style>${s.innerHTML}</style>`);
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>Receipt - Serene Villa</title>
-          ${styleLinks.join('')}
-          ${styleBlocks.join('')}
-          <style>
-            @page { margin: 10mm; }
-            body {
-              font-family: system-ui, -apple-system, sans-serif;
-              font-size: 12px;
-              margin: 0;
-              padding: 16px;
-              color: #0f172a;
-              background: #fff;
-            }
-            * { box-sizing: border-box; }
-            img { max-width: 100%; }
-            .print\\:hidden { display: none !important; }
-          </style>
-        </head>
-        <body>
-          ${el.innerHTML}
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    // Wait for content to load before printing
-    iframe.onload = () => {
-      setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 1000); // cleanup after print dialog is closed
-      }, 300);
-    };
-
-    // Fallback if onload doesn't fire
-    setTimeout(() => {
-      try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        setTimeout(() => {
-          if (document.body.contains(iframe)) document.body.removeChild(iframe);
-        }, 1000);
-      } catch (e) { console.error(e); }
-    }, 1500);
+    window.print();
   };
 
   // Auto-print when receipt modal opens
