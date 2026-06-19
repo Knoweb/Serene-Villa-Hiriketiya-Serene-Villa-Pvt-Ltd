@@ -15,23 +15,52 @@
     size: A4;
   }
 
-  /* Hide everything by default */
-  body * {
-    visibility: hidden;
+  /* Hide header, footer, and other layout wrappers */
+  header,
+  footer,
+  aside,
+  nav,
+  button:not([type="button"]),
+  .print\:hidden {
+    display: none !important;
   }
 
-  /* Show only the receipt modal */
-  #printable-receipt-modal,
-  #printable-receipt-modal * {
-    visibility: visible;
+  /* Hide all siblings of the print wrapper to prevent extra blank pages */
+  #root > div > main > *:not(#printable-receipt-modal-wrapper),
+  .space-y-6 > *:not(#printable-receipt-modal-wrapper) {
+    display: none !important;
   }
 
-  /* Position the receipt at the top-left corner of the page */
+  /* Reset layout constraints for body, root and main wrapper */
+  body,
+  #root,
+  #root > div,
+  main {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Styles for the modal backdrop wrapper */
+  #printable-receipt-modal-wrapper {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Styles for the printable receipt card */
   #printable-receipt-modal {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100%;
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-w-none !important;
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
