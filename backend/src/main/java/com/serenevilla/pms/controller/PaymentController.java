@@ -45,8 +45,12 @@ public class PaymentController {
 
     @PostMapping("/advance")
     public ResponseEntity<Payment> createAdvancePayment(@RequestBody Payment payment) {
-        payment.setAdvancePayment(true);
-        payment.setPaymentType("ADVANCE");
+        if ("FINAL".equalsIgnoreCase(payment.getPaymentType())) {
+            payment.setAdvancePayment(false);
+        } else {
+            payment.setAdvancePayment(true);
+            payment.setPaymentType("ADVANCE");
+        }
         if (payment.getAccountantTransferStatus() == null) {
             payment.setAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.NONE);
         }

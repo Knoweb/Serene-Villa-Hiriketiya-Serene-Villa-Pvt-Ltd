@@ -392,11 +392,11 @@ const Registrations = () => {
       alert('Please enter a valid exchange rate.'); return;
     }
 
-    const isFull = tab === 'FULL';
     const convertedLkr = parseFloat(paymentForm.amount) * parseFloat(paymentForm.exchangeRate);
     const totalBookingAmount = booking.totalAmount || 0;
     const totalPaidSoFar = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
     const newTotal = totalPaidSoFar + convertedLkr;
+    const isFull = tab === 'FULL' || newTotal >= totalBookingAmount;
 
     const payload = {
       bookingId: booking.id,

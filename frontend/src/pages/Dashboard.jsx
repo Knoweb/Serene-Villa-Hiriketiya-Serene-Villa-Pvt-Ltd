@@ -83,10 +83,12 @@ const Dashboard = () => {
         out: r.checkOutDate,
         room: b ? b.roomNumber : 'Unallocated',
         roomType: b ? b.roomType : 'N/A',
-        status: b ? b.paymentStatus : 'Pending'
+        status: b ? b.paymentStatus : 'Pending',
+        regStatus: r.registrationStatus || 'Pending'
       };
     })
-    .filter(g => g.status === 'Paid' || g.status === 'Partially Paid');
+    .filter(g => g.regStatus === 'CheckedIn');
+
 
   const filteredGuests = guestRegistrations.filter(g => 
     g.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
