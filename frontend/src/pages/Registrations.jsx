@@ -499,9 +499,12 @@ const Registrations = () => {
       if (savedPayment && savedPayment.id) {
         // Refresh advancePayments list first so receipt lookup works
         const refreshRes = await fetch(`${API_BASE}/payments/booking/${booking.id}`);
-        if (refreshRes.ok) setAdvancePayments(await refreshRes.json());
-        autoPrintRef.current = true;
-        await handleGenerateReceipt(savedPayment.id);
+        if (refreshRes.ok) {
+          const freshPayments = await refreshRes.json();
+          setAdvancePayments(freshPayments);
+          autoPrintRef.current = true;
+          await handleGenerateReceipt(savedPayment.id, freshPayments);
+        }
       }
     } catch (err) {
       alert(err.message || 'Error saving payment');
@@ -510,13 +513,14 @@ const Registrations = () => {
     }
   };
 
-  const handleGenerateReceipt = async (paymentId) => {
+  const handleGenerateReceipt = async (paymentId, fallbackPaymentList = null) => {
     try {
       const res = await fetch(`${API_BASE}/receipts/advance/${paymentId}`);
       if (res.ok) {
         const data = await res.json();
         setReceiptData(data);
-        const p = advancePayments.find(pay => pay.id === paymentId);
+        const list = fallbackPaymentList || advancePayments;
+        const p = list.find(pay => pay.id === paymentId);
         setSelectedPaymentForReceipt(p);
         setShowReceiptModal(true);
       } else {
