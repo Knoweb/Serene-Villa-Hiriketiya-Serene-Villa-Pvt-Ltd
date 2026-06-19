@@ -137,7 +137,95 @@ const Registrations = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
 
+  // Final / Balance Payment State
+  const [savingFinal, setSavingFinal] = useState(false);
+  const [finalForm, setFinalForm] = useState({
+    amount: '',
+    currencyCode: 'LKR',
+    exchangeRate: 1,
+    paymentMethod: 'Cash',
+    referenceNumber: '',
+    remarks: '',
+    paymentDate: new Date().toISOString().split('T')[0],
+    slipPath: ''
+  });
+
   const pageSize = 8;
+
+  // Auto-print ref — set to true to trigger print when receipt modal opens
+  const autoPrintRef = React.useRef(false);
+
+  // Print only the receipt content in a new popup window
+  const printReceiptOnly = () => {
+    const el = document.getElementById('printable-receipt-modal');
+    if (!el) return;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
+    if (!printWindow) return;
+
+    // Get all stylesheet links from the current page
+    const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map(link => `<link rel="stylesheet" href="${link.href}" />`);
+
+    // Get inline styles too
+    const styleBlocks = Array.from(document.querySelectorAll('style'))
+      .map(s => `<style>${s.innerHTML}</style>`);
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Receipt - Serene Villa</title>
+          ${styleLinks.join('')}
+          ${styleBlocks.join('')}
+          <style>
+            @page { margin: 10mm; }
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              font-size: 12px;
+              margin: 0;
+              padding: 16px;
+              color: #0f172a;
+              background: #fff;
+            }
+            * { box-sizing: border-box; }
+            img { max-width: 100%; }
+            .print\\:hidden { display: none !important; }
+          </style>
+        </head>
+        <body>
+          ${el.innerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    // Wait for images/styles to load then print
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 300);
+    };
+    // Fallback if onload doesn't fire
+    setTimeout(() => {
+      if (!printWindow.closed) {
+        printWindow.print();
+        printWindow.close();
+      }
+    }, 1500);
+  };
+
+  // Auto-print when receipt modal opens
+  useEffect(() => {
+    if (showReceiptModal && receiptData && autoPrintRef.current) {
+      autoPrintRef.current = false;
+      // Small delay to allow modal to render before printing
+      const t = setTimeout(() => printReceiptOnly(), 400);
+      return () => clearTimeout(t);
+    }
+  }, [showReceiptModal, receiptData]);
 
   // 1. Debounce Search logic
   useEffect(() => {
@@ -259,13 +347,14 @@ const Registrations = () => {
   // Fetch Advance Payments
   const fetchAdvancePayments = async (bookingId) => {
     try {
-      const res = await fetch(`${API_BASE}/payments/advance/${bookingId}`);
+      // Fetch ALL payments for this booking (advance + final)
+      const res = await fetch(`${API_BASE}/payments/booking/${bookingId}`);
       if (res.ok) {
         const data = await res.json();
         setAdvancePayments(data);
       }
     } catch (err) {
-      console.error('Error fetching advance payments', err);
+      console.error('Error fetching payments', err);
     }
   };
 
@@ -369,7 +458,7 @@ const Registrations = () => {
 
     const convertedLkr = parseFloat(advanceForm.amount) * parseFloat(advanceForm.exchangeRate);
     const totalBookingAmount = booking.totalAmount || 0;
-    const currentAdvancePaid = advancePayments.reduce((sum, p) => sum + p.convertedAmountLkr, 0) + convertedLkr;
+    const currentAdvancePaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0) + convertedLkr;
 
     const payload = {
       bookingId: booking.id,
@@ -390,13 +479,12 @@ const Registrations = () => {
     try {
       const res = await fetch(`${API_BASE}/payments/advance`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error('Failed to save advance payment');
-      
+      const savedPayment = await res.json();
+
       let newPaymentStatus = 'Unpaid';
       if (currentAdvancePaid >= totalBookingAmount) {
         newPaymentStatus = 'Paid';
@@ -421,12 +509,110 @@ const Registrations = () => {
         paymentDate: new Date().toISOString().split('T')[0],
         slipPath: ''
       });
-      
-      alert('Advance payment saved successfully!');
+
+      // Auto-open receipt and print
+      if (savedPayment && savedPayment.id) {
+        autoPrintRef.current = true;
+        await handleGenerateReceipt(savedPayment.id);
+      }
     } catch (err) {
       alert(err.message || 'Error saving advance payment');
     } finally {
       setSavingAdvance(false);
+    }
+  };
+
+  const handleFinalCurrencyChange = (e) => {
+    const curr = e.target.value;
+    let rate = 1;
+    if (curr === 'USD') rate = 300;
+    else if (curr === 'EUR') rate = 325;
+    else if (curr === 'GBP') rate = 385;
+    setFinalForm(prev => ({
+      ...prev,
+      currencyCode: curr,
+      exchangeRate: rate
+    }));
+  };
+
+  const handleSaveFinalPayment = async (e) => {
+    e.preventDefault();
+    if (!selectedReg) return;
+    const booking = getBookingForReg(selectedReg.id);
+    if (!booking) {
+      alert('Please save the booking details first.');
+      return;
+    }
+    if (!finalForm.amount || parseFloat(finalForm.amount) <= 0) {
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+    if (!finalForm.exchangeRate || parseFloat(finalForm.exchangeRate) <= 0) {
+      alert('Please enter a valid exchange rate.');
+      return;
+    }
+
+    const convertedLkr = parseFloat(finalForm.amount) * parseFloat(finalForm.exchangeRate);
+    const payload = {
+      bookingId: booking.id,
+      guestRegistrationId: selectedReg.id,
+      paymentType: 'FINAL',
+      amount: parseFloat(finalForm.amount),
+      currencyCode: finalForm.currencyCode,
+      currency: finalForm.currencyCode,
+      exchangeRate: parseFloat(finalForm.exchangeRate),
+      convertedAmountLkr: convertedLkr,
+      amountLkr: convertedLkr,
+      amountInCurrency: parseFloat(finalForm.amount),
+      paymentMethod: finalForm.paymentMethod,
+      referenceNumber: finalForm.referenceNumber,
+      receiptNumber: finalForm.referenceNumber,
+      remarks: finalForm.remarks,
+      createdBy: user.username,
+      slipPath: finalForm.slipPath || '/uploads/dummy_slip.png',
+      paymentSlipUrl: finalForm.slipPath || '/uploads/dummy_slip.png',
+      isAdvancePayment: false
+    };
+
+    setSavingFinal(true);
+    try {
+      // Use the generic payments endpoint since this is a FINAL payment
+      const res = await fetch(`${API_BASE}/payments/advance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Failed to save final payment');
+      const savedPayment = await res.json();
+
+      // Mark booking as Paid
+      await fetch(`${API_BASE}/bookings/${booking.id}/payment-status?paymentStatus=Paid`, {
+        method: 'PUT'
+      });
+
+      await fetchRegistrations();
+      await fetchAdvancePayments(booking.id);
+
+      setFinalForm({
+        amount: '',
+        currencyCode: 'LKR',
+        exchangeRate: 1,
+        paymentMethod: 'Cash',
+        referenceNumber: '',
+        remarks: '',
+        paymentDate: new Date().toISOString().split('T')[0],
+        slipPath: ''
+      });
+
+      // Auto-open receipt and print
+      if (savedPayment && savedPayment.id) {
+        autoPrintRef.current = true;
+        await handleGenerateReceipt(savedPayment.id);
+      }
+    } catch (err) {
+      alert(err.message || 'Error saving final payment');
+    } finally {
+      setSavingFinal(false);
     }
   };
 
@@ -1069,11 +1255,11 @@ const Registrations = () => {
                   {/* Payment Summary */}
                   {(() => {
                     const totalAmt = associatedBooking.totalAmount || 0;
-                    const totalAdv = advancePayments.reduce((sum, p) => sum + p.convertedAmountLkr, 0);
-                    const bal = totalAmt - totalAdv;
+                    const totalPaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+                    const bal = totalAmt - totalPaid;
                     let pStatus = 'Unpaid';
-                    if (totalAdv >= totalAmt && totalAmt > 0) pStatus = 'Paid';
-                    else if (totalAdv > 0) pStatus = 'Partially Paid';
+                    if (totalPaid >= totalAmt && totalAmt > 0) pStatus = 'Paid';
+                    else if (totalPaid > 0) pStatus = 'Partially Paid';
 
                     return (
                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
@@ -1082,12 +1268,14 @@ const Registrations = () => {
                           <span className="font-mono text-slate-900">{totalAmt.toLocaleString()} LKR</span>
                         </div>
                         <div className="flex justify-between font-semibold text-slate-500">
-                          <span>Total Advance Paid:</span>
-                          <span className="font-mono text-emerald-600">+{totalAdv.toLocaleString()} LKR</span>
+                          <span>Total Amount Paid:</span>
+                          <span className="font-mono text-emerald-600">+{totalPaid.toLocaleString()} LKR</span>
                         </div>
                         <div className="flex justify-between font-bold text-slate-800 border-t border-slate-200/60 pt-2">
                           <span>Remaining Balance:</span>
-                          <span className="font-mono text-slate-900">{Math.max(0, bal).toLocaleString()} LKR</span>
+                          <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {Math.max(0, bal).toLocaleString()} LKR
+                          </span>
                         </div>
                         <div className="flex justify-between items-center border-t border-slate-200/60 pt-2">
                           <span className="font-bold text-slate-500">Payment Status:</span>
@@ -1105,17 +1293,26 @@ const Registrations = () => {
                     );
                   })()}
 
-                  {/* Saved Advance Payments Receipts list */}
+                  {/* All Payments History (Advance + Final) */}
                   {advancePayments.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Advance Payments History</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Payment History</p>
                       <div className="space-y-1.5">
                         {advancePayments.map((payment) => (
                           <div key={payment.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[11px]">
                             <div>
-                              <p className="font-bold text-slate-800">
-                                {payment.amount} {payment.currencyCode} <span className="text-slate-400 font-normal">(@ {payment.exchangeRate})</span>
-                              </p>
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <p className="font-bold text-slate-800">
+                                  {payment.amount || payment.amountInCurrency} {payment.currencyCode || payment.currency} <span className="text-slate-400 font-normal">(@ {payment.exchangeRate})</span>
+                                </p>
+                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                                  payment.paymentType === 'FINAL'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                  {payment.paymentType === 'FINAL' ? 'Final' : 'Advance'}
+                                </span>
+                              </div>
                               <p className="text-[9px] text-slate-400 font-semibold">{payment.paymentMethod} • {payment.paymentDate}</p>
                             </div>
                             <button
@@ -1130,6 +1327,133 @@ const Registrations = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Final / Balance Payment Form — show only when remaining balance > 0 */}
+                  {(() => {
+                    const totalAmt = associatedBooking.totalAmount || 0;
+                    const totalPaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+                    const bal = Math.max(0, totalAmt - totalPaid);
+                    if (bal <= 0) return null;
+                    return (
+                      <form onSubmit={handleSaveFinalPayment} className="space-y-3 bg-blue-50/40 border border-blue-100 p-4 rounded-xl text-xs">
+                        <div className="flex items-center justify-between border-b border-blue-100 pb-1.5 mb-2">
+                          <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wide">💳 Final / Balance Payment</p>
+                          <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                            Balance: {bal.toLocaleString()} LKR
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Currency</label>
+                            <select
+                              value={finalForm.currencyCode}
+                              onChange={handleFinalCurrencyChange}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
+                            >
+                              <option value="LKR">LKR</option>
+                              <option value="USD">USD</option>
+                              <option value="EUR">EUR</option>
+                              <option value="GBP">GBP</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
+                            <input
+                              type="number"
+                              step="any"
+                              required
+                              placeholder={finalForm.currencyCode === 'LKR' ? bal.toFixed(2) : '0.00'}
+                              value={finalForm.amount}
+                              onChange={(e) => setFinalForm({ ...finalForm, amount: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
+                            <input
+                              type="number"
+                              step="any"
+                              required
+                              disabled={finalForm.currencyCode === 'LKR'}
+                              value={finalForm.exchangeRate}
+                              onChange={(e) => setFinalForm({ ...finalForm, exchangeRate: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500 disabled:bg-slate-100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted (LKR)</label>
+                            <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-750 font-mono">
+                              {((parseFloat(finalForm.amount) || 0) * (parseFloat(finalForm.exchangeRate) || 0)).toLocaleString()} LKR
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
+                            <select
+                              value={finalForm.paymentMethod}
+                              onChange={(e) => setFinalForm({ ...finalForm, paymentMethod: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
+                            >
+                              <option value="Cash">Cash</option>
+                              <option value="Card">Card</option>
+                              <option value="Bank Transfer">Bank Transfer</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reference Number</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. TXN789"
+                              value={finalForm.referenceNumber}
+                              onChange={(e) => setFinalForm({ ...finalForm, referenceNumber: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Date</label>
+                            <input
+                              type="date"
+                              required
+                              value={finalForm.paymentDate}
+                              onChange={(e) => setFinalForm({ ...finalForm, paymentDate: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Slip</label>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  setFinalForm({ ...finalForm, slipPath: `/uploads/${e.target.files[0].name}` });
+                                }
+                              }}
+                              className="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Final balance paid in cash at checkout"
+                              value={finalForm.remarks}
+                              onChange={(e) => setFinalForm({ ...finalForm, remarks: e.target.value })}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={savingFinal}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition mt-2 flex items-center justify-center gap-1"
+                        >
+                          {savingFinal ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                          Save Final Payment & Mark as Paid
+                        </button>
+                      </form>
+                    );
+                  })()}
 
                   {/* Add New Advance Payment Form */}
                   <form onSubmit={handleSaveAdvancePayment} className="space-y-3 bg-slate-50/20 border border-slate-100/60 p-4 rounded-xl text-xs">
@@ -1447,8 +1771,12 @@ const Registrations = () => {
         const associatedBooking = getBookingForReg(selectedReg.id);
         if (!associatedBooking) return null;
         
+        const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
+        const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
+
         const handleWhatsAppShare = () => {
-          const text = `*ADVANCE RECEIPT*
+          const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
+          const text = `*${receiptTitle.toUpperCase()}*
 Receipt No: ${receiptData.receiptNumber}
 Date: ${new Date(receiptData.generatedAt).toLocaleDateString()}
 Guest Name: ${selectedReg.guestName}
@@ -1458,10 +1786,10 @@ Check-in: ${selectedReg.checkInDate}
 Check-out: ${selectedReg.checkOutDate}
 Nights: ${selectedReg.numberOfNights || selectedReg.nights}
 Method: ${selectedPaymentForReceipt.paymentMethod}
-Amount: ${selectedPaymentForReceipt.amount} ${selectedPaymentForReceipt.currencyCode}
+Amount: ${selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} ${selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency}
 Exchange Rate: ${selectedPaymentForReceipt.exchangeRate}
-Converted: ${selectedPaymentForReceipt.convertedAmountLkr.toLocaleString()} LKR
-Balance: ${Math.max(0, associatedBooking.totalAmount - selectedPaymentForReceipt.convertedAmountLkr).toLocaleString()} LKR
+Converted: ${paidAmt.toLocaleString()} LKR
+Balance: ${Math.max(0, associatedBooking.totalAmount - paidAmt).toLocaleString()} LKR
 Staff: ${receiptData.generatedBy}`;
 
           const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -1469,7 +1797,7 @@ Staff: ${receiptData.generatedBy}`;
         };
 
         const handlePrintReceipt = () => {
-          window.print();
+          printReceiptOnly();
         };
 
         return (
@@ -1514,9 +1842,16 @@ Staff: ${receiptData.generatedBy}`;
 
                 {/* Right Column: Title & Receipt Meta */}
                 <div className="text-right space-y-1">
-                  <h1 className="text-base font-black text-emerald-800 tracking-wide uppercase">
-                    Advance Payment Receipt
+                  <h1 className={`text-base font-black tracking-wide uppercase ${
+                    isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
+                  }`}>
+                    {receiptTitle}
                   </h1>
+                  {isFinalPayment && (
+                    <span className="inline-block bg-blue-100 text-blue-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      ✓ Fully Settled
+                    </span>
+                  )}
                   <div className="inline-block border border-emerald-800/30 rounded-lg px-2.5 py-1.5 bg-emerald-50/20 text-[10px] text-left space-y-0.5 mt-1 print:bg-transparent">
                     <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Receipt No:</span>
@@ -1621,61 +1956,70 @@ Staff: ${receiptData.generatedBy}`;
                 </table>
               </div>
 
-              {/* Advance Payment Calculations Section */}
-              <div className="grid grid-cols-2 gap-4 mb-4 text-[11px]">
-                {/* Left Column: Extra notes / details if any */}
-                <div className="border border-dashed border-slate-200 rounded-lg p-2.5 text-slate-500 flex flex-col justify-between print:border-slate-300">
-                  <div>
-                    <p className="font-bold text-[8px] uppercase tracking-wider mb-0.5 text-slate-400">Payment Reference</p>
-                    <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
-                    {selectedPaymentForReceipt.remarks && (
-                      <p className="mt-1 text-[10px] leading-snug">
-                        <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-[9px] text-slate-400 mt-2">
-                    * Please preserve this receipt for final checkout subtraction.
-                  </div>
-                </div>
-
-                {/* Right Column: Numeric breakdown */}
-                <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
-                  <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                    <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-                    <span className="font-bold text-slate-800">LKR {(associatedBooking.totalAmount || 0).toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                    <span className="text-slate-500 font-semibold">Advance Paid:</span>
-                    <span className="font-bold text-emerald-850 print:text-slate-900">
-                      {selectedPaymentForReceipt.amount} {selectedPaymentForReceipt.currencyCode}
-                    </span>
-                  </div>
-
-                  {selectedPaymentForReceipt.currencyCode !== 'LKR' && (
-                    <>
-                      <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
-                        <span className="text-slate-500">Exchange Rate:</span>
-                        <span className="font-medium text-slate-700">{selectedPaymentForReceipt.exchangeRate}</span>
+                  {/* Advance Payment Calculations Section */}
+                  <div className="grid grid-cols-2 gap-4 mb-4 text-[11px]">
+                    {/* Left Column: Extra notes / details if any */}
+                    <div className="border border-dashed border-slate-200 rounded-lg p-2.5 text-slate-500 flex flex-col justify-between print:border-slate-300">
+                      <div>
+                        <p className="font-bold text-[8px] uppercase tracking-wider mb-0.5 text-slate-400">Payment Reference</p>
+                        <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
+                        {selectedPaymentForReceipt.remarks && (
+                          <p className="mt-1 text-[10px] leading-snug">
+                            <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks}
+                          </p>
+                        )}
                       </div>
+                      <div className="text-[9px] text-slate-400 mt-2">
+                        {isFinalPayment
+                          ? '* This is the final payment receipt. Account fully settled.'
+                          : '* Please preserve this receipt for final checkout subtraction.'}
+                      </div>
+                    </div>
+
+                    {/* Right Column: Numeric breakdown */}
+                    <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
                       <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                        <span className="text-slate-500 font-semibold">Converted Amount:</span>
+                        <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
+                        <span className="font-bold text-slate-800">LKR {(associatedBooking.totalAmount || 0).toLocaleString()}</span>
+                      </div>
+                      
+                      <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                        <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
                         <span className="font-bold text-emerald-850 print:text-slate-900">
-                          LKR {selectedPaymentForReceipt.convertedAmountLkr.toLocaleString()}
+                          {selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} {selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency}
                         </span>
                       </div>
-                    </>
-                  )}
 
-                  <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">
-                    <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>
-                    <span className="font-mono text-emerald-800 print:text-slate-900 text-xs">
-                      LKR {Math.max(0, (associatedBooking.totalAmount || 0) - selectedPaymentForReceipt.convertedAmountLkr).toLocaleString()}
-                    </span>
+                      {(selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (
+                        <>
+                          <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
+                            <span className="text-slate-500">Exchange Rate:</span>
+                            <span className="font-medium text-slate-700">{selectedPaymentForReceipt.exchangeRate}</span>
+                          </div>
+                          <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                            <span className="text-slate-500 font-semibold">Converted Amount:</span>
+                            <span className="font-bold text-emerald-850 print:text-slate-900">
+                              LKR {(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </>
+                      )}
+
+                      <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">
+                        <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>
+                        <span className={`font-mono text-xs ${
+                          isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
+                        } print:text-slate-900`}>
+                          LKR {Math.max(0, (associatedBooking.totalAmount || 0) - (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0)).toLocaleString()}
+                        </span>
+                      </div>
+                      {isFinalPayment && (
+                        <div className="text-center mt-1">
+                          <span className="text-[9px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">✓ FULLY PAID</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
 
               {/* Footer Signatures */}
               <div className="flex justify-between items-end mt-8 pt-4 border-t border-slate-100 print:mt-16">

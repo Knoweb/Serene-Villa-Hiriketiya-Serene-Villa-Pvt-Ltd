@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Users, 
@@ -22,21 +22,71 @@ const Dashboard = () => {
   const { user, currentProperty } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
+  
+  const [registrations, setRegistrations] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const regRes = await fetch(`${API_BASE}/guest-registrations?size=1000`);
+        if (regRes.ok) {
+          const regData = await regRes.json();
+          setRegistrations(regData.content || []);
+        }
+        const bookingRes = await fetch(`${API_BASE}/bookings`);
+        if (bookingRes.ok) {
+          const bookingData = await bookingRes.json();
+          setBookings(bookingData || []);
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Role Checks
   const isAdmin = user.role === 'ADMIN';
   const isAccountant = user.role === 'ACCOUNTANT';
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
 
-  // Front Office Mock Data
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayGuestsCount = registrations.filter(r => r.checkInDate === todayStr).length;
+  const currentlyStayingCount = registrations.filter(r => r.registrationStatus === 'CheckedIn').length;
+  const todayLeavingCount = registrations.filter(r => r.checkOutDate === todayStr).length;
+  const upcomingBookingsCount = registrations.filter(r => r.registrationStatus === 'Pending' && r.checkInDate > todayStr).length;
+
   const foCards = {
-    todayGuests: 0,
-    currentlyStaying: 0,
-    todayLeaving: 0,
-    upcomingBookings: 0
+    todayGuests: todayGuestsCount,
+    currentlyStaying: currentlyStayingCount,
+    todayLeaving: todayLeavingCount,
+    upcomingBookings: upcomingBookingsCount
   };
 
-  const guestRegistrations = [];
+  const guestRegistrations = registrations
+    .map(r => {
+      const b = bookings.find(book => book.guestRegistrationId === r.id);
+      return {
+        id: r.id,
+        name: r.guestName,
+        passport: r.passportNumber,
+        phone: r.whatsappNumber,
+        nationality: r.nationality,
+        in: r.checkInDate,
+        out: r.checkOutDate,
+        room: b ? b.roomNumber : 'Unallocated',
+        roomType: b ? b.roomType : 'N/A',
+        status: b ? b.paymentStatus : 'Pending'
+      };
+    })
+    .filter(g => g.status === 'Paid' || g.status === 'Partially Paid');
 
   const filteredGuests = guestRegistrations.filter(g => 
     g.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -134,7 +184,7 @@ const Dashboard = () => {
                       >
                         <td className="py-3.5 font-bold text-slate-800">{g.name}</td>
                         <td className="py-3.5 font-mono">{g.passport}</td>
-                        <td className="py-3.5">Room {g.room}</td>
+                        <td className="py-3.5">{g.room === 'Unallocated' ? 'Unallocated' : 'Room ' + g.room}</td>
                         <td className="py-3.5">
                           <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                             g.status === 'Paid' 
@@ -187,7 +237,9 @@ const Dashboard = () => {
                     </p>
                     <p className="flex justify-between">
                       <span className="text-slate-400">Allocated Room:</span>
-                      <span className="text-emerald-700 font-bold">Room {selectedGuest.room}</span>
+                      <span className="text-emerald-700 font-bold">
+                        {selectedGuest.room === 'Unallocated' ? 'Unallocated' : 'Room ' + selectedGuest.room}
+                      </span>
                     </p>
                   </div>
                 </div>
