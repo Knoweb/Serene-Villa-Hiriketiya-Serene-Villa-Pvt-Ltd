@@ -28,7 +28,8 @@ import {
   Share2,
   Printer,
   Receipt,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -143,13 +144,20 @@ const Registrations = () => {
   // Auto-print ref — set to true to trigger print when receipt modal opens
   const autoPrintRef = React.useRef(false);
 
-  // Print only the receipt content in a new popup window
+  // Print only the receipt content avoiding popup blockers
   const printReceiptOnly = () => {
     const el = document.getElementById('printable-receipt-modal');
     if (!el) return;
 
-    const printWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
-    if (!printWindow) return;
+    // Create a hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
 
     // Get all stylesheet links from the current page
     const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
@@ -159,7 +167,9 @@ const Registrations = () => {
     const styleBlocks = Array.from(document.querySelectorAll('style'))
       .map(s => `<style>${s.innerHTML}</style>`);
 
-    printWindow.document.write(`
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -187,21 +197,28 @@ const Registrations = () => {
         </body>
       </html>
     `);
-    printWindow.document.close();
-    printWindow.focus();
-    // Wait for images/styles to load then print
-    printWindow.onload = () => {
+    doc.close();
+
+    // Wait for content to load before printing
+    iframe.onload = () => {
       setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000); // cleanup after print dialog is closed
       }, 300);
     };
+
     // Fallback if onload doesn't fire
     setTimeout(() => {
-      if (!printWindow.closed) {
-        printWindow.print();
-        printWindow.close();
-      }
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => {
+          if (document.body.contains(iframe)) document.body.removeChild(iframe);
+        }, 1000);
+      } catch (e) { console.error(e); }
     }, 1500);
   };
 
@@ -1643,9 +1660,12 @@ Staff: ${receiptData.generatedBy}`;
               className="bg-white text-slate-900 p-5 md:p-6 mx-auto w-full max-w-2xl shadow-2xl border border-slate-200 rounded-lg text-xs font-sans animate-in fade-in zoom-in-95 duration-150 relative print:border-0 print:shadow-none print:w-full print:max-w-none print:p-0 print:my-0"
             >
               <button 
-                onClick={() => setShowReceiptModal(false)}
+                onClick={() => {
+                  setShowReceiptModal(false);
+                  if (isFinalPayment) navigate('/handover');
+                }}
                 className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition print:hidden"
-                title="Close"
+                title={isFinalPayment ? 'Close & Go to Handover' : 'Close'}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1877,7 +1897,7 @@ Staff: ${receiptData.generatedBy}`;
               </div>
 
               {/* Print & Share Buttons */}
-              <div className="flex gap-2 pt-4 mt-4 border-t border-slate-100 print:hidden justify-end">
+              <div className="flex gap-2 pt-4 mt-4 border-t border-slate-100 print:hidden justify-end flex-wrap">
                 <button
                   type="button"
                   onClick={handleWhatsAppShare}
@@ -1892,6 +1912,18 @@ Staff: ${receiptData.generatedBy}`;
                 >
                   <Printer size={11} /> Print
                 </button>
+                {isFinalPayment && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowReceiptModal(false);
+                      navigate('/handover');
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-4 rounded-lg flex items-center justify-center gap-1.5 transition text-[11px] cursor-pointer shadow-md"
+                  >
+                    <ArrowRight size={11} /> Go to Handover
+                  </button>
+                )}
               </div>
             </div>
           </div>

@@ -32,10 +32,8 @@ const Bookings = () => {
     remarks: '',
   } : null);
 
-  const [advancePaymentForm, setAdvancePaymentForm] = useState(null);
   const [discountRequestForm, setDiscountRequestForm] = useState(null);
   const [invoiceView, setInvoiceView] = useState(null);
-  const [receiptView, setReceiptView] = useState(null);
 
   const handleCreateBooking = (e) => {
     e.preventDefault();
@@ -66,33 +64,6 @@ const Bookings = () => {
 
     setBookings([newBooking, ...bookings]);
     setAllocationForm(null);
-  };
-
-  const handleUploadAdvance = (e) => {
-    e.preventDefault();
-    const { bookingId, amount, file } = advancePaymentForm;
-    setBookings(prev => prev.map(b => {
-      if (b.id === bookingId) {
-        return {
-          ...b,
-          advancePaid: parseFloat(amount),
-          paymentSlipUploaded: !!file,
-          paymentStatus: 'Partial'
-        };
-      }
-      return b;
-    }));
-    
-    const targetBooking = bookings.find(b => b.id === bookingId);
-    setReceiptView({
-      receiptNumber: 'REC-' + Date.now().toString().slice(-6),
-      guestName: targetBooking.guestName,
-      amount: amount,
-      date: new Date().toISOString().split('T')[0],
-      bookingNumber: targetBooking.bookingNumber,
-    });
-
-    setAdvancePaymentForm(null);
   };
 
   const handleRequestDiscount = (e) => {
@@ -288,15 +259,6 @@ const Bookings = () => {
                 </td>
                 <td className="p-4 text-right">
                   <div className="flex items-center justify-end gap-1.5">
-                    {booking.paymentStatus !== 'Paid' && (
-                      <button
-                        onClick={() => setAdvancePaymentForm({ bookingId: booking.id, amount: '', file: null })}
-                        className="py-1.5 px-2.5 rounded-lg border border-slate-100 hover:bg-slate-50 text-emerald-700 font-bold transition"
-                      >
-                        + Advance
-                      </button>
-                    )}
-
                     {!booking.discountRequested && (
                       <button
                         onClick={() => setDiscountRequestForm({ bookingId: booking.id, amount: '', reason: '' })}
@@ -328,48 +290,6 @@ const Bookings = () => {
           </tbody>
         </table>
       </div>
-
-      {/* Advance Payment Slip Modal */}
-      {advancePaymentForm && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 w-full max-w-md rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Record Advance Payment</h3>
-            <form onSubmit={handleUploadAdvance} className="space-y-4 text-xs font-semibold text-slate-600">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Advance Amount (LKR)</label>
-                <input 
-                  type="number" 
-                  required 
-                  value={advancePaymentForm.amount}
-                  onChange={(e) => setAdvancePaymentForm({...advancePaymentForm, amount: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none" 
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Payment Slip</label>
-                <input 
-                  type="file" 
-                  required
-                  onChange={(e) => setAdvancePaymentForm({...advancePaymentForm, file: e.target.files[0]})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none" 
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2 text-xs">
-                <button 
-                  type="button" 
-                  onClick={() => setAdvancePaymentForm(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold">
-                  Generate Receipt
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Discount Request Modal */}
       {discountRequestForm && (
