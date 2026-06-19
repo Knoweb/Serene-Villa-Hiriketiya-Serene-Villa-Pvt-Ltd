@@ -145,10 +145,19 @@ const Registrations = () => {
   const autoPrintRef = React.useRef(false);
 
   // Print only the receipt content.
-  // index.css @media print already hides everything except #printable-receipt-modal.
   const printReceiptOnly = () => {
+    console.log("invoiceData / receiptData:", receiptData);
     const el = document.getElementById('printable-receipt-modal');
-    if (!el) return;
+    console.log("invoiceRef / printable-receipt-modal:", el);
+
+    if (!receiptData) {
+      console.warn("Print blocked: receiptData is null or empty");
+      return;
+    }
+    if (!el) {
+      console.warn("Print blocked: #printable-receipt-modal element not found in DOM");
+      return;
+    }
     window.print();
   };
 

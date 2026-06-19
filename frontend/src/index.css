@@ -26,7 +26,6 @@
   }
 
   /* Hide all siblings of the print wrapper to prevent extra blank pages */
-  #root > div > main > *:not(#printable-receipt-modal-wrapper),
   .space-y-6 > *:not(#printable-receipt-modal-wrapper) {
     display: none !important;
   }
