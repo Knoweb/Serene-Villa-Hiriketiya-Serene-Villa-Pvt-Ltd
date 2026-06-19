@@ -32,6 +32,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -63,6 +64,8 @@ const Registrations = () => {
   const navigate = useNavigate();
   const isAdmin = user.role === 'ADMIN';
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
+
+  const receiptRef = React.useRef(null);
 
   // State
   const [registrations, setRegistrations] = useState([]);
@@ -146,16 +149,15 @@ const Registrations = () => {
 
   // Print only the receipt content.
   const printReceiptOnly = () => {
-    console.log("invoiceData / receiptData:", receiptData);
-    const el = document.getElementById('printable-receipt-modal');
-    console.log("invoiceRef / printable-receipt-modal:", el);
+    console.log("receiptRef.current:", receiptRef.current);
+    console.log("receiptData / invoiceData:", receiptData);
 
     if (!receiptData) {
       console.warn("Print blocked: receiptData is null or empty");
       return;
     }
-    if (!el) {
-      console.warn("Print blocked: #printable-receipt-modal element not found in DOM");
+    if (!receiptRef.current) {
+      console.warn("Print blocked: receiptRef.current is null or empty");
       return;
     }
     window.print();
@@ -524,6 +526,7 @@ const Registrations = () => {
 
   return (
     <div className="space-y-6">
+      <div className="no-print space-y-6">
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -1557,6 +1560,7 @@ const Registrations = () => {
           </div>
         </div>
       )}
+      </div>
 
       {/* Receipt Modal */}
       {showReceiptModal && receiptData && selectedPaymentForReceipt && (() => {
@@ -1868,6 +1872,16 @@ Staff: ${receiptData.generatedBy}`;
           </div>
         );
       })()}
+      {/* Print-only layout */}
+      <div className="print-only">
+        <AdvanceReceiptPrint
+          ref={receiptRef}
+          receiptData={receiptData}
+          selectedPaymentForReceipt={selectedPaymentForReceipt}
+          selectedReg={selectedReg}
+          associatedBooking={associatedBooking}
+        />
+      </div>
     </div>
   );
 };
