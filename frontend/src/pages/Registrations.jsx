@@ -120,10 +120,11 @@ const Registrations = () => {
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Advance Payment State
+  // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
-  const [savingAdvance, setSavingAdvance] = useState(false);
-  const [advanceForm, setAdvanceForm] = useState({
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentTab, setPaymentTab] = useState('ADVANCE'); // 'ADVANCE' | 'FULL'
+  const [paymentForm, setPaymentForm] = useState({
     amount: '',
     currencyCode: 'LKR',
     exchangeRate: 1,
@@ -136,19 +137,6 @@ const Registrations = () => {
   const [receiptData, setReceiptData] = useState(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
-
-  // Final / Balance Payment State
-  const [savingFinal, setSavingFinal] = useState(false);
-  const [finalForm, setFinalForm] = useState({
-    amount: '',
-    currencyCode: 'LKR',
-    exchangeRate: 1,
-    paymentMethod: 'Cash',
-    referenceNumber: '',
-    remarks: '',
-    paymentDate: new Date().toISOString().split('T')[0],
-    slipPath: ''
-  });
 
   const pageSize = 8;
 
@@ -425,72 +413,68 @@ const Registrations = () => {
     }
   };
 
-  const handleCurrencyChange = (e) => {
+  const handlePaymentCurrencyChange = (e) => {
     const curr = e.target.value;
     let rate = 1;
     if (curr === 'USD') rate = 300;
     else if (curr === 'EUR') rate = 325;
     else if (curr === 'GBP') rate = 385;
-    setAdvanceForm(prev => ({
-      ...prev,
-      currencyCode: curr,
-      exchangeRate: rate
-    }));
+    setPaymentForm(prev => ({ ...prev, currencyCode: curr, exchangeRate: rate }));
   };
 
-  const handleSaveAdvancePayment = async (e) => {
+  const handleSavePayment = async (e, tab, remainingBalance) => {
     e.preventDefault();
     if (!selectedReg) return;
     const booking = getBookingForReg(selectedReg.id);
-    if (!booking) {
-      alert('Please save the booking details first.');
-      return;
+    if (!booking) { alert('Please save the booking details first.'); return; }
+    if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
+      alert('Please enter a valid amount.'); return;
+    }
+    if (!paymentForm.exchangeRate || parseFloat(paymentForm.exchangeRate) <= 0) {
+      alert('Please enter a valid exchange rate.'); return;
     }
 
-    if (!advanceForm.amount || parseFloat(advanceForm.amount) <= 0) {
-      alert('Please enter a valid advance payment amount.');
-      return;
-    }
-    if (!advanceForm.exchangeRate || parseFloat(advanceForm.exchangeRate) <= 0) {
-      alert('Please enter a valid exchange rate.');
-      return;
-    }
-
-    const convertedLkr = parseFloat(advanceForm.amount) * parseFloat(advanceForm.exchangeRate);
+    const isFull = tab === 'FULL';
+    const convertedLkr = parseFloat(paymentForm.amount) * parseFloat(paymentForm.exchangeRate);
     const totalBookingAmount = booking.totalAmount || 0;
-    const currentAdvancePaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0) + convertedLkr;
+    const totalPaidSoFar = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+    const newTotal = totalPaidSoFar + convertedLkr;
 
     const payload = {
       bookingId: booking.id,
       guestRegistrationId: selectedReg.id,
-      paymentType: 'ADVANCE',
-      amount: parseFloat(advanceForm.amount),
-      currencyCode: advanceForm.currencyCode,
-      exchangeRate: parseFloat(advanceForm.exchangeRate),
+      paymentType: isFull ? 'FINAL' : 'ADVANCE',
+      amount: parseFloat(paymentForm.amount),
+      currencyCode: paymentForm.currencyCode,
+      currency: paymentForm.currencyCode,
+      exchangeRate: parseFloat(paymentForm.exchangeRate),
       convertedAmountLkr: convertedLkr,
-      paymentMethod: advanceForm.paymentMethod,
-      referenceNumber: advanceForm.referenceNumber,
-      remarks: advanceForm.remarks,
+      amountLkr: convertedLkr,
+      amountInCurrency: parseFloat(paymentForm.amount),
+      paymentMethod: paymentForm.paymentMethod,
+      referenceNumber: paymentForm.referenceNumber,
+      receiptNumber: paymentForm.referenceNumber,
+      remarks: paymentForm.remarks,
       createdBy: user.username,
-      slipPath: advanceForm.slipPath || '/uploads/dummy_slip.png'
+      slipPath: paymentForm.slipPath || '/uploads/dummy_slip.png',
+      paymentSlipUrl: paymentForm.slipPath || '/uploads/dummy_slip.png',
+      isAdvancePayment: !isFull
     };
 
-    setSavingAdvance(true);
+    setSavingPayment(true);
     try {
       const res = await fetch(`${API_BASE}/payments/advance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Failed to save advance payment');
+      if (!res.ok) throw new Error('Failed to save payment');
       const savedPayment = await res.json();
 
+      // Determine new payment status
       let newPaymentStatus = 'Unpaid';
-      if (currentAdvancePaid >= totalBookingAmount) {
-        newPaymentStatus = 'Paid';
-      } else if (currentAdvancePaid > 0) {
-        newPaymentStatus = 'Partially Paid';
-      }
+      if (isFull || newTotal >= totalBookingAmount) newPaymentStatus = 'Paid';
+      else if (newTotal > 0) newPaymentStatus = 'Partially Paid';
 
       await fetch(`${API_BASE}/bookings/${booking.id}/payment-status?paymentStatus=${newPaymentStatus}`, {
         method: 'PUT'
@@ -499,7 +483,8 @@ const Registrations = () => {
       await fetchRegistrations();
       await fetchAdvancePayments(booking.id);
 
-      setAdvanceForm({
+      // Reset form
+      setPaymentForm({
         amount: '',
         currencyCode: 'LKR',
         exchangeRate: 1,
@@ -512,107 +497,16 @@ const Registrations = () => {
 
       // Auto-open receipt and print
       if (savedPayment && savedPayment.id) {
+        // Refresh advancePayments list first so receipt lookup works
+        const refreshRes = await fetch(`${API_BASE}/payments/booking/${booking.id}`);
+        if (refreshRes.ok) setAdvancePayments(await refreshRes.json());
         autoPrintRef.current = true;
         await handleGenerateReceipt(savedPayment.id);
       }
     } catch (err) {
-      alert(err.message || 'Error saving advance payment');
+      alert(err.message || 'Error saving payment');
     } finally {
-      setSavingAdvance(false);
-    }
-  };
-
-  const handleFinalCurrencyChange = (e) => {
-    const curr = e.target.value;
-    let rate = 1;
-    if (curr === 'USD') rate = 300;
-    else if (curr === 'EUR') rate = 325;
-    else if (curr === 'GBP') rate = 385;
-    setFinalForm(prev => ({
-      ...prev,
-      currencyCode: curr,
-      exchangeRate: rate
-    }));
-  };
-
-  const handleSaveFinalPayment = async (e) => {
-    e.preventDefault();
-    if (!selectedReg) return;
-    const booking = getBookingForReg(selectedReg.id);
-    if (!booking) {
-      alert('Please save the booking details first.');
-      return;
-    }
-    if (!finalForm.amount || parseFloat(finalForm.amount) <= 0) {
-      alert('Please enter a valid payment amount.');
-      return;
-    }
-    if (!finalForm.exchangeRate || parseFloat(finalForm.exchangeRate) <= 0) {
-      alert('Please enter a valid exchange rate.');
-      return;
-    }
-
-    const convertedLkr = parseFloat(finalForm.amount) * parseFloat(finalForm.exchangeRate);
-    const payload = {
-      bookingId: booking.id,
-      guestRegistrationId: selectedReg.id,
-      paymentType: 'FINAL',
-      amount: parseFloat(finalForm.amount),
-      currencyCode: finalForm.currencyCode,
-      currency: finalForm.currencyCode,
-      exchangeRate: parseFloat(finalForm.exchangeRate),
-      convertedAmountLkr: convertedLkr,
-      amountLkr: convertedLkr,
-      amountInCurrency: parseFloat(finalForm.amount),
-      paymentMethod: finalForm.paymentMethod,
-      referenceNumber: finalForm.referenceNumber,
-      receiptNumber: finalForm.referenceNumber,
-      remarks: finalForm.remarks,
-      createdBy: user.username,
-      slipPath: finalForm.slipPath || '/uploads/dummy_slip.png',
-      paymentSlipUrl: finalForm.slipPath || '/uploads/dummy_slip.png',
-      isAdvancePayment: false
-    };
-
-    setSavingFinal(true);
-    try {
-      // Use the generic payments endpoint since this is a FINAL payment
-      const res = await fetch(`${API_BASE}/payments/advance`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error('Failed to save final payment');
-      const savedPayment = await res.json();
-
-      // Mark booking as Paid
-      await fetch(`${API_BASE}/bookings/${booking.id}/payment-status?paymentStatus=Paid`, {
-        method: 'PUT'
-      });
-
-      await fetchRegistrations();
-      await fetchAdvancePayments(booking.id);
-
-      setFinalForm({
-        amount: '',
-        currencyCode: 'LKR',
-        exchangeRate: 1,
-        paymentMethod: 'Cash',
-        referenceNumber: '',
-        remarks: '',
-        paymentDate: new Date().toISOString().split('T')[0],
-        slipPath: ''
-      });
-
-      // Auto-open receipt and print
-      if (savedPayment && savedPayment.id) {
-        autoPrintRef.current = true;
-        await handleGenerateReceipt(savedPayment.id);
-      }
-    } catch (err) {
-      alert(err.message || 'Error saving final payment');
-    } finally {
-      setSavingFinal(false);
+      setSavingPayment(false);
     }
   };
 
@@ -1245,12 +1139,275 @@ const Registrations = () => {
                 )}
               </form>
 
-              {/* Advance Payment Section */}
+              {/* Unified Payment Form */}
               {associatedBooking ? (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                   <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <Receipt className="h-4 w-4 text-emerald-600" /> Advance Payment
+                    <Receipt className="h-4 w-4 text-emerald-600" /> Payments
                   </h4>
+
+                  {/* Payment Summary Card */}
+                  {(() => {
+                    const totalAmt = associatedBooking.totalAmount || 0;
+                    const totalPaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+                    const bal = totalAmt - totalPaid;
+                    let pStatus = 'Unpaid';
+                    if (totalPaid >= totalAmt && totalAmt > 0) pStatus = 'Paid';
+                    else if (totalPaid > 0) pStatus = 'Partially Paid';
+                    return (
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
+                        <div className="flex justify-between font-semibold text-slate-500">
+                          <span>Total Booking Amount:</span>
+                          <span className="font-mono text-slate-900">{totalAmt.toLocaleString()} LKR</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-slate-500">
+                          <span>Total Paid:</span>
+                          <span className="font-mono text-emerald-600">+{totalPaid.toLocaleString()} LKR</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-slate-800 border-t border-slate-200/60 pt-2">
+                          <span>Remaining Balance:</span>
+                          <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {Math.max(0, bal).toLocaleString()} LKR
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center border-t border-slate-200/60 pt-2">
+                          <span className="font-bold text-slate-500">Payment Status:</span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                            pStatus === 'Paid' ? 'bg-green-100 text-green-700'
+                            : pStatus === 'Partially Paid' ? 'bg-amber-100 text-amber-700'
+                            : 'bg-rose-100 text-rose-700'
+                          }`}>{pStatus}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Payment History */}
+                  {advancePayments.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Payment History</p>
+                      <div className="space-y-1.5">
+                        {advancePayments.map((payment) => (
+                          <div key={payment.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[11px]">
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <p className="font-bold text-slate-800">
+                                  {payment.amount || payment.amountInCurrency} {payment.currencyCode || payment.currency}
+                                  <span className="text-slate-400 font-normal"> (@ {payment.exchangeRate})</span>
+                                </p>
+                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                                  payment.paymentType === 'FINAL' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                  {payment.paymentType === 'FINAL' ? 'Full' : 'Advance'}
+                                </span>
+                              </div>
+                              <p className="text-[9px] text-slate-400 font-semibold">{payment.paymentMethod} • {payment.paymentDate}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleGenerateReceipt(payment.id)}
+                              className="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-1 rounded-md transition"
+                            >
+                              <Receipt className="h-3 w-3" /> Receipt
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Single Unified Payment Form */}
+                  {(() => {
+                    const totalAmt = associatedBooking.totalAmount || 0;
+                    const totalPaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+                    const remainingBal = Math.max(0, totalAmt - totalPaid);
+                    const isFullyPaid = remainingBal <= 0;
+
+                    if (isFullyPaid) return (
+                      <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700 font-bold">
+                        <CheckCircle className="h-4 w-4" /> Payment fully settled
+                      </div>
+                    );
+
+                    // Auto-fill amount when switching to FULL tab
+                    const handleTabChange = (tab) => {
+                      setPaymentTab(tab);
+                      if (tab === 'FULL') {
+                        setPaymentForm(prev => ({ ...prev, amount: remainingBal.toFixed(2), currencyCode: 'LKR', exchangeRate: 1 }));
+                      } else {
+                        setPaymentForm(prev => ({ ...prev, amount: '' }));
+                      }
+                    };
+
+                    const isFull = paymentTab === 'FULL';
+                    const accentColor = isFull ? 'blue' : 'emerald';
+
+                    return (
+                      <form onSubmit={(e) => handleSavePayment(e, paymentTab, remainingBal)} className="space-y-3 text-xs">
+                        {/* Tab Toggle */}
+                        <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => handleTabChange('ADVANCE')}
+                            className={`flex-1 py-2 transition ${
+                              !isFull
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-white text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            Advance Payment
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleTabChange('FULL')}
+                            className={`flex-1 py-2 transition border-l border-slate-200 ${
+                              isFull
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            Full Payment
+                            {remainingBal > 0 && (
+                              <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full ${
+                                isFull ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'
+                              }`}>
+                                {remainingBal.toLocaleString()} LKR
+                              </span>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Form Fields */}
+                        <div className={`border rounded-xl p-3.5 space-y-3 ${
+                          isFull ? 'border-blue-100 bg-blue-50/30' : 'border-slate-100 bg-slate-50/20'
+                        }`}>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Currency</label>
+                              <select
+                                value={paymentForm.currencyCode}
+                                onChange={handlePaymentCurrencyChange}
+                                disabled={isFull}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                              >
+                                <option value="LKR">LKR</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Amount {isFull && <span className="text-blue-500 normal-case font-normal">(auto-filled)</span>}
+                              </label>
+                              <input
+                                type="number"
+                                step="any"
+                                required
+                                readOnly={isFull}
+                                placeholder="0.00"
+                                value={paymentForm.amount}
+                                onChange={(e) => !isFull && setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                                className={`w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none ${
+                                  isFull ? 'bg-blue-50 text-blue-700 cursor-default' : 'bg-white text-slate-700'
+                                }`}
+                              />
+                            </div>
+                            {!isFull && (
+                              <>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    required
+                                    disabled={paymentForm.currencyCode === 'LKR'}
+                                    value={paymentForm.exchangeRate}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted (LKR)</label>
+                                  <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700 font-mono">
+                                    {((parseFloat(paymentForm.amount) || 0) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString()} LKR
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
+                              <select
+                                value={paymentForm.paymentMethod}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
+                              >
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Card</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reference No.</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. TXN123"
+                                value={paymentForm.referenceNumber}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, referenceNumber: e.target.value })}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Date</label>
+                              <input
+                                type="date"
+                                required
+                                value={paymentForm.paymentDate}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Slip</label>
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    setPaymentForm({ ...paymentForm, slipPath: `/uploads/${e.target.files[0].name}` });
+                                  }
+                                }}
+                                className="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-slate-100 file:text-slate-600 hover:file:bg-slate-200"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+                              <input
+                                type="text"
+                                placeholder={isFull ? 'e.g. Full balance settled at checkout' : 'e.g. Paid in USD cash'}
+                                value={paymentForm.remarks}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, remarks: e.target.value })}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={savingPayment}
+                            className={`w-full text-white font-bold py-2.5 rounded-lg transition flex items-center justify-center gap-1.5 ${
+                              isFull
+                                ? 'bg-blue-600 hover:bg-blue-700'
+                                : 'bg-emerald-700 hover:bg-emerald-800'
+                            }`}
+                          >
+                            {savingPayment ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            {isFull ? 'Save Full Payment & Mark as Paid' : 'Save Advance Payment'}
+                          </button>
+                        </div>
+                      </form>
+                    );
+                  })()}
 
                   {/* Payment Summary */}
                   {(() => {
@@ -1328,256 +1485,6 @@ const Registrations = () => {
                     </div>
                   )}
 
-                  {/* Final / Balance Payment Form — show only when remaining balance > 0 */}
-                  {(() => {
-                    const totalAmt = associatedBooking.totalAmount || 0;
-                    const totalPaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-                    const bal = Math.max(0, totalAmt - totalPaid);
-                    if (bal <= 0) return null;
-                    return (
-                      <form onSubmit={handleSaveFinalPayment} className="space-y-3 bg-blue-50/40 border border-blue-100 p-4 rounded-xl text-xs">
-                        <div className="flex items-center justify-between border-b border-blue-100 pb-1.5 mb-2">
-                          <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wide">💳 Final / Balance Payment</p>
-                          <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                            Balance: {bal.toLocaleString()} LKR
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2.5">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Currency</label>
-                            <select
-                              value={finalForm.currencyCode}
-                              onChange={handleFinalCurrencyChange}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
-                            >
-                              <option value="LKR">LKR</option>
-                              <option value="USD">USD</option>
-                              <option value="EUR">EUR</option>
-                              <option value="GBP">GBP</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
-                            <input
-                              type="number"
-                              step="any"
-                              required
-                              placeholder={finalForm.currencyCode === 'LKR' ? bal.toFixed(2) : '0.00'}
-                              value={finalForm.amount}
-                              onChange={(e) => setFinalForm({ ...finalForm, amount: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
-                            <input
-                              type="number"
-                              step="any"
-                              required
-                              disabled={finalForm.currencyCode === 'LKR'}
-                              value={finalForm.exchangeRate}
-                              onChange={(e) => setFinalForm({ ...finalForm, exchangeRate: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500 disabled:bg-slate-100"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted (LKR)</label>
-                            <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-750 font-mono">
-                              {((parseFloat(finalForm.amount) || 0) * (parseFloat(finalForm.exchangeRate) || 0)).toLocaleString()} LKR
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
-                            <select
-                              value={finalForm.paymentMethod}
-                              onChange={(e) => setFinalForm({ ...finalForm, paymentMethod: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
-                            >
-                              <option value="Cash">Cash</option>
-                              <option value="Card">Card</option>
-                              <option value="Bank Transfer">Bank Transfer</option>
-                              <option value="Other">Other</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reference Number</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. TXN789"
-                              value={finalForm.referenceNumber}
-                              onChange={(e) => setFinalForm({ ...finalForm, referenceNumber: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Date</label>
-                            <input
-                              type="date"
-                              required
-                              value={finalForm.paymentDate}
-                              onChange={(e) => setFinalForm({ ...finalForm, paymentDate: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Slip</label>
-                            <input
-                              type="file"
-                              accept="image/*,application/pdf"
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  setFinalForm({ ...finalForm, slipPath: `/uploads/${e.target.files[0].name}` });
-                                }
-                              }}
-                              className="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Final balance paid in cash at checkout"
-                              value={finalForm.remarks}
-                              onChange={(e) => setFinalForm({ ...finalForm, remarks: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-blue-500"
-                            />
-                          </div>
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={savingFinal}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition mt-2 flex items-center justify-center gap-1"
-                        >
-                          {savingFinal ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                          Save Final Payment & Mark as Paid
-                        </button>
-                      </form>
-                    );
-                  })()}
-
-                  {/* Add New Advance Payment Form */}
-                  <form onSubmit={handleSaveAdvancePayment} className="space-y-3 bg-slate-50/20 border border-slate-100/60 p-4 rounded-xl text-xs">
-                    <p className="text-[10px] font-bold text-slate-700 uppercase tracking-wide border-b border-slate-100 pb-1 mb-2">Record New Advance</p>
-                    
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Currency</label>
-                        <select
-                          value={advanceForm.currencyCode}
-                          onChange={handleCurrencyChange}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-emerald-500"
-                        >
-                          <option value="LKR">LKR</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
-                        <input
-                          type="number"
-                          step="any"
-                          required
-                          placeholder="0.00"
-                          value={advanceForm.amount}
-                          onChange={(e) => setAdvanceForm({ ...advanceForm, amount: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
-                        <input
-                          type="number"
-                          step="any"
-                          required
-                          disabled={advanceForm.currencyCode === 'LKR'}
-                          value={advanceForm.exchangeRate}
-                          onChange={(e) => setAdvanceForm({ ...advanceForm, exchangeRate: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-emerald-500 disabled:bg-slate-100"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted Amount</label>
-                        <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-750 font-mono">
-                          {((parseFloat(advanceForm.amount) || 0) * (parseFloat(advanceForm.exchangeRate) || 0)).toLocaleString()} LKR
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
-                        <select
-                          value={advanceForm.paymentMethod}
-                          onChange={(e) => setAdvanceForm({ ...advanceForm, paymentMethod: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-emerald-500"
-                        >
-                          <option value="Cash">Cash</option>
-                          <option value="Card">Card</option>
-                          <option value="Bank Transfer">Bank Transfer</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reference Number</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. TXN123456"
-                          value={advanceForm.referenceNumber}
-                          onChange={(e) => setAdvanceForm({ ...advanceForm, referenceNumber: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Date</label>
-                        <input
-                          type="date"
-                          required
-                          value={advanceForm.paymentDate}
-                          onChange={(e) => setAdvanceForm({ ...advanceForm, paymentDate: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Slip</label>
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              setAdvanceForm({ ...advanceForm, slipPath: `/uploads/${e.target.files[0].name}` });
-                            }
-                          }}
-                          className="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                        />
-                      </div>
-
-                      <div className="col-span-2">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Paid in USD cash"
-                          value={advanceForm.remarks}
-                          onChange={(e) => setAdvanceForm({ ...advanceForm, remarks: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={savingAdvance}
-                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-lg transition mt-2 flex items-center justify-center gap-1"
-                    >
-                      {savingAdvance ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                      Save Advance Payment
-                    </button>
-                  </form>
                 </div>
               ) : (
                 <div className="bg-amber-50/50 border border-amber-100/50 rounded-xl p-3.5 text-xs text-amber-700 font-semibold text-center mt-4">
