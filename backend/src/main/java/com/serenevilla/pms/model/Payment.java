@@ -73,7 +73,11 @@ public class Payment {
 
     private String remarks;
 
-    private String createdBy;
+    @Transient
+    private String guestName;
+
+    @Transient
+    private String bookingRef;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 

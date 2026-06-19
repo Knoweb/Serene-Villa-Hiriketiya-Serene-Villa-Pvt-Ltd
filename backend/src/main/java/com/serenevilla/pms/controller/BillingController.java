@@ -3,12 +3,15 @@ package com.serenevilla.pms.controller;
 import com.serenevilla.pms.model.AccountantTransferStatus;
 import com.serenevilla.pms.model.Payment;
 import com.serenevilla.pms.repository.PaymentRepository;
+import com.serenevilla.pms.repository.BookingRepository;
+import com.serenevilla.pms.repository.GuestRegistrationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/billing/accountant")
@@ -17,6 +20,12 @@ public class BillingController {
 
     @Autowired
     private PaymentRepository paymentRepository;
+
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private GuestRegistrationRepository guestRegistrationRepository;
 
     @PostMapping("/send")
     public ResponseEntity<?> sendToAccountant(@RequestBody Map<String, Object> request) {
@@ -39,7 +48,46 @@ public class BillingController {
 
     @GetMapping("/pending")
     public ResponseEntity<List<Payment>> getPendingTransactions() {
-        return ResponseEntity.ok(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.PENDING));
+        List<Payment> pendingPayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.PENDING);
+        populatePaymentDetails(pendingPayments);
+        return ResponseEntity.ok(pendingPayments);
+    }
+
+    @GetMapping("/fo-pending")
+    public ResponseEntity<List<Payment>> getFoPendingTransactions() {
+        List<Payment> nonePayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.NONE);
+        
+        List<Payment> eligiblePayments = nonePayments.stream()
+            .filter(payment -> {
+                if (payment.getBookingId() == null) return false;
+                return bookingRepository.findById(payment.getBookingId())
+                    .map(booking -> "Paid".equalsIgnoreCase(booking.getPaymentStatus()))
+                    .orElse(false);
+            })
+            .collect(Collectors.toList());
+            
+        populatePaymentDetails(eligiblePayments);
+        return ResponseEntity.ok(eligiblePayments);
+    }
+
+    private void populatePaymentDetails(List<Payment> payments) {
+        for (Payment payment : payments) {
+            if (payment.getBookingId() != null) {
+                bookingRepository.findById(payment.getBookingId()).ifPresent(booking -> {
+                    payment.setBookingRef(booking.getBookingNumber());
+                    if (booking.getGuestRegistrationId() != null) {
+                        guestRegistrationRepository.findById(booking.getGuestRegistrationId()).ifPresent(guest -> {
+                            payment.setGuestName(guest.getGuestName());
+                        });
+                    }
+                });
+            }
+            if (payment.getGuestName() == null && payment.getGuestRegistrationId() != null) {
+                guestRegistrationRepository.findById(payment.getGuestRegistrationId()).ifPresent(guest -> {
+                    payment.setGuestName(guest.getGuestName());
+                });
+            }
+        }
     }
 
     @PostMapping("/accept")
