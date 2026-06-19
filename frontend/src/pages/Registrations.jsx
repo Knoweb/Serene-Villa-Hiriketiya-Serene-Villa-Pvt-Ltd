@@ -1600,7 +1600,7 @@ Staff: ${receiptData.generatedBy}`;
           <div id="printable-receipt-modal-wrapper" className="no-print fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:p-0 print:bg-transparent print:static overflow-y-auto">
             <div 
               id="printable-receipt-modal" 
-              className="bg-white text-slate-900 p-5 md:p-6 mx-auto w-full max-w-2xl shadow-2xl border border-slate-200 rounded-lg text-xs font-sans animate-in fade-in zoom-in-95 duration-150 relative print:border-0 print:shadow-none print:w-full print:max-w-none print:p-0 print:my-0"
+              className="bg-white text-slate-900 p-5 md:p-6 mx-auto w-full max-w-xl shadow-2xl border border-slate-200 rounded-lg text-xs font-sans animate-in fade-in zoom-in-95 duration-150 relative print:border-0 print:shadow-none print:w-full print:max-w-none print:p-0 print:my-0"
             >
               <button 
                 onClick={() => {
@@ -1841,6 +1841,16 @@ Staff: ${receiptData.generatedBy}`;
 
               {/* Print & Share Buttons */}
               <div className="flex gap-2 pt-4 mt-4 border-t border-slate-100 print:hidden justify-end flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReceiptModal(false);
+                    if (isFinalPayment) navigate('/handover');
+                  }}
+                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-1.5 px-4 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer"
+                >
+                  <X size={11} /> Close
+                </button>
                 <button
                   type="button"
                   onClick={handleWhatsAppShare}
