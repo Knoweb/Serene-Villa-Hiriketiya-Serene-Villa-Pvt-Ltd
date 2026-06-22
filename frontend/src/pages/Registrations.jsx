@@ -1391,7 +1391,14 @@ const Registrations = () => {
       {/* QR Code Modal Flyer */}
       {showQr && (
         <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-100 w-full max-w-sm rounded-2xl p-8 space-y-6 text-center shadow-xl relative">
+          <div className="bg-white border border-slate-100 w-full max-w-lg rounded-2xl p-8 space-y-6 text-center shadow-xl relative">
+            <button
+              onClick={() => setShowQr(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition no-print cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+
             <div>
               <h3 className="text-base font-extrabold text-slate-900">Serene Villa Check-In QR</h3>
               <p className="text-xs text-slate-500 font-medium mt-1">Scan this QR code to fill the Guest Registration Form</p>
@@ -1429,28 +1436,31 @@ const Registrations = () => {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-2 pt-2 text-xs no-print">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs no-print">
               <button 
                 onClick={handleDownloadQr}
-                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:shadow"
               >
                 <FileDown size={14} /> Download QR
               </button>
               <button 
                 onClick={handleShareQr}
-                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:shadow"
               >
                 <Share2 size={14} /> Share Link
               </button>
               <button 
                 onClick={() => window.print()}
-                className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:shadow"
               >
                 <Printer size={14} /> Print Flyer
               </button>
+            </div>
+
+            <div className="no-print pt-1">
               <button 
                 onClick={() => setShowQr(false)}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition cursor-pointer"
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition cursor-pointer text-xs"
               >
                 Close
               </button>
