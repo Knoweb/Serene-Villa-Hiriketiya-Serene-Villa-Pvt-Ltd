@@ -2,71 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle2, Trash2, Plus, X, ListPlus, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const DEFAULT_ROOMS = [
-  {
-    id: 101,
-    roomNumber: '101',
-    roomType: 'Deluxe Ocean View',
-    image: '/deluxe.png',
-    images: [],
-    facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi', 'Coffee Maker'],
-    status: 'Available',
-  },
-  {
-    id: 102,
-    roomNumber: '102',
-    roomType: 'Deluxe Ocean View',
-    image: '/deluxe.png',
-    images: [],
-    facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi', 'Coffee Maker'],
-    status: 'Occupied',
-  },
-  {
-    id: 103,
-    roomNumber: '103',
-    roomType: 'Deluxe Ocean View',
-    image: '/deluxe.png',
-    images: [],
-    facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi', 'Coffee Maker'],
-    status: 'Available',
-  },
-  {
-    id: 201,
-    roomNumber: '201',
-    roomType: 'Tropical Plunge Suite',
-    image: '/suite.png',
-    images: [],
-    facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar', 'High-speed Wi-Fi', 'Luxury Toiletries'],
-    status: 'Available',
-  },
-  {
-    id: 202,
-    roomNumber: '202',
-    roomType: 'Tropical Plunge Suite',
-    image: '/suite.png',
-    images: [],
-    facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar', 'High-speed Wi-Fi', 'Luxury Toiletries'],
-    status: 'Maintenance',
-  },
-  {
-    id: 203,
-    roomNumber: '203',
-    roomType: 'Tropical Plunge Suite',
-    image: '/suite.png',
-    images: [],
-    facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar', 'High-speed Wi-Fi', 'Luxury Toiletries'],
-    status: 'Occupied',
-  }
-];
 
 const Rooms = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
 
-  // State to hold rooms (initialize from localStorage or default)
   const [rooms, setRooms] = useState(() => {
     const saved = localStorage.getItem('pms_rooms');
-    return saved ? JSON.parse(saved) : DEFAULT_ROOMS;
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const isDemo = parsed.length === 6 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Ocean View');
+      if (!isDemo) {
+        return parsed;
+      }
+    }
+    return [];
   });
 
   const [selectedRoom, setSelectedRoom] = useState(null);

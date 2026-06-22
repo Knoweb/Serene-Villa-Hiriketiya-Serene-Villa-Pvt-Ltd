@@ -85,25 +85,19 @@ const Registrations = () => {
     const saved = localStorage.getItem('pms_rooms');
     if (saved) {
       const parsed = JSON.parse(saved);
-      return parsed.map(r => {
-        let img = r.image;
-        if (r.roomType.toLowerCase().includes('deluxe')) img = deluxeRoomImg;
-        else if (r.roomType.toLowerCase().includes('suite')) img = suiteRoomImg;
-        else if (r.roomType.toLowerCase().includes('standard')) img = standardRoomImg;
-        else if (r.roomType.toLowerCase().includes('budget')) img = budgetRoomImg;
-        return { ...r, image: img };
-      });
+      const isDemo = parsed.length === 8 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Room');
+      if (!isDemo) {
+        return parsed.map(r => {
+          let img = r.image;
+          if (r.roomType.toLowerCase().includes('deluxe')) img = deluxeRoomImg;
+          else if (r.roomType.toLowerCase().includes('suite')) img = suiteRoomImg;
+          else if (r.roomType.toLowerCase().includes('standard')) img = standardRoomImg;
+          else if (r.roomType.toLowerCase().includes('budget')) img = budgetRoomImg;
+          return { ...r, image: img };
+        });
+      }
     }
-    return [
-      { id: 101, roomNumber: '101', roomType: 'Deluxe Room', image: deluxeRoomImg, facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi'], status: 'Available' },
-      { id: 102, roomNumber: '102', roomType: 'Deluxe Room', image: deluxeRoomImg, facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi'], status: 'Occupied' },
-      { id: 103, roomNumber: '103', roomType: 'Deluxe Room', image: deluxeRoomImg, facilities: ['King Bed', 'AC', 'Mini Bar', 'Ocean View balcony', 'High-speed Wi-Fi'], status: 'Available' },
-      { id: 201, roomNumber: '201', roomType: 'Suite Room', image: suiteRoomImg, facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar'], status: 'Available' },
-      { id: 202, roomNumber: '202', roomType: 'Suite Room', image: suiteRoomImg, facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar'], status: 'Maintenance' },
-      { id: 203, roomNumber: '203', roomType: 'Suite Room', image: suiteRoomImg, facilities: ['King Bed', 'AC', 'Private Plunge Pool', 'Outdoor Lounge', 'Mini Bar'], status: 'Occupied' },
-      { id: 301, roomNumber: '301', roomType: 'Standard Room', image: standardRoomImg, facilities: ['Queen Bed', 'AC', 'Garden View', 'High-speed Wi-Fi'], status: 'Available' },
-      { id: 401, roomNumber: '401', roomType: 'Budget Room', image: budgetRoomImg, facilities: ['Queen Bed', 'AC', 'High-speed Wi-Fi'], status: 'Available' }
-    ];
+    return [];
   });
 
   // Selected Guest for Details Panel
