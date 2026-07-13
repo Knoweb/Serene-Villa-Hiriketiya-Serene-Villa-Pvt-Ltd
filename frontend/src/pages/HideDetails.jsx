@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Search, AlertCircle, Loader, Filter, ShieldAlert, CheckCircle, User, Calendar, Receipt } from 'lucide-react';
+import { Eye, EyeOff, Search, AlertCircle, Loader, Filter, ShieldAlert, CheckCircle, Calendar } from 'lucide-react';
 
 const HideDetails = () => {
   const { user } = useAuth();
@@ -228,32 +228,49 @@ const HideDetails = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
-                  <th className="p-4">Guest Info</th>
-                  <th className="p-4">Stay Dates & Room</th>
+                  <th className="p-4">Guest</th>
+                  <th className="p-4">Passport / WhatsApp</th>
+                  <th className="p-4">Dates & Room</th>
                   <th className="p-4">Booking Ref</th>
                   <th className="p-4">Payment Transactions Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
                 {filteredGuests.map((g) => (
-                  <tr key={g.id} className="hover:bg-slate-50/10 transition align-top">
-                    {/* Guest Info */}
-                    <td className="p-4 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 bg-emerald-55 text-emerald-700 rounded-full flex items-center justify-center font-bold text-xs uppercase">
-                          {g.guestName?.charAt(0)}
-                        </div>
-                        <p className="font-extrabold text-slate-900 text-sm">{g.guestName}</p>
+                  <tr key={g.id} className="hover:bg-slate-50/10 transition align-middle">
+                    {/* Guest Column with Image/Avatar & Nationality */}
+                    <td className="p-4 flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100/60 shrink-0 flex items-center justify-center font-bold text-emerald-800 text-sm">
+                        {g.guestPhotoPath ? (
+                          <img 
+                            src={g.guestPhotoPath} 
+                            alt={g.guestName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          g.guestName?.charAt(0).toUpperCase()
+                        )}
                       </div>
-                      <p className="text-[10px] text-slate-450 font-mono pl-9">PP: {g.passportNumber} • {g.whatsappNumber}</p>
+                      <div>
+                        <p className="font-extrabold text-slate-900 text-sm">{g.guestName}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{g.nationality}</p>
+                      </div>
+                    </td>
+
+                    {/* Passport / WhatsApp */}
+                    <td className="p-4">
+                      <p className="font-mono text-slate-800">{g.passportNumber}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{g.whatsappNumber || g.whatsAppNumber}</p>
                     </td>
 
                     {/* Stay Dates & Room */}
-                    <td className="p-4 space-y-1 font-medium">
-                      <p className="flex items-center gap-1"><Calendar size={12} className="text-slate-400" /> In: {g.checkInDate}</p>
-                      <p className="flex items-center gap-1"><Calendar size={12} className="text-slate-400" /> Out: {g.checkOutDate}</p>
-                      <p className="text-[10px] text-emerald-700 font-bold mt-1">
-                        {g.booking ? `Room ${g.booking.roomNumber || 'No Room'} (${g.booking.roomType})` : 'Unallocated'}
+                    <td className="p-4 font-medium">
+                      <p>In: {g.checkInDate}</p>
+                      <p className="text-slate-400 text-[10px] mt-0.5">
+                        {g.booking ? `${g.booking.roomNumber || 'No Room'} (${g.booking.roomType})` : 'Unallocated'}
                       </p>
                     </td>
 
@@ -261,7 +278,7 @@ const HideDetails = () => {
                     <td className="p-4">
                       {g.booking ? (
                         <div>
-                          <p className="font-bold text-slate-800">{g.booking.bookingNumber}</p>
+                          <p className="font-bold text-slate-850">{g.booking.bookingNumber}</p>
                           <p className="text-[10px] text-slate-400 font-mono mt-0.5">Total: LKR {g.booking.totalAmount?.toLocaleString()}</p>
                         </div>
                       ) : (
@@ -282,7 +299,7 @@ const HideDetails = () => {
                                 <div className="space-y-0.5">
                                   <p className="font-extrabold text-slate-800">
                                     {p.amountInCurrency?.toLocaleString()} {p.currency} 
-                                    <span className="text-[9px] text-slate-400 font-normal"> ({p.paymentMethod})</span>
+                                    <span className="text-[9px] text-slate-400 font-normal font-sans"> ({p.paymentMethod})</span>
                                   </p>
                                   <p className="text-[9px] text-slate-450 font-normal font-mono">{p.paymentDate || p.createdAt?.split('T')[0]}</p>
                                 </div>
