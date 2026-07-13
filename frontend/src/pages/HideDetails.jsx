@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Search, AlertCircle, Loader, Filter, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Search, AlertCircle, Loader, Filter, ShieldAlert, CheckCircle, User, Calendar, Receipt } from 'lucide-react';
 
 const HideDetails = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
 
-  const [payments, setPayments] = useState([]);
-  const [bookings, setBookings] = useState([]);
   const [registrations, setRegistrations] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterMethod, setFilterMethod] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,11 +20,12 @@ const HideDetails = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch payments
-      const payRes = await fetch(`${API_BASE}/payments`);
-      let payData = [];
-      if (payRes.ok) {
-        payData = await payRes.json();
+      // Fetch registrations
+      const regRes = await fetch(`${API_BASE}/guest-registrations?size=1000`);
+      let regData = [];
+      if (regRes.ok) {
+        const pageResult = await regRes.json();
+        regData = pageResult.content || [];
       }
 
       // Fetch bookings
@@ -34,30 +35,18 @@ const HideDetails = () => {
         bookData = await bookRes.json();
       }
 
-      // Fetch registrations
-      const regRes = await fetch(`${API_BASE}/guest-registrations?size=1000`);
-      let regData = [];
-      if (regRes.ok) {
-        const pageResult = await regRes.json();
-        regData = pageResult.content || [];
+      // Fetch payments
+      const payRes = await fetch(`${API_BASE}/payments`);
+      let payData = [];
+      if (payRes.ok) {
+        payData = await payRes.json();
       }
 
-      // Map details
-      const mapped = payData.map(p => {
-        const booking = bookData.find(b => b.id === p.bookingId);
-        const registration = booking ? regData.find(r => r.id === booking.guestRegistrationId) : null;
-        return {
-          ...p,
-          guestName: registration ? registration.guestName : 'Unknown Guest',
-          bookingRef: booking ? booking.bookingNumber : 'N/A'
-        };
-      });
-
-      // Sort by date descending
-      mapped.sort((a, b) => new Date(b.createdAt || b.paymentDate) - new Date(a.createdAt || a.paymentDate));
-      setPayments(mapped);
+      setRegistrations(regData);
+      setBookings(bookData);
+      setPayments(payData);
     } catch (err) {
-      console.error('Error fetching hide details:', err);
+      console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
     }
@@ -83,15 +72,14 @@ const HideDetails = () => {
   }
 
   // Toggle individual payment visibility
-  const handleToggleVisibility = async (payment) => {
-    const isHidden = payment.isHiddenFromFrontOffice;
-    const endpoint = isHidden ? 'unhide' : 'hide';
+  const handleToggleVisibility = async (paymentId, isCurrentlyHidden) => {
+    const endpoint = isCurrentlyHidden ? 'unhide' : 'hide';
     try {
-      const res = await fetch(`${API_BASE}/payments/${payment.id}/${endpoint}`, {
+      const res = await fetch(`${API_BASE}/payments/${paymentId}/${endpoint}`, {
         method: 'PUT'
       });
       if (res.ok) {
-        setActionSuccess(`Payment successfully ${isHidden ? 'visible' : 'hidden'} from Front Office.`);
+        setActionSuccess(`Payment successfully ${isCurrentlyHidden ? 'visible' : 'hidden'} from Front Office.`);
         fetchData();
         setTimeout(() => setActionSuccess(''), 3000);
       } else {
@@ -103,7 +91,7 @@ const HideDetails = () => {
     }
   };
 
-  // Bulk visibility change
+  // Bulk visibility change by payment method
   const handleBulkVisibility = async (hide) => {
     if (filterMethod === 'All') {
       alert('Please select a specific payment method from the dropdown to perform bulk hide/show actions.');
@@ -128,20 +116,39 @@ const HideDetails = () => {
     }
   };
 
-  // Filtering
-  const filteredPayments = payments.filter(p => {
-    const matchesMethod = filterMethod === 'All' || p.paymentMethod?.toLowerCase() === filterMethod.toLowerCase();
-    const matchesSearch = p.guestName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.bookingRef?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.referenceNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesMethod && matchesSearch;
+  // Prepare registrations with their bookings and payments
+  const mappedGuests = registrations.map(reg => {
+    const booking = bookings.find(b => b.guestRegistrationId === reg.id);
+    const guestPayments = booking ? payments.filter(p => p.bookingId === booking.id) : [];
+    return {
+      ...reg,
+      booking,
+      payments: guestPayments
+    };
+  });
+
+  // Filter based on dropdown and search query
+  const filteredGuests = mappedGuests.filter(guest => {
+    // Search query matching
+    const matchesSearch = guest.guestName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          guest.passportNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          guest.booking?.bookingNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Payment method filter matching
+    if (filterMethod === 'All') {
+      return matchesSearch;
+    } else {
+      // Must have at least one payment of the selected payment method
+      const hasMatchingPayment = guest.payments.some(p => p.paymentMethod?.toLowerCase() === filterMethod.toLowerCase());
+      return matchesSearch && hasMatchingPayment;
+    }
   });
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Hide Payment Details</h2>
-        <p className="text-xs text-slate-500 font-medium mt-0.5">Filter and hide specific transaction records from Front Office Cashier view</p>
+        <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Hide Details</h2>
+        <p className="text-xs text-slate-500 font-medium mt-0.5">Filter registered guests and toggle cashier visibility of their payments</p>
       </div>
 
       {actionSuccess && (
@@ -167,10 +174,10 @@ const HideDetails = () => {
               onChange={(e) => setFilterMethod(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
-              <option value="All">All Payment Methods</option>
-              <option value="Cash">Cash Payments</option>
-              <option value="Card">Card Payments</option>
-              <option value="Bank Transfer">Bank Transfer Payments</option>
+              <option value="All">All Registered Guests</option>
+              <option value="Cash">Guests with Cash Payments</option>
+              <option value="Card">Guests with Card Payments</option>
+              <option value="Bank Transfer">Guests with Bank Transfers</option>
             </select>
           </div>
 
@@ -179,7 +186,7 @@ const HideDetails = () => {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search guest, booking ref, reference..."
+              placeholder="Search guest name, passport, booking ref..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-emerald-500"
@@ -192,13 +199,13 @@ const HideDetails = () => {
           <div className="flex gap-2 w-full md:w-auto justify-end">
             <button
               onClick={() => handleBulkVisibility(true)}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-sm"
+              className="bg-rose-650 hover:bg-rose-700 text-rose-700 bg-rose-50 border border-rose-100 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
             >
               <EyeOff size={13} /> Hide All {filterMethod}
             </button>
             <button
               onClick={() => handleBulkVisibility(false)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-sm"
+              className="bg-emerald-650 hover:bg-emerald-700 text-emerald-700 bg-emerald-50 border border-emerald-100 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
             >
               <Eye size={13} /> Show All {filterMethod}
             </button>
@@ -206,75 +213,105 @@ const HideDetails = () => {
         )}
       </div>
 
-      {/* Payments List Table */}
+      {/* Guest Registrations Table */}
       <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="p-12 text-center text-slate-400 font-bold flex items-center justify-center gap-2">
-            <Loader className="h-5 w-5 animate-spin text-emerald-600" /> Loading transactions...
+            <Loader className="h-5 w-5 animate-spin text-emerald-600" /> Loading guests list...
           </div>
-        ) : filteredPayments.length === 0 ? (
+        ) : filteredGuests.length === 0 ? (
           <div className="p-12 text-center text-slate-400 font-bold">
-            No payments found matching the selected criteria.
+            No registered guests found matching the selected criteria.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
-                  <th className="p-4">Date</th>
+                  <th className="p-4">Guest Info</th>
+                  <th className="p-4">Stay Dates & Room</th>
                   <th className="p-4">Booking Ref</th>
-                  <th className="p-4">Guest</th>
-                  <th className="p-4">Method</th>
-                  <th className="p-4">Amount</th>
-                  <th className="p-4">Front Office Status</th>
-                  <th className="p-4 text-right">Actions</th>
+                  <th className="p-4">Payment Transactions Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
-                {filteredPayments.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/20 transition">
-                    <td className="p-4 font-mono text-slate-500">{p.paymentDate || p.createdAt?.split('T')[0]}</td>
-                    <td className="p-4 font-bold text-slate-700">{p.bookingRef}</td>
+                {filteredGuests.map((g) => (
+                  <tr key={g.id} className="hover:bg-slate-50/10 transition align-top">
+                    {/* Guest Info */}
+                    <td className="p-4 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 bg-emerald-55 text-emerald-700 rounded-full flex items-center justify-center font-bold text-xs uppercase">
+                          {g.guestName?.charAt(0)}
+                        </div>
+                        <p className="font-extrabold text-slate-900 text-sm">{g.guestName}</p>
+                      </div>
+                      <p className="text-[10px] text-slate-450 font-mono pl-9">PP: {g.passportNumber} • {g.whatsappNumber}</p>
+                    </td>
+
+                    {/* Stay Dates & Room */}
+                    <td className="p-4 space-y-1 font-medium">
+                      <p className="flex items-center gap-1"><Calendar size={12} className="text-slate-400" /> In: {g.checkInDate}</p>
+                      <p className="flex items-center gap-1"><Calendar size={12} className="text-slate-400" /> Out: {g.checkOutDate}</p>
+                      <p className="text-[10px] text-emerald-700 font-bold mt-1">
+                        {g.booking ? `Room ${g.booking.roomNumber || 'No Room'} (${g.booking.roomType})` : 'Unallocated'}
+                      </p>
+                    </td>
+
+                    {/* Booking Ref */}
                     <td className="p-4">
-                      <p className="font-bold text-slate-900">{p.guestName}</p>
-                      {p.referenceNumber && <p className="text-[10px] text-slate-400 font-mono mt-0.5">Ref: {p.referenceNumber}</p>}
+                      {g.booking ? (
+                        <div>
+                          <p className="font-bold text-slate-800">{g.booking.bookingNumber}</p>
+                          <p className="text-[10px] text-slate-400 font-mono mt-0.5">Total: LKR {g.booking.totalAmount?.toLocaleString()}</p>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 font-normal">N/A</span>
+                      )}
                     </td>
-                    <td className="p-4">
-                      <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full uppercase tracking-wider text-[10px]">
-                        {p.paymentMethod}
-                      </span>
-                    </td>
-                    <td className="p-4 font-mono text-slate-900">
-                      {p.amountInCurrency?.toLocaleString()} {p.currency}
-                    </td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        p.isHiddenFromFrontOffice 
-                          ? 'bg-rose-100 text-rose-700' 
-                          : 'bg-emerald-100 text-emerald-700'
-                      }`}>
-                        {p.isHiddenFromFrontOffice ? (
-                          <>
-                            <EyeOff size={10} /> Hidden
-                          </>
-                        ) : (
-                          <>
-                            <Eye size={10} /> Visible
-                          </>
-                        )}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <button
-                        onClick={() => handleToggleVisibility(p)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wide uppercase transition cursor-pointer ${
-                          p.isHiddenFromFrontOffice 
-                            ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800' 
-                            : 'bg-rose-50 hover:bg-rose-100 text-rose-800'
-                        }`}
-                      >
-                        {p.isHiddenFromFrontOffice ? 'Unhide' : 'Hide'}
-                      </button>
+
+                    {/* Payments Details */}
+                    <td className="p-4 space-y-2 max-w-sm">
+                      {g.payments.length === 0 ? (
+                        <span className="text-slate-400 font-normal italic">No payments recorded yet</span>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {g.payments
+                            .filter(p => filterMethod === 'All' || p.paymentMethod?.toLowerCase() === filterMethod.toLowerCase())
+                            .map((p) => (
+                              <div key={p.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[10px]">
+                                <div className="space-y-0.5">
+                                  <p className="font-extrabold text-slate-800">
+                                    {p.amountInCurrency?.toLocaleString()} {p.currency} 
+                                    <span className="text-[9px] text-slate-400 font-normal"> ({p.paymentMethod})</span>
+                                  </p>
+                                  <p className="text-[9px] text-slate-450 font-normal font-mono">{p.paymentDate || p.createdAt?.split('T')[0]}</p>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[8px] font-extrabold uppercase ${
+                                    p.isHiddenFromFrontOffice 
+                                      ? 'bg-rose-100 text-rose-700' 
+                                      : 'bg-emerald-100 text-emerald-700'
+                                  }`}>
+                                    {p.isHiddenFromFrontOffice ? 'Hidden' : 'Visible'}
+                                  </span>
+
+                                  <button
+                                    onClick={() => handleToggleVisibility(p.id, p.isHiddenFromFrontOffice)}
+                                    className={`p-1 rounded hover:bg-slate-200 transition cursor-pointer text-slate-550`}
+                                    title={p.isHiddenFromFrontOffice ? 'Show to Cashier' : 'Hide from Cashier'}
+                                  >
+                                    {p.isHiddenFromFrontOffice ? (
+                                      <EyeOff size={14} className="text-rose-600" />
+                                    ) : (
+                                      <Eye size={14} className="text-emerald-600" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
