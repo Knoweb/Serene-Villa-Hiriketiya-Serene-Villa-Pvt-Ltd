@@ -29,21 +29,7 @@ const Dashboard = () => {
   const [roomsCount, setRoomsCount] = useState(0);
   const [staff, setStaff] = useState([]);
   const [pendingDiscounts, setPendingDiscounts] = useState([]);
-  const [hiddenMethods, setHiddenMethods] = useState(() => {
-    const saved = localStorage.getItem('pms_hidden_payment_methods');
-    return saved ? JSON.parse(saved) : [];
-  });
 
-  const handleTogglePaymentVisibility = (method) => {
-    let updated;
-    if (hiddenMethods.includes(method)) {
-      updated = hiddenMethods.filter(m => m !== method);
-    } else {
-      updated = [...hiddenMethods, method];
-    }
-    setHiddenMethods(updated);
-    localStorage.setItem('pms_hidden_payment_methods', JSON.stringify(updated));
-  };
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
