@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Check, X } from 'lucide-react';
 
@@ -6,32 +6,57 @@ const Discounts = () => {
   const { user } = useAuth();
   const isAdmin = user.role === 'ADMIN';
 
-  const [requests, setRequests] = useState([
-    {
-      id: 1,
-      bookingRef: 'SV-2026-0002',
-      guestName: 'Hiroshi Tanaka',
-      totalAmount: 180000,
-      requestedDiscount: 'LKR 15,000',
-      reason: 'Loyalty guest request',
-      status: 'Pending',
-      requestedBy: 'fo_user',
-    },
-    {
-      id: 2,
-      bookingRef: 'SV-2026-0001',
-      guestName: 'Liam Johnson',
-      totalAmount: 140000,
-      requestedDiscount: '10%',
-      reason: 'Slight air conditioning issue reported during first night',
-      status: 'Approved',
-      requestedBy: 'fo_user',
-      approvedBy: 'admin_user'
+  const [staff, setStaff] = useState([]);
+  const [requests, setRequests] = useState(() => {
+    const saved = localStorage.getItem('pms_discounts');
+    if (saved) {
+      return JSON.parse(saved);
     }
-  ]);
+    const defaultDiscounts = [
+      {
+        id: 1,
+        bookingRef: 'SV-2026-0002',
+        guestName: 'Hiroshi Tanaka',
+        totalAmount: 180000,
+        requestedDiscount: 'LKR 15,000',
+        reason: 'Loyalty guest request',
+        status: 'Pending',
+        requestedBy: 'fo_user',
+      },
+      {
+        id: 2,
+        bookingRef: 'SV-2026-0001',
+        guestName: 'Liam Johnson',
+        totalAmount: 140000,
+        requestedDiscount: '10%',
+        reason: 'Slight air conditioning issue reported during first night',
+        status: 'Approved',
+        requestedBy: 'fo_user',
+        approvedBy: 'admin_user'
+      }
+    ];
+    localStorage.setItem('pms_discounts', JSON.stringify(defaultDiscounts));
+    return defaultDiscounts;
+  });
+
+  useEffect(() => {
+    const fetchStaff = async () => {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
+      try {
+        const res = await fetch(`${API_BASE}/auth/users`);
+        if (res.ok) {
+          const data = await res.json();
+          setStaff(data);
+        }
+      } catch (err) {
+        console.error('Error fetching staff list:', err);
+      }
+    };
+    fetchStaff();
+  }, []);
 
   const handleAction = (id, status) => {
-    setRequests(prev => prev.map(req => {
+    const updated = requests.map(req => {
       if (req.id === id) {
         return {
           ...req,
@@ -40,7 +65,9 @@ const Discounts = () => {
         };
       }
       return req;
-    }));
+    });
+    setRequests(updated);
+    localStorage.setItem('pms_discounts', JSON.stringify(updated));
   };
 
   return (
@@ -73,7 +100,12 @@ const Discounts = () => {
                 <td className="p-4 font-mono text-emerald-700 font-bold">{req.bookingRef}</td>
                 <td className="p-4">
                   <p className="font-bold text-slate-900">{req.guestName}</p>
-                  <p className="text-[9px] text-slate-400 font-bold mt-0.5">By: {req.requestedBy}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[9px] text-slate-400 font-bold">By: {req.requestedBy}</span>
+                    <span className="text-[8px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                      {staff.find(s => s.username === req.requestedBy)?.role?.replace('_', ' ') || 'Front Officer'}
+                    </span>
+                  </div>
                 </td>
                 <td className="p-4 font-mono">LKR {req.totalAmount.toLocaleString()}</td>
                 <td className="p-4 text-emerald-700 font-extrabold font-mono">{req.requestedDiscount}</td>

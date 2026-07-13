@@ -26,8 +26,56 @@ const Dashboard = () => {
   const [registrations, setRegistrations] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [roomsCount, setRoomsCount] = useState(0);
+  const [staff, setStaff] = useState([]);
+  const [pendingDiscounts, setPendingDiscounts] = useState([]);
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
+
+  useEffect(() => {
+    // Load rooms count
+    const savedRooms = localStorage.getItem('pms_rooms');
+    if (savedRooms) {
+      const parsed = JSON.parse(savedRooms);
+      const isDemo = parsed.length === 6 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Ocean View');
+      if (!isDemo) {
+        setRoomsCount(parsed.length);
+      }
+    }
+
+    // Load discount requests
+    const savedDiscounts = localStorage.getItem('pms_discounts');
+    if (savedDiscounts) {
+      const parsed = JSON.parse(savedDiscounts);
+      setPendingDiscounts(parsed.filter(r => r.status === 'Pending'));
+    } else {
+      const defaultDiscounts = [
+        {
+          id: 1,
+          bookingRef: 'SV-2026-0002',
+          guestName: 'Hiroshi Tanaka',
+          totalAmount: 180000,
+          requestedDiscount: 'LKR 15,000',
+          reason: 'Loyalty guest request',
+          status: 'Pending',
+          requestedBy: 'fo_user',
+        },
+        {
+          id: 2,
+          bookingRef: 'SV-2026-0001',
+          guestName: 'Liam Johnson',
+          totalAmount: 140000,
+          requestedDiscount: '10%',
+          reason: 'Slight air conditioning issue reported during first night',
+          status: 'Approved',
+          requestedBy: 'fo_user',
+          approvedBy: 'admin_user'
+        }
+      ];
+      localStorage.setItem('pms_discounts', JSON.stringify(defaultDiscounts));
+      setPendingDiscounts(defaultDiscounts.filter(r => r.status === 'Pending'));
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +91,13 @@ const Dashboard = () => {
           const bookingData = await bookingRes.json();
           setBookings(bookingData || []);
         }
+        if (user?.role === 'ADMIN') {
+          const staffRes = await fetch(`${API_BASE}/auth/users`);
+          if (staffRes.ok) {
+            const staffData = await staffRes.json();
+            setStaff(staffData || []);
+          }
+        }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
       } finally {
@@ -50,7 +105,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   // Role Checks
   const isAdmin = user.role === 'ADMIN';
@@ -263,53 +318,104 @@ const Dashboard = () => {
             <p className="text-xs text-slate-500 font-medium mt-1">Property Management Systems & Settings</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <UserCheck className="h-4.5 w-4.5 text-emerald-600" /> Staff & Roles
-              </h3>
-              <p className="text-xs text-slate-500">Create, manage, and monitor activities performed by Front Office and Accountant roles.</p>
-              <div className="flex gap-2">
-                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold">0 FO Staff</span>
-                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold">0 Accountant</span>
-              </div>
-            </div>
+          {/* Calculations */}
+          {(() => {
+            const foStaffCount = staff.filter(s => s.role === 'FRONT_OFFICER').length;
+            const accountantCount = staff.filter(s => s.role === 'ACCOUNTANT').length;
 
-            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <BedDouble className="h-4.5 w-4.5 text-emerald-600" /> Room Management
-              </h3>
-              <p className="text-xs text-slate-500">Manage room configurations, view amenities, upload photos, and update availability status.</p>
-              <span className="text-xs font-bold text-emerald-700 block">Total Rooms: 6 (Serene Villa Pvt Ltd)</span>
-            </div>
+            const totalBookings = bookings.length;
+            const directBookings = bookings.filter(b => b.bookingType === 'Direct').length;
+            const bookingComBookings = bookings.filter(b => b.bookingType === 'Booking.com').length;
 
-            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <TrendingUp className="h-4.5 w-4.5 text-emerald-600" /> Booking Source Analytics
-              </h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-semibold">Direct Bookings</span>
-                  <span className="font-bold text-slate-800">0 (0%)</span>
+            const directPercent = totalBookings > 0 ? Math.round((directBookings / totalBookings) * 100) : 0;
+            const bookingComPercent = totalBookings > 0 ? Math.round((bookingComBookings / totalBookings) * 100) : 0;
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <UserCheck className="h-4.5 w-4.5 text-emerald-600" /> Staff & Roles
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">Create, manage, and monitor activities performed by Front Office and Accountant roles.</p>
+                  <div className="flex gap-2">
+                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold">{foStaffCount} FO Staff</span>
+                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold">{accountantCount} Accountant</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-semibold">Booking.com</span>
-                  <span className="font-bold text-slate-800">0 (0%)</span>
+
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <BedDouble className="h-4.5 w-4.5 text-emerald-600" /> Room Management
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">Manage room configurations, view amenities, upload photos, and update availability status.</p>
+                  <span className="text-xs font-bold text-emerald-700 block">Total Rooms: {roomsCount} ({currentProperty.name})</span>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <TrendingUp className="h-4.5 w-4.5 text-emerald-600" /> Booking Source Analytics
+                  </h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between font-semibold">
+                      <span className="text-slate-500">Direct Bookings</span>
+                      <span className="font-bold text-slate-805">{directBookings} ({directPercent}%)</span>
+                    </div>
+                    <div className="flex justify-between font-semibold">
+                      <span className="text-slate-500">Booking.com</span>
+                      <span className="font-bold text-slate-805">{bookingComBookings} ({bookingComPercent}%)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4 col-span-1 md:col-span-2 lg:col-span-3">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <Percent className="h-4.5 w-4.5 text-emerald-600" /> Pending Discount Approvals
+                  </h3>
+                  <div className="border border-slate-100 rounded-xl overflow-hidden text-xs font-semibold text-slate-600">
+                    {pendingDiscounts.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400 font-bold">
+                        No pending discount approval requests.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
+                              <th className="p-3">Booking Ref</th>
+                              <th className="p-3">Guest Name</th>
+                              <th className="p-3">Total Amount</th>
+                              <th className="p-3">Discount</th>
+                              <th className="p-3">Reason</th>
+                              <th className="p-3 text-right">Requested By</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                            {pendingDiscounts.map((req) => (
+                              <tr key={req.id} className="hover:bg-slate-50/50 transition">
+                                <td className="p-3 font-mono text-emerald-700 font-bold">{req.bookingRef}</td>
+                                <td className="p-3 text-slate-900">{req.guestName}</td>
+                                <td className="p-3 font-mono">LKR {req.totalAmount.toLocaleString()}</td>
+                                <td className="p-3 text-emerald-700 font-extrabold font-mono">{req.requestedDiscount}</td>
+                                <td className="p-3 text-slate-500 font-normal">{req.reason}</td>
+                                <td className="p-3 text-right">
+                                  <div className="flex flex-col items-end">
+                                    <span className="font-bold text-slate-900">{req.requestedBy}</span>
+                                    <span className="text-[9px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-full mt-0.5 uppercase tracking-wide">
+                                      {staff.find(s => s.username === req.requestedBy)?.role?.replace('_', ' ') || 'Front Officer'}
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4 col-span-1 md:col-span-2 lg:col-span-3">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <Percent className="h-4.5 w-4.5 text-emerald-600" /> Pending Discount Approvals
-              </h3>
-              <div className="border border-slate-50 rounded-xl overflow-hidden text-xs">
-                <div className="p-8 text-center text-slate-400 font-bold">
-                  No pending discount approval requests.
-                </div>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       )}
 

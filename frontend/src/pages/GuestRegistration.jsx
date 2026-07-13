@@ -103,7 +103,7 @@ const GuestRegistration = () => {
         passportBackPath: passportBackBase64
       };
 
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
       const res = await fetch(`${API_BASE}/public/guest-registrations`, {
         method: 'POST',

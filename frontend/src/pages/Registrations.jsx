@@ -33,8 +33,9 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
+import ReservationConfirmationPrint from '../components/ReservationConfirmationPrint';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
 const ROOM_TEMPLATES = {
   'Deluxe Room': {
@@ -80,6 +81,24 @@ const Registrations = () => {
   const [error, setError] = useState('');
   const [showQr, setShowQr] = useState(false);
   const [customHost, setCustomHost] = useState(() => window.location.hostname);
+  const confirmationPrintRef = React.useRef(null);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [isCreatingNewReservation, setIsCreatingNewReservation] = useState(false);
+  const [confirmationData, setConfirmationData] = useState({
+    address: '',
+    email: '',
+    vatNo: '',
+    reservationDate: new Date().toISOString().split('T')[0],
+    roomReference: '',
+    unitPrice: '',
+    totalPrice: '',
+    currency: 'USD',
+    confirmedBy: '',
+    reservationStatus: 'Confirm Booking',
+    senderName: 'Muthuni Weerasingha',
+    badgeText: 'Hold'
+  });
+
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const [rooms, setRooms] = useState(() => {
     const saved = localStorage.getItem('pms_rooms');
@@ -100,12 +119,29 @@ const Registrations = () => {
     return [];
   });
 
+  const uniqueRoomTypes = Array.from(new Set(rooms.map(r => r.roomType)));
+  const defaultRoomType = uniqueRoomTypes.length > 0 ? uniqueRoomTypes[0] : '';
+
+  const getRoomTypeDetails = (type) => {
+    if (!type) return null;
+    if (ROOM_TEMPLATES[type]) return ROOM_TEMPLATES[type];
+    const match = rooms.find(r => r.roomType === type);
+    if (match) {
+      return {
+        image: match.images && match.images.length > 0 ? match.images[0] : match.image,
+        occupancy: type.toLowerCase().includes('suite') ? '3 Adults' : '2 Adults',
+        features: match.facilities || []
+      };
+    }
+    return null;
+  };
+
   // Selected Guest for Details Panel
   const [selectedReg, setSelectedReg] = useState(null);
   
   // Booking Form State for selected guest
   const [bookingForm, setBookingForm] = useState({
-    roomType: 'Deluxe Room',
+    roomType: defaultRoomType,
     room: '',
     bookingType: 'Direct',
     bookingNumber: '',
@@ -305,7 +341,7 @@ const Registrations = () => {
     
     if (associatedBooking) {
       setBookingForm({
-        roomType: associatedBooking.roomType || 'Deluxe Room',
+        roomType: associatedBooking.roomType || defaultRoomType,
         room: associatedBooking.roomNumber || '',
         bookingType: associatedBooking.bookingType || 'Direct',
         bookingNumber: associatedBooking.bookingNumber || '',
@@ -319,10 +355,10 @@ const Registrations = () => {
     } else {
       // Default blank/pre-filled values
       setBookingForm({
-        roomType: 'Deluxe Room',
+        roomType: defaultRoomType,
         room: '',
         bookingType: 'Direct',
-        bookingNumber: `B-${1000 + reg.id}`,
+        bookingNumber: `D-${1000 + reg.id}`,
         boardBasis: 'Room Only',
         remarks: '',
         amount: '',
@@ -332,6 +368,82 @@ const Registrations = () => {
       setAdvancePayments([]);
     }
     setBookingSuccess(false);
+  };
+
+  const handleOpenConfirmationModal = () => {
+    const booking = getBookingForReg(selectedReg.id);
+    if (!booking) return;
+
+    const nightsCount = selectedReg.numberOfNights || selectedReg.nights || 1;
+    const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);
+
+    setConfirmationData({
+      address: '',
+      email: '',
+      vatNo: '',
+      reservationDate: new Date().toISOString().split('T')[0],
+      roomReference: `Room ${booking.roomNumber || ''} (${booking.roomType || ''})`,
+      unitPrice: defaultUnitPrice,
+      totalPrice: (booking.totalAmount || 0).toFixed(2),
+      currency: 'USD',
+      confirmedBy: user.username,
+      reservationStatus: 'Confirm Booking',
+      senderName: user.username || 'Muthuni Weerasingha',
+      badgeText: 'Hold'
+    });
+    setIsCreatingNewReservation(false);
+    setShowConfirmationModal(true);
+  };
+
+  const handleCreateNewReservation = () => {
+    const randomId = 'SV-' + Math.floor(1000 + Math.random() * 9000);
+    setConfirmationData({
+      guestName: '',
+      bookingNumber: randomId,
+      checkInDate: new Date().toISOString().split('T')[0],
+      checkOutDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // tomorrow
+      nights: 1,
+      adults: 2,
+      children: 0,
+      boardBasis: 'Bed & Breakfast',
+      address: '',
+      email: '',
+      vatNo: '',
+      reservationDate: new Date().toISOString().split('T')[0],
+      roomReference: 'Deluxe Room',
+      roomType: 'Deluxe Room',
+      unitPrice: '100.00',
+      totalPrice: '100.00',
+      currency: 'USD',
+      confirmedBy: user.username,
+      reservationStatus: 'Confirm Booking',
+      senderName: user.username || 'Muthuni Weerasingha',
+      badgeText: 'Hold',
+      remarks: ''
+    });
+    setIsCreatingNewReservation(true);
+    setShowConfirmationModal(true);
+  };
+
+  const handlePrintConfirmation = () => {
+    window.print();
+  };
+
+  // Switch Booking Number Prefix Dynamically
+  const handleBookingChannelChange = (channel) => {
+    let newBookingNumber = bookingForm.bookingNumber;
+    if (newBookingNumber.startsWith('B-') && channel === 'Direct') {
+      newBookingNumber = 'D-' + newBookingNumber.substring(2);
+    } else if (newBookingNumber.startsWith('D-') && channel === 'Booking.com') {
+      newBookingNumber = 'B-' + newBookingNumber.substring(2);
+    } else if (!newBookingNumber) {
+      newBookingNumber = (channel === 'Direct' ? 'D-' : 'B-') + (1000 + (selectedReg?.id || 0));
+    }
+    setBookingForm({
+      ...bookingForm,
+      bookingType: channel,
+      bookingNumber: newBookingNumber
+    });
   };
 
   // Submit Booking Form
@@ -539,6 +651,12 @@ const Registrations = () => {
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-emerald-500/10"
           >
             <Plus className="h-4 w-4" /> Guest QR Form Link
+          </button>
+          <button 
+            onClick={handleCreateNewReservation} 
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-amber-500/10 cursor-pointer"
+          >
+            <FileText className="h-4 w-4" /> Standalone Reservation Slip
           </button>
         </div>
       </div>
@@ -892,6 +1010,18 @@ const Registrations = () => {
                 </div>
               </div>
 
+              {associatedBooking && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenConfirmationModal}
+                    className="w-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-850 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <FileText className="h-4 w-4 text-amber-700" /> Generate Reservation Confirmation
+                  </button>
+                </div>
+              )}
+
               {/* Complete Booking Form (Front Office Update) */}
               <form onSubmit={handleBookingSubmit} className="space-y-4 pt-2 border-t border-slate-100">
                 <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Allocate & Complete Booking</h4>
@@ -912,10 +1042,16 @@ const Registrations = () => {
                       onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
                     >
-                      <option value="Deluxe Room">Deluxe Room</option>
-                      <option value="Suite Room">Suite Room</option>
-                      <option value="Standard Room">Standard Room</option>
-                      <option value="Budget Room">Budget Room</option>
+                      {uniqueRoomTypes.length === 0 ? (
+                        <option value="">No room types available</option>
+                      ) : (
+                        <>
+                          <option value="">Select Room Type</option>
+                          {uniqueRoomTypes.map((type) => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </>
+                      )}
                     </select>
                   </div>
 
@@ -943,42 +1079,45 @@ const Registrations = () => {
                   </div>
 
                   {/* Room Preview Card */}
-                  {ROOM_TEMPLATES[bookingForm.roomType] && (
-                    <div className="col-span-2 mt-1 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex flex-col sm:flex-row gap-3 p-3 select-none">
-                      <div className="w-full sm:w-[120px] h-[90px] rounded-lg overflow-hidden relative shrink-0">
-                        <img 
-                          src={ROOM_TEMPLATES[bookingForm.roomType].image} 
-                          alt={bookingForm.roomType}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent flex items-end p-1.5">
-                          <span className="text-[8px] text-white font-bold bg-slate-900/30 backdrop-blur-xs px-1.5 py-0.5 rounded">
-                            Max: {ROOM_TEMPLATES[bookingForm.roomType].occupancy}
-                          </span>
+                  {getRoomTypeDetails(bookingForm.roomType) && (() => {
+                    const details = getRoomTypeDetails(bookingForm.roomType);
+                    return (
+                      <div className="col-span-2 mt-1 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex flex-col sm:flex-row gap-3 p-3 select-none">
+                        <div className="w-full sm:w-[120px] h-[90px] rounded-lg overflow-hidden relative shrink-0">
+                          <img 
+                            src={details.image} 
+                            alt={bookingForm.roomType}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent flex items-end p-1.5">
+                            <span className="text-[8px] text-white font-bold bg-slate-900/30 backdrop-blur-xs px-1.5 py-0.5 rounded">
+                              Max: {details.occupancy}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex-1 flex flex-col justify-between py-0.5">
-                        <div>
-                          <h5 className="text-[11px] font-bold text-slate-800">{bookingForm.roomType} Preview</h5>
-                          <p className="text-[9px] text-slate-400 leading-normal">
-                            Premium room layout equipped with modern amenities for a serene guest experience.
-                          </p>
-                        </div>
-                        <div className="mt-1">
-                          <div className="flex flex-wrap gap-1">
-                            {ROOM_TEMPLATES[bookingForm.roomType].features.map((feat, idx) => (
-                              <span 
-                                key={idx} 
-                                className="text-[8px] bg-white border border-slate-200/50 text-slate-500 font-bold px-1.5 py-0.5 rounded"
-                              >
-                                {feat}
-                              </span>
-                            ))}
+                        <div className="flex-1 flex flex-col justify-between py-0.5">
+                          <div>
+                            <h5 className="text-[11px] font-bold text-slate-800">{bookingForm.roomType} Preview</h5>
+                            <p className="text-[9px] text-slate-400 leading-normal">
+                              Premium room layout equipped with modern amenities for a serene guest experience.
+                            </p>
+                          </div>
+                          <div className="mt-1">
+                            <div className="flex flex-wrap gap-1">
+                              {details.features.map((feat, idx) => (
+                                <span 
+                                  key={idx} 
+                                  className="text-[8px] bg-white border border-slate-200/50 text-slate-500 font-bold px-1.5 py-0.5 rounded"
+                                >
+                                  {feat}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Booking Type */}
                   <div className="space-y-1.5">
@@ -986,7 +1125,7 @@ const Registrations = () => {
                     <select
                       value={bookingForm.bookingType}
                       disabled={isFrontOfficer === false && isAdmin === false}
-                      onChange={(e) => setBookingForm({...bookingForm, bookingType: e.target.value})}
+                      onChange={(e) => handleBookingChannelChange(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
                     >
                       <option value="Direct">Direct</option>
@@ -1886,15 +2025,347 @@ Staff: ${receiptData.generatedBy}`;
           </div>
         );
       })()}
+
+      {/* Reservation Confirmation Modal */}
+      {showConfirmationModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 overflow-y-auto no-print flex justify-center py-6 px-4">
+          <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-2xl shadow-xl p-6 my-auto space-y-6 h-fit">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-wider">Generate Confirmation Slip</h3>
+                <p className="text-xs text-slate-400 font-bold">Customize reservation parameters before printing/saving to PDF</p>
+              </div>
+              <button 
+                onClick={() => setShowConfirmationModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handlePrintConfirmation(); }} className="grid grid-cols-2 gap-4 text-xs font-semibold text-slate-600">
+              <div className="space-y-1.5 col-span-2">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {isCreatingNewReservation ? 'Client Name' : 'Client Name (Prefilled)'}
+                </label>
+                <input 
+                  type="text" 
+                  disabled={!isCreatingNewReservation} 
+                  value={isCreatingNewReservation ? confirmationData.guestName : (selectedReg?.guestName || '')}
+                  onChange={(e) => isCreatingNewReservation && setConfirmationData({...confirmationData, guestName: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none disabled:text-slate-400"
+                />
+              </div>
+
+              {isCreatingNewReservation && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation ID / Booking Number</label>
+                    <input 
+                      type="text" 
+                      value={confirmationData.bookingNumber}
+                      onChange={(e) => setConfirmationData({...confirmationData, bookingNumber: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Check-in Date</label>
+                    <input 
+                      type="date" 
+                      value={confirmationData.checkInDate}
+                      onChange={(e) => {
+                        const checkIn = e.target.value;
+                        const checkOut = confirmationData.checkOutDate;
+                        let stayNights = confirmationData.nights;
+                        if (checkIn && checkOut) {
+                          stayNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+                        }
+                        setConfirmationData({
+                          ...confirmationData, 
+                          checkInDate: checkIn,
+                          nights: stayNights,
+                          totalPrice: (parseFloat(confirmationData.unitPrice || 0) * stayNights).toFixed(2)
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Check-out Date</label>
+                    <input 
+                      type="date" 
+                      value={confirmationData.checkOutDate}
+                      onChange={(e) => {
+                        const checkOut = e.target.value;
+                        const checkIn = confirmationData.checkInDate;
+                        let stayNights = confirmationData.nights;
+                        if (checkIn && checkOut) {
+                          stayNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+                        }
+                        setConfirmationData({
+                          ...confirmationData, 
+                          checkOutDate: checkOut,
+                          nights: stayNights,
+                          totalPrice: (parseFloat(confirmationData.unitPrice || 0) * stayNights).toFixed(2)
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Stay Nights</label>
+                    <input 
+                      type="number" 
+                      value={confirmationData.nights}
+                      onChange={(e) => {
+                        const stayNights = parseInt(e.target.value) || 1;
+                        setConfirmationData({
+                          ...confirmationData, 
+                          nights: stayNights,
+                          totalPrice: (parseFloat(confirmationData.unitPrice || 0) * stayNights).toFixed(2)
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Adults Count</label>
+                    <input 
+                      type="number" 
+                      value={confirmationData.adults}
+                      onChange={(e) => setConfirmationData({...confirmationData, adults: parseInt(e.target.value) || 1})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Children Count</label>
+                    <input 
+                      type="number" 
+                      value={confirmationData.children}
+                      onChange={(e) => setConfirmationData({...confirmationData, children: parseInt(e.target.value) || 0})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Board Basis</label>
+                    <select 
+                      value={confirmationData.boardBasis}
+                      onChange={(e) => setConfirmationData({...confirmationData, boardBasis: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    >
+                      <option value="Room Only">Room Only</option>
+                      <option value="Bed & Breakfast">Bed & Breakfast</option>
+                      <option value="Half Board">Half Board</option>
+                      <option value="Full Board">Full Board</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Type</label>
+                    <select 
+                      value={confirmationData.roomType}
+                      onChange={(e) => setConfirmationData({...confirmationData, roomType: e.target.value, roomReference: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    >
+                      <option value="Deluxe Room">Deluxe Room</option>
+                      <option value="Suite Room">Suite Room</option>
+                      <option value="Standard Room">Standard Room</option>
+                      <option value="Budget Room">Budget Room</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5 col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remarks / Special Notes</label>
+                    <input 
+                      type="text" 
+                      value={confirmationData.remarks}
+                      onChange={(e) => setConfirmationData({...confirmationData, remarks: e.target.value})}
+                      placeholder="e.g. Booking.com no is 5165813303"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Address</label>
+                <input 
+                  type="text" 
+                  value={confirmationData.address}
+                  onChange={(e) => setConfirmationData({...confirmationData, address: e.target.value})}
+                  placeholder="e.g. 69/28 Street, Warsaw, Poland"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Email</label>
+                <input 
+                  type="email" 
+                  value={confirmationData.email}
+                  onChange={(e) => setConfirmationData({...confirmationData, email: e.target.value})}
+                  placeholder="e.g. client@email.com"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vat No</label>
+                <input 
+                  type="text" 
+                  value={confirmationData.vatNo}
+                  onChange={(e) => setConfirmationData({...confirmationData, vatNo: e.target.value})}
+                  placeholder="e.g. PL521330296"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Date</label>
+                <input 
+                  type="date" 
+                  value={confirmationData.reservationDate}
+                  onChange={(e) => setConfirmationData({...confirmationData, reservationDate: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Reference</label>
+                <input 
+                  type="text" 
+                  value={confirmationData.roomReference}
+                  onChange={(e) => setConfirmationData({...confirmationData, roomReference: e.target.value})}
+                  placeholder="e.g. Room 204 - Deluxe Apartment"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
+                <select 
+                  value={confirmationData.currency}
+                  onChange={(e) => setConfirmationData({...confirmationData, currency: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                >
+                  <option value="USD">USD</option>
+                  <option value="LKR">LKR</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Price (Per Night)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={confirmationData.unitPrice}
+                  onChange={(e) => setConfirmationData({
+                    ...confirmationData, 
+                    unitPrice: e.target.value, 
+                    totalPrice: (parseFloat(e.target.value || 0) * (isCreatingNewReservation ? confirmationData.nights : (selectedReg?.numberOfNights || selectedReg?.nights || 1))).toFixed(2)
+                  })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={confirmationData.totalPrice}
+                  onChange={(e) => setConfirmationData({...confirmationData, totalPrice: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Status</label>
+                <select 
+                  value={confirmationData.reservationStatus}
+                  onChange={(e) => setConfirmationData({...confirmationData, reservationStatus: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                >
+                  <option value="Confirm Booking">Confirm Booking</option>
+                  <option value="Hold Booking">Hold Booking</option>
+                  <option value="Pending Deposit">Pending Deposit</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Badge Status (Top Right)</label>
+                <input 
+                  type="text" 
+                  value={confirmationData.badgeText}
+                  onChange={(e) => setConfirmationData({...confirmationData, badgeText: e.target.value})}
+                  placeholder="e.g. Hold or Confirmed"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Confirmed By</label>
+                <input 
+                  type="text" 
+                  value={confirmationData.confirmedBy}
+                  onChange={(e) => setConfirmationData({...confirmationData, confirmedBy: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender Name (Sign off)</label>
+                <input 
+                  type="text" 
+                  value={confirmationData.senderName}
+                  onChange={(e) => setConfirmationData({...confirmationData, senderName: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="col-span-2 flex justify-end gap-2 pt-4 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => setShowConfirmationModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer transition"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10">
+                  <Printer size={13} /> Print / Save PDF
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Print-only layout */}
       <div className="print-only">
-        <AdvanceReceiptPrint
-          ref={receiptRef}
-          receiptData={receiptData}
-          selectedPaymentForReceipt={selectedPaymentForReceipt}
-          selectedReg={selectedReg}
-          associatedBooking={associatedBooking}
-        />
+        {showReceiptModal && (
+          <AdvanceReceiptPrint
+            ref={receiptRef}
+            receiptData={receiptData}
+            selectedPaymentForReceipt={selectedPaymentForReceipt}
+            selectedReg={selectedReg}
+            associatedBooking={associatedBooking}
+          />
+        )}
+        {showConfirmationModal && (
+          <ReservationConfirmationPrint
+            ref={confirmationPrintRef}
+            confirmationData={confirmationData}
+            selectedReg={isCreatingNewReservation ? null : selectedReg}
+            associatedBooking={isCreatingNewReservation ? null : associatedBooking}
+          />
+        )}
       </div>
     </div>
   );

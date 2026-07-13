@@ -34,6 +34,7 @@ const Bookings = () => {
 
   const [discountRequestForm, setDiscountRequestForm] = useState(null);
   const [invoiceView, setInvoiceView] = useState(null);
+  const [receiptView, setReceiptView] = useState(null);
 
   const handleCreateBooking = (e) => {
     e.preventDefault();
@@ -69,6 +70,53 @@ const Bookings = () => {
   const handleRequestDiscount = (e) => {
     e.preventDefault();
     const { bookingId, amount, reason } = discountRequestForm;
+    const targetBooking = bookings.find(b => b.id === bookingId);
+    
+    if (targetBooking) {
+      const newRequest = {
+        id: Date.now(),
+        bookingRef: targetBooking.bookingNumber,
+        guestName: targetBooking.guestName,
+        totalAmount: targetBooking.totalAmount,
+        requestedDiscount: `LKR ${parseFloat(amount).toLocaleString()}`,
+        reason: reason,
+        status: 'Pending',
+        requestedBy: user?.username || 'fo_user'
+      };
+
+      const saved = localStorage.getItem('pms_discounts');
+      let currentDiscounts = [];
+      if (saved) {
+        currentDiscounts = JSON.parse(saved);
+      } else {
+        currentDiscounts = [
+          {
+            id: 1,
+            bookingRef: 'SV-2026-0002',
+            guestName: 'Hiroshi Tanaka',
+            totalAmount: 180000,
+            requestedDiscount: 'LKR 15,000',
+            reason: 'Loyalty guest request',
+            status: 'Pending',
+            requestedBy: 'fo_user',
+          },
+          {
+            id: 2,
+            bookingRef: 'SV-2026-0001',
+            guestName: 'Liam Johnson',
+            totalAmount: 140000,
+            requestedDiscount: '10%',
+            reason: 'Slight air conditioning issue reported during first night',
+            status: 'Approved',
+            requestedBy: 'fo_user',
+            approvedBy: 'admin_user'
+          }
+        ];
+      }
+      currentDiscounts.push(newRequest);
+      localStorage.setItem('pms_discounts', JSON.stringify(currentDiscounts));
+    }
+
     setBookings(prev => prev.map(b => {
       if (b.id === bookingId) {
         return {

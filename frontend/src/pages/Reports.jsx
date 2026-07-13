@@ -16,7 +16,7 @@ import {
   Loader
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
 const Reports = () => {
   const { user } = useAuth();

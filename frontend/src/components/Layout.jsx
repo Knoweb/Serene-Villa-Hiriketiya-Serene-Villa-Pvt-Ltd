@@ -35,7 +35,6 @@ const Layout = ({ children }) => {
     { name: 'Bookings', path: '/bookings', roles: ['ADMIN'] },
     { name: 'Payments', path: '/payments', roles: ['ADMIN', 'ACCOUNTANT'] },
     { name: 'Discounts', path: '/discounts', roles: ['ADMIN'] },
-    { name: 'Handovers', path: '/handover', roles: ['ADMIN', 'ACCOUNTANT', 'FRONT_OFFICER'] },
     { name: 'Reports', path: '/reports', roles: ['ADMIN', 'ACCOUNTANT'] },
     { name: 'Users', path: '/users', roles: ['ADMIN'] },
   ];
@@ -154,10 +153,9 @@ const Layout = ({ children }) => {
       <footer className="bg-gradient-to-b from-slate-900 to-emerald-950 text-slate-300 py-8 border-t border-emerald-900/40 print:hidden mt-10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col items-center space-y-5">
           
-          {/* Logo */}
-          <div className="bg-white p-1 rounded shadow-md flex items-center justify-center">
+          <Link to="/handover" onClick={() => window.scrollTo(0, 0)} className="bg-white p-1 rounded shadow-md flex items-center justify-center cursor-pointer hover:opacity-90 transition">
             <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain" />
-          </div>
+          </Link>
 
           {/* Tagline */}
           <p className="text-[11px] md:text-xs text-slate-400 font-medium tracking-wide text-center">
