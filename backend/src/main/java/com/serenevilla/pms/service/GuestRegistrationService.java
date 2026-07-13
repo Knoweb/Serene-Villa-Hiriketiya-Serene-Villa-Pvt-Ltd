@@ -16,6 +16,10 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 
+import com.serenevilla.pms.repository.PaymentRepository;
+import com.serenevilla.pms.model.Payment;
+import java.util.List;
+
 @Service
 public class GuestRegistrationService {
 
@@ -27,6 +31,9 @@ public class GuestRegistrationService {
 
     @Autowired
     private BookingRepository bookingRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     public GuestRegistration createPublicRegistration(GuestRegistration registration) {
         // Calculate nights
@@ -51,7 +58,39 @@ public class GuestRegistrationService {
         // Latest registrations first
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         
-        return guestRegistrationRepository.searchRegistrations(search, status, showHidden, pageable);
+        Page<GuestRegistration> result = guestRegistrationRepository.searchRegistrations(search, status, showHidden, pageable);
+
+        // Dynamically recalculate paymentStatus for FRONT_OFFICER based on visible payments
+        if ("FRONT_OFFICER".equalsIgnoreCase(role)) {
+            return result.map(reg -> {
+                bookingRepository.findAll().stream()
+                        .filter(b -> b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(reg.getId()))
+                        .findFirst()
+                        .ifPresent(booking -> {
+                            List<Payment> allPayments = paymentRepository.findByBookingId(booking.getId());
+                            // Filter out hidden payments
+                            List<Payment> visiblePayments = allPayments.stream()
+                                    .filter(p -> p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice())
+                                    .toList();
+                            
+                            double totalPaid = visiblePayments.stream()
+                                    .mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : (p.getAmountLkr() != null ? p.getAmountLkr() : 0.0))
+                                    .sum();
+                            
+                            double totalAmt = booking.getTotalAmount() != null ? booking.getTotalAmount() : 0.0;
+                            String computedStatus = "Unpaid";
+                            if (totalPaid >= totalAmt && totalAmt > 0) {
+                                computedStatus = "Paid";
+                            } else if (totalPaid > 0) {
+                                computedStatus = "Partially Paid";
+                            }
+                            reg.setPaymentStatus(computedStatus);
+                        });
+                return reg;
+            });
+        }
+
+        return result;
     }
 
     public Optional<GuestRegistration> getRegistrationById(Long id) {

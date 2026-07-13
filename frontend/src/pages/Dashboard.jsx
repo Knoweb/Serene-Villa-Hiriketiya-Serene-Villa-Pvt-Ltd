@@ -82,7 +82,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const regRes = await fetch(`${API_BASE}/guest-registrations?size=1000`);
+        const regRes = await fetch(`${API_BASE}/guest-registrations?size=1000&role=${user?.role || 'FRONT_OFFICER'}`);
         if (regRes.ok) {
           const regData = await regRes.json();
           setRegistrations(regData.content || []);
