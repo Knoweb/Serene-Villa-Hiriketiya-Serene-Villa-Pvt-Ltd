@@ -382,33 +382,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <ShieldCheck className="h-4.5 w-4.5 text-emerald-600" /> Cashier Payment Visibility
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium">Select payment methods to hide from Front Office (Cashier).</p>
-                  <div className="space-y-2">
-                    {['Cash', 'Card', 'Bank Transfer'].map((method) => {
-                      const isHidden = hiddenMethods.includes(method);
-                      return (
-                        <div key={method} className="flex items-center justify-between p-2.5 bg-slate-50/50 rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
-                          <span>{method} Payments</span>
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePaymentVisibility(method)}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wide uppercase transition cursor-pointer ${
-                              isHidden 
-                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
-                                : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
-                            }`}
-                          >
-                            {isHidden ? 'Show' : 'Hide'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+
 
                 <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4 col-span-1 md:col-span-2 lg:col-span-3">
                   <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
