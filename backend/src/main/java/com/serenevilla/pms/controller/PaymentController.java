@@ -113,4 +113,54 @@ public class PaymentController {
     public ResponseEntity<List<ExchangeRate>> getRates() {
         return ResponseEntity.ok(exchangeRateRepository.findAll());
     }
+
+    // Get all payments
+    @GetMapping
+    public ResponseEntity<List<Payment>> getAllPayments() {
+        return ResponseEntity.ok(paymentRepository.findAll());
+    }
+
+    // Hide individual payment
+    @PutMapping("/{id}/hide")
+    public ResponseEntity<Payment> hidePayment(@PathVariable(name = "id") Long id) {
+        return paymentRepository.findById(id).map(p -> {
+            p.setIsHiddenFromFrontOffice(true);
+            return ResponseEntity.ok(paymentRepository.save(p));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // Unhide individual payment
+    @PutMapping("/{id}/unhide")
+    public ResponseEntity<Payment> unhidePayment(@PathVariable(name = "id") Long id) {
+        return paymentRepository.findById(id).map(p -> {
+            p.setIsHiddenFromFrontOffice(false);
+            return ResponseEntity.ok(paymentRepository.save(p));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // Bulk hide by method
+    @PutMapping("/hide-by-method")
+    public ResponseEntity<?> bulkHideByMethod(@RequestParam(name = "method") String method) {
+        List<Payment> payments = paymentRepository.findAll();
+        payments.stream()
+                .filter(p -> method.equalsIgnoreCase(p.getPaymentMethod()))
+                .forEach(p -> {
+                    p.setIsHiddenFromFrontOffice(true);
+                    paymentRepository.save(p);
+                });
+        return ResponseEntity.ok(java.util.Map.of("message", "All " + method + " payments hidden successfully"));
+    }
+
+    // Bulk unhide by method
+    @PutMapping("/unhide-by-method")
+    public ResponseEntity<?> bulkUnhideByMethod(@RequestParam(name = "method") String method) {
+        List<Payment> payments = paymentRepository.findAll();
+        payments.stream()
+                .filter(p -> method.equalsIgnoreCase(p.getPaymentMethod()))
+                .forEach(p -> {
+                    p.setIsHiddenFromFrontOffice(false);
+                    paymentRepository.save(p);
+                });
+        return ResponseEntity.ok(java.util.Map.of("message", "All " + method + " payments unhidden successfully"));
+    }
 }

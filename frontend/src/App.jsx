@@ -13,6 +13,7 @@ import Discounts from './pages/Discounts';
 import Handover from './pages/Handover';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
+import HideDetails from './pages/HideDetails';
 
 // Route Guard to redirect to login if not authenticated
 const ProtectedRoute = ({ children }) => {
@@ -102,6 +103,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Users />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/hide-details" 
+            element={
+              <ProtectedRoute>
+                <HideDetails />
               </ProtectedRoute>
             } 
           />

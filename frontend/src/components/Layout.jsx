@@ -36,6 +36,7 @@ const Layout = ({ children }) => {
     { name: 'Payments', path: '/payments', roles: ['ADMIN', 'ACCOUNTANT'] },
     { name: 'Discounts', path: '/discounts', roles: ['ADMIN'] },
     { name: 'Reports', path: '/reports', roles: ['ADMIN', 'ACCOUNTANT'] },
+    { name: 'Hide Details', path: '/hide-details', roles: ['ADMIN'] },
     { name: 'Users', path: '/users', roles: ['ADMIN'] },
   ];
 

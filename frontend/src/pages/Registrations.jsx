@@ -67,27 +67,11 @@ const Registrations = () => {
   const isAdmin = user.role === 'ADMIN';
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
 
-  const [hiddenMethods, setHiddenMethods] = useState(() => {
-    const saved = localStorage.getItem('pms_hidden_payment_methods');
-    return saved ? JSON.parse(saved) : [];
-  });
-
   const getVisiblePayments = (paymentList) => {
     if (isFrontOfficer) {
-      return paymentList.filter(p => !hiddenMethods.includes(p.paymentMethod || p.method));
+      return paymentList.filter(p => !p.isHiddenFromFrontOffice);
     }
     return paymentList;
-  };
-
-  const handleTogglePaymentVisibility = (method) => {
-    let updated;
-    if (hiddenMethods.includes(method)) {
-      updated = hiddenMethods.filter(m => m !== method);
-    } else {
-      updated = [...hiddenMethods, method];
-    }
-    setHiddenMethods(updated);
-    localStorage.setItem('pms_hidden_payment_methods', JSON.stringify(updated));
   };
 
   const receiptRef = React.useRef(null);
@@ -1539,45 +1523,12 @@ const Registrations = () => {
 
             </div>
           ) : (
-            <div className="space-y-6">
-              {isAdmin && (
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4 shadow-sm select-none">
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <ShieldCheck className="h-4.5 w-4.5 text-emerald-600" /> Cashier Payment Visibility
-                  </h3>
-                  <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-                    Select payment methods to hide from Front Office (Cashier).
-                  </p>
-                  <div className="space-y-2">
-                    {['Cash', 'Card', 'Bank Transfer'].map((method) => {
-                      const isHidden = hiddenMethods.includes(method);
-                      return (
-                        <div key={method} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 text-[10px] font-bold text-slate-700">
-                          <span>{method} Payments</span>
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePaymentVisibility(method)}
-                            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold tracking-wide uppercase transition cursor-pointer ${
-                              isHidden 
-                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
-                                : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
-                            }`}
-                          >
-                            {isHidden ? 'Show' : 'Hide'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className="text-center py-8 text-slate-400 space-y-2">
-                <User className="h-10 w-10 text-slate-300 mx-auto" />
-                <p className="font-bold text-xs">No Guest Selected</p>
-                <p className="text-[10px] text-slate-450 max-w-[180px] mx-auto leading-relaxed">
-                  Click on any guest registration in the list to view files, check-in info, and complete room allocations.
-                </p>
-              </div>
+            <div className="text-center py-12 text-slate-400 space-y-2">
+              <User className="h-10 w-10 text-slate-300 mx-auto" />
+              <p className="font-bold text-xs">No Guest Selected</p>
+              <p className="text-[10px] text-slate-450 max-w-[180px] mx-auto leading-relaxed">
+                Click on any guest registration in the list to view files, check-in info, and complete room allocations.
+              </p>
             </div>
           )}
         </div>

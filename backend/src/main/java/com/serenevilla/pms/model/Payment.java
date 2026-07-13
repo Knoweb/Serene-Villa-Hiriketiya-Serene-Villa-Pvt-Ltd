@@ -75,6 +75,9 @@ public class Payment {
 
     private String createdBy;
 
+    @Column(name = "is_hidden_from_front_office")
+    private Boolean isHiddenFromFrontOffice = false;
+
     @Transient
     private String guestName;
 
@@ -109,5 +112,13 @@ public class Payment {
 
     public void setAdvancePayment(boolean isAdvancePayment) {
         this.isAdvancePayment = isAdvancePayment;
+    }
+
+    public Boolean getIsHiddenFromFrontOffice() {
+        return isHiddenFromFrontOffice != null && isHiddenFromFrontOffice;
+    }
+
+    public void setIsHiddenFromFrontOffice(Boolean isHiddenFromFrontOffice) {
+        this.isHiddenFromFrontOffice = isHiddenFromFrontOffice;
     }
 }
