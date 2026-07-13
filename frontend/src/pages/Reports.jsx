@@ -52,14 +52,6 @@ const Reports = () => {
   const [activeMainTab, setActiveMainTab] = useState('overview');
   const [breakdownTab, setBreakdownTab] = useState('payments');
 
-  // Ledger Filter states
-  const [ledgerSearch, setLedgerSearch] = useState('');
-  const [hideCash, setHideCash] = useState(false);
-  const [hideCard, setHideCard] = useState(false);
-  const [hideBankTransfer, setHideBankTransfer] = useState(false);
-  const [hideDirectBookings, setHideDirectBookings] = useState(false);
-  const [hideBookingCom, setHideBookingCom] = useState(false);
-
   // Fetch report data from API
   const fetchReport = async () => {
     setLoading(true);
@@ -506,198 +498,84 @@ const Reports = () => {
           )}
 
           {/* 2. LEDGER VIEW */}
-          {(activeMainTab === 'ledger' || window.matchMedia('print').matches) && (() => {
-            const getFilteredRows = () => {
-              if (!data || !data.rows) return [];
-              return data.rows.filter(row => {
-                const matchesSearch = 
-                  (row.guestName?.toLowerCase() || '').includes(ledgerSearch.toLowerCase()) ||
-                  (row.bookingNumber?.toLowerCase() || '').includes(ledgerSearch.toLowerCase()) ||
-                  (row.invoiceNumber?.toLowerCase() || '').includes(ledgerSearch.toLowerCase()) ||
-                  (row.roomName?.toLowerCase() || '').includes(ledgerSearch.toLowerCase());
-                
-                if (!matchesSearch) return false;
-
-                const method = row.paymentMethod?.toLowerCase() || '';
-                if (hideCash && method.includes('cash')) return false;
-                if (hideCard && method.includes('card')) return false;
-                if (hideBankTransfer && (method.includes('bank') || method.includes('transfer'))) return false;
-
-                const source = row.bookingSource?.toLowerCase() || '';
-                if (hideDirectBookings && source.includes('direct')) return false;
-                if (hideBookingCom && source.includes('booking.com')) return false;
-
-                return true;
-              });
-            };
-
-            const filteredRows = getFilteredRows();
-            const visibleTotalRevenue = filteredRows.reduce((sum, row) => sum + (row.convertedAmount || 0), 0);
-
-            return (
-              <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-                <div className="p-5 border-b border-slate-100 space-y-4 no-print bg-slate-50/30">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Ledger & Transaction Log</h3>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Filter payments and booking sources to hide transactions from totals</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="bg-slate-100 border border-slate-200/50 rounded-full px-3 py-1 text-[10px] font-bold text-slate-600">
-                        Showing {filteredRows.length} of {data.rows.length} Transactions
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {/* Search Bar */}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search guest, booking, invoice..."
-                        value={ledgerSearch}
-                        onChange={(e) => setLedgerSearch(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-3 text-xs font-semibold focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-
-                    {/* Hide Payment Method Filters */}
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase mr-1">Hide Methods:</span>
-                      <button
-                        type="button"
-                        onClick={() => setHideCash(!hideCash)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
-                          hideCash 
-                            ? 'bg-rose-50 border-rose-200 text-rose-700 font-extrabold' 
-                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                        }`}
-                      >
-                        Cash
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setHideCard(!hideCard)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
-                          hideCard 
-                            ? 'bg-rose-50 border-rose-200 text-rose-700 font-extrabold' 
-                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                        }`}
-                      >
-                        Card
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setHideBankTransfer(!hideBankTransfer)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
-                          hideBankTransfer 
-                            ? 'bg-rose-50 border-rose-200 text-rose-700 font-extrabold' 
-                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                        }`}
-                      >
-                        Bank
-                      </button>
-                    </div>
-
-                    {/* Hide Booking Channel / Hire Filters */}
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase mr-1">Hide Hires / Channels:</span>
-                      <button
-                        type="button"
-                        onClick={() => setHideDirectBookings(!hideDirectBookings)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
-                          hideDirectBookings 
-                            ? 'bg-rose-50 border-rose-200 text-rose-700 font-extrabold' 
-                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                        }`}
-                      >
-                        Direct
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setHideBookingCom(!hideBookingCom)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition ${
-                          hideBookingCom 
-                            ? 'bg-rose-50 border-rose-200 text-rose-700 font-extrabold' 
-                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                        }`}
-                      >
-                        Booking.com
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
-                    <thead>
-                      <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
-                        <th className="p-4">Receipt</th>
-                        <th className="p-4">Booking</th>
-                        <th className="p-4">Guest</th>
-                        <th className="p-4">Room</th>
-                        <th className="p-4">Stay Dates</th>
-                        <th className="p-4">Method</th>
-                        <th className="p-4">Paid Currency</th>
-                        <th className="p-4 text-right">LKR Paid</th>
-                        <th className="p-4 text-right">Remaining</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
-                      {filteredRows.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/20 transition">
-                          <td className="p-4 font-bold text-slate-900">{row.invoiceNumber}</td>
-                          <td className="p-4">{row.bookingNumber}</td>
-                          <td className="p-4">
-                            <div>
-                              <p className="font-bold text-slate-800">{row.guestName}</p>
-                              <p className="text-[10px] text-slate-400">{row.passportNumber}</p>
-                            </div>
-                          </td>
-                          <td className="p-4">{row.roomName}</td>
-                          <td className="p-4">
-                            {row.checkInDate} to {row.checkOutDate}
-                            <span className="text-[10px] text-slate-400 block font-normal">{row.numberOfNights} Nights ({row.bookingSource})</span>
-                          </td>
-                          <td className="p-4">
-                            <span className="bg-slate-50 text-slate-600 border border-slate-100 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">
-                              {row.paymentMethod}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            {row.currencyCode} {row.paidAmount} 
-                            {row.currencyCode !== 'LKR' && (
-                              <span className="text-[10px] text-slate-405 block">Rate: {row.exchangeRate}</span>
-                            )}
-                          </td>
-                          <td className="p-4 text-right font-mono font-bold text-slate-900">
-                            {formatLKR(row.convertedAmount)}
-                          </td>
-                          <td className="p-4 text-right font-mono text-slate-500">
-                            {formatLKR(row.remainingBalance)}
-                          </td>
-                        </tr>
-                      ))}
-
-                      {filteredRows.length === 0 && (
-                        <tr>
-                          <td colSpan="9" className="p-8 text-center text-slate-400 font-bold">
-                            No matching transactions recorded for the selected filters.
-                          </td>
-                        </tr>
-                      )}
-
-                      <tr className="bg-slate-50/30 font-bold border-t border-slate-100">
-                        <td colSpan="7" className="p-4 text-slate-400 text-right uppercase">Visible Revenue Total:</td>
-                        <td className="p-4 text-right font-mono text-emerald-700 text-sm">{formatLKR(visibleTotalRevenue)}</td>
-                        <td></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+          {(activeMainTab === 'ledger' || window.matchMedia('print').matches) && (
+            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between no-print">
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Ledger & Transaction Log</h3>
+                <span className="bg-slate-50 border border-slate-100 rounded-full px-3 py-1 text-[10px] font-bold text-slate-500">
+                  {data.rows.length} Transactions
+                </span>
               </div>
-            );
-          })()}
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="p-4">Receipt</th>
+                      <th className="p-4">Booking</th>
+                      <th className="p-4">Guest</th>
+                      <th className="p-4">Room</th>
+                      <th className="p-4">Stay Dates</th>
+                      <th className="p-4">Method</th>
+                      <th className="p-4">Paid Currency</th>
+                      <th className="p-4 text-right">LKR Paid</th>
+                      <th className="p-4 text-right">Remaining</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
+                    {data.rows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/20 transition">
+                        <td className="p-4 font-bold text-slate-900">{row.invoiceNumber}</td>
+                        <td className="p-4">{row.bookingNumber}</td>
+                        <td className="p-4">
+                          <div>
+                            <p className="font-bold text-slate-800">{row.guestName}</p>
+                            <p className="text-[10px] text-slate-400">{row.passportNumber}</p>
+                          </div>
+                        </td>
+                        <td className="p-4">{row.roomName}</td>
+                        <td className="p-4">
+                          {row.checkInDate} to {row.checkOutDate}
+                          <span className="text-[10px] text-slate-400 block font-normal">{row.numberOfNights} Nights ({row.bookingSource})</span>
+                        </td>
+                        <td className="p-4">
+                          <span className="bg-slate-50 text-slate-600 border border-slate-100 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">
+                            {row.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          {row.currencyCode} {row.paidAmount} 
+                          {row.currencyCode !== 'LKR' && (
+                            <span className="text-[10px] text-slate-405 block">Rate: {row.exchangeRate}</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right font-mono font-bold text-slate-900">
+                          {formatLKR(row.convertedAmount)}
+                        </td>
+                        <td className="p-4 text-right font-mono text-slate-500">
+                          {formatLKR(row.remainingBalance)}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {data.rows.length === 0 && (
+                      <tr>
+                        <td colSpan="9" className="p-8 text-center text-slate-400 font-bold">
+                          No transactions recorded for the selected period.
+                        </td>
+                      </tr>
+                    )}
+
+                    <tr className="bg-slate-50/30 font-bold border-t border-slate-100">
+                      <td colSpan="7" className="p-4 text-slate-400 text-right uppercase">Total Revenue (Settled):</td>
+                      <td className="p-4 text-right font-mono text-emerald-700 text-sm">{formatLKR(data.totalRevenue)}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
         </div>
       )}

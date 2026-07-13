@@ -29,6 +29,21 @@ const Dashboard = () => {
   const [roomsCount, setRoomsCount] = useState(0);
   const [staff, setStaff] = useState([]);
   const [pendingDiscounts, setPendingDiscounts] = useState([]);
+  const [hiddenMethods, setHiddenMethods] = useState(() => {
+    const saved = localStorage.getItem('pms_hidden_payment_methods');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const handleTogglePaymentVisibility = (method) => {
+    let updated;
+    if (hiddenMethods.includes(method)) {
+      updated = hiddenMethods.filter(m => m !== method);
+    } else {
+      updated = [...hiddenMethods, method];
+    }
+    setHiddenMethods(updated);
+    localStorage.setItem('pms_hidden_payment_methods', JSON.stringify(updated));
+  };
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -364,6 +379,34 @@ const Dashboard = () => {
                       <span className="text-slate-500">Booking.com</span>
                       <span className="font-bold text-slate-805">{bookingComBookings} ({bookingComPercent}%)</span>
                     </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <ShieldCheck className="h-4.5 w-4.5 text-emerald-600" /> Cashier Payment Visibility
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">Select payment methods to hide from Front Office (Cashier).</p>
+                  <div className="space-y-2">
+                    {['Cash', 'Card', 'Bank Transfer'].map((method) => {
+                      const isHidden = hiddenMethods.includes(method);
+                      return (
+                        <div key={method} className="flex items-center justify-between p-2.5 bg-slate-50/50 rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
+                          <span>{method} Payments</span>
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePaymentVisibility(method)}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wide uppercase transition cursor-pointer ${
+                              isHidden 
+                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
+                                : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                            }`}
+                          >
+                            {isHidden ? 'Show' : 'Hide'}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -66,6 +66,17 @@ const Registrations = () => {
   const isAdmin = user.role === 'ADMIN';
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
 
+  const getVisiblePayments = (paymentList) => {
+    if (isFrontOfficer) {
+      const savedHidden = localStorage.getItem('pms_hidden_payment_methods');
+      if (savedHidden) {
+        const hiddenMethods = JSON.parse(savedHidden);
+        return paymentList.filter(p => !hiddenMethods.includes(p.paymentMethod || p.method));
+      }
+    }
+    return paymentList;
+  };
+
   const receiptRef = React.useRef(null);
 
   // State
@@ -500,7 +511,7 @@ const Registrations = () => {
 
     const convertedLkr = parseFloat(paymentForm.amount) * parseFloat(paymentForm.exchangeRate);
     const totalBookingAmount = booking.totalAmount || 0;
-    const totalPaidSoFar = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+    const totalPaidSoFar = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
     const newTotal = totalPaidSoFar + convertedLkr;
     const isFull = tab === 'FULL' || newTotal >= totalBookingAmount;
 
@@ -1245,7 +1256,7 @@ const Registrations = () => {
                   {/* Payment Summary Card */}
                   {(() => {
                     const totalAmt = associatedBooking.totalAmount || 0;
-                    const totalPaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+                    const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
                     const bal = totalAmt - totalPaid;
                     let pStatus = 'Unpaid';
                     if (totalPaid >= totalAmt && totalAmt > 0) pStatus = 'Paid';
@@ -1279,11 +1290,11 @@ const Registrations = () => {
                   })()}
 
                   {/* Payment History */}
-                  {advancePayments.length > 0 && (
+                  {getVisiblePayments(advancePayments).length > 0 && (
                     <div className="space-y-2">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Payment History</p>
                       <div className="space-y-1.5">
-                        {advancePayments.map((payment) => (
+                        {getVisiblePayments(advancePayments).map((payment) => (
                           <div key={payment.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[11px]">
                             <div>
                               <div className="flex items-center gap-1.5 mb-0.5">
@@ -1315,7 +1326,7 @@ const Registrations = () => {
                   {/* Single Unified Payment Form */}
                   {(() => {
                     const totalAmt = associatedBooking.totalAmount || 0;
-                    const totalPaid = advancePayments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+                    const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
                     const remainingBal = Math.max(0, totalAmt - totalPaid);
                     const isFullyPaid = remainingBal <= 0;
 
