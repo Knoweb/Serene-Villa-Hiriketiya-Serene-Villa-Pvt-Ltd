@@ -163,4 +163,26 @@ public class PaymentController {
                 });
         return ResponseEntity.ok(java.util.Map.of("message", "All " + method + " payments unhidden successfully"));
     }
+
+    // Bulk hide all payments
+    @PutMapping("/hide-all")
+    public ResponseEntity<?> bulkHideAll() {
+        List<Payment> payments = paymentRepository.findAll();
+        payments.forEach(p -> {
+            p.setIsHiddenFromFrontOffice(true);
+            paymentRepository.save(p);
+        });
+        return ResponseEntity.ok(java.util.Map.of("message", "All payments hidden successfully"));
+    }
+
+    // Bulk unhide all payments
+    @PutMapping("/unhide-all")
+    public ResponseEntity<?> bulkUnhideAll() {
+        List<Payment> payments = paymentRepository.findAll();
+        payments.forEach(p -> {
+            p.setIsHiddenFromFrontOffice(false);
+            paymentRepository.save(p);
+        });
+        return ResponseEntity.ok(java.util.Map.of("message", "All payments unhidden successfully"));
+    }
 }

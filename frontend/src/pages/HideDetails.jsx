@@ -91,20 +91,24 @@ const HideDetails = () => {
     }
   };
 
-  // Bulk visibility change by payment method
+  // Bulk visibility change by payment method or all
   const handleBulkVisibility = async (hide) => {
+    let url = '';
     if (filterMethod === 'All') {
-      alert('Please select a specific payment method from the dropdown to perform bulk hide/show actions.');
-      return;
+      const action = hide ? 'hide-all' : 'unhide-all';
+      url = `${API_BASE}/payments/${action}`;
+    } else {
+      const action = hide ? 'hide-by-method' : 'unhide-by-method';
+      url = `${API_BASE}/payments/${action}?method=${filterMethod}`;
     }
 
-    const action = hide ? 'hide-by-method' : 'unhide-by-method';
     try {
-      const res = await fetch(`${API_BASE}/payments/${action}?method=${filterMethod}`, {
+      const res = await fetch(url, {
         method: 'PUT'
       });
       if (res.ok) {
-        setActionSuccess(`All ${filterMethod} payments have been successfully ${hide ? 'hidden from' : 'shown to'} Front Office.`);
+        const text = filterMethod === 'All' ? 'All payments' : `All ${filterMethod} payments`;
+        setActionSuccess(`${text} have been successfully ${hide ? 'hidden from' : 'shown to'} Front Office.`);
         fetchData();
         setTimeout(() => setActionSuccess(''), 4000);
       } else {
@@ -195,22 +199,20 @@ const HideDetails = () => {
         </div>
 
         {/* Bulk Action Buttons */}
-        {filterMethod !== 'All' && (
-          <div className="flex gap-2 w-full md:w-auto justify-end">
-            <button
-              onClick={() => handleBulkVisibility(true)}
-              className="bg-rose-650 hover:bg-rose-700 text-rose-700 bg-rose-50 border border-rose-100 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
-            >
-              <EyeOff size={13} /> Hide All {filterMethod}
-            </button>
-            <button
-              onClick={() => handleBulkVisibility(false)}
-              className="bg-emerald-650 hover:bg-emerald-700 text-emerald-700 bg-emerald-50 border border-emerald-100 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
-            >
-              <Eye size={13} /> Show All {filterMethod}
-            </button>
-          </div>
-        )}
+        <div className="flex gap-2 w-full md:w-auto justify-end">
+          <button
+            onClick={() => handleBulkVisibility(true)}
+            className="bg-rose-650 hover:bg-rose-700 text-rose-700 bg-rose-50 border border-rose-100 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
+          >
+            <EyeOff size={13} /> {filterMethod === 'All' ? 'Hide All Payments' : `Hide All ${filterMethod}`}
+          </button>
+          <button
+            onClick={() => handleBulkVisibility(false)}
+            className="bg-emerald-650 hover:bg-emerald-700 text-emerald-700 bg-emerald-50 border border-emerald-100 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
+          >
+            <Eye size={13} /> {filterMethod === 'All' ? 'Show All Payments' : `Show All ${filterMethod}`}
+          </button>
+        </div>
       </div>
 
       {/* Guest Registrations Table */}
