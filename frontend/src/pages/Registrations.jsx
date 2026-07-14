@@ -382,8 +382,17 @@ const Registrations = () => {
   };
 
   const handleOpenConfirmationModal = () => {
-    const booking = getBookingForReg(selectedReg.id);
-    if (!booking) return;
+    let booking = getBookingForReg(selectedReg.id);
+    if (!booking) {
+      booking = {
+        bookingNumber: 'SV-' + (1000 + selectedReg.id),
+        roomNumber: 'Unallocated',
+        roomType: 'Deluxe Room',
+        totalAmount: 100.00,
+        boardBasis: 'Bed & Breakfast',
+        remarks: ''
+      };
+    }
 
     const nightsCount = selectedReg.numberOfNights || selectedReg.nights || 1;
     const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);    setConfirmationData({
@@ -953,6 +962,41 @@ const Registrations = () => {
                     <span className="font-extrabold text-slate-800">{selectedReg.adults} Adults / {selectedReg.children} Children</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Quick Actions (WhatsApp & PDF Confirmation) */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    let phone = selectedReg.whatsappNumber || selectedReg.whatsAppNumber || '';
+                    const cleanedPhone = phone.replace(/\D/g, '');
+                    let formattedPhone = cleanedPhone;
+                    if (formattedPhone.startsWith('0')) {
+                      formattedPhone = '94' + formattedPhone.substring(1);
+                    }
+                    const guestName = selectedReg.guestName || '';
+                    const booking = getBookingForReg(selectedReg.id);
+                    const bookingNumber = booking?.bookingNumber || ('SV-' + (1000 + selectedReg.id));
+                    const checkIn = selectedReg.checkInDate || '';
+                    const checkOut = selectedReg.checkOutDate || '';
+                    
+                    const message = `Hello ${guestName},\n\nWe are pleased to confirm your reservation at Serene Villa Hiriketiya! 🌴\n\nHere are your reservation details:\n- Booking Ref: ${bookingNumber}\n- Check-in: ${checkIn}\n- Check-out: ${checkOut}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\nSerene Villa Hiriketiya`;
+                    
+                    window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`, '_blank');
+                  }}
+                  className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <MessageSquare size={14} className="text-blue-700" /> WhatsApp Chat
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenConfirmationModal}
+                  className="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-850 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <FileText className="h-4 w-4 text-amber-700" /> Get PDF Slip
+                </button>
               </div>
 
               {/* Guest Uploaded Documents */}
