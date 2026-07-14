@@ -391,6 +391,7 @@ const Registrations = () => {
       vatNo: '',
       whatsappNumber: selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || '',
       nationality: selectedReg?.nationality || '',
+      roomType: booking.roomType || 'Deluxe Room',
       reservationDate: new Date().toISOString().split('T')[0],
       roomReference: `Room ${booking.roomNumber || ''} (${booking.roomType || ''})`,
       unitPrice: defaultUnitPrice,
@@ -2183,7 +2184,7 @@ Staff: ${receiptData.generatedBy}`;
                     <select 
                       value={confirmationData.roomType}
                       onChange={(e) => setConfirmationData({...confirmationData, roomType: e.target.value, roomReference: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
                     >
                       <option value="Deluxe Room">Deluxe Room</option>
                       <option value="Suite Room">Suite Room</option>
@@ -2191,6 +2192,32 @@ Staff: ${receiptData.generatedBy}`;
                       <option value="Budget Room">Budget Room</option>
                     </select>
                   </div>
+
+                  {/* Selected Room Preview Card */}
+                  {confirmationData.roomType && ROOM_TEMPLATES[confirmationData.roomType] && (
+                    <div className="col-span-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex gap-4 items-center">
+                      <div className="w-24 h-16 rounded-xl overflow-hidden shrink-0 border border-slate-100 bg-white shadow-xs">
+                        <img 
+                          src={ROOM_TEMPLATES[confirmationData.roomType].image} 
+                          alt={confirmationData.roomType}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <h4 className="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
+                          {confirmationData.roomType}
+                          <span className="text-[10px] text-slate-400 font-normal">({ROOM_TEMPLATES[confirmationData.roomType].occupancy})</span>
+                        </h4>
+                        <div className="flex flex-wrap gap-1">
+                          {ROOM_TEMPLATES[confirmationData.roomType].features.map((feat, idx) => (
+                            <span key={idx} className="bg-emerald-55 bg-emerald-50 text-emerald-800 text-[9px] px-2 py-0.5 rounded-md font-bold border border-emerald-100/60">
+                              {feat}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-1.5 col-span-2">
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remarks / Special Notes</label>
