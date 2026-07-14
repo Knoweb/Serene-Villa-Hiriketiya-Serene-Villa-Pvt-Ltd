@@ -74,10 +74,10 @@ public class GuestRegistrationService {
                                     .toList();
                             
                             double totalPaid = visiblePayments.stream()
-                                    .mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : (p.getAmountLkr() != null ? p.getAmountLkr() : 0.0))
+                                    .mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : p.getAmountLkr())
                                     .sum();
                             
-                            double totalAmt = booking.getTotalAmount() != null ? booking.getTotalAmount() : 0.0;
+                            double totalAmt = booking.getTotalAmount();
                             String computedStatus = "Unpaid";
                             if (totalPaid >= totalAmt && totalAmt > 0) {
                                 computedStatus = "Paid";
