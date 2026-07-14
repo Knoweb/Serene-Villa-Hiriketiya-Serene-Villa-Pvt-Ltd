@@ -332,7 +332,7 @@ const Registrations = () => {
   const fetchAdvancePayments = async (bookingId) => {
     try {
       // Fetch ALL payments for this booking (advance + final)
-      const res = await fetch(`${API_BASE}/payments/booking/${bookingId}`);
+      const res = await fetch(`${API_BASE}/payments/booking/${bookingId}?role=${user.role}`);
       if (res.ok) {
         const data = await res.json();
         setAdvancePayments(data);

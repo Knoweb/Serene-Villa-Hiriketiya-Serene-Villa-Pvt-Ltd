@@ -39,8 +39,16 @@ public class PaymentController {
     }
 
     @GetMapping("/booking/{bookingId}")
-    public ResponseEntity<List<Payment>> getPaymentsByBooking(@PathVariable(name = "bookingId") Long bookingId) {
-        return ResponseEntity.ok(paymentRepository.findByBookingId(bookingId));
+    public ResponseEntity<List<Payment>> getPaymentsByBooking(
+            @PathVariable(name = "bookingId") Long bookingId,
+            @RequestParam(name = "role", required = false, defaultValue = "FRONT_OFFICER") String role) {
+        List<Payment> list = paymentRepository.findByBookingId(bookingId);
+        if ("FRONT_OFFICER".equalsIgnoreCase(role)) {
+            list = list.stream()
+                    .filter(p -> p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice())
+                    .collect(java.util.stream.Collectors.toList());
+        }
+        return ResponseEntity.ok(list);
     }
 
     @PostMapping("/advance")
@@ -93,10 +101,17 @@ public class PaymentController {
     }
 
     @GetMapping("/advance/{bookingId}")
-    public ResponseEntity<List<Payment>> getAdvancePayments(@PathVariable(name = "bookingId") Long bookingId) {
+    public ResponseEntity<List<Payment>> getAdvancePayments(
+            @PathVariable(name = "bookingId") Long bookingId,
+            @RequestParam(name = "role", required = false, defaultValue = "FRONT_OFFICER") String role) {
         List<Payment> list = paymentRepository.findByBookingId(bookingId).stream()
                 .filter(p -> "ADVANCE".equalsIgnoreCase(p.getPaymentType()) || p.isAdvancePayment())
                 .collect(java.util.stream.Collectors.toList());
+        if ("FRONT_OFFICER".equalsIgnoreCase(role)) {
+            list = list.stream()
+                    .filter(p -> p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice())
+                    .collect(java.util.stream.Collectors.toList());
+        }
         return ResponseEntity.ok(list);
     }
 
