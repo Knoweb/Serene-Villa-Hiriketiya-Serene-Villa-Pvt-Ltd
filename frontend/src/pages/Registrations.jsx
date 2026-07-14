@@ -96,6 +96,8 @@ const Registrations = () => {
     address: '',
     email: '',
     vatNo: '',
+    whatsappNumber: '',
+    nationality: '',
     reservationDate: new Date().toISOString().split('T')[0],
     roomReference: '',
     unitPrice: '',
@@ -383,12 +385,12 @@ const Registrations = () => {
     if (!booking) return;
 
     const nightsCount = selectedReg.numberOfNights || selectedReg.nights || 1;
-    const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);
-
-    setConfirmationData({
+    const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);    setConfirmationData({
       address: '',
       email: '',
       vatNo: '',
+      whatsappNumber: selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || '',
+      nationality: selectedReg?.nationality || '',
       reservationDate: new Date().toISOString().split('T')[0],
       roomReference: `Room ${booking.roomNumber || ''} (${booking.roomType || ''})`,
       unitPrice: defaultUnitPrice,
@@ -417,6 +419,8 @@ const Registrations = () => {
       address: '',
       email: '',
       vatNo: '',
+      whatsappNumber: '',
+      nationality: '',
       reservationDate: new Date().toISOString().split('T')[0],
       roomReference: 'Deluxe Room',
       roomType: 'Deluxe Room',
@@ -2210,6 +2214,28 @@ Staff: ${receiptData.generatedBy}`;
                   value={confirmationData.email}
                   onChange={(e) => setConfirmationData({...confirmationData, email: e.target.value})}
                   placeholder="e.g. client@email.com"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp Number</label>
+                <input 
+                  type="text" 
+                  value={confirmationData.whatsappNumber || ''}
+                  onChange={(e) => setConfirmationData({...confirmationData, whatsappNumber: e.target.value})}
+                  placeholder="e.g. +94771234567"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nationality</label>
+                <input 
+                  type="text" 
+                  value={confirmationData.nationality || ''}
+                  onChange={(e) => setConfirmationData({...confirmationData, nationality: e.target.value})}
+                  placeholder="e.g. Sri Lankan / British"
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                 />
               </div>

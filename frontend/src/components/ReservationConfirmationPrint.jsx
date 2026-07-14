@@ -61,9 +61,9 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             <span className="font-bold text-slate-900">{guestName}</span>
           </div>
           <div className="flex items-center">
-            <span className="w-28 text-slate-700 font-bold">Address</span>
+            <span className="w-28 text-slate-700 font-bold">Nationality</span>
             <span className="mr-2 text-slate-750 font-bold">:</span>
-            <span className="text-slate-800">{confirmationData.address || 'N/A'}</span>
+            <span className="text-slate-805 font-bold">{confirmationData.nationality || selectedReg?.nationality || 'N/A'}</span>
           </div>
           <div className="flex items-center">
             <span className="w-28 text-slate-700 font-bold">Email</span>
@@ -71,9 +71,9 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             <span className="text-slate-800">{confirmationData.email || 'N/A'}</span>
           </div>
           <div className="flex items-center">
-            <span className="w-28 text-slate-700 font-bold">Vat No</span>
+            <span className="w-28 text-slate-700 font-bold">WhatsApp Number</span>
             <span className="mr-2 text-slate-750 font-bold">:</span>
-            <span className="text-slate-800">{confirmationData.vatNo || 'N/A'}</span>
+            <span className="text-slate-805 font-bold">{confirmationData.whatsappNumber || selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || 'N/A'}</span>
           </div>
         </div>
       </div>
