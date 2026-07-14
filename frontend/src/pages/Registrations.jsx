@@ -392,6 +392,7 @@ const Registrations = () => {
       whatsappNumber: selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || '',
       nationality: selectedReg?.nationality || '',
       roomType: booking.roomType || 'Deluxe Room',
+      nights: nightsCount,
       reservationDate: new Date().toISOString().split('T')[0],
       roomReference: `Room ${booking.roomNumber || ''} (${booking.roomType || ''})`,
       unitPrice: defaultUnitPrice,
@@ -2329,11 +2330,15 @@ Staff: ${receiptData.generatedBy}`;
                   type="number" 
                   step="0.01"
                   value={confirmationData.unitPrice}
-                  onChange={(e) => setConfirmationData({
-                    ...confirmationData, 
-                    unitPrice: e.target.value, 
-                    totalPrice: (parseFloat(e.target.value || 0) * (isCreatingNewReservation ? confirmationData.nights : (selectedReg?.numberOfNights || selectedReg?.nights || 1))).toFixed(2)
-                  })}
+                  onChange={(e) => {
+                    const price = parseFloat(e.target.value) || 0;
+                    const nights = parseInt(confirmationData.nights) || 1;
+                    setConfirmationData({
+                      ...confirmationData, 
+                      unitPrice: e.target.value, 
+                      totalPrice: (price * nights).toFixed(2)
+                    });
+                  }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                 />
               </div>
