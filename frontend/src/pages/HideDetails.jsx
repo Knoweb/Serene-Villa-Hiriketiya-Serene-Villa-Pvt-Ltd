@@ -71,15 +71,15 @@ const HideDetails = () => {
     );
   }
 
-  // Toggle individual payment visibility
-  const handleToggleVisibility = async (paymentId, isCurrentlyHidden) => {
+  // Toggle guest registration visibility
+  const handleToggleVisibility = async (guestId, isCurrentlyHidden) => {
     const endpoint = isCurrentlyHidden ? 'unhide' : 'hide';
     try {
-      const res = await fetch(`${API_BASE}/payments/${paymentId}/${endpoint}`, {
+      const res = await fetch(`${API_BASE}/guest-registrations/${guestId}/${endpoint}`, {
         method: 'PUT'
       });
       if (res.ok) {
-        setActionSuccess(`Payment successfully ${isCurrentlyHidden ? 'visible' : 'hidden'} from Front Office.`);
+        setActionSuccess(`Guest registration successfully ${isCurrentlyHidden ? 'visible' : 'hidden'} from Front Office.`);
         fetchData();
         setTimeout(() => setActionSuccess(''), 3000);
       } else {
@@ -91,15 +91,15 @@ const HideDetails = () => {
     }
   };
 
-  // Bulk visibility change by payment method or all
+  // Bulk visibility change by payment method or all for guest registrations
   const handleBulkVisibility = async (hide) => {
     let url = '';
     if (filterMethod === 'All') {
       const action = hide ? 'hide-all' : 'unhide-all';
-      url = `${API_BASE}/payments/${action}`;
+      url = `${API_BASE}/guest-registrations/${action}`;
     } else {
       const action = hide ? 'hide-by-method' : 'unhide-by-method';
-      url = `${API_BASE}/payments/${action}?method=${filterMethod}`;
+      url = `${API_BASE}/guest-registrations/${action}?method=${filterMethod}`;
     }
 
     try {
@@ -107,7 +107,7 @@ const HideDetails = () => {
         method: 'PUT'
       });
       if (res.ok) {
-        const text = filterMethod === 'All' ? 'All payments' : `All ${filterMethod} payments`;
+        const text = filterMethod === 'All' ? 'All guests' : `All guests with ${filterMethod} payments`;
         setActionSuccess(`${text} have been successfully ${hide ? 'hidden from' : 'shown to'} Front Office.`);
         fetchData();
         setTimeout(() => setActionSuccess(''), 4000);
@@ -204,13 +204,13 @@ const HideDetails = () => {
             onClick={() => handleBulkVisibility(true)}
             className="bg-rose-650 hover:bg-rose-700 text-rose-700 bg-rose-50 border border-rose-100 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
           >
-            <EyeOff size={13} /> {filterMethod === 'All' ? 'Hide All Payments' : `Hide All ${filterMethod}`}
+            <EyeOff size={13} /> {filterMethod === 'All' ? 'Hide All Guests' : `Hide All ${filterMethod} Guests`}
           </button>
           <button
             onClick={() => handleBulkVisibility(false)}
             className="bg-emerald-650 hover:bg-emerald-700 text-emerald-700 bg-emerald-50 border border-emerald-100 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
           >
-            <Eye size={13} /> {filterMethod === 'All' ? 'Show All Payments' : `Show All ${filterMethod}`}
+            <Eye size={13} /> {filterMethod === 'All' ? 'Show All Guests' : `Show All ${filterMethod} Guests`}
           </button>
         </div>
       </div>
@@ -235,6 +235,8 @@ const HideDetails = () => {
                   <th className="p-4">Dates & Room</th>
                   <th className="p-4">Booking Ref</th>
                   <th className="p-4">Payment Transactions Details</th>
+                  <th className="p-4">Front Office Status</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
@@ -297,40 +299,46 @@ const HideDetails = () => {
                           {g.payments
                             .filter(p => filterMethod === 'All' || p.paymentMethod?.toLowerCase() === filterMethod.toLowerCase())
                             .map((p) => (
-                              <div key={p.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[10px]">
-                                <div className="space-y-0.5">
-                                  <p className="font-extrabold text-slate-800">
-                                    {p.amountInCurrency?.toLocaleString()} {p.currency} 
-                                    <span className="text-[9px] text-slate-400 font-normal font-sans"> ({p.paymentMethod})</span>
-                                  </p>
-                                  <p className="text-[9px] text-slate-450 font-normal font-mono">{p.paymentDate || p.createdAt?.split('T')[0]}</p>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[8px] font-extrabold uppercase ${
-                                    p.isHiddenFromFrontOffice 
-                                      ? 'bg-rose-100 text-rose-700' 
-                                      : 'bg-emerald-100 text-emerald-700'
-                                  }`}>
-                                    {p.isHiddenFromFrontOffice ? 'Hidden' : 'Visible'}
-                                  </span>
-
-                                  <button
-                                    onClick={() => handleToggleVisibility(p.id, p.isHiddenFromFrontOffice)}
-                                    className={`p-1 rounded hover:bg-slate-200 transition cursor-pointer text-slate-550`}
-                                    title={p.isHiddenFromFrontOffice ? 'Show to Cashier' : 'Hide from Cashier'}
-                                  >
-                                    {p.isHiddenFromFrontOffice ? (
-                                      <EyeOff size={14} className="text-rose-600" />
-                                    ) : (
-                                      <Eye size={14} className="text-emerald-600" />
-                                    )}
-                                  </button>
-                                </div>
+                              <div key={p.id} className="p-1.5 bg-slate-50/50 border border-slate-100 rounded-lg text-[10px] font-bold">
+                                {p.amountInCurrency?.toLocaleString()} {p.currency} ({p.paymentMethod})
+                                <span className="text-[9px] text-slate-400 font-normal font-mono block mt-0.5">{p.paymentDate || p.createdAt?.split('T')[0]}</span>
                               </div>
                             ))}
                         </div>
                       )}
+                    </td>
+
+                    {/* Guest Front Office Status */}
+                    <td className="p-4">
+                      <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        g.isHiddenFromFrontOffice 
+                          ? 'bg-rose-100 text-rose-700' 
+                          : 'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {g.isHiddenFromFrontOffice ? (
+                          <>
+                            <EyeOff size={10} /> Hidden from FO
+                          </>
+                        ) : (
+                          <>
+                            <Eye size={10} /> Visible to FO
+                          </>
+                        )}
+                      </span>
+                    </td>
+
+                    {/* Action Button */}
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => handleToggleVisibility(g.id, g.isHiddenFromFrontOffice)}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wide uppercase transition cursor-pointer ${
+                          g.isHiddenFromFrontOffice 
+                            ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800' 
+                            : 'bg-rose-50 hover:bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {g.isHiddenFromFrontOffice ? 'Unhide Guest' : 'Hide Guest'}
+                      </button>
                     </td>
                   </tr>
                 ))}

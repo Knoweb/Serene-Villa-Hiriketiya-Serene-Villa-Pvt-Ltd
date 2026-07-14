@@ -161,4 +161,33 @@ public class GuestRegistrationService {
             return savedReg;
         });
     }
+
+    public void hideByPaymentMethod(String method, boolean hide) {
+        List<Booking> bookingsWithMethod = bookingRepository.findAll().stream()
+                .filter(b -> {
+                    List<Payment> payments = paymentRepository.findByBookingId(b.getId());
+                    return payments.stream().anyMatch(p -> method.equalsIgnoreCase(p.getPaymentMethod()));
+                })
+                .toList();
+                
+        List<Long> regIds = bookingsWithMethod.stream()
+                .map(Booking::getGuestRegistrationId)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+                
+        guestRegistrationRepository.findAllById(regIds).forEach(reg -> {
+            reg.setHiddenFromFrontOffice(hide);
+            guestRegistrationRepository.save(reg);
+        });
+        
+        webSocketHandler.broadcast("update");
+    }
+
+    public void hideAllRegistrations(boolean hide) {
+        guestRegistrationRepository.findAll().forEach(reg -> {
+            reg.setHiddenFromFrontOffice(hide);
+            guestRegistrationRepository.save(reg);
+        });
+        webSocketHandler.broadcast("update");
+    }
 }

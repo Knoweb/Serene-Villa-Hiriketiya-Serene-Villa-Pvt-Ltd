@@ -74,6 +74,30 @@ public class GuestRegistrationController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/api/guest-registrations/hide-by-payment-method")
+    public ResponseEntity<?> hideByPaymentMethod(@RequestParam(name = "method") String method) {
+        guestRegistrationService.hideByPaymentMethod(method, true);
+        return ResponseEntity.ok(java.util.Map.of("message", "Guests with " + method + " payments hidden from Front Office"));
+    }
+
+    @PutMapping("/api/guest-registrations/unhide-by-payment-method")
+    public ResponseEntity<?> unhideByPaymentMethod(@RequestParam(name = "method") String method) {
+        guestRegistrationService.hideByPaymentMethod(method, false);
+        return ResponseEntity.ok(java.util.Map.of("message", "Guests with " + method + " payments shown to Front Office"));
+    }
+
+    @PutMapping("/api/guest-registrations/hide-all")
+    public ResponseEntity<?> hideAllRegistrations() {
+        guestRegistrationService.hideAllRegistrations(true);
+        return ResponseEntity.ok(java.util.Map.of("message", "All guests hidden from Front Office"));
+    }
+
+    @PutMapping("/api/guest-registrations/unhide-all")
+    public ResponseEntity<?> unhideAllRegistrations() {
+        guestRegistrationService.hideAllRegistrations(false);
+        return ResponseEntity.ok(java.util.Map.of("message", "All guests shown to Front Office"));
+    }
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<?> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
         ex.printStackTrace();
