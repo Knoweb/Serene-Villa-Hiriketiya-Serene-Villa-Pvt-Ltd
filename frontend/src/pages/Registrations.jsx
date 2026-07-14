@@ -2201,16 +2201,7 @@ Staff: ${receiptData.generatedBy}`;
                 </>
               )}
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Address</label>
-                <input 
-                  type="text" 
-                  value={confirmationData.address}
-                  onChange={(e) => setConfirmationData({...confirmationData, address: e.target.value})}
-                  placeholder="e.g. 69/28 Street, Warsaw, Poland"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
-              </div>
+
 
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Email</label>
@@ -2223,16 +2214,7 @@ Staff: ${receiptData.generatedBy}`;
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vat No</label>
-                <input 
-                  type="text" 
-                  value={confirmationData.vatNo}
-                  onChange={(e) => setConfirmationData({...confirmationData, vatNo: e.target.value})}
-                  placeholder="e.g. PL521330296"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
-              </div>
+
 
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Date</label>
