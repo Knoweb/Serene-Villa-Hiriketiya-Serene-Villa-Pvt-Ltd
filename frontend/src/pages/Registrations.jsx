@@ -30,7 +30,8 @@ import {
   Printer,
   Receipt,
   Image as ImageIcon,
-  ArrowRight
+  ArrowRight,
+  MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
@@ -2405,6 +2406,29 @@ Staff: ${receiptData.generatedBy}`;
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer transition"
                 >
                   Cancel
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    let phone = confirmationData.whatsappNumber || selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || '';
+                    const cleanedPhone = phone.replace(/\D/g, '');
+                    let formattedPhone = cleanedPhone;
+                    if (formattedPhone.startsWith('0')) {
+                      formattedPhone = '94' + formattedPhone.substring(1);
+                    }
+                    const guestName = selectedReg?.guestName || confirmationData.guestName || '';
+                    const bookingNumber = confirmationData.bookingNumber || selectedReg?.booking?.bookingNumber || '';
+                    const checkIn = selectedReg?.checkInDate || confirmationData.checkInDate || '';
+                    const checkOut = selectedReg?.checkOutDate || confirmationData.checkOutDate || '';
+                    const room = confirmationData.roomType || '';
+                    
+                    const message = `Hello ${guestName},\n\nWe are pleased to confirm your reservation at Serene Villa Hiriketiya! 🌴\n\nHere are your reservation details:\n- Booking Ref: ${bookingNumber}\n- Check-in: ${checkIn}\n- Check-out: ${checkOut}\n- Room Type: ${room}\n- Board Basis: ${confirmationData.boardBasis || 'Bed & Breakfast'}\n\nPlease find your attached Reservation Confirmation Slip.\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\nSerene Villa Hiriketiya`;
+                    
+                    window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`, '_blank');
+                  }}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-blue-500/10"
+                >
+                  <MessageSquare size={13} /> Send via WhatsApp
                 </button>
                 <button type="submit" className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10">
                   <Printer size={13} /> Print / Save PDF
