@@ -2231,13 +2231,33 @@ Staff: ${receiptData.generatedBy}`;
 
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nationality</label>
-                <input 
-                  type="text" 
+                <select 
                   value={confirmationData.nationality || ''}
                   onChange={(e) => setConfirmationData({...confirmationData, nationality: e.target.value})}
-                  placeholder="e.g. Sri Lankan / British"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  <option value="">Select Nationality</option>
+                  <option value="Sri Lankan">Sri Lankan</option>
+                  <option value="British">British</option>
+                  <option value="German">German</option>
+                  <option value="Russian">Russian</option>
+                  <option value="French">French</option>
+                  <option value="Indian">Indian</option>
+                  <option value="Australian">Australian</option>
+                  <option value="Chinese">Chinese</option>
+                  <option value="Maldivian">Maldivian</option>
+                  <option value="American">American</option>
+                  <option value="Canadian">Canadian</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Swiss">Swiss</option>
+                  <option value="Dutch">Dutch</option>
+                  <option value="Swedish">Swedish</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Ukrainian">Ukrainian</option>
+                  <option value="Polish">Polish</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
 
