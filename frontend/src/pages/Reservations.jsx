@@ -461,22 +461,11 @@ const Reservations = () => {
     setTimeout(() => {
       const element = document.getElementById('direct-pdf-download-container');
       if (element) {
-        // Temporarily disable all stylesheets in the live document to prevent html2canvas parsing and crashing on oklab/oklch
-        const originalDisabledStates = Array.from(document.styleSheets).map(sheet => {
-          const state = { sheet, disabled: sheet.disabled };
-          try {
-            sheet.disabled = true;
-          } catch (e) {}
-          return state;
+        // Temporarily shadow document.styleSheets to return [] to prevent html2canvas from reading and crashing on Tailwind v4's oklab/oklch rules
+        Object.defineProperty(document, 'styleSheets', {
+          value: [],
+          configurable: true
         });
-
-        const restoreStylesheets = () => {
-          originalDisabledStates.forEach(state => {
-            try {
-              state.sheet.disabled = state.disabled;
-            } catch (e) {}
-          });
-        };
 
         const opt = {
           margin:       0.3,
@@ -489,162 +478,18 @@ const Reservations = () => {
             onclone: (clonedDoc) => {
               // Remove any left-over stylesheets in the cloned document
               clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
-              
-              // Inject a clean stylesheet without oklab/oklch specifically for our print container
-              const style = clonedDoc.createElement('style');
-              style.innerHTML = `
-                #direct-pdf-download-container {
-                  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-                  color: #1e293b !important;
-                  background: white !important;
-                  padding: 32px !important;
-                  width: 790px !important;
-                  box-sizing: border-box !important;
-                  display: block !important;
-                }
-                .voucher-container {
-                  width: 100% !important;
-                  color: #1e293b !important;
-                }
-                .header-table {
-                  width: 100% !important;
-                  border-collapse: collapse !important;
-                  margin-bottom: 20px !important;
-                }
-                .header-table td {
-                  border: none !important;
-                  padding: 0 !important;
-                }
-                .logo-img {
-                  width: 64px !important;
-                  height: 64px !important;
-                  object-fit: contain !important;
-                }
-                .title-h1 {
-                  font-size: 16px !important;
-                  font-weight: 800 !important;
-                  color: #065f46 !important;
-                  margin: 0 0 4px 0 !important;
-                  text-transform: uppercase !important;
-                  letter-spacing: 0.5px !important;
-                }
-                .header-details-p {
-                  font-size: 9px !important;
-                  color: #475569 !important;
-                  line-height: 1.3 !important;
-                  margin: 0 !important;
-                }
-                .status-badge {
-                  font-size: 14px !important;
-                  font-weight: 700 !important;
-                  color: #f43f5e !important;
-                  text-transform: capitalize !important;
-                }
-                .status-badge.confirmed {
-                  color: #10b981 !important;
-                }
-                .section-title {
-                  font-size: 11px !important;
-                  font-weight: 700 !important;
-                  color: #0f172a !important;
-                  margin-bottom: 12px !important;
-                  border-bottom: 1px solid #cbd5e1 !important;
-                  padding-bottom: 4px !important;
-                }
-                .details-table {
-                  width: 100% !important;
-                  border-collapse: collapse !important;
-                  margin-bottom: 16px !important;
-                }
-                .details-table td {
-                  padding: 3px 0 !important;
-                  border: none !important;
-                  font-size: 10px !important;
-                }
-                .label-col {
-                  width: 130px !important;
-                  color: #64748b !important;
-                  font-weight: 600 !important;
-                }
-                .sep-col {
-                  width: 15px !important;
-                  color: #94a3b8 !important;
-                  text-align: center !important;
-                }
-                .value-col {
-                  color: #0f172a !important;
-                  font-weight: 700 !important;
-                }
-                .value-col-normal {
-                  color: #334155 !important;
-                  font-weight: 500 !important;
-                }
-                .itemized-table {
-                  width: 100% !important;
-                  border-collapse: collapse !important;
-                  margin-top: 8px !important;
-                  margin-bottom: 16px !important;
-                }
-                .itemized-table th {
-                  background-color: #f8fafc !important;
-                  border-top: 1px solid #cbd5e1 !important;
-                  border-bottom: 1px solid #cbd5e1 !important;
-                  border-left: 1px solid #cbd5e1 !important;
-                  border-right: 1px solid #cbd5e1 !important;
-                  padding: 8px !important;
-                  font-size: 9px !important;
-                  font-weight: 700 !important;
-                  color: #475569 !important;
-                  text-transform: uppercase !important;
-                }
-                .itemized-table td {
-                  border: 1px solid #cbd5e1 !important;
-                  padding: 8px !important;
-                  font-size: 10px !important;
-                  color: #334155 !important;
-                }
-                .itemized-table tr.total-row td {
-                  font-weight: 700 !important;
-                  background-color: #ffffff !important;
-                  border-top: 2px solid #cbd5e1 !important;
-                  border-bottom: 2px solid #cbd5e1 !important;
-                  color: #0f172a !important;
-                }
-                .remark-span {
-                  font-weight: 700 !important;
-                  color: #ef4444 !important;
-                }
-                .slogan-box {
-                  border: 1px solid #cbd5e1 !important;
-                  padding: 10px !important;
-                  text-align: center !important;
-                  font-size: 10px !important;
-                  font-weight: 700 !important;
-                  color: #334155 !important;
-                  margin-top: 20px !important;
-                  margin-bottom: 20px !important;
-                }
-                .footer-meta {
-                  display: flex !important;
-                  justify-content: space-between !important;
-                  font-size: 8px !important;
-                  color: #94a3b8 !important;
-                  border-top: 1px solid #e2e8f0 !important;
-                  padding-top: 8px !important;
-                  margin-top: 24px !important;
-                }
-              `;
-              clonedDoc.head.appendChild(style);
             }
           },
           jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
         window.html2pdf().set(opt).from(element).save().then(() => {
-          restoreStylesheets();
+          // Restore original document.styleSheets descriptor
+          delete document.styleSheets;
           setShowConfirmationModal(false);
         }).catch(err => {
           console.error(err);
-          restoreStylesheets();
+          // Restore original document.styleSheets descriptor on error
+          delete document.styleSheets;
           setShowConfirmationModal(false);
         });
       } else {
