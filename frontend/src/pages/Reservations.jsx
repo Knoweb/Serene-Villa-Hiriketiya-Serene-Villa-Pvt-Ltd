@@ -460,20 +460,17 @@ const Reservations = () => {
 
     // Clean oklab CSS rules to prevent html2canvas crashing
     try {
-      for (let i = 0; i < document.styleSheets.length; i++) {
-        const sheet = document.styleSheets[i];
-        try {
-          const rules = sheet.cssRules || sheet.rules;
-          if (rules) {
-            for (let j = rules.length - 1; j >= 0; j--) {
-              if (rules[j].cssText && (rules[j].cssText.includes('oklab') || rules[j].cssText.includes('oklch'))) {
-                sheet.deleteRule(j);
-              }
-            }
-          }
-        } catch (e) {}
-      }
-    } catch (err) {}
+      const styleTags = document.querySelectorAll('style');
+      styleTags.forEach(tag => {
+        if (tag.innerHTML.includes('oklab') || tag.innerHTML.includes('oklch')) {
+          tag.innerHTML = tag.innerHTML
+            .replace(/oklab\([^)]+\)/g, 'rgb(0,0,0)')
+            .replace(/oklch\([^)]+\)/g, 'rgb(0,0,0)');
+        }
+      });
+    } catch (err) {
+      console.error('Error cleaning style tags:', err);
+    }
 
     setTimeout(() => {
       const element = document.getElementById('direct-pdf-download-container');
