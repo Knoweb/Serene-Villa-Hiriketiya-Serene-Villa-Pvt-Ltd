@@ -954,16 +954,7 @@ const Registrations = () => {
                                   )}
                                 </button>
                               )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleInstantDownloadPDF(reg);
-                                }}
-                                title="Download Confirmation Slip"
-                                className="inline-flex items-center p-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-850 transition shadow-sm cursor-pointer"
-                              >
-                                <Download className="h-3.5 w-3.5 text-amber-700" />
-                              </button>
+
                               <button
                                 onClick={() => handleSelectGuest(reg)}
                                 className="inline-flex items-center py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-755 text-white text-[11px] font-bold transition shadow-sm cursor-pointer"
