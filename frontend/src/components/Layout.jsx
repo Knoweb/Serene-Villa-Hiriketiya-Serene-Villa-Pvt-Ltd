@@ -31,6 +31,7 @@ const Layout = ({ children }) => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', roles: ['ADMIN', 'ACCOUNTANT', 'FRONT_OFFICER'] },
     { name: 'Registrations', path: '/registrations', roles: ['ADMIN', 'ACCOUNTANT', 'FRONT_OFFICER'] },
+    { name: 'Reservations', path: '/reservations', roles: ['ADMIN', 'ACCOUNTANT', 'FRONT_OFFICER'] },
     { name: 'Rooms', path: '/rooms', roles: ['ADMIN'] },
     { name: 'Bookings', path: '/bookings', roles: ['ADMIN'] },
     { name: 'Payments', path: '/payments', roles: ['ADMIN', 'ACCOUNTANT'] },

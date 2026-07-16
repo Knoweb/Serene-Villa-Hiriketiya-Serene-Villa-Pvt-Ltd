@@ -62,7 +62,7 @@ const ROOM_TEMPLATES = {
   }
 };
 
-const Registrations = () => {
+const Reservations = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user.role === 'ADMIN';
@@ -236,7 +236,7 @@ const Registrations = () => {
     try {
       // Fetch registrations
       const regRes = await fetch(
-        `${API_BASE}/guest-registrations?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&source=QR&page=${page}&size=${pageSize}`
+        `${API_BASE}/guest-registrations?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&source=Staff&page=${page}&size=${pageSize}`
       );
       if (!regRes.ok) throw new Error('Failed to fetch registrations');
       const regData = await regRes.json();
@@ -774,23 +774,18 @@ const Registrations = () => {
     <div className="space-y-6">
       <div className="no-print space-y-6">
       {/* Header Area */}
+      {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Guest Registrations</h2>
-          <p className="text-sm text-slate-500 font-medium mt-0.5">Manage public QR submissions and allocate booking details</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Reservations</h2>
+          <p className="text-sm text-slate-500 font-medium mt-0.5">Manage manually created hotel reservations, slips, and payments</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button 
-            onClick={() => setShowQr(true)} 
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
+            onClick={handleCreateNewReservation} 
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-amber-500/10 cursor-pointer"
           >
-            <QrCode className="h-4 w-4 text-emerald-600" /> Guest Registration QR Code
-          </button>
-          <button 
-            onClick={() => navigate('/qr-register')} 
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-emerald-500/10"
-          >
-            <Plus className="h-4 w-4" /> Guest QR Form Link
+            <Plus className="h-4 w-4" /> Create New Reservation
           </button>
         </div>
       </div>
@@ -945,7 +940,7 @@ const Registrations = () => {
                               </button>
                               <button
                                 onClick={() => handleSelectGuest(reg)}
-                                className="inline-flex items-center py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-755 text-white text-[11px] font-bold transition shadow-sm cursor-pointer"
+                                className="inline-flex items-center py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-sm cursor-pointer"
                               >
                                 Manage
                               </button>
@@ -2625,4 +2620,4 @@ Staff: ${receiptData.generatedBy}`;
   );
 };
 
-export default Registrations;
+export default Reservations;

@@ -44,21 +44,23 @@ public class GuestRegistrationService {
         registration.setPaymentStatus("Pending");
         registration.setRegistrationStatus("Pending");
         registration.setHiddenFromFrontOffice(false);
-        registration.setCreatedBy("Public QR Code");
+        if (registration.getCreatedBy() == null || registration.getCreatedBy().isEmpty()) {
+            registration.setCreatedBy("Public QR Code");
+        }
 
         GuestRegistration saved = guestRegistrationRepository.save(registration);
         webSocketHandler.broadcast("update");
         return saved;
     }
 
-    public Page<GuestRegistration> searchRegistrations(String search, String status, String role, int page, int size) {
+    public Page<GuestRegistration> searchRegistrations(String search, String status, String role, String source, int page, int size) {
         // Show hidden if admin or accountant
         boolean showHidden = "ADMIN".equalsIgnoreCase(role) || "ACCOUNTANT".equalsIgnoreCase(role);
         
         // Latest registrations first
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         
-        Page<GuestRegistration> result = guestRegistrationRepository.searchRegistrations(search, status, showHidden, pageable);
+        Page<GuestRegistration> result = guestRegistrationRepository.searchRegistrations(search, status, showHidden, source, pageable);
 
         // Dynamically recalculate paymentStatus for FRONT_OFFICER based on visible payments
         if ("FRONT_OFFICER".equalsIgnoreCase(role)) {

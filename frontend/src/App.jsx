@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import GuestRegistration from './pages/GuestRegistration';
 import Dashboard from './pages/Dashboard';
 import Registrations from './pages/Registrations';
+import Reservations from './pages/Reservations';
 import Rooms from './pages/Rooms';
 import Bookings from './pages/Bookings';
 import Payments from './pages/Payments';
@@ -47,6 +48,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Registrations />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/reservations" 
+            element={
+              <ProtectedRoute>
+                <Reservations />
               </ProtectedRoute>
             } 
           />
