@@ -2641,25 +2641,22 @@ Staff: ${receiptData.generatedBy}`;
 
       {/* Hidden container for html2pdf direct download */}
       {showConfirmationModal && (
-        <div 
-          id="direct-pdf-download-container" 
-          style={{ 
-            position: 'absolute', 
-            left: '0px', 
-            top: '0px', 
-            width: '800px', 
-            background: 'white',
-            padding: '24px',
-            opacity: '0',
-            zIndex: '-9999',
-            pointerEvents: 'none'
-          }}
-        >
-          <ReservationConfirmationPrint
-            confirmationData={confirmationData}
-            selectedReg={isCreatingNewReservation ? null : selectedReg}
-            associatedBooking={isCreatingNewReservation ? null : associatedBooking}
-          />
+        <div style={{ position: 'fixed', left: '0px', top: '0px', width: '0px', height: '0px', overflow: 'hidden', zIndex: '-9999', pointerEvents: 'none' }}>
+          <div 
+            id="direct-pdf-download-container" 
+            style={{ 
+              width: '800px', 
+              background: 'white',
+              padding: '24px',
+              color: '#0f172a'
+            }}
+          >
+            <ReservationConfirmationPrint
+              confirmationData={confirmationData}
+              selectedReg={isCreatingNewReservation ? null : selectedReg}
+              associatedBooking={isCreatingNewReservation ? null : associatedBooking}
+            />
+          </div>
         </div>
       )}
 
