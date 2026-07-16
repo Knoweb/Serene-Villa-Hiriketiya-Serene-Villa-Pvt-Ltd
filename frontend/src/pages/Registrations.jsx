@@ -420,7 +420,7 @@ const Registrations = () => {
     setShowConfirmationModal(true);
   };
 
-  const handleInstantDownloadPDF = (reg) => {
+  const handleInstantPrintConfirmation = (reg) => {
     setSelectedReg(reg);
     let booking = getBookingForReg(reg.id);
     if (!booking) {
@@ -458,24 +458,8 @@ const Registrations = () => {
     setIsCreatingNewReservation(false);
     setShowConfirmationModal(true);
     setTimeout(() => {
-      const element = document.getElementById('direct-pdf-download-container');
-      if (element) {
-        const opt = {
-          margin:       0.3,
-          filename:     `Confirmation_Slip_${booking.bookingNumber || reg.id}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true, logging: false },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-        window.html2pdf().set(opt).from(element).save().then(() => {
-          setShowConfirmationModal(false);
-        }).catch(err => {
-          console.error(err);
-          setShowConfirmationModal(false);
-        });
-      } else {
-        setShowConfirmationModal(false);
-      }
+      window.print();
+      setShowConfirmationModal(false);
     }, 300);
   };
 
@@ -937,7 +921,7 @@ const Registrations = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleInstantDownloadPDF(reg);
+                                  handleInstantPrintConfirmation(reg);
                                 }}
                                 title="Download Confirmation Slip"
                                 className="inline-flex items-center p-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-850 transition shadow-sm cursor-pointer"
