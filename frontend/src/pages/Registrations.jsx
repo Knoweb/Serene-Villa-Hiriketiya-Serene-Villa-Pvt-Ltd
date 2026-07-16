@@ -470,21 +470,31 @@ const Registrations = () => {
             useCORS: true, 
             logging: false,
             onclone: (clonedDoc) => {
-              // Iterate and safely remove oklab and oklch styles from cloned styles
+              // Reconstruct all CSS rules as a single string to clean oklab/oklch color functions without deleting rules
+              let fullCssText = "";
               Array.from(clonedDoc.styleSheets).forEach(sheet => {
                 try {
                   const rules = sheet.cssRules || sheet.rules;
-                  if (!rules) return;
-                  for (let j = rules.length - 1; j >= 0; j--) {
-                    try {
-                      const rule = rules[j];
-                      if (rule && rule.cssText && (rule.cssText.includes('oklab') || rule.cssText.includes('oklch'))) {
-                        sheet.deleteRule(j);
-                      }
-                    } catch (ruleErr) {}
+                  if (rules) {
+                    Array.from(rules).forEach(rule => {
+                      try {
+                        fullCssText += rule.cssText + "\n";
+                      } catch (e) {}
+                    });
                   }
                 } catch (sheetErr) {}
               });
+
+              // Clean oklab/oklch values in the CSS string
+              const cleanedCssText = fullCssText
+                .replace(/oklab\([^)]+\)/g, 'rgb(0,0,0)')
+                .replace(/oklch\([^)]+\)/g, 'rgb(0,0,0)');
+
+              // Remove original stylesheets and inject the cleaned CSS
+              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
+              const style = clonedDoc.createElement('style');
+              style.innerHTML = cleanedCssText;
+              clonedDoc.head.appendChild(style);
             }
           },
           jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
