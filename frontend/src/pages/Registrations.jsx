@@ -2650,11 +2650,14 @@ Staff: ${receiptData.generatedBy}`;
           id="direct-pdf-download-container" 
           style={{ 
             position: 'absolute', 
-            left: '-9999px', 
-            top: '-9999px', 
+            left: '0px', 
+            top: '0px', 
             width: '800px', 
             background: 'white',
-            padding: '20px'
+            padding: '24px',
+            opacity: '0',
+            zIndex: '-9999',
+            pointerEvents: 'none'
           }}
         >
           <ReservationConfirmationPrint
