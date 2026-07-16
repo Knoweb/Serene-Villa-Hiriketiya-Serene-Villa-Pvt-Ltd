@@ -24,7 +24,7 @@ import {
   FileText,
   MapPin,
   Check,
-  FileDown,
+  Download,
   X,
   Share2,
   Printer,
@@ -962,7 +962,7 @@ const Registrations = () => {
                                 title="Download Confirmation Slip"
                                 className="inline-flex items-center p-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-850 transition shadow-sm cursor-pointer"
                               >
-                                <FileDown className="h-3.5 w-3.5 text-amber-700" />
+                                <Download className="h-3.5 w-3.5 text-amber-700" />
                               </button>
                               <button
                                 onClick={() => handleSelectGuest(reg)}
