@@ -92,6 +92,7 @@ const Reservations = () => {
   const [customHost, setCustomHost] = useState(() => window.location.hostname);
   const confirmationPrintRef = React.useRef(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showDirectDownloadContainer, setShowDirectDownloadContainer] = useState(false);
   const [isCreatingNewReservation, setIsCreatingNewReservation] = useState(false);
   const [confirmationData, setConfirmationData] = useState({
     address: '',
@@ -456,7 +457,7 @@ const Reservations = () => {
       remarks: booking.remarks || ''
     });
     setIsCreatingNewReservation(false);
-    setShowConfirmationModal(true);
+    setShowDirectDownloadContainer(true);
 
     setTimeout(() => {
       const element = document.getElementById('direct-pdf-download-container');
@@ -485,15 +486,15 @@ const Reservations = () => {
         window.html2pdf().set(opt).from(element).save().then(() => {
           // Restore original document.styleSheets descriptor
           delete document.styleSheets;
-          setShowConfirmationModal(false);
+          setShowDirectDownloadContainer(false);
         }).catch(err => {
           console.error(err);
           // Restore original document.styleSheets descriptor on error
           delete document.styleSheets;
-          setShowConfirmationModal(false);
+          setShowDirectDownloadContainer(false);
         });
       } else {
-        setShowConfirmationModal(false);
+        setShowDirectDownloadContainer(false);
       }
     }, 400);
   };
@@ -2596,7 +2597,7 @@ Staff: ${receiptData.generatedBy}`;
       )}
 
       {/* Hidden container for html2pdf direct download */}
-      {showConfirmationModal && (
+      {showDirectDownloadContainer && (
         <div style={{ position: 'fixed', left: '0px', top: '0px', width: '0px', height: '0px', overflow: 'hidden', zIndex: '-9999', pointerEvents: 'none' }}>
           <div 
             id="direct-pdf-download-container" 
