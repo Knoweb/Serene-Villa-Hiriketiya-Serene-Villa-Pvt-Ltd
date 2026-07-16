@@ -470,62 +470,21 @@ const Registrations = () => {
             useCORS: true, 
             logging: false,
             onclone: (clonedDoc) => {
-              // Remove all existing styles/links to prevent oklab/oklch parser crashes
-              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
-              
-              // Inject clean standard CSS rules for voucher layout
-              const style = clonedDoc.createElement('style');
-              style.innerHTML = `
-                #direct-pdf-download-container {
-                  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                  color: #0f172a;
-                  background: white;
-                  padding: 24px;
-                }
-                .flex { display: flex; }
-                .justify-between { justify-content: space-between; }
-                .items-center { align-items: center; }
-                .grid { display: grid; }
-                .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-                .gap-2 { gap: 0.5rem; }
-                .gap-4 { gap: 1rem; }
-                .gap-6 { gap: 1.5rem; }
-                .w-full { width: 100%; }
-                .border-b { border-bottom: 1px solid #e2e8f0; }
-                .border-t { border-top: 1px solid #e2e8f0; }
-                .pb-4 { padding-bottom: 1rem; }
-                .pt-4 { padding-top: 1rem; }
-                .text-right { text-align: right; }
-                .font-bold { font-weight: 700; }
-                .font-extrabold { font-weight: 800; }
-                .text-sm { font-size: 0.875rem; }
-                .text-xs { font-size: 0.75rem; }
-                .text-lg { font-size: 1.125rem; }
-                .text-xl { font-size: 1.25rem; }
-                .text-emerald-800 { color: #065f46; }
-                .text-slate-400 { color: #94a3b8; }
-                .text-slate-500 { color: #64748b; }
-                .text-slate-600 { color: #475569; }
-                .text-slate-700 { color: #334155; }
-                .text-slate-900 { color: #0f172a; }
-                .bg-slate-50 { background-color: #f8fafc; }
-                .bg-emerald-50 { background-color: #ecfdf5; }
-                .rounded-xl { border-radius: 0.75rem; }
-                .p-4 { padding: 1rem; }
-                .p-6 { padding: 1.5rem; }
-                .space-y-1 > * + * { margin-top: 0.25rem; }
-                .space-y-2 > * + * { margin-top: 0.5rem; }
-                .space-y-4 > * + * { margin-top: 1rem; }
-                .space-y-6 > * + * { margin-top: 1.5rem; }
-                .space-x-2 > * + * { margin-left: 0.5rem; }
-                table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-                th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-                th { background-color: #f8fafc; font-weight: 700; font-size: 0.75rem; color: #475569; text-transform: uppercase; }
-                td { font-size: 0.875rem; }
-                /* Hide anything else */
-                .no-print { display: none !important; }
-              `;
-              clonedDoc.head.appendChild(style);
+              // Iterate and safely remove oklab and oklch styles from cloned styles
+              Array.from(clonedDoc.styleSheets).forEach(sheet => {
+                try {
+                  const rules = sheet.cssRules || sheet.rules;
+                  if (!rules) return;
+                  for (let j = rules.length - 1; j >= 0; j--) {
+                    try {
+                      const rule = rules[j];
+                      if (rule && rule.cssText && (rule.cssText.includes('oklab') || rule.cssText.includes('oklch'))) {
+                        sheet.deleteRule(j);
+                      }
+                    } catch (ruleErr) {}
+                  }
+                } catch (sheetErr) {}
+              });
             }
           },
           jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
