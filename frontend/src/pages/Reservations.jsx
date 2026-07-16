@@ -916,7 +916,7 @@ const Reservations = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleInstantPrintConfirmation(reg);
+                                  handleInstantDownloadPDF(reg);
                                 }}
                                 title="Download Confirmation Slip"
                                 className="inline-flex items-center p-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-850 transition shadow-sm cursor-pointer"
