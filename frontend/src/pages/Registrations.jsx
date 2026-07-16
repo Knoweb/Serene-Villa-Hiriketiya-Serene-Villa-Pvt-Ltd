@@ -421,6 +421,7 @@ const Registrations = () => {
   };
 
   const handleInstantDownloadPDF = (reg) => {
+    setSelectedReg(reg);
     let booking = getBookingForReg(reg.id);
     if (!booking) {
       booking = {
