@@ -466,7 +466,7 @@ const Registrations = () => {
           const rules = sheet.cssRules || sheet.rules;
           if (rules) {
             for (let j = rules.length - 1; j >= 0; j--) {
-              if (rules[j].cssText && rules[j].cssText.includes('oklab')) {
+              if (rules[j].cssText && (rules[j].cssText.includes('oklab') || rules[j].cssText.includes('oklch'))) {
                 sheet.deleteRule(j);
               }
             }
