@@ -967,17 +967,7 @@ const Registrations = () => {
                 </div>
               </div>
 
-              {associatedBooking && (
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleOpenConfirmationModal}
-                    className="w-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-850 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                  >
-                    <FileText className="h-4 w-4 text-amber-700" /> Generate Reservation Confirmation
-                  </button>
-                </div>
-              )}
+
 
               {/* Complete Booking Form (Front Office Update) */}
               <form onSubmit={handleBookingSubmit} className="space-y-4 pt-2 border-t border-slate-100">
