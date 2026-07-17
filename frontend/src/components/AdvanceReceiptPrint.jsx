@@ -1,7 +1,7 @@
 import React from 'react';
 import logoImg from '../assets/logo.jpeg';
 
-const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking }, ref) => {
+const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking, payments = [] }, ref) => {
   if (!receiptData || !selectedPaymentForReceipt || !selectedReg || !associatedBooking) return null;
 
   const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
@@ -9,6 +9,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
   const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
   const isLkr = currencyCode === 'LKR';
+
+  // Calculate correct total paid up to this payment to find the correct balance
+  const paymentsList = payments && payments.length > 0 ? payments : [];
+  const paymentsUpToThis = paymentsList.length > 0 
+    ? paymentsList.filter(p => p.id <= selectedPaymentForReceipt.id)
+    : [selectedPaymentForReceipt];
+  const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+  const remainingBalance = Math.max(0, (associatedBooking.totalAmount || 0) - totalPaidUpToThis);
 
   // Format Dates
   const formatDate = (dateStr) => {
@@ -178,9 +186,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               ? '* This is the final payment receipt. Account fully settled.'
               : '* Please preserve this receipt for final checkout subtraction.'}
           </div>
-        </div>
-
-        {/* Right Column: Numeric breakdown */}
+        </div>        {/* Right Column: Numeric breakdown */}
         <div className="border border-slate-350 rounded p-3 space-y-2 bg-slate-50/20">
           <div className="flex justify-between pb-1 border-b border-slate-200">
             <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
@@ -188,11 +194,18 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           </div>
           
           <div className="flex justify-between pb-1 border-b border-slate-200">
-            <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
+            <span className="text-slate-500 font-semibold">This Payment:</span>
             <span className="font-bold text-slate-900">
               {selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} {currencyCode}
             </span>
           </div>
+
+          {paymentsUpToThis.length > 1 && (
+            <div className="flex justify-between pb-1 border-b border-slate-200 text-slate-500">
+              <span>Total Paid So Far:</span>
+              <span className="font-bold">LKR {totalPaidUpToThis.toLocaleString()}</span>
+            </div>
+          )}
 
           {!isLkr && (
             <>
@@ -212,7 +225,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           <div className="flex justify-between pt-1 font-bold text-sm border-t border-slate-350">
             <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
             <span className="font-bold text-xs text-slate-900">
-              LKR {Math.max(0, (associatedBooking.totalAmount || 0) - paidAmt).toLocaleString()}
+              LKR {remainingBalance.toLocaleString()}
             </span>
           </div>
           {isFinalPayment && (

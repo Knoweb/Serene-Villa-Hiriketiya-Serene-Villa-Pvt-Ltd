@@ -374,7 +374,10 @@ const Registrations = () => {
         remarks: associatedBooking.remarks || '',
         amount: associatedBooking.totalAmount || '',
         paymentStatus: reg.paymentStatus || 'Pending',
-        registrationStatus: reg.registrationStatus || 'Pending'
+        registrationStatus: reg.registrationStatus || 'Pending',
+        checkInDate: reg.checkInDate || '',
+        checkOutDate: reg.checkOutDate || '',
+        numberOfNights: reg.numberOfNights || reg.nights || 0
       });
       fetchAdvancePayments(associatedBooking.id);
     } else {
@@ -388,7 +391,10 @@ const Registrations = () => {
         remarks: '',
         amount: '',
         paymentStatus: reg.paymentStatus || 'Pending',
-        registrationStatus: reg.registrationStatus || 'Pending'
+        registrationStatus: reg.registrationStatus || 'Pending',
+        checkInDate: reg.checkInDate || '',
+        checkOutDate: reg.checkOutDate || '',
+        numberOfNights: reg.numberOfNights || reg.nights || 0
       });
       setAdvancePayments([]);
     }
@@ -411,6 +417,20 @@ const Registrations = () => {
       ...bookingForm,
       bookingType: channel,
       bookingNumber: newBookingNumber
+    });
+  };
+
+  const handleDateChange = (field, val) => {
+    setBookingForm(prev => {
+      const updated = { ...prev, [field]: val };
+      if (updated.checkInDate && updated.checkOutDate) {
+        const start = new Date(updated.checkInDate);
+        const end = new Date(updated.checkOutDate);
+        const diffTime = end - start;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        updated.numberOfNights = diffDays > 0 ? diffDays : 0;
+      }
+      return updated;
     });
   };
 
@@ -1141,6 +1161,36 @@ const Registrations = () => {
                     </select>
                   </div>
 
+                  {/* Check-In Date */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Check-In Date</label>
+                    <input
+                      type="date"
+                      disabled={isFrontOfficer === false && isAdmin === false}
+                      value={bookingForm.checkInDate || ''}
+                      onChange={(e) => handleDateChange('checkInDate', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs"
+                    />
+                  </div>
+
+                  {/* Check-Out Date */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Check-Out Date</label>
+                    <input
+                      type="date"
+                      disabled={isFrontOfficer === false && isAdmin === false}
+                      value={bookingForm.checkOutDate || ''}
+                      onChange={(e) => handleDateChange('checkOutDate', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs"
+                    />
+                  </div>
+
+                  {/* Nights */}
+                  <div className="space-y-1.5 col-span-2 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50 flex items-center justify-between text-xs font-semibold">
+                    <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider">Stay Duration:</span>
+                    <span className="font-extrabold text-emerald-800">{bookingForm.numberOfNights || 0} Nights</span>
+                  </div>
+
                   {/* Amount */}
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Amount (LKR)</label>
@@ -1425,16 +1475,6 @@ const Registrations = () => {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reference No.</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. TXN123"
-                                value={paymentForm.referenceNumber}
-                                onChange={(e) => setPaymentForm({ ...paymentForm, referenceNumber: e.target.value })}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
-                              />
-                            </div>
-                            <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Date</label>
                               <input
                                 type="date"
@@ -1442,19 +1482,6 @@ const Registrations = () => {
                                 value={paymentForm.paymentDate}
                                 onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Slip</label>
-                              <input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files[0]) {
-                                    setPaymentForm({ ...paymentForm, slipPath: `/uploads/${e.target.files[0].name}` });
-                                  }
-                                }}
-                                className="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-slate-100 file:text-slate-600 hover:file:bg-slate-200"
                               />
                             </div>
                             <div className="col-span-2">
@@ -1693,6 +1720,12 @@ const Registrations = () => {
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
         const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
 
+        // Calculate total paid up to this payment
+        const paymentsUpToThis = getVisiblePayments(advancePayments)
+          .filter(p => p.id <= selectedPaymentForReceipt.id);
+        const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+        const remainingBalance = Math.max(0, (associatedBooking.totalAmount || 0) - totalPaidUpToThis);
+
         const handleWhatsAppShare = () => {
           const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
           const text = `*${receiptTitle.toUpperCase()}*
@@ -1708,7 +1741,7 @@ Method: ${selectedPaymentForReceipt.paymentMethod}
 Amount: ${selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} ${selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency}
 Exchange Rate: ${selectedPaymentForReceipt.exchangeRate}
 Converted: ${paidAmt.toLocaleString()} LKR
-Balance: ${Math.max(0, associatedBooking.totalAmount - paidAmt).toLocaleString()} LKR
+Balance: ${remainingBalance.toLocaleString()} LKR
 Staff: ${receiptData.generatedBy}`;
 
           const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
@@ -1906,11 +1939,18 @@ Staff: ${receiptData.generatedBy}`;
                       </div>
                       
                       <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                        <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
+                        <span className="text-slate-500 font-semibold">This Payment:</span>
                         <span className="font-bold text-emerald-850 print:text-slate-900">
                           {selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} {selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency}
                         </span>
                       </div>
+
+                      {paymentsUpToThis.length > 1 && (
+                        <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-slate-500">
+                          <span>Total Paid So Far:</span>
+                          <span className="font-bold">LKR {totalPaidUpToThis.toLocaleString()}</span>
+                        </div>
+                      )}
 
                       {(selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (
                         <>
@@ -1932,7 +1972,7 @@ Staff: ${receiptData.generatedBy}`;
                         <span className={`font-mono text-xs ${
                           isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
                         } print:text-slate-900`}>
-                          LKR {Math.max(0, (associatedBooking.totalAmount || 0) - (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0)).toLocaleString()}
+                          LKR {remainingBalance.toLocaleString()}
                         </span>
                       </div>
                       {isFinalPayment && (
@@ -2015,6 +2055,7 @@ Staff: ${receiptData.generatedBy}`;
             selectedPaymentForReceipt={selectedPaymentForReceipt}
             selectedReg={selectedReg}
             associatedBooking={associatedBooking}
+            payments={advancePayments}
           />
         )}
       </div>
