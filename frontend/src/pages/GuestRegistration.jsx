@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Building, Upload, Calendar, Send, CheckCircle2, User, FileText, Phone, Globe, Users, ChevronLeft, Loader } from 'lucide-react';
 import logoImg from '../assets/logo.jpeg';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const GuestRegistration = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     guestName: '',
     guestPhoto: null,
@@ -118,6 +122,11 @@ const GuestRegistration = () => {
       }
 
       setSubmitted(true);
+      if (user) {
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1500);
+      }
     } catch (err) {
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
         setError('Server is currently offline. Please try again later.');
@@ -142,6 +151,16 @@ const GuestRegistration = () => {
               Thank you! Your registration details have been sent to our system. The front office will review your details shortly.
             </p>
           </div>
+          {user && (
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition cursor-pointer shadow-md shadow-emerald-500/10"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          )}
           <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-1">
             <img src={logoImg} alt="Serene Villa Logo" className="h-7 object-contain opacity-80" />
             <p className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider">Serene Villa Pvt Ltd</p>
