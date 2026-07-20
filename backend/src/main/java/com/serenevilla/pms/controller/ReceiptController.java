@@ -36,7 +36,7 @@ public class ReceiptController {
                         newReceipt.setGeneratedBy(payment.getCreatedBy() != null ? payment.getCreatedBy() : "Front Office");
                         
                         Receipt saved = receiptRepository.save(newReceipt);
-                        saved.setReceiptNumber(String.format("REC-ADV-%04d", saved.getId()));
+                        saved.setReceiptNumber(String.format("REC-%04d", saved.getId()));
                         return ResponseEntity.ok(receiptRepository.save(saved));
                     }).orElse(ResponseEntity.notFound().build());
                 });
