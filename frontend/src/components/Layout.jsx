@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
-  Bell, 
   User as UserIcon, 
   LogOut,
   Building,
@@ -123,14 +122,8 @@ const Layout = ({ children }) => {
             </nav>
           </div>
 
-          {/* Right Area: Notifications & Profile Dropdown */}
+          {/* Right Area: Profile Dropdown */}
           <div className="flex items-center gap-4">
-            {/* Notification Icon */}
-            <button className="h-10 w-10 rounded-full bg-slate-50 hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 flex items-center justify-center border border-slate-100 transition relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2.5 right-3 h-2 w-2 bg-emerald-600 rounded-full"></span>
-            </button>
-
             {/* User Profile Dropdown */}
             <div className="relative">
               <button 
