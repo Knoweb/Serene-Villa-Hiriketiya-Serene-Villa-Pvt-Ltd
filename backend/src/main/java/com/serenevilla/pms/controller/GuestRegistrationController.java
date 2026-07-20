@@ -99,6 +99,16 @@ public class GuestRegistrationController {
         return ResponseEntity.ok(java.util.Map.of("message", "All guests shown to Front Office"));
     }
 
+    // Public lookup for confirmed reservations to pre-fill check-in registration
+    @GetMapping("/api/public/reservations/search")
+    public ResponseEntity<?> lookupReservation(
+            @RequestParam(name = "bookingNumber", required = false) String bookingNumber,
+            @RequestParam(name = "passportNumber", required = false) String passportNumber) {
+        return guestRegistrationService.findReservationForPublicCheckIn(bookingNumber, passportNumber)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<?> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
         ex.printStackTrace();

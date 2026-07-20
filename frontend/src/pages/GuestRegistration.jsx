@@ -69,6 +69,59 @@ const GuestRegistration = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Lookup Reservation states
+  const [searchBookingNumber, setSearchBookingNumber] = useState('');
+  const [searchPassportNumber, setSearchPassportNumber] = useState('');
+  const [lookingUpReservation, setLookingUpReservation] = useState(false);
+  const [lookupError, setLookupError] = useState('');
+  const [lookupSuccess, setLookupSuccess] = useState(false);
+
+  const handleLookupReservation = async () => {
+    if (!searchBookingNumber.trim() && !searchPassportNumber.trim()) {
+      setLookupError('Please enter a booking number or passport number to search.');
+      return;
+    }
+    setLookingUpReservation(true);
+    setLookupError('');
+    setLookupSuccess(false);
+
+    try {
+      const url = `${API_BASE}/public/reservations/search?bookingNumber=${encodeURIComponent(searchBookingNumber.trim())}&passportNumber=${encodeURIComponent(searchPassportNumber.trim())}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const booking = data.booking;
+        const reg = data.registration;
+
+        if (booking && reg) {
+          setFormData(prev => ({
+            ...prev,
+            guestName: reg.guestName || '',
+            checkInDate: reg.checkInDate || '',
+            checkOutDate: reg.checkOutDate || '',
+            passportNumber: reg.passportNumber || '',
+            whatsAppNumber: reg.whatsappNumber || '',
+            nationality: reg.nationality || '',
+            adults: reg.adults || 1,
+            children: reg.children || 0,
+            roomType: booking.roomType || '',
+            totalAmount: booking.totalAmount || '',
+          }));
+          setLookupSuccess(true);
+        } else {
+          setLookupError('No reservation found matching the details provided.');
+        }
+      } else {
+        setLookupError('No reservation found matching the details provided.');
+      }
+    } catch (err) {
+      console.error(err);
+      setLookupError('Failed to search reservation. Please try again.');
+    } finally {
+      setLookingUpReservation(false);
+    }
+  };
+
   useEffect(() => {
     if (formData.checkInDate && formData.checkOutDate) {
       const start = new Date(formData.checkInDate);
@@ -567,6 +620,56 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
               {error}
             </div>
           )}
+
+          {/* Reservation Lookup Option */}
+          <div className="bg-emerald-50/40 border border-emerald-100/60 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4.5 w-4.5 text-emerald-700" />
+              <h3 className="font-bold text-slate-800 text-xs">Have a Confirmed Reservation?</h3>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Enter your Booking Number or Passport Number below to retrieve your reservation and auto-fill details.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Booking No (e.g. D-1002)"
+                  value={searchBookingNumber}
+                  onChange={(e) => setSearchBookingNumber(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Or Passport Number"
+                  value={searchPassportNumber}
+                  onChange={(e) => setSearchPassportNumber(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleLookupReservation}
+                disabled={lookingUpReservation}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+              >
+                {lookingUpReservation ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                Find
+              </button>
+            </div>
+            {lookupError && (
+              <p className="text-[10px] text-rose-600 font-bold mt-1 flex items-center gap-1">
+                <AlertCircle size={11} /> {lookupError}
+              </p>
+            )}
+            {lookupSuccess && (
+              <p className="text-[10px] text-emerald-700 font-bold mt-1 flex items-center gap-1">
+                <CheckCircle2 size={11} className="text-emerald-600" /> Details loaded successfully!
+              </p>
+            )}
+          </div>
 
           {/* Form Fields Section */}
           <div className="space-y-4">

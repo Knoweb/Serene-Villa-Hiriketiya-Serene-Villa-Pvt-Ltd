@@ -209,4 +209,34 @@ public class GuestRegistrationService {
         });
         webSocketHandler.broadcast("update");
     }
+
+    public Optional<Map<String, Object>> findReservationForPublicCheckIn(String bookingNumber, String passportNumber) {
+        if (bookingNumber != null && !bookingNumber.trim().isEmpty()) {
+            return bookingRepository.findByBookingNumber(bookingNumber.trim()).flatMap(booking -> {
+                return guestRegistrationRepository.findById(booking.getGuestRegistrationId()).map(reg -> {
+                    return Map.of(
+                        "booking", booking,
+                        "registration", reg
+                    );
+                });
+            });
+        } else if (passportNumber != null && !passportNumber.trim().isEmpty()) {
+            List<GuestRegistration> registrations = guestRegistrationRepository.findAll().stream()
+                .filter(reg -> reg.getPassportNumber() != null && reg.getPassportNumber().equalsIgnoreCase(passportNumber.trim()))
+                .toList();
+            if (!registrations.isEmpty()) {
+                GuestRegistration latestReg = registrations.get(registrations.size() - 1);
+                return bookingRepository.findAll().stream()
+                    .filter(b -> b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(latestReg.getId()))
+                    .findFirst()
+                    .map(booking -> {
+                        return Map.of(
+                            "booking", booking,
+                            "registration", latestReg
+                        );
+                    });
+            }
+        }
+        return Optional.empty();
+    }
 }
