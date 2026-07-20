@@ -164,17 +164,24 @@ const Rooms = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
 
-  const [rooms, setRooms] = useState(() => {
-    const saved = localStorage.getItem('pms_rooms');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const isDemo = parsed.length === 6 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Ocean View');
-      if (!isDemo) {
-        return parsed;
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
+  const [rooms, setRooms] = useState([]);
+
+  const fetchRooms = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/rooms`);
+      if (res.ok) {
+        const data = await res.json();
+        setRooms(data);
       }
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
     }
-    return [];
-  });
+  };
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -222,10 +229,7 @@ const Rooms = () => {
     return () => clearInterval(interval);
   }, [selectedRoom, isModalHovered]);
 
-  // Save to localStorage when rooms state changes
-  useEffect(() => {
-    localStorage.setItem('pms_rooms', JSON.stringify(rooms));
-  }, [rooms]);
+  // Rooms list managed in backend database
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -280,7 +284,7 @@ const Rooms = () => {
     setShowEditModal(true);
   };
 
-  const handleEditRoomSubmit = (e) => {
+  const handleEditRoomSubmit = async (e) => {
     e.preventDefault();
     if (!editRoomNumber || !editingRoom) return;
 
@@ -295,27 +299,33 @@ const Rooms = () => {
       .filter(f => f.length > 0);
     const facilitiesArray = [...editSelectedFacilities, ...customFacilitiesArray];
 
-    setRooms(prev => prev.map(r => {
-      if (r.id === editingRoom.id) {
-        return {
-          ...r,
-          roomNumber: editRoomNumber,
-          roomType: editRoomType,
-          description: editDescription,
-          image: editRoomImages.length > 0 ? editRoomImages[0] : (editRoomType.toLowerCase().includes('suite') ? '/suite.png' : '/deluxe.png'),
-          images: editRoomImages,
-          facilities: facilitiesArray,
-          status: editStatus
-        };
-      }
-      return r;
-    }));
+    const updatedFields = {
+      roomNumber: editRoomNumber,
+      roomType: editRoomType,
+      description: editDescription,
+      image: editRoomImages.length > 0 ? editRoomImages[0] : (editRoomType.toLowerCase().includes('suite') ? '/suite.png' : '/deluxe.png'),
+      images: editRoomImages,
+      facilities: facilitiesArray,
+      status: editStatus
+    };
 
-    setShowEditModal(false);
-    setEditingRoom(null);
+    try {
+      const res = await fetch(`${API_BASE}/rooms/${editingRoom.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedFields)
+      });
+      if (res.ok) {
+        fetchRooms();
+        setShowEditModal(false);
+        setEditingRoom(null);
+      }
+    } catch (err) {
+      console.error('Error updating room:', err);
+    }
   };
 
-  const handleAddRoom = (e) => {
+  const handleAddRoom = async (e) => {
     e.preventDefault();
     if (!roomNumber) return;
 
@@ -332,33 +342,54 @@ const Rooms = () => {
     const facilitiesArray = [...selectedFacilities, ...customFacilitiesArray];
 
     const newRoom = {
-      id: Date.now(),
       roomNumber,
       roomType,
       description,
-      image: roomType.toLowerCase().includes('suite') ? '/suite.png' : '/deluxe.png',
+      image: roomImages.length > 0 ? roomImages[0] : (roomType.toLowerCase().includes('suite') ? '/suite.png' : '/deluxe.png'),
       images: roomImages,
       facilities: facilitiesArray,
       status
     };
 
-    setRooms(prev => [...prev, newRoom]);
-    setShowAddModal(false);
-    
-    // Clear form
-    setRoomNumber('');
-    setRoomType('');
-    setSelectedFacilities(['Air conditioning', 'Free Wifi']);
-    setAdditionalFacilities('');
-    setDescription('');
-    setStatus('Available');
-    setRoomImages([]);
+    try {
+      const res = await fetch(`${API_BASE}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRoom)
+      });
+      if (res.ok) {
+        fetchRooms();
+        setShowAddModal(false);
+        // Clear form
+        setRoomNumber('');
+        setRoomType('');
+        setSelectedFacilities(['Air conditioning', 'Free Wifi']);
+        setAdditionalFacilities('');
+        setDescription('');
+        setStatus('Available');
+        setRoomImages([]);
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to add room');
+      }
+    } catch (err) {
+      console.error('Error adding room:', err);
+    }
   };
 
-  const handleDeleteRoom = (roomId, e) => {
+  const handleDeleteRoom = async (roomId, e) => {
     e.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this room?')) return;
-    setRooms(prev => prev.filter(r => r.id !== roomId));
+    try {
+      const res = await fetch(`${API_BASE}/rooms/${roomId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchRooms();
+      }
+    } catch (err) {
+      console.error('Error deleting room:', err);
+    }
   };
 
   return (

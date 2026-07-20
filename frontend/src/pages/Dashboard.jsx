@@ -34,15 +34,19 @@ const Dashboard = () => {
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
   useEffect(() => {
-    // Load rooms count
-    const savedRooms = localStorage.getItem('pms_rooms');
-    if (savedRooms) {
-      const parsed = JSON.parse(savedRooms);
-      const isDemo = parsed.length === 6 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Ocean View');
-      if (!isDemo) {
-        setRoomsCount(parsed.length);
+    // Load rooms count from database
+    const fetchRoomsCount = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/rooms`);
+        if (res.ok) {
+          const data = await res.json();
+          setRoomsCount(data.length);
+        }
+      } catch (err) {
+        console.error('Error fetching rooms count:', err);
       }
-    }
+    };
+    fetchRoomsCount();
 
     // Load discount requests
     const savedDiscounts = localStorage.getItem('pms_discounts');

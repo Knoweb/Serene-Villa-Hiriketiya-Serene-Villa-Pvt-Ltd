@@ -92,13 +92,14 @@ const Registrations = () => {
 
 
   const [showRoomSelector, setShowRoomSelector] = useState(false);
-  const [rooms, setRooms] = useState(() => {
-    const saved = localStorage.getItem('pms_rooms');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const isDemo = parsed.length === 8 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Room');
-      if (!isDemo) {
-        return parsed.map(r => {
+  const [rooms, setRooms] = useState([]);
+
+  const fetchRooms = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/rooms`);
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map(r => {
           let img = r.image;
           if (r.roomType.toLowerCase().includes('deluxe')) img = deluxeRoomImg;
           else if (r.roomType.toLowerCase().includes('suite')) img = suiteRoomImg;
@@ -106,10 +107,16 @@ const Registrations = () => {
           else if (r.roomType.toLowerCase().includes('budget')) img = budgetRoomImg;
           return { ...r, image: img };
         });
+        setRooms(mapped);
       }
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
     }
-    return [];
-  });
+  };
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
 
   const uniqueRoomTypes = Array.from(new Set(rooms.map(r => r.roomType)));
   const defaultRoomType = uniqueRoomTypes.length > 0 ? uniqueRoomTypes[0] : '';
@@ -214,6 +221,7 @@ const Registrations = () => {
   const fetchRegistrations = async () => {
     setLoading(true);
     setError('');
+    let fetchedBookings = [];
     try {
       // Fetch registrations
       const regRes = await fetch(
@@ -230,6 +238,7 @@ const Registrations = () => {
       if (bookingRes.ok) {
         const bookingData = await bookingRes.json();
         setBookings(bookingData);
+        fetchedBookings = bookingData;
       }
     } catch (err) {
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
@@ -240,6 +249,7 @@ const Registrations = () => {
     } finally {
       setLoading(false);
     }
+    return fetchedBookings;
   };
 
   useEffect(() => {
@@ -456,8 +466,12 @@ const Registrations = () => {
       setSelectedReg(updatedReg);
       setBookingSuccess(true);
       
-      // Refresh list to update status badges
-      await fetchRegistrations();
+      // Refresh list and sync payments history
+      const latestBookings = await fetchRegistrations();
+      const updatedBooking = latestBookings.find(b => b.guestRegistrationId === selectedReg.id);
+      if (updatedBooking) {
+        fetchAdvancePayments(updatedBooking.id);
+      }
     } catch (err) {
       alert(err.message || 'Error updating booking details');
     } finally {

@@ -38,20 +38,26 @@ const GuestRegistration = () => {
     paymentSlip: null,
   });
 
-  // Load rooms from localStorage (same pattern as Registrations.jsx)
-  const [rooms] = useState(() => {
-    const saved = localStorage.getItem('pms_rooms');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Filter out demo rooms (id 101 with specific demo room type)
-      const isDemo = parsed.length === 8 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Room');
-      if (!isDemo) return parsed;
-      // Also check Rooms.jsx demo format
-      const isDemo2 = parsed.length === 6 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Ocean View');
-      if (!isDemo2) return parsed;
-    }
-    return [];
-  });
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
+
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/public/rooms`);
+        if (res.ok) {
+          const data = await res.json();
+          // Filter out demo/empty rooms if any
+          const filtered = data.filter(r => r.id !== 101 || r.roomType !== 'Deluxe Room');
+          setRooms(filtered);
+        }
+      } catch (err) {
+        console.error('Error fetching rooms from server:', err);
+      }
+    };
+    fetchRooms();
+  }, []);
   const uniqueRoomTypes = Array.from(new Set(rooms.map(r => r.roomType)));
 
   const [nights, setNights] = useState(0);
@@ -148,8 +154,6 @@ const GuestRegistration = () => {
         passportFrontPath: passportFrontBase64,
         passportBackPath: passportBackBase64
       };
-
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
       const res = await fetch(`${API_BASE}/public/guest-registrations`, {
         method: 'POST',
