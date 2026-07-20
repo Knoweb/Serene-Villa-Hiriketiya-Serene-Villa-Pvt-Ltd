@@ -45,7 +45,7 @@ const Layout = ({ children }) => {
     <div 
       className="min-h-screen text-slate-800 flex flex-col font-sans"
       style={{
-        backgroundImage: "linear-gradient(rgba(240, 253, 244, 0.93), rgba(240, 253, 244, 0.93)), url('/src/assets/resort_bg.png')",
+        backgroundImage: "linear-gradient(rgba(240, 253, 244, 0.78), rgba(240, 253, 244, 0.78)), url('/src/assets/resort_bg.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
