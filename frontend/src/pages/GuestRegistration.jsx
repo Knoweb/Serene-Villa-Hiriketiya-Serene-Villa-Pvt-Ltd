@@ -143,16 +143,65 @@ const GuestRegistration = () => {
     const { name, files } = e.target;
     if (files && files[0]) {
       const file = files[0];
+      // 5MB limit check (5 * 1024 * 1024 bytes)
+      if (file.size > 5 * 1024 * 1024) {
+        setError(`The uploaded file "${file.name}" exceeds the 5MB size limit. Please upload a smaller file.`);
+        e.target.value = ''; // Reset input
+        return;
+      }
+      setError('');
       setFormData((prev) => ({ ...prev, [name]: file }));
       setPreviews((prev) => ({ ...prev, [name]: URL.createObjectURL(file) }));
     }
   };
 
-  const fileToBase64 = (file) => {
+  const compressImage = (file) => {
     return new Promise((resolve, reject) => {
+      // If it's not an image (e.g. PDF), resolve as standard base64
+      if (!file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+        return;
+      }
+
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Downscale large camera images (max width/height of 1600px)
+          const MAX_SIZE = 1600;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG with 0.70 quality
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.70);
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => reject(err);
+      };
       reader.onerror = (error) => reject(error);
     });
   };
@@ -190,9 +239,9 @@ const GuestRegistration = () => {
     setSubmitting(true);
     
     try {
-      const guestPhotoBase64 = await fileToBase64(formData.guestPhoto);
-      const passportFrontBase64 = await fileToBase64(formData.passportFront);
-      const passportBackBase64 = await fileToBase64(formData.passportBack);
+      const guestPhotoBase64 = await compressImage(formData.guestPhoto);
+      const passportFrontBase64 = await compressImage(formData.passportFront);
+      const passportBackBase64 = await compressImage(formData.passportBack);
 
       const payload = {
         guestName: formData.guestName,
@@ -258,7 +307,7 @@ const GuestRegistration = () => {
       // If payment is selected, save the payment record
       let paymentSaved = false;
       if (createdBooking && formData.paymentType !== 'NONE') {
-        const paymentSlipBase64 = formData.paymentSlip ? await fileToBase64(formData.paymentSlip) : '';
+        const paymentSlipBase64 = formData.paymentSlip ? await compressImage(formData.paymentSlip) : '';
         const payAmt = parseFloat(formData.paymentAmount || 0);
         const totalAmt = parseFloat(formData.totalAmount || 0);
         const isFull = formData.paymentType === 'FULL' || payAmt >= totalAmt;
