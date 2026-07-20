@@ -467,92 +467,287 @@ const Reports = () => {
                 <div className="p-6">
                   {/* Payments Segment */}
                   {(breakdownTab === 'payments' || window.matchMedia('print').matches) && (
-                    <div className="space-y-4 max-w-md print:mb-6">
-                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <CreditCard className="h-4 w-4 text-emerald-600" /> Revenue by Payment Method
-                      </h4>
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Cash:</span>
-                          <span className="text-slate-900 font-bold">{formatLKR(data.cashRevenue)}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center print:mb-6">
+                      <div className="space-y-4 max-w-md">
+                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <CreditCard className="h-4 w-4 text-emerald-600" /> Revenue by Payment Method
+                        </h4>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="flex items-center gap-1.5 text-slate-500">
+                              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                              Cash:
+                            </span>
+                            <span className="text-slate-900 font-bold">{formatLKR(data.cashRevenue)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="flex items-center gap-1.5 text-slate-500">
+                              <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block"></span>
+                              Card:
+                            </span>
+                            <span className="text-slate-900 font-bold">{formatLKR(data.cardRevenue)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="flex items-center gap-1.5 text-slate-500">
+                              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block"></span>
+                              Bank Transfer:
+                            </span>
+                            <span className="text-slate-900 font-bold">{formatLKR(data.bankTransferRevenue)}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Card:</span>
-                          <span className="text-slate-900 font-bold">{formatLKR(data.cardRevenue)}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Bank Transfer:</span>
-                          <span className="text-slate-900 font-bold">{formatLKR(data.bankTransferRevenue)}</span>
-                        </div>
+                      </div>
+
+                      {/* Donut Chart Visual */}
+                      <div className="flex items-center justify-center bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50 max-w-xs mx-auto">
+                        {(() => {
+                          const total = (data.cashRevenue || 0) + (data.cardRevenue || 0) + (data.bankTransferRevenue || 0);
+                          if (total === 0) {
+                            return (
+                              <div className="text-center py-6">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">No Revenue Data</span>
+                              </div>
+                            );
+                          }
+                          const circ = 2 * Math.PI * 30; // 188.5
+                          const pCash = ((data.cashRevenue || 0) / total) * 100;
+                          const pCard = ((data.cardRevenue || 0) / total) * 100;
+                          const pBank = ((data.bankTransferRevenue || 0) / total) * 100;
+
+                          const offsetCash = 0;
+                          const offsetCard = -(pCash / 100) * circ;
+                          const offsetBank = -((pCash + pCard) / 100) * circ;
+
+                          return (
+                            <div className="relative flex items-center justify-center">
+                              <svg width="150" height="150" viewBox="0 0 100 100" className="transform -rotate-90">
+                                <circle cx="50" cy="50" r="30" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
+                                {/* Cash Segment */}
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="30"
+                                  fill="transparent"
+                                  stroke="#10b981"
+                                  strokeWidth="12"
+                                  strokeDasharray={`${(pCash / 100) * circ} ${circ}`}
+                                  strokeDashoffset={offsetCash}
+                                  className="transition-all duration-1000 ease-out"
+                                />
+                                {/* Card Segment */}
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="30"
+                                  fill="transparent"
+                                  stroke="#3b82f6"
+                                  strokeWidth="12"
+                                  strokeDasharray={`${(pCard / 100) * circ} ${circ}`}
+                                  strokeDashoffset={offsetCard}
+                                  className="transition-all duration-1000 ease-out"
+                                />
+                                {/* Bank Transfer Segment */}
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r="30"
+                                  fill="transparent"
+                                  stroke="#f59e0b"
+                                  strokeWidth="12"
+                                  strokeDasharray={`${(pBank / 100) * circ} ${circ}`}
+                                  strokeDashoffset={offsetBank}
+                                  className="transition-all duration-1000 ease-out"
+                                />
+                              </svg>
+                              <div className="absolute text-center">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase block leading-none">Total</span>
+                                <span className="text-xs font-black text-slate-800 font-mono mt-1 block">
+                                  {total >= 1000000 ? `${(total / 1000000).toFixed(1)}M` : total >= 1000 ? `${(total / 1000).toFixed(0)}K` : total}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
 
                   {/* Occupancy Segment */}
                   {(breakdownTab === 'occupancy' || window.matchMedia('print').matches) && (
-                    <div className={`space-y-4 max-w-md print:mb-6 ${breakdownTab !== 'occupancy' ? 'hidden print:block' : ''}`}>
-                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <Users className="h-4 w-4 text-emerald-600" /> Occupancy & Guest Details
-                      </h4>
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Total Check-Ins:</span>
-                          <span className="text-slate-900 font-bold">{data.totalCheckIns}</span>
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 items-center print:mb-6 ${breakdownTab !== 'occupancy' ? 'hidden print:block' : ''}`}>
+                      <div className="space-y-4 max-w-md">
+                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <Users className="h-4 w-4 text-emerald-600" /> Occupancy & Guest Details
+                        </h4>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Total Check-Ins:</span>
+                            <span className="text-slate-900 font-bold">{data.totalCheckIns}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Total Check-Outs:</span>
+                            <span className="text-slate-900 font-bold">{data.totalCheckOuts}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Guests (Adults / Kids):</span>
+                            <span className="text-slate-900 font-bold">{data.totalGuests} ({data.totalAdults} / {data.totalChildren})</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Total Check-Outs:</span>
-                          <span className="text-slate-900 font-bold">{data.totalCheckOuts}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Guests (Adults / Kids):</span>
-                          <span className="text-slate-900 font-bold">{data.totalGuests} ({data.totalAdults} / {data.totalChildren})</span>
-                        </div>
+                      </div>
+
+                      {/* Animated Bars Visual */}
+                      <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100/50 space-y-4 max-w-xs mx-auto w-full">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Distribution Overview</span>
+                        {(() => {
+                          const maxGuests = Math.max(data.totalAdults || 0, data.totalChildren || 0, 1);
+                          const pAdults = ((data.totalAdults || 0) / maxGuests) * 100;
+                          const pChildren = ((data.totalChildren || 0) / maxGuests) * 100;
+                          return (
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                  <span>Adults ({data.totalAdults || 0})</span>
+                                  <span>{Math.round(pAdults)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000" style={{ width: `${pAdults}%` }}></div>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                  <span>Children ({data.totalChildren || 0})</span>
+                                  <span>{Math.round(pChildren)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
+                                  <div className="h-full bg-amber-500 rounded-full transition-all duration-1000" style={{ width: `${pChildren}%` }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
 
                   {/* Channels Segment */}
                   {(breakdownTab === 'channels' || window.matchMedia('print').matches) && (
-                    <div className={`space-y-4 max-w-md print:mb-6 ${breakdownTab !== 'channels' ? 'hidden print:block' : ''}`}>
-                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <Building className="h-4 w-4 text-emerald-600" /> Booking Channels & Sources
-                      </h4>
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Direct Bookings:</span>
-                          <span className="text-slate-900 font-bold">{data.directBookingCount}</span>
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 items-center print:mb-6 ${breakdownTab !== 'channels' ? 'hidden print:block' : ''}`}>
+                      <div className="space-y-4 max-w-md">
+                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <Building className="h-4 w-4 text-emerald-600" /> Booking Channels & Sources
+                        </h4>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Direct Bookings:</span>
+                            <span className="text-slate-900 font-bold">{data.directBookingCount}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Booking.com:</span>
+                            <span className="text-slate-900 font-bold">{data.bookingComCount}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Advance Payments:</span>
+                            <span className="text-emerald-700 font-extrabold">{formatLKR(data.totalAdvancePayments)}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Booking.com:</span>
-                          <span className="text-slate-900 font-bold">{data.bookingComCount}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Advance Payments:</span>
-                          <span className="text-emerald-700 font-extrabold">{formatLKR(data.totalAdvancePayments)}</span>
-                        </div>
+                      </div>
+
+                      {/* Radial Gauge Visual */}
+                      <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100/50 space-y-4 max-w-xs mx-auto w-full">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Channel Split</span>
+                        {(() => {
+                          const totalBookings = (data.directBookingCount || 0) + (data.bookingComCount || 0);
+                          const pDirect = totalBookings > 0 ? ((data.directBookingCount || 0) / totalBookings) * 100 : 0;
+                          const pBookingCom = totalBookings > 0 ? ((data.bookingComCount || 0) / totalBookings) * 100 : 0;
+                          return (
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                  <span>Direct ({data.directBookingCount || 0})</span>
+                                  <span>{Math.round(pDirect)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000" style={{ width: `${pDirect}%` }}></div>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                  <span>Booking.com ({data.bookingComCount || 0})</span>
+                                  <span>{Math.round(pBookingCom)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
+                                  <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: `${pBookingCom}%` }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
 
                   {/* Discounts Segment */}
                   {(breakdownTab === 'discounts' || window.matchMedia('print').matches) && (
-                    <div className={`space-y-4 max-w-md ${breakdownTab !== 'discounts' ? 'hidden print:block' : ''}`}>
-                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <Percent className="h-4 w-4 text-emerald-600" /> Discounts & Outstandings
-                      </h4>
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Approved Total:</span>
-                          <span className="text-rose-600 font-bold">{formatLKR(data.approvedDiscountTotal)}</span>
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 items-center ${breakdownTab !== 'discounts' ? 'hidden print:block' : ''}`}>
+                      <div className="space-y-4 max-w-md">
+                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <Percent className="h-4 w-4 text-emerald-600" /> Discounts & Outstandings
+                        </h4>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Approved Total:</span>
+                            <span className="text-rose-600 font-bold">{formatLKR(data.approvedDiscountTotal)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Pending Requests:</span>
+                            <span className="text-amber-600 font-bold">{data.pendingDiscountRequestCount}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">Remaining Balance:</span>
+                            <span className="text-slate-900 font-bold">{formatLKR(data.totalRemainingBalance)}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Pending Requests:</span>
-                          <span className="text-amber-600 font-bold">{data.pendingDiscountRequestCount}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-500">Remaining Balance:</span>
-                          <span className="text-slate-900 font-bold">{formatLKR(data.totalRemainingBalance)}</span>
-                        </div>
+                      </div>
+
+                      {/* Discounts Chart Visual */}
+                      <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100/50 space-y-4 max-w-xs mx-auto w-full">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Financial Balance Split</span>
+                        {(() => {
+                          const total = (data.approvedDiscountTotal || 0) + (data.totalAdvancePayments || 0) + (data.totalRemainingBalance || 0);
+                          const pDisc = total > 0 ? ((data.approvedDiscountTotal || 0) / total) * 100 : 0;
+                          const pAdv = total > 0 ? ((data.totalAdvancePayments || 0) / total) * 100 : 0;
+                          const pRem = total > 0 ? ((data.totalRemainingBalance || 0) / total) * 100 : 0;
+                          return (
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                  <span>Discounts ({formatLKR(data.approvedDiscountTotal || 0)})</span>
+                                  <span>{Math.round(pDisc)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
+                                  <div className="h-full bg-rose-500 rounded-full transition-all duration-1000" style={{ width: `${pDisc}%` }}></div>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                  <span>Advance Payments ({formatLKR(data.totalAdvancePayments || 0)})</span>
+                                  <span>{Math.round(pAdv)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000" style={{ width: `${pAdv}%` }}></div>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                  <span>Remaining Balance ({formatLKR(data.totalRemainingBalance || 0)})</span>
+                                  <span>{Math.round(pRem)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
+                                  <div className="h-full bg-slate-500 rounded-full transition-all duration-1000" style={{ width: `${pRem}%` }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
