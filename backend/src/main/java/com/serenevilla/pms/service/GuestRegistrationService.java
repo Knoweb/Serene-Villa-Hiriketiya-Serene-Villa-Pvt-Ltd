@@ -35,6 +35,9 @@ public class GuestRegistrationService {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @Autowired
+    private com.serenevilla.pms.repository.RoomRepository roomRepository;
+
     public GuestRegistration createPublicRegistration(GuestRegistration registration) {
         // Calculate nights
         if (registration.getCheckInDate() != null && registration.getCheckOutDate() != null) {
@@ -176,6 +179,22 @@ public class GuestRegistrationService {
             }
 
             bookingRepository.save(booking);
+
+            // Automatic Room Status Release/Update based on Registration Status
+            String regStatus = savedReg.getRegistrationStatus();
+            String allocatedRoomNumber = booking.getRoomNumber();
+            if (allocatedRoomNumber != null && !allocatedRoomNumber.trim().isEmpty()) {
+                roomRepository.findByRoomNumber(allocatedRoomNumber.trim()).ifPresent(room -> {
+                    if ("CheckedOut".equalsIgnoreCase(regStatus) || "Cancelled".equalsIgnoreCase(regStatus)) {
+                        room.setStatus("Available");
+                        roomRepository.save(room);
+                    } else if ("CheckedIn".equalsIgnoreCase(regStatus)) {
+                        room.setStatus("Occupied");
+                        roomRepository.save(room);
+                    }
+                });
+            }
+
             webSocketHandler.broadcast("update");
             return savedReg;
         });
