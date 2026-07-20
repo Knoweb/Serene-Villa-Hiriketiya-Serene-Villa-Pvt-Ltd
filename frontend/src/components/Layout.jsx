@@ -9,7 +9,12 @@ import {
   ChevronDown,
   Instagram,
   Facebook,
-  Mail
+  Mail,
+  Settings,
+  Sliders,
+  X,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 import logoImg from '../assets/logo.jpeg';
 
@@ -18,6 +23,14 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // Custom personalization settings
+  const [bgImage, setBgImage] = useState(() => localStorage.getItem('pms_custom_bg') || '/src/assets/resort_bg.png');
+  const [bgOpacity, setBgOpacity] = useState(() => {
+    const saved = localStorage.getItem('pms_bg_opacity');
+    return saved !== null ? parseFloat(saved) : 0.58;
+  });
 
   if (!user) {
     return <div className="min-h-screen bg-emerald-50/40 flex items-center justify-center text-slate-800">Redirecting...</div>;
@@ -45,7 +58,7 @@ const Layout = ({ children }) => {
     <div 
       className="min-h-screen text-slate-800 flex flex-col font-sans"
       style={{
-        backgroundImage: "linear-gradient(rgba(240, 253, 244, 0.58), rgba(240, 253, 244, 0.58)), url('/src/assets/resort_bg.png')",
+        backgroundImage: `linear-gradient(rgba(240, 253, 244, ${bgOpacity}), rgba(240, 253, 244, ${bgOpacity})), url('${bgImage}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
@@ -141,8 +154,18 @@ const Layout = ({ children }) => {
                     <p className="font-bold text-slate-800 truncate">{user.username}</p>
                   </div>
                   <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      setSettingsOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 font-semibold transition border-b border-slate-50 text-left"
+                  >
+                    <Settings className="h-4 w-4 text-slate-400" />
+                    User Settings
+                  </button>
+                  <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 font-medium transition"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 font-medium transition text-left"
                   >
                     <LogOut className="h-4 w-4" />
                     Sign Out
@@ -198,6 +221,131 @@ const Layout = ({ children }) => {
 
         </div>
       </footer>
+      {/* Settings / Personalization Modal */}
+      {settingsOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in duration-200">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Sliders className="h-5 w-5 text-emerald-600" />
+                <h3 className="font-extrabold text-slate-900 text-base">Personalization Settings</h3>
+              </div>
+              <button 
+                onClick={() => setSettingsOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {/* Background Image Options */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Dashboard Background
+                </label>
+                
+                <div className="grid grid-cols-3 gap-2.5">
+                  {/* Option 1: Default Resort */}
+                  <button
+                    onClick={() => {
+                      setBgImage('/src/assets/resort_bg.png');
+                      localStorage.setItem('pms_custom_bg', '/src/assets/resort_bg.png');
+                    }}
+                    className={`aspect-video rounded-lg overflow-hidden border-2 relative transition cursor-pointer ${
+                      bgImage === '/src/assets/resort_bg.png' ? 'border-emerald-500 ring-2 ring-emerald-500/10 shadow-emerald-100' : 'border-slate-200 hover:border-emerald-200'
+                    }`}
+                  >
+                    <div className="w-full h-full bg-slate-100 relative">
+                      <img src="/src/assets/resort_bg.png" alt="Resort" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/20 flex items-end justify-center p-1">
+                        <span className="text-[8px] text-white font-bold uppercase">Default</span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Option 2: Soft Color (No Image) */}
+                  <button
+                    onClick={() => {
+                      setBgImage('');
+                      localStorage.setItem('pms_custom_bg', '');
+                    }}
+                    className={`aspect-video rounded-lg overflow-hidden border-2 relative transition cursor-pointer ${
+                      bgImage === '' ? 'border-emerald-500 ring-2 ring-emerald-500/10 shadow-emerald-100' : 'border-slate-200 hover:border-emerald-200'
+                    }`}
+                  >
+                    <div className="w-full h-full bg-gradient-to-br from-emerald-55 to-emerald-100/50 flex items-center justify-center relative">
+                      <span className="text-[8px] text-slate-500 font-bold uppercase">None</span>
+                    </div>
+                  </button>
+
+                  {/* Option 3: Custom Upload */}
+                  <div className="relative aspect-video rounded-lg border-2 border-dashed border-slate-300 hover:border-emerald-500 transition flex flex-col items-center justify-center gap-1 cursor-pointer bg-slate-50/50">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const result = event.target.result;
+                            setBgImage(result);
+                            localStorage.setItem('pms_custom_bg', result);
+                          };
+                          reader.readAsDataURL(e.target.files[0]);
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                    <Upload className="h-4 w-4 text-slate-400" />
+                    <span className="text-[8px] text-slate-500 font-bold uppercase text-center leading-tight">Upload</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Opacity / Visibility Slider */}
+              {bgImage && (
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span>Background Image Visibility</span>
+                    <span className="text-emerald-700 font-extrabold">{Math.round((1 - bgOpacity) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="2"
+                    max="80"
+                    value={Math.round((1 - bgOpacity) * 100)}
+                    onChange={(e) => {
+                      const visibilityVal = parseInt(e.target.value);
+                      const computedOpacity = 1 - (visibilityVal / 100);
+                      setBgOpacity(computedOpacity);
+                      localStorage.setItem('pms_bg_opacity', computedOpacity.toString());
+                    }}
+                    className="w-full accent-emerald-600 h-1.5 bg-slate-150 rounded-lg cursor-pointer appearance-none"
+                  />
+                  <div className="flex justify-between text-[8px] text-slate-400 font-bold">
+                    <span>Softer (Faded)</span>
+                    <span>Stronger (Vibrant)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                onClick={() => setSettingsOpen(false)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-5 rounded-xl text-xs transition cursor-pointer shadow-md shadow-emerald-500/10"
+              >
+                Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
