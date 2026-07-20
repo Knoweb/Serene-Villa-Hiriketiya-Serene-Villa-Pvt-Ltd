@@ -31,11 +31,13 @@ public class ReceiptController {
                         newReceipt.setPaymentId(paymentId);
                         newReceipt.setBookingId(payment.getBookingId());
                         newReceipt.setReceiptType("ADVANCE");
-                        newReceipt.setReceiptNumber("REC-ADV-" + paymentId + "-" + System.currentTimeMillis() % 10000);
+                        newReceipt.setReceiptNumber("TEMP-" + paymentId + "-" + System.currentTimeMillis());
                         newReceipt.setGeneratedAt(LocalDateTime.now());
                         newReceipt.setGeneratedBy(payment.getCreatedBy() != null ? payment.getCreatedBy() : "Front Office");
                         
-                        return ResponseEntity.ok(receiptRepository.save(newReceipt));
+                        Receipt saved = receiptRepository.save(newReceipt);
+                        saved.setReceiptNumber(String.format("REC-ADV-%04d", saved.getId()));
+                        return ResponseEntity.ok(receiptRepository.save(saved));
                     }).orElse(ResponseEntity.notFound().build());
                 });
     }
