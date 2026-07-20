@@ -54,8 +54,8 @@ public class GuestRegistrationService {
     }
 
     public Page<GuestRegistration> searchRegistrations(String search, String status, String role, String source, int page, int size) {
-        // Show hidden if admin or accountant
-        boolean showHidden = "ADMIN".equalsIgnoreCase(role) || "ACCOUNTANT".equalsIgnoreCase(role);
+        // Show hidden only if admin
+        boolean showHidden = "ADMIN".equalsIgnoreCase(role);
         
         // Latest registrations first
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
