@@ -92,6 +92,44 @@ const Registrations = () => {
   const [customHost, setCustomHost] = useState(() => window.location.hostname);
 
 
+  // Top Scrollbar Synchronization Refs & State
+  const topScrollRef = React.useRef(null);
+  const tableContainerRef = React.useRef(null);
+  const tableRef = React.useRef(null);
+  const [tableWidth, setTableWidth] = useState(0);
+  const [isScrollable, setIsScrollable] = useState(false);
+
+  const handleTopScroll = () => {
+    if (topScrollRef.current && tableContainerRef.current) {
+      tableContainerRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleTableScroll = () => {
+    if (topScrollRef.current && tableContainerRef.current) {
+      topScrollRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
+    }
+  };
+
+  const checkScrollability = () => {
+    if (tableContainerRef.current && tableRef.current) {
+      const scrollable = tableRef.current.scrollWidth > tableContainerRef.current.clientWidth;
+      setIsScrollable(scrollable);
+      setTableWidth(tableRef.current.scrollWidth);
+    }
+  };
+
+  useEffect(() => {
+    checkScrollability();
+    const timer = setTimeout(checkScrollability, 300);
+    return () => clearTimeout(timer);
+  }, [registrations]);
+
+  useEffect(() => {
+    window.addEventListener('resize', checkScrollability);
+    return () => window.removeEventListener('resize', checkScrollability);
+  }, []);
+
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const [rooms, setRooms] = useState([]);
 
@@ -708,8 +746,24 @@ const Registrations = () => {
 
           {!loading && !error && (
             <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+              {/* Top Scrollbar for Mobile UX */}
+              {isScrollable && (
+                <div 
+                  ref={topScrollRef} 
+                  onScroll={handleTopScroll} 
+                  className="overflow-x-auto overflow-y-hidden border-b border-slate-100 bg-slate-50/40"
+                  style={{ height: '10px' }}
+                >
+                  <div style={{ width: `${tableWidth}px`, height: '1px' }}></div>
+                </div>
+              )}
+
+              <div 
+                ref={tableContainerRef}
+                onScroll={handleTableScroll}
+                className="overflow-x-auto"
+              >
+                <table ref={tableRef} className="w-full text-left border-collapse text-xs whitespace-nowrap">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-450 font-bold uppercase tracking-wider">
                       <th className="p-4">Guest</th>
