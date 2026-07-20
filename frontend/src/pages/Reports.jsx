@@ -137,6 +137,63 @@ const Reports = () => {
     document.body.removeChild(link);
   };
 
+  // Export to Excel (HTML formatted Spreadsheet)
+  const handleExportExcel = () => {
+    if (!data || !data.rows || data.rows.length === 0) return;
+
+    const headers = [
+      'Invoice Number', 'Booking Number', 'Guest Name', 'Passport Number', 
+      'Room', 'Check-In Date', 'Check-Out Date', 'Nights', 'Payment Method', 
+      'Payment Status', 'Currency', 'Exchange Rate', 'Paid Amount', 
+      'Converted Amount (LKR)', 'Invoice Total (LKR)', 'Advance Payment (LKR)', 
+      'Remaining Balance (LKR)', 'Booking Source', 'Discount Amount (LKR)', 'Discount Status'
+    ];
+
+    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="utf-8"/><style>table { border-collapse: collapse; font-family: sans-serif; } th { background-color: #10b981; color: white; font-weight: bold; } th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }</style></head><body>';
+    html += '<h2>Serene Villa Financial Report - ' + reportType + '</h2>';
+    html += '<p>Generated on: ' + new Date().toLocaleString() + '</p>';
+    html += '<table><thead><tr>';
+    headers.forEach(h => { html += `<th>${h}</th>`; });
+    html += '</tr></thead><tbody>';
+
+    data.rows.forEach(row => {
+      html += '<tr>';
+      html += `<td>${row.invoiceNumber || ''}</td>`;
+      html += `<td>${row.bookingNumber || ''}</td>`;
+      html += `<td>${row.guestName || ''}</td>`;
+      html += `<td>${row.passportNumber || ''}</td>`;
+      html += `<td>${row.roomName || ''}</td>`;
+      html += `<td>${row.checkInDate || ''}</td>`;
+      html += `<td>${row.checkOutDate || ''}</td>`;
+      html += `<td>${row.numberOfNights || 0}</td>`;
+      html += `<td>${row.paymentMethod || ''}</td>`;
+      html += `<td>${row.paymentStatus || ''}</td>`;
+      html += `<td>${row.currencyCode || ''}</td>`;
+      html += `<td>${row.exchangeRate || 1}</td>`;
+      html += `<td>${row.paidAmount || 0}</td>`;
+      html += `<td>${row.convertedAmount || 0}</td>`;
+      html += `<td>${row.invoiceTotal || 0}</td>`;
+      html += `<td>${row.advancePaymentAmount || 0}</td>`;
+      html += `<td>${row.remainingBalance || 0}</td>`;
+      html += `<td>${row.bookingSource || ''}</td>`;
+      html += `<td>${row.discountAmount || 0}</td>`;
+      html += `<td>${row.discountStatus || ''}</td>`;
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></body></html>';
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `SereneVilla_Report_${reportType}_${new Date().toISOString().split('T')[0]}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Trigger Print View
   const handlePrint = () => {
     window.print();
@@ -271,10 +328,17 @@ const Reports = () => {
             </button>
             <button 
               onClick={handleExportCSV}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition flex items-center gap-1.5 shadow-md shadow-emerald-500/10"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
               title="Export CSV"
             >
               <FileDown className="h-4 w-4" /> CSV
+            </button>
+            <button 
+              onClick={handleExportExcel}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition flex items-center gap-1.5 shadow-md shadow-emerald-600/10 cursor-pointer"
+              title="Export Excel"
+            >
+              <FileDown className="h-4 w-4" /> Excel
             </button>
           </div>
         </div>
