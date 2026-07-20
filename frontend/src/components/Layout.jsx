@@ -42,7 +42,15 @@ const Layout = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-emerald-50/30 text-slate-800 flex flex-col font-sans">
+    <div 
+      className="min-h-screen text-slate-800 flex flex-col font-sans"
+      style={{
+        backgroundImage: "linear-gradient(rgba(240, 253, 244, 0.93), rgba(240, 253, 244, 0.93)), url('/src/assets/resort_bg.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       {/* Top Navigation Bar */}
       <header className="bg-white border-b border-emerald-100/80 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
