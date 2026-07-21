@@ -471,7 +471,7 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
                 ];
                 props.forEach(p => {
                   const v = computed.getPropertyValue(p);
-                  if (v && v !== 'initial') node.style.setProperty(p, v);
+                  if (v && v !== 'initial' && v !== 'none') node.style.setProperty(p, v);
                 });
               } catch (e) {}
               for (let i = 0; i < node.children.length; i++) {
@@ -494,13 +494,21 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
                   const closeBtn = clonedDoc.querySelector('.no-print-close-btn');
                   if (actionBtns) actionBtns.remove();
                   if (closeBtn) closeBtn.remove();
-                  clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
                 }
               },
               jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
+            const origDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'styleSheets');
+
             try {
+              if (origDescriptor) {
+                Object.defineProperty(Document.prototype, 'styleSheets', {
+                  get: () => [],
+                  configurable: true
+                });
+              }
+
               if (window.html2pdf) {
                 await window.html2pdf().set(opt).from(element).save();
               } else {
@@ -509,6 +517,10 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
             } catch (err) {
               console.error('Direct PDF Download error:', err);
               alert('Failed to download PDF: ' + (err.message || 'Error generating PDF file'));
+            } finally {
+              if (origDescriptor) {
+                Object.defineProperty(Document.prototype, 'styleSheets', origDescriptor);
+              }
             }
           };
 
