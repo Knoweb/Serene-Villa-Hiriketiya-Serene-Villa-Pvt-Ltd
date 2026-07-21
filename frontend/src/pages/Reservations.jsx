@@ -2249,12 +2249,12 @@ Staff: ${receiptData.generatedBy}`;
               {/* Footer Signatures */}
               <div className="flex justify-between items-end mt-8 pt-4 border-t border-slate-100 print:mt-16">
                 <div className="text-center w-48">
-                  <p className="border-b border-slate-300 pb-0.5 font-mono text-slate-400">...................................................</p>
+                  <div className="border-b border-slate-300 w-full mb-2 h-4"></div>
                   <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">Guest Signature</p>
                 </div>
                 
                 <div className="text-center w-48">
-                  <p className="border-b border-slate-300 pb-0.5 font-mono text-slate-400">...................................................</p>
+                  <div className="border-b border-slate-300 w-full mb-2 h-4"></div>
                   <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">Received By</p>
                 </div>
               </div>
