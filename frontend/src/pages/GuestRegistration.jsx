@@ -461,24 +461,22 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
             if (actionBtns) actionBtns.style.display = 'none';
             if (closeBtn) closeBtn.style.display = 'none';
 
-            const restoredRules = [];
-
-            // Temporarily delete CSS rules containing oklch/oklab to prevent html2canvas crash
-            for (let s = 0; s < document.styleSheets.length; s++) {
+            // Monkey-patch CSSRule.prototype.cssText getter during html2canvas execution
+            const origCssTextDesc = Object.getOwnPropertyDescriptor(CSSRule.prototype, 'cssText');
+            if (origCssTextDesc && origCssTextDesc.get) {
               try {
-                const sheet = document.styleSheets[s];
-                const rules = sheet.cssRules || sheet.rules;
-                if (!rules) continue;
-                for (let i = rules.length - 1; i >= 0; i--) {
-                  const rule = rules[i];
-                  if (rule && rule.cssText && (rule.cssText.includes('oklch') || rule.cssText.includes('oklab'))) {
-                    const cssText = rule.cssText;
-                    sheet.deleteRule(i);
-                    restoredRules.push({ sheet, cssText, index: i });
-                  }
-                }
+                Object.defineProperty(CSSRule.prototype, 'cssText', {
+                  get: function() {
+                    const val = origCssTextDesc.get.call(this);
+                    if (val && (val.includes('oklch') || val.includes('oklab'))) {
+                      return val.replace(/oklch\([^)]+\)/g, '#000000').replace(/oklab\([^)]+\)/g, '#000000');
+                    }
+                    return val;
+                  },
+                  configurable: true
+                });
               } catch (e) {
-                // Ignore cross-origin stylesheets
+                console.warn('Could not patch CSSRule.prototype.cssText', e);
               }
             }
 
@@ -523,13 +521,11 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
               if (actionBtns) actionBtns.style.display = '';
               if (closeBtn) closeBtn.style.display = '';
 
-              for (let i = restoredRules.length - 1; i >= 0; i--) {
-                const { sheet, cssText, index } = restoredRules[i];
+              // Restore original CSSRule.prototype.cssText descriptor
+              if (origCssTextDesc) {
                 try {
-                  sheet.insertRule(cssText, index);
-                } catch (e) {
-                  try { sheet.insertRule(cssText, 0); } catch (e2) {}
-                }
+                  Object.defineProperty(CSSRule.prototype, 'cssText', origCssTextDesc);
+                } catch (e) {}
               }
             }
           };
