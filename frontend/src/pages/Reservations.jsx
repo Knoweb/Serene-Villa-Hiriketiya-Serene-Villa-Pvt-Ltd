@@ -2035,6 +2035,32 @@ Staff: ${receiptData.generatedBy}`;
           if (actionBtns) actionBtns.remove();
           if (closeBtn) closeBtn.remove();
 
+          // Copy resolved computed styles inline to bypass html2canvas oklch stylesheet parsing errors
+          const copyStyles = (src, dest) => {
+            if (!src || !dest || src.nodeType !== Node.ELEMENT_NODE) return;
+            const computed = window.getComputedStyle(src);
+            const props = [
+              'color', 'background-color', 'border-color', 'border-top-color', 'border-bottom-color',
+              'border-left-color', 'border-right-color', 'font-size', 'font-weight', 'font-family',
+              'text-transform', 'text-align', 'line-height', 'letter-spacing',
+              'display', 'flex-direction', 'justify-content', 'align-items',
+              'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
+              'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
+              'width', 'height', 'border-width', 'border-style', 'border-radius', 'box-shadow'
+            ];
+            props.forEach(p => {
+              const v = computed.getPropertyValue(p);
+              if (v && v !== 'initial') dest.style.setProperty(p, v);
+            });
+            const sKids = src.children;
+            const dKids = dest.children;
+            for (let i = 0; i < sKids.length; i++) {
+              if (sKids[i] && dKids[i]) copyStyles(sKids[i], dKids[i]);
+            }
+          };
+
+          copyStyles(element, clone);
+
           const container = document.createElement('div');
           container.style.position = 'fixed';
           container.style.left = '-9999px';
@@ -2051,7 +2077,10 @@ Staff: ${receiptData.generatedBy}`;
             html2canvas:  { 
               scale: 2, 
               useCORS: true, 
-              logging: false
+              logging: false,
+              onclone: (clonedDoc) => {
+                clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
+              }
             },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
           };
