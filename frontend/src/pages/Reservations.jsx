@@ -2022,28 +2022,31 @@ Staff: ${receiptData.generatedBy}`;
           printReceiptOnly();
         };
 
-        const handleDownloadPDF = () => {
+        const handleDownloadPDF = async () => {
           const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
           const totalBookingAmt = associatedBooking.totalAmount || 0;
           const remainingBalance = Math.max(0, totalBookingAmt - paidAmt);
 
           const container = document.createElement('div');
           container.style.position = 'fixed';
-          container.style.left = '-9999px';
+          container.style.left = '0px';
           container.style.top = '0px';
-          container.style.width = '700px';
+          container.style.width = '750px';
+          container.style.opacity = '0.01';
+          container.style.pointerEvents = 'none';
+          container.style.zIndex = '-9999';
           container.style.backgroundColor = '#ffffff';
           container.style.color = '#0f172a';
           container.style.fontFamily = 'Helvetica, Arial, sans-serif';
           container.style.fontSize = '12px';
-          container.style.padding = '24px';
+          container.style.padding = '32px';
           container.style.boxSizing = 'border-box';
 
           container.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #065f46; padding-bottom: 12px; margin-bottom: 16px;">
               <div>
-                <div style="font-size: 20px; font-weight: 800; color: #065f46; line-height: 1;">Serene Villa</div>
-                <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">(Pvt) Ltd - Hiriketiya</div>
+                <div style="font-size: 22px; font-weight: 800; color: #065f46; line-height: 1;">Serene Villa</div>
+                <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 3px;">(Pvt) Ltd - Hiriketiya</div>
                 <div style="font-size: 10px; color: #334155; margin-top: 8px; line-height: 1.4;">
                   Pehembiya Road, Hiriketiya, Dickwella.<br/>
                   Email: Serenehiriketiya@gmail.com<br/>
@@ -2051,8 +2054,8 @@ Staff: ${receiptData.generatedBy}`;
                 </div>
               </div>
               <div style="text-align: right;">
-                <div style="font-size: 14px; font-weight: 900; color: ${isFinalPayment ? '#1d4ed8' : '#065f46'}; text-transform: uppercase; margin-bottom: 6px;">${receiptTitle}</div>
-                <div style="display: inline-block; border: 1px solid #065f46; border-radius: 6px; padding: 6px 10px; background-color: #f0fdf4; text-align: left; font-size: 10px;">
+                <div style="font-size: 15px; font-weight: 900; color: ${isFinalPayment ? '#1d4ed8' : '#065f46'}; text-transform: uppercase; margin-bottom: 6px;">${receiptTitle}</div>
+                <div style="display: inline-block; border: 1px solid #065f46; border-radius: 6px; padding: 6px 12px; background-color: #f0fdf4; text-align: left; font-size: 11px;">
                   <div style="margin-bottom: 3px;"><strong>Receipt No:</strong> <span style="font-family: monospace; color: #065f46; font-weight: bold;">${receiptData.receiptNumber || 'N/A'}</span></div>
                   <div><strong>Date:</strong> <span>${new Date(receiptData.generatedAt || Date.now()).toLocaleDateString()}</span></div>
                 </div>
@@ -2060,7 +2063,7 @@ Staff: ${receiptData.generatedBy}`;
             </div>
 
             <!-- Guest & Booking Info Box -->
-            <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; background-color: #f8fafc; display: flex; justify-content: space-between;">
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; background-color: #f8fafc; display: flex; justify-content: space-between;">
               <div>
                 <div style="font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase;">Guest Name</div>
                 <div style="font-size: 12px; font-weight: bold; color: #0f172a;">${selectedReg.guestName || 'N/A'}</div>
@@ -2083,10 +2086,10 @@ Staff: ${receiptData.generatedBy}`;
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11px;">
               <thead>
                 <tr style="background-color: #065f46; color: #ffffff; text-transform: uppercase; font-size: 9px;">
-                  <th style="padding: 6px 8px; text-align: center; width: 40px;">QTY</th>
-                  <th style="padding: 6px 8px; text-align: left;">DESCRIPTION</th>
-                  <th style="padding: 6px 8px; text-align: right; width: 100px;">RATE (LKR)</th>
-                  <th style="padding: 6px 8px; text-align: right; width: 110px;">AMOUNT (LKR)</th>
+                  <th style="padding: 8px; text-align: center; width: 40px;">QTY</th>
+                  <th style="padding: 8px; text-align: left;">DESCRIPTION</th>
+                  <th style="padding: 8px; text-align: right; width: 110px;">RATE (LKR)</th>
+                  <th style="padding: 8px; text-align: right; width: 120px;">AMOUNT (LKR)</th>
                 </tr>
               </thead>
               <tbody>
@@ -2097,37 +2100,37 @@ Staff: ${receiptData.generatedBy}`;
                   <td style="padding: 8px; text-align: right; font-weight: bold;">${totalBookingAmt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 10px;">
-                  <td style="padding: 4px; text-align: center;">-</td>
-                  <td style="padding: 4px;">Room Type: <strong>${associatedBooking.roomType || 'Standard'}</strong></td>
-                  <td style="padding: 4px; text-align: right;">-</td>
-                  <td style="padding: 4px; text-align: right;">-</td>
+                  <td style="padding: 5px; text-align: center;">-</td>
+                  <td style="padding: 5px;">Room Type: <strong>${associatedBooking.roomType || 'Standard'}</strong></td>
+                  <td style="padding: 5px; text-align: right;">-</td>
+                  <td style="padding: 5px; text-align: right;">-</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 10px;">
-                  <td style="padding: 4px; text-align: center;">-</td>
-                  <td style="padding: 4px;">Room Number: <strong>${associatedBooking.roomNumber || 'TBD'}</strong></td>
-                  <td style="padding: 4px; text-align: right;">-</td>
-                  <td style="padding: 4px; text-align: right;">-</td>
+                  <td style="padding: 5px; text-align: center;">-</td>
+                  <td style="padding: 5px;">Room Number: <strong>${associatedBooking.roomNumber || 'TBD'}</strong></td>
+                  <td style="padding: 5px; text-align: right;">-</td>
+                  <td style="padding: 5px; text-align: right;">-</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 10px;">
-                  <td style="padding: 4px; text-align: center;">-</td>
-                  <td style="padding: 4px;">Board Basis: <strong>${associatedBooking.boardBasis || 'Room Only'}</strong></td>
-                  <td style="padding: 4px; text-align: right;">-</td>
-                  <td style="padding: 4px; text-align: right;">-</td>
+                  <td style="padding: 5px; text-align: center;">-</td>
+                  <td style="padding: 5px;">Board Basis: <strong>${associatedBooking.boardBasis || 'Room Only'}</strong></td>
+                  <td style="padding: 5px; text-align: right;">-</td>
+                  <td style="padding: 5px; text-align: right;">-</td>
                 </tr>
                 <tr style="border-bottom: 2px solid #065f46; font-weight: bold;">
-                  <td colspan="3" style="padding: 8px; text-align: right; text-transform: uppercase; font-size: 10px;">Total Value</td>
-                  <td style="padding: 8px; text-align: right; color: #065f46; font-size: 12px;">${totalBookingAmt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td colspan="3" style="padding: 10px 8px; text-align: right; text-transform: uppercase; font-size: 11px;">Total Value</td>
+                  <td style="padding: 10px 8px; text-align: right; color: #065f46; font-size: 13px;">${totalBookingAmt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                 </tr>
               </tbody>
             </table>
 
             <!-- Payment Summary Row -->
             <div style="display: flex; justify-content: space-between; margin-bottom: 24px; gap: 16px;">
-              <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; flex: 1; font-size: 10px;">
+              <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; flex: 1; font-size: 10px;">
                 <div style="font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Payment Reference / Remarks</div>
                 <div>Ref: ${selectedPaymentForReceipt.referenceNumber || selectedPaymentForReceipt.remarks || 'N/A'}</div>
               </div>
-              <div style="border: 1px solid #065f46; border-radius: 6px; padding: 10px; width: 240px; background-color: #f0fdf4; font-size: 11px;">
+              <div style="border: 1px solid #065f46; border-radius: 6px; padding: 12px; width: 260px; background-color: #f0fdf4; font-size: 11px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                   <span style="color: #475569;">Total Booking Amount:</span>
                   <strong>LKR ${totalBookingAmt.toLocaleString()}</strong>
@@ -2144,33 +2147,25 @@ Staff: ${receiptData.generatedBy}`;
             </div>
 
             <!-- Signatures -->
-            <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 16px;">
-              <div style="text-align: center; width: 180px;">
-                <div style="border-bottom: 1px solid #94a3b8; width: 100%; margin-bottom: 4px; height: 1px;"></div>
-                <div style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Guest Signature</div>
+            <div style="display: flex; justify-content: space-between; margin-top: 48px; padding-top: 16px;">
+              <div style="text-align: center; width: 200px;">
+                <div style="border-bottom: 1px solid #94a3b8; width: 100%; margin-bottom: 6px; height: 1px;"></div>
+                <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Guest Signature</div>
               </div>
-              <div style="text-align: center; width: 180px;">
-                <div style="border-bottom: 1px solid #94a3b8; width: 100%; margin-bottom: 4px; height: 1px;"></div>
-                <div style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Received By</div>
+              <div style="text-align: center; width: 200px;">
+                <div style="border-bottom: 1px solid #94a3b8; width: 100%; margin-bottom: 6px; height: 1px;"></div>
+                <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Received By</div>
               </div>
             </div>
 
             <!-- Footer Metadata -->
-            <div style="display: flex; justify-content: space-between; font-size: 8px; color: #94a3b8; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+            <div style="display: flex; justify-content: space-between; font-size: 8px; color: #94a3b8; margin-top: 28px; border-top: 1px solid #f1f5f9; padding-top: 6px;">
               <span>Printed: ${new Date().toLocaleString()}</span>
               <span>Staff: ${receiptData.generatedBy || 'Front Office'}</span>
             </div>
           `;
 
           document.body.appendChild(container);
-
-          const opt = {
-            margin:       0.3,
-            filename:     `Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-          };
 
           const disabledStyles = [];
           document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
@@ -2180,24 +2175,48 @@ Staff: ${receiptData.generatedBy}`;
             }
           });
 
-          const restoreStyles = () => {
+          try {
+            const html2canvas = window.html2canvas;
+            const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
+
+            if (html2canvas && jsPDF) {
+              const canvas = await html2canvas(container, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+              });
+
+              const imgData = canvas.toDataURL('image/jpeg', 0.98);
+              const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'in',
+                format: 'letter'
+              });
+
+              const pdfWidth = pdf.internal.pageSize.getWidth();
+              const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+              pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+              pdf.save(`Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`);
+            } else if (window.html2pdf) {
+              await window.html2pdf().set({
+                margin: 0.3,
+                filename: `Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+              }).from(container).save();
+            } else {
+              alert('PDF generator library is loading. Please try again.');
+            }
+          } catch (err) {
+            console.error('PDF Download error:', err);
+            alert('Failed to download PDF: ' + (err ? (err.message || err.toString()) : 'Unknown error'));
+          } finally {
             disabledStyles.forEach(el => { el.disabled = false; });
             if (document.body.contains(container)) {
               document.body.removeChild(container);
             }
-          };
-
-          if (window.html2pdf) {
-            window.html2pdf().set(opt).from(container).save().then(() => {
-              restoreStyles();
-            }).catch(err => {
-              console.error('PDF Download error:', err);
-              restoreStyles();
-              alert('Could not download PDF. Please try again.');
-            });
-          } else {
-            alert('PDF generator is initializing. Please try again.');
-            restoreStyles();
           }
         };
 
