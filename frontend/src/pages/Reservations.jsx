@@ -2022,99 +2022,167 @@ Staff: ${receiptData.generatedBy}`;
           printReceiptOnly();
         };
 
-        const handleDownloadPDF = async () => {
-          const element = document.getElementById('printable-receipt-modal');
-          if (!element) return;
+        const handleDownloadPDF = () => {
+          const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
+          const totalBookingAmt = associatedBooking.totalAmount || 0;
+          const remainingBalance = Math.max(0, totalBookingAmt - paidAmt);
 
-          const canvasCtx = document.createElement('canvas').getContext('2d');
+          const container = document.createElement('div');
+          container.style.position = 'fixed';
+          container.style.left = '-9999px';
+          container.style.top = '0px';
+          container.style.width = '700px';
+          container.style.backgroundColor = '#ffffff';
+          container.style.color = '#0f172a';
+          container.style.fontFamily = 'Helvetica, Arial, sans-serif';
+          container.style.fontSize = '12px';
+          container.style.padding = '24px';
+          container.style.boxSizing = 'border-box';
 
-          const sanitizeCssValue = (str) => {
-            if (!str || (!str.includes('oklch') && !str.includes('oklab'))) return str;
-            return str.replace(/(oklch|oklab)\([^)]+\)/g, (match) => {
-              try {
-                canvasCtx.fillStyle = match;
-                return canvasCtx.fillStyle || '#000000';
-              } catch (e) {
-                return '#000000';
-              }
-            });
-          };
+          container.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #065f46; padding-bottom: 12px; margin-bottom: 16px;">
+              <div>
+                <div style="font-size: 20px; font-weight: 800; color: #065f46; line-height: 1;">Serene Villa</div>
+                <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">(Pvt) Ltd - Hiriketiya</div>
+                <div style="font-size: 10px; color: #334155; margin-top: 8px; line-height: 1.4;">
+                  Pehembiya Road, Hiriketiya, Dickwella.<br/>
+                  Email: Serenehiriketiya@gmail.com<br/>
+                  Hotline: +94 41 225 5204 / +94 70 499 8787
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 14px; font-weight: 900; color: ${isFinalPayment ? '#1d4ed8' : '#065f46'}; text-transform: uppercase; margin-bottom: 6px;">${receiptTitle}</div>
+                <div style="display: inline-block; border: 1px solid #065f46; border-radius: 6px; padding: 6px 10px; background-color: #f0fdf4; text-align: left; font-size: 10px;">
+                  <div style="margin-bottom: 3px;"><strong>Receipt No:</strong> <span style="font-family: monospace; color: #065f46; font-weight: bold;">${receiptData.receiptNumber || 'N/A'}</span></div>
+                  <div><strong>Date:</strong> <span>${new Date(receiptData.generatedAt || Date.now()).toLocaleDateString()}</span></div>
+                </div>
+              </div>
+            </div>
 
-          // Inline computed RGB styles to preserve layout when stylesheets are stripped in onclone
-          const copyStyles = (node) => {
-            if (!node || node.nodeType !== Node.ELEMENT_NODE) return;
-            try {
-              const computed = window.getComputedStyle(node);
-              const props = [
-                'color', 'background-color', 'border-color', 'border-top-color', 'border-bottom-color',
-                'border-left-color', 'border-right-color', 'font-size', 'font-weight', 'font-family',
-                'text-transform', 'text-align', 'line-height', 'letter-spacing',
-                'display', 'flex-direction', 'justify-content', 'align-items',
-                'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
-                'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
-                'width', 'height', 'border-width', 'border-style', 'border-radius', 'box-shadow'
-              ];
-              props.forEach(p => {
-                const v = computed.getPropertyValue(p);
-                if (v && v !== 'initial' && v !== 'none') {
-                  node.style.setProperty(p, sanitizeCssValue(v));
-                }
-              });
-            } catch (e) {}
-            for (let i = 0; i < node.children.length; i++) {
-              copyStyles(node.children[i]);
-            }
-          };
+            <!-- Guest & Booking Info Box -->
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; background-color: #f8fafc; display: flex; justify-content: space-between;">
+              <div>
+                <div style="font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase;">Guest Name</div>
+                <div style="font-size: 12px; font-weight: bold; color: #0f172a;">${selectedReg.guestName || 'N/A'}</div>
+              </div>
+              <div>
+                <div style="font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase;">Booking Number</div>
+                <div style="font-size: 12px; font-weight: bold; color: #0f172a;">${associatedBooking.bookingNumber || 'N/A'}</div>
+              </div>
+              <div>
+                <div style="font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase;">Check-In / Check-Out</div>
+                <div style="font-size: 11px; font-weight: bold; color: #0f172a;">${selectedReg.checkInDate || ''} to ${selectedReg.checkOutDate || ''}</div>
+              </div>
+              <div>
+                <div style="font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase;">Duration</div>
+                <div style="font-size: 11px; font-weight: bold; color: #0f172a;">${selectedReg.numberOfNights || selectedReg.nights || 1} Nights</div>
+              </div>
+            </div>
 
-          copyStyles(element);
+            <!-- Details Table -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11px;">
+              <thead>
+                <tr style="background-color: #065f46; color: #ffffff; text-transform: uppercase; font-size: 9px;">
+                  <th style="padding: 6px 8px; text-align: center; width: 40px;">QTY</th>
+                  <th style="padding: 6px 8px; text-align: left;">DESCRIPTION</th>
+                  <th style="padding: 6px 8px; text-align: right; width: 100px;">RATE (LKR)</th>
+                  <th style="padding: 6px 8px; text-align: right; width: 110px;">AMOUNT (LKR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 8px; text-align: center;">${selectedReg.numberOfNights || selectedReg.nights || 1}</td>
+                  <td style="padding: 8px;">Accommodation (${selectedReg.checkInDate} - ${selectedReg.checkOutDate})</td>
+                  <td style="padding: 8px; text-align: right;">${(totalBookingAmt / (selectedReg.numberOfNights || selectedReg.nights || 1)).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td style="padding: 8px; text-align: right; font-weight: bold;">${totalBookingAmt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 10px;">
+                  <td style="padding: 4px; text-align: center;">-</td>
+                  <td style="padding: 4px;">Room Type: <strong>${associatedBooking.roomType || 'Standard'}</strong></td>
+                  <td style="padding: 4px; text-align: right;">-</td>
+                  <td style="padding: 4px; text-align: right;">-</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 10px;">
+                  <td style="padding: 4px; text-align: center;">-</td>
+                  <td style="padding: 4px;">Room Number: <strong>${associatedBooking.roomNumber || 'TBD'}</strong></td>
+                  <td style="padding: 4px; text-align: right;">-</td>
+                  <td style="padding: 4px; text-align: right;">-</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 10px;">
+                  <td style="padding: 4px; text-align: center;">-</td>
+                  <td style="padding: 4px;">Board Basis: <strong>${associatedBooking.boardBasis || 'Room Only'}</strong></td>
+                  <td style="padding: 4px; text-align: right;">-</td>
+                  <td style="padding: 4px; text-align: right;">-</td>
+                </tr>
+                <tr style="border-bottom: 2px solid #065f46; font-weight: bold;">
+                  <td colspan="3" style="padding: 8px; text-align: right; text-transform: uppercase; font-size: 10px;">Total Value</td>
+                  <td style="padding: 8px; text-align: right; color: #065f46; font-size: 12px;">${totalBookingAmt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Payment Summary Row -->
+            <div style="display: flex; justify-content: space-between; margin-bottom: 24px; gap: 16px;">
+              <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; flex: 1; font-size: 10px;">
+                <div style="font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Payment Reference / Remarks</div>
+                <div>Ref: ${selectedPaymentForReceipt.referenceNumber || selectedPaymentForReceipt.remarks || 'N/A'}</div>
+              </div>
+              <div style="border: 1px solid #065f46; border-radius: 6px; padding: 10px; width: 240px; background-color: #f0fdf4; font-size: 11px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span style="color: #475569;">Total Booking Amount:</span>
+                  <strong>LKR ${totalBookingAmt.toLocaleString()}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">
+                  <span style="color: #475569;">This Payment:</span>
+                  <strong style="color: #065f46;">${paidAmt.toLocaleString()} LKR</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: #065f46;">
+                  <span>Remaining Balance:</span>
+                  <span>LKR ${remainingBalance.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Signatures -->
+            <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 16px;">
+              <div style="text-align: center; width: 180px;">
+                <div style="border-bottom: 1px solid #94a3b8; width: 100%; margin-bottom: 4px; height: 1px;"></div>
+                <div style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Guest Signature</div>
+              </div>
+              <div style="text-align: center; width: 180px;">
+                <div style="border-bottom: 1px solid #94a3b8; width: 100%; margin-bottom: 4px; height: 1px;"></div>
+                <div style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Received By</div>
+              </div>
+            </div>
+
+            <!-- Footer Metadata -->
+            <div style="display: flex; justify-content: space-between; font-size: 8px; color: #94a3b8; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+              <span>Printed: ${new Date().toLocaleString()}</span>
+              <span>Staff: ${receiptData.generatedBy || 'Front Office'}</span>
+            </div>
+          `;
+
+          document.body.appendChild(container);
 
           const opt = {
-            margin:       0.2,
+            margin:       0.3,
             filename:     `Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-              scale: 2, 
-              useCORS: true, 
-              logging: false,
-              onclone: (clonedDoc) => {
-                const actionBtns = clonedDoc.querySelector('.no-print-action-bar');
-                const closeBtn = clonedDoc.querySelector('.no-print-close-btn');
-                if (actionBtns) actionBtns.remove();
-                if (closeBtn) closeBtn.remove();
-
-                clonedDoc.querySelectorAll('*').forEach(el => {
-                  const styleAttr = el.getAttribute('style');
-                  if (styleAttr && (styleAttr.includes('oklch') || styleAttr.includes('oklab'))) {
-                    el.setAttribute('style', sanitizeCssValue(styleAttr));
-                  }
-                });
-              }
-            },
+            html2canvas:  { scale: 2, useCORS: true, logging: false },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
           };
 
-          const origDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'styleSheets');
-
-          try {
-            if (origDescriptor) {
-              Object.defineProperty(Document.prototype, 'styleSheets', {
-                get: () => [],
-                configurable: true
-              });
-            }
-
-            if (window.html2pdf) {
-              await window.html2pdf().set(opt).from(element).save();
-            } else {
-              alert('PDF generator is initializing. Please try clicking Download again.');
-            }
-          } catch (err) {
-            console.error('Direct PDF Download error:', err);
-            alert('Failed to download PDF: ' + (err.message || 'Error generating PDF file'));
-          } finally {
-            if (origDescriptor) {
-              Object.defineProperty(Document.prototype, 'styleSheets', origDescriptor);
-            }
+          if (window.html2pdf) {
+            window.html2pdf().set(opt).from(container).save().then(() => {
+              if (document.body.contains(container)) document.body.removeChild(container);
+            }).catch(err => {
+              console.error('PDF Download error:', err);
+              if (document.body.contains(container)) document.body.removeChild(container);
+              alert('Could not download PDF. Please try again.');
+            });
+          } else {
+            alert('PDF generator is initializing. Please try again.');
+            if (document.body.contains(container)) document.body.removeChild(container);
           }
         };
 
