@@ -453,54 +453,36 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
 
           const handleDownloadPDF = async () => {
             const element = document.getElementById('printable-receipt-modal');
-            if (!element) {
-              window.print();
-              return;
-            }
+            if (!element) return;
 
-            const clone = element.cloneNode(true);
-            const actionBtns = clone.querySelector('.no-print-action-bar');
-            const closeBtn = clone.querySelector('.no-print-close-btn');
-            if (actionBtns) actionBtns.remove();
-            if (closeBtn) closeBtn.remove();
-
-            // Copy resolved computed styles inline to bypass html2canvas oklch stylesheet parsing errors
-            const copyStyles = (src, dest) => {
-              if (!src || !dest || src.nodeType !== Node.ELEMENT_NODE) return;
-              const computed = window.getComputedStyle(src);
-              const props = [
-                'color', 'background-color', 'border-color', 'border-top-color', 'border-bottom-color',
-                'border-left-color', 'border-right-color', 'font-size', 'font-weight', 'font-family',
-                'text-transform', 'text-align', 'line-height', 'letter-spacing',
-                'display', 'flex-direction', 'justify-content', 'align-items',
-                'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
-                'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
-                'width', 'height', 'border-width', 'border-style', 'border-radius', 'box-shadow'
-              ];
-              props.forEach(p => {
-                const v = computed.getPropertyValue(p);
-                if (v && v !== 'initial') dest.style.setProperty(p, v);
-              });
-              const sKids = src.children;
-              const dKids = dest.children;
-              for (let i = 0; i < sKids.length; i++) {
-                if (sKids[i] && dKids[i]) copyStyles(sKids[i], dKids[i]);
+            // Inline computed RGB styles to preserve layout when stylesheets are stripped in onclone
+            const copyStyles = (node) => {
+              if (!node || node.nodeType !== Node.ELEMENT_NODE) return;
+              try {
+                const computed = window.getComputedStyle(node);
+                const props = [
+                  'color', 'background-color', 'border-color', 'border-top-color', 'border-bottom-color',
+                  'border-left-color', 'border-right-color', 'font-size', 'font-weight', 'font-family',
+                  'text-transform', 'text-align', 'line-height', 'letter-spacing',
+                  'display', 'flex-direction', 'justify-content', 'align-items',
+                  'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
+                  'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
+                  'width', 'height', 'border-width', 'border-style', 'border-radius', 'box-shadow'
+                ];
+                props.forEach(p => {
+                  const v = computed.getPropertyValue(p);
+                  if (v && v !== 'initial') node.style.setProperty(p, v);
+                });
+              } catch (e) {}
+              for (let i = 0; i < node.children.length; i++) {
+                copyStyles(node.children[i]);
               }
             };
 
-            copyStyles(element, clone);
-
-            const container = document.createElement('div');
-            container.style.position = 'fixed';
-            container.style.left = '-9999px';
-            container.style.top = '0px';
-            container.style.width = '650px';
-            container.style.background = '#ffffff';
-            container.appendChild(clone);
-            document.body.appendChild(container);
+            copyStyles(element);
 
             const opt = {
-              margin:       0.3,
+              margin:       0.2,
               filename:     `Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`,
               image:        { type: 'jpeg', quality: 0.98 },
               html2canvas:  { 
@@ -508,6 +490,10 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
                 useCORS: true, 
                 logging: false,
                 onclone: (clonedDoc) => {
+                  const actionBtns = clonedDoc.querySelector('.no-print-action-bar');
+                  const closeBtn = clonedDoc.querySelector('.no-print-close-btn');
+                  if (actionBtns) actionBtns.remove();
+                  if (closeBtn) closeBtn.remove();
                   clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
                 }
               },
@@ -516,17 +502,13 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
 
             try {
               if (window.html2pdf) {
-                await window.html2pdf().set(opt).from(clone).save();
+                await window.html2pdf().set(opt).from(element).save();
               } else {
-                window.print();
+                alert('PDF generator is initializing. Please try clicking Download again.');
               }
             } catch (err) {
-              console.error('PDF Download failed, falling back to print:', err);
-              window.print();
-            } finally {
-              if (document.body && document.body.contains(container)) {
-                document.body.removeChild(container);
-              }
+              console.error('Direct PDF Download error:', err);
+              alert('Failed to download PDF: ' + (err.message || 'Error generating PDF file'));
             }
           };
 
