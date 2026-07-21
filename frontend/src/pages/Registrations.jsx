@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toPng } from 'html-to-image';
 import logoImg from '../assets/logo.jpeg';
 import deluxeRoomImg from '../assets/deluxe_room.png';
 import suiteRoomImg from '../assets/suite_room.png';
@@ -1831,38 +1832,11 @@ Staff: ${receiptData.generatedBy}`;
           if (actionBtns) actionBtns.style.display = 'none';
           if (closeBtn) closeBtn.style.display = 'none';
 
-          // Monkey-patch CSSRule.prototype.cssText getter during html2canvas execution
-          const origCssTextDesc = Object.getOwnPropertyDescriptor(CSSRule.prototype, 'cssText');
-          if (origCssTextDesc && origCssTextDesc.get) {
-            try {
-              Object.defineProperty(CSSRule.prototype, 'cssText', {
-                get: function() {
-                  const val = origCssTextDesc.get.call(this);
-                  if (val && (val.includes('oklch') || val.includes('oklab'))) {
-                    return val.replace(/oklch\([^)]+\)/g, '#000000').replace(/oklab\([^)]+\)/g, '#000000');
-                  }
-                  return val;
-                },
-                configurable: true
-              });
-            } catch (e) {
-              console.warn('Could not patch CSSRule.prototype.cssText', e);
-            }
-          }
-
           try {
-            const html2canvas = window.html2canvas;
             const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
+            const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff' });
 
-            if (html2canvas && jsPDF) {
-              const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-              });
-
-              const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            if (jsPDF) {
               const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'in',
@@ -1870,19 +1844,14 @@ Staff: ${receiptData.generatedBy}`;
               });
 
               const pdfWidth = pdf.internal.pageSize.getWidth();
-              const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-              pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+              const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
+              pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
               pdf.save(`Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`);
-            } else if (window.html2pdf) {
-              await window.html2pdf().set({
-                margin: 0.2,
-                filename: `Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-              }).from(element).save();
             } else {
-              alert('PDF generator library is loading. Please try again.');
+              const link = document.createElement('a');
+              link.download = `Receipt_${receiptData.receiptNumber || 'Invoice'}.png`;
+              link.href = dataUrl;
+              link.click();
             }
           } catch (err) {
             console.error('PDF Download error:', err);
@@ -1890,13 +1859,6 @@ Staff: ${receiptData.generatedBy}`;
           } finally {
             if (actionBtns) actionBtns.style.display = '';
             if (closeBtn) closeBtn.style.display = '';
-
-            // Restore original CSSRule.prototype.cssText descriptor
-            if (origCssTextDesc) {
-              try {
-                Object.defineProperty(CSSRule.prototype, 'cssText', origCssTextDesc);
-              } catch (e) {}
-            }
           }
         };
 
