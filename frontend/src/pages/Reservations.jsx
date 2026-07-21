@@ -2022,19 +2022,27 @@ Staff: ${receiptData.generatedBy}`;
           printReceiptOnly();
         };
 
-        const handleDownloadPDF = () => {
+        const handleDownloadPDF = async () => {
           const element = document.getElementById('printable-receipt-modal');
-          if (!element) return;
+          if (!element) {
+            window.print();
+            return;
+          }
 
-          const actionBtns = element.querySelector('.no-print-action-bar');
-          const closeBtn = element.querySelector('.no-print-close-btn');
-          if (actionBtns) actionBtns.style.display = 'none';
-          if (closeBtn) closeBtn.style.display = 'none';
+          const clone = element.cloneNode(true);
+          const actionBtns = clone.querySelector('.no-print-action-bar');
+          const closeBtn = clone.querySelector('.no-print-close-btn');
+          if (actionBtns) actionBtns.remove();
+          if (closeBtn) closeBtn.remove();
 
-          Object.defineProperty(document, 'styleSheets', {
-            value: [],
-            configurable: true
-          });
+          const container = document.createElement('div');
+          container.style.position = 'fixed';
+          container.style.left = '-9999px';
+          container.style.top = '0px';
+          container.style.width = '650px';
+          container.style.background = '#ffffff';
+          container.appendChild(clone);
+          document.body.appendChild(container);
 
           const opt = {
             margin:       0.3,
@@ -2043,30 +2051,24 @@ Staff: ${receiptData.generatedBy}`;
             html2canvas:  { 
               scale: 2, 
               useCORS: true, 
-              logging: false,
-              onclone: (clonedDoc) => {
-                clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
-              }
+              logging: false
             },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
           };
 
-          if (window.html2pdf) {
-            window.html2pdf().set(opt).from(element).save().then(() => {
-              delete document.styleSheets;
-              if (actionBtns) actionBtns.style.display = 'flex';
-              if (closeBtn) closeBtn.style.display = 'block';
-            }).catch(err => {
-              console.error(err);
-              delete document.styleSheets;
-              if (actionBtns) actionBtns.style.display = 'flex';
-              if (closeBtn) closeBtn.style.display = 'block';
-            });
-          } else {
-            delete document.styleSheets;
-            if (actionBtns) actionBtns.style.display = 'flex';
-            if (closeBtn) closeBtn.style.display = 'block';
+          try {
+            if (window.html2pdf) {
+              await window.html2pdf().set(opt).from(clone).save();
+            } else {
+              window.print();
+            }
+          } catch (err) {
+            console.error('PDF Download failed, falling back to print:', err);
             window.print();
+          } finally {
+            if (document.body && document.body.contains(container)) {
+              document.body.removeChild(container);
+            }
           }
         };
 
