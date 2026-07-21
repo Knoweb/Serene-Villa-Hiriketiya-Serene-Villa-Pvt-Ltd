@@ -463,19 +463,35 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
             if (closeBtn) closeBtn.style.display = 'none';
 
             try {
+              const dataUrl = await toPng(element, {
+                cacheBust: true,
+                pixelRatio: 2,
+                backgroundColor: '#ffffff',
+                width: element.offsetWidth,
+                height: element.offsetHeight,
+                style: {
+                  margin: '0',
+                  transform: 'none'
+                }
+              });
+
               const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
-              const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff' });
 
               if (jsPDF) {
                 const pdf = new jsPDF({
                   orientation: 'portrait',
-                  unit: 'in',
-                  format: 'letter'
+                  unit: 'pt',
+                  format: 'a4'
                 });
 
                 const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
-                pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                const margin = 20;
+                const imgWidth = pdfWidth - (margin * 2);
+                const imgHeight = (element.offsetHeight * imgWidth) / element.offsetWidth;
+                const xPos = margin;
+                const yPos = margin;
+
+                pdf.addImage(dataUrl, 'PNG', xPos, yPos, imgWidth, imgHeight);
                 pdf.save(`Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`);
               } else {
                 const link = document.createElement('a');
