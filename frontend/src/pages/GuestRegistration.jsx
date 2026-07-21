@@ -601,17 +601,32 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
               jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
+            const disabledStyles = [];
+            document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+              if (!el.disabled) {
+                el.disabled = true;
+                disabledStyles.push(el);
+              }
+            });
+
+            const restoreStyles = () => {
+              disabledStyles.forEach(el => { el.disabled = false; });
+              if (document.body.contains(container)) {
+                document.body.removeChild(container);
+              }
+            };
+
             if (window.html2pdf) {
               window.html2pdf().set(opt).from(container).save().then(() => {
-                if (document.body.contains(container)) document.body.removeChild(container);
+                restoreStyles();
               }).catch(err => {
                 console.error('PDF Download error:', err);
-                if (document.body.contains(container)) document.body.removeChild(container);
+                restoreStyles();
                 alert('Could not download PDF. Please try again.');
               });
             } else {
               alert('PDF generator is initializing. Please try again.');
-              if (document.body.contains(container)) document.body.removeChild(container);
+              restoreStyles();
             }
           };
 
