@@ -1966,12 +1966,12 @@ Staff: ${receiptData.generatedBy}`;
 
           document.body.appendChild(container);
 
-          const disabledStyles = [];
+          const detachedStyles = [];
           document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
-            if (!el.disabled) {
-              el.disabled = true;
-              disabledStyles.push(el);
-            }
+            const parent = el.parentNode;
+            const nextSib = el.nextSibling;
+            detachedStyles.push({ el, parent, nextSib });
+            el.remove();
           });
 
           try {
@@ -2012,7 +2012,12 @@ Staff: ${receiptData.generatedBy}`;
             console.error('PDF Download error:', err);
             alert('Failed to download PDF: ' + (err ? (err.message || err.toString()) : 'Unknown error'));
           } finally {
-            disabledStyles.forEach(el => { el.disabled = false; });
+            detachedStyles.forEach(({ el, parent, nextSib }) => {
+              if (parent) {
+                if (nextSib) parent.insertBefore(el, nextSib);
+                else parent.appendChild(el);
+              }
+            });
             if (document.body.contains(container)) {
               document.body.removeChild(container);
             }
