@@ -455,6 +455,20 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
             const element = document.getElementById('printable-receipt-modal');
             if (!element) return;
 
+            const canvasCtx = document.createElement('canvas').getContext('2d');
+
+            const sanitizeCssValue = (str) => {
+              if (!str || (!str.includes('oklch') && !str.includes('oklab'))) return str;
+              return str.replace(/(oklch|oklab)\([^)]+\)/g, (match) => {
+                try {
+                  canvasCtx.fillStyle = match;
+                  return canvasCtx.fillStyle || '#000000';
+                } catch (e) {
+                  return '#000000';
+                }
+              });
+            };
+
             // Inline computed RGB styles to preserve layout when stylesheets are stripped in onclone
             const copyStyles = (node) => {
               if (!node || node.nodeType !== Node.ELEMENT_NODE) return;
@@ -471,7 +485,9 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
                 ];
                 props.forEach(p => {
                   const v = computed.getPropertyValue(p);
-                  if (v && v !== 'initial' && v !== 'none') node.style.setProperty(p, v);
+                  if (v && v !== 'initial' && v !== 'none') {
+                    node.style.setProperty(p, sanitizeCssValue(v));
+                  }
                 });
               } catch (e) {}
               for (let i = 0; i < node.children.length; i++) {
@@ -494,6 +510,13 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
                   const closeBtn = clonedDoc.querySelector('.no-print-close-btn');
                   if (actionBtns) actionBtns.remove();
                   if (closeBtn) closeBtn.remove();
+
+                  clonedDoc.querySelectorAll('*').forEach(el => {
+                    const styleAttr = el.getAttribute('style');
+                    if (styleAttr && (styleAttr.includes('oklch') || styleAttr.includes('oklab'))) {
+                      el.setAttribute('style', sanitizeCssValue(styleAttr));
+                    }
+                  });
                 }
               },
               jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
