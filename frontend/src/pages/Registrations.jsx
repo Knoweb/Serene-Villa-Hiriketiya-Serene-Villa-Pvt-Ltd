@@ -1821,6 +1821,54 @@ Staff: ${receiptData.generatedBy}`;
           printReceiptOnly();
         };
 
+        const handleDownloadPDF = () => {
+          const element = document.getElementById('printable-receipt-modal');
+          if (!element) return;
+
+          const actionBtns = element.querySelector('.no-print-action-bar');
+          const closeBtn = element.querySelector('.no-print-close-btn');
+          if (actionBtns) actionBtns.style.display = 'none';
+          if (closeBtn) closeBtn.style.display = 'none';
+
+          Object.defineProperty(document, 'styleSheets', {
+            value: [],
+            configurable: true
+          });
+
+          const opt = {
+            margin:       0.3,
+            filename:     `Receipt_${receiptData.receiptNumber || 'Invoice'}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+              scale: 2, 
+              useCORS: true, 
+              logging: false,
+              onclone: (clonedDoc) => {
+                clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
+              }
+            },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+          };
+
+          if (window.html2pdf) {
+            window.html2pdf().set(opt).from(element).save().then(() => {
+              delete document.styleSheets;
+              if (actionBtns) actionBtns.style.display = 'flex';
+              if (closeBtn) closeBtn.style.display = 'block';
+            }).catch(err => {
+              console.error(err);
+              delete document.styleSheets;
+              if (actionBtns) actionBtns.style.display = 'flex';
+              if (closeBtn) closeBtn.style.display = 'block';
+            });
+          } else {
+            delete document.styleSheets;
+            if (actionBtns) actionBtns.style.display = 'flex';
+            if (closeBtn) closeBtn.style.display = 'block';
+            window.print();
+          }
+        };
+
         return (
           <div id="printable-receipt-modal-wrapper" className="no-print fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:py-8 print:p-0 print:bg-transparent print:static overflow-y-auto">
             <div 
@@ -1832,7 +1880,7 @@ Staff: ${receiptData.generatedBy}`;
                   setShowReceiptModal(false);
                   if (isFinalPayment) navigate('/handover');
                 }}
-                className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition print:hidden"
+                className="no-print-close-btn absolute top-3 right-3 text-slate-400 hover:text-slate-650 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition print:hidden"
                 title={isFinalPayment ? 'Close & Go to Handover' : 'Close'}
               >
                 <X className="h-4 w-4" />
@@ -2072,7 +2120,7 @@ Staff: ${receiptData.generatedBy}`;
               </div>
 
               {/* Print & Share Buttons */}
-              <div className="flex gap-2 pt-4 mt-4 border-t border-slate-100 print:hidden justify-end flex-wrap">
+              <div className="no-print-action-bar flex gap-2 pt-4 mt-4 border-t border-slate-100 print:hidden justify-end flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
@@ -2089,6 +2137,13 @@ Staff: ${receiptData.generatedBy}`;
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer"
                 >
                   <Share2 size={11} /> Share
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
+                >
+                  <Download size={11} /> Download
                 </button>
                 <button
                   type="button"
