@@ -22,8 +22,6 @@ const Users = () => {
   const [loading, setLoading] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
 
-  const [activities, setActivities] = useState([]);
-
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState('FRONT_OFFICER');
@@ -74,17 +72,6 @@ const Users = () => {
         const createdUser = await res.json();
         setStaff(prev => [...prev, createdUser]);
 
-        // Add local log for audit
-        setActivities(prev => [
-          {
-            id: Date.now(),
-            staff: user.username,
-            action: `Created new user ${newUsername} with role ${newRole}`,
-            time: new Date().toISOString().replace('T', ' ').slice(0, 16)
-          },
-          ...prev
-        ]);
-
         setNewUsername('');
         setNewPassword('');
         alert('User account successfully created in database!');
@@ -99,93 +86,101 @@ const Users = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Staff Management & Role Control</h2>
-        <p className="text-xs text-slate-500 font-medium mt-0.5">Create staff accounts, allocate roles, and audit individual activity logs</p>
-      </div>
-
+    <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Create User Form */}
+        {/* Left Column: Create New Account Form */}
         <div className="bg-white border border-slate-100 rounded-2xl p-6 space-y-6 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-            <UserPlus className="h-4.5 w-4.5 text-emerald-600" /> Create Account
-          </h3>
-          
-          <form onSubmit={handleAddUser} className="space-y-4 text-xs font-semibold text-slate-600">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Username / Email</label>
+          <div>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <UserPlus className="h-4.5 w-4.5 text-emerald-600" /> Create Account
+            </h3>
+            <p className="text-[10px] text-slate-400 mt-1">Register new system users and assign roles</p>
+          </div>
+
+          <form onSubmit={handleAddUser} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Username</label>
               <input
                 type="text"
-                required
-                placeholder="e.g. sam@serene.com"
                 value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Password</label>
-              <input
-                type="password"
+                onChange={e => setNewUsername(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:bg-white transition"
+                placeholder="e.g. frontdesk1"
                 required
-                placeholder="Enter password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none"
               />
             </div>
 
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Role Type</label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:bg-white transition"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">System Role</label>
               <select
                 value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none"
+                onChange={e => setNewRole(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:bg-white transition"
               >
-                <option value="FRONT_OFFICER">Front Officer</option>
-                <option value="ACCOUNTANT">Accountant</option>
                 <option value="ADMIN">Administrator</option>
+                <option value="ACCOUNTANT">Accountant</option>
+                <option value="FRONT_OFFICER">Front Officer</option>
               </select>
             </div>
 
             <button
               type="submit"
               disabled={addingUser}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition flex items-center justify-center gap-2"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {addingUser && <Loader className="h-3.5 w-3.5 animate-spin" />}
-              Add User Account
+              {addingUser ? (
+                <>
+                  <Loader className="h-3.5 w-3.5 animate-spin" /> Creating Account...
+                </>
+              ) : (
+                <>Create Account</>
+              )}
             </button>
           </form>
         </div>
 
-        {/* Staff list */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-6 space-y-6 lg:col-span-2 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-            <Shield className="h-4.5 w-4.5 text-emerald-600" /> Active Staff Accounts (Database)
-          </h3>
-          <div className="overflow-hidden border border-slate-100 rounded-xl">
+        {/* Right Column: Existing Staff List */}
+        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 space-y-6 shadow-sm">
+          <div>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <Shield className="h-4.5 w-4.5 text-emerald-600" /> Active System Staff
+            </h3>
+            <p className="text-[10px] text-slate-400 mt-1">Manage system logins and active user status</p>
+          </div>
+
+          <div className="overflow-x-auto">
             {loading ? (
-              <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2">
-                <Loader className="h-4 w-4 animate-spin text-emerald-600" /> Loading staff accounts...
+              <div className="py-12 flex flex-col items-center justify-center text-slate-450 gap-2">
+                <Loader className="h-6 w-6 animate-spin text-emerald-600" />
+                <span className="text-xs font-semibold">Loading users...</span>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
-                    <th className="p-3">Username</th>
-                    <th className="p-3">Role</th>
-                    <th className="p-3">Status</th>
+                  <tr className="border-b border-slate-150 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="pb-3 pl-3">Username</th>
+                    <th className="pb-3">Role</th>
+                    <th className="pb-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
+                <tbody className="divide-y divide-slate-100 text-xs font-semibold">
                   {staff.map((s) => (
-                    <tr key={s.id || s.username} className="hover:bg-slate-50/20 transition">
-                      <td className="p-3 font-bold text-slate-900">{s.username}</td>
+                    <tr key={s.id} className="hover:bg-slate-50/50 transition">
+                      <td className="p-3 pl-3 font-bold text-slate-850">{s.username}</td>
                       <td className="p-3">
-                        <span className="text-[10px] bg-slate-50 border border-slate-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                        <span className="bg-slate-50 text-slate-700 border border-slate-150 rounded px-2 py-0.5 font-bold uppercase text-[9px] tracking-wide">
                           {s.role}
                         </span>
                       </td>
@@ -200,31 +195,6 @@ const Users = () => {
               </table>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Audit Logs */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-6 space-y-6 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          <Activity className="h-4.5 w-4.5 text-emerald-600" /> Staff Activity Logs
-        </h3>
-        
-        <div className="space-y-2">
-          {activities.map((act) => (
-            <div key={act.id} className="flex items-start justify-between p-3.5 bg-slate-50/50 rounded-xl border border-slate-100 text-xs font-semibold">
-              <div>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mr-2.5 uppercase tracking-wide">
-                  {act.staff}
-                </span>
-                <span className="text-slate-700">
-                  {act.action}
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap ml-4">
-                {act.time}
-              </span>
-            </div>
-          ))}
         </div>
       </div>
     </div>
