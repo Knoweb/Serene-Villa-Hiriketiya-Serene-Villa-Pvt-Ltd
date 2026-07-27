@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus, Shield, Activity, Loader } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -74,12 +75,12 @@ const Users = () => {
 
         setNewUsername('');
         setNewPassword('');
-        alert('User account successfully created in database!');
+        toast.success('User account successfully created in database!');
       } else {
-        alert('Failed to create user account. Username might already exist.');
+        toast.error('Failed to create user account. Username might already exist.');
       }
     } catch (err) {
-      alert('Error connecting to backend: ' + err.message);
+      toast.error('Error connecting to backend: ' + err.message);
     } finally {
       setAddingUser(false);
     }
