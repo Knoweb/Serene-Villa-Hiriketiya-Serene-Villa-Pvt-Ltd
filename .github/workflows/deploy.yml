@@ -18,6 +18,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 22
           timeout: 30s
+          command_timeout: 20m
           script: |
             echo "Starting Deployment..."
             cd ~/Serene-Villa-Hiriketiya-Serene-Villa-Pvt-Ltd
