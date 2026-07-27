@@ -52,4 +52,13 @@ public class AuthController {
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        if (!userRepository.existsById(id)) {
+            return ResponseEntity.status(404).body(Map.of("message", "User not found"));
+        }
+        userRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
+    }
 }

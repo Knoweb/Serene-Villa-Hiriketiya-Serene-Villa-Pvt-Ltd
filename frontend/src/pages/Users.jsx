@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, Shield, Activity, Loader } from 'lucide-react';
+import { UserPlus, Shield, Activity, Loader, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
@@ -83,6 +83,30 @@ const Users = () => {
       toast.error('Error connecting to backend: ' + err.message);
     } finally {
       setAddingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (id, username) => {
+    if (username === user.username) {
+      toast.error('You cannot delete your own logged-in account!');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete the user account "${username}"?`)) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/users/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        setStaff(prev => prev.filter(u => u.id !== id));
+        toast.success(`User account "${username}" successfully deleted!`);
+      } else {
+        toast.error('Failed to delete user account.');
+      }
+    } catch (err) {
+      toast.error('Error connecting to backend: ' + err.message);
     }
   };
 
@@ -174,6 +198,7 @@ const Users = () => {
                     <th className="pb-3 pl-3">Username</th>
                     <th className="pb-3">Role</th>
                     <th className="pb-3">Status</th>
+                    <th className="pb-3 pr-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold">
@@ -189,6 +214,15 @@ const Users = () => {
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.active ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
                           {s.active ? 'Active' : 'Inactive'}
                         </span>
+                      </td>
+                      <td className="p-3 pr-3 text-right">
+                        <button
+                          onClick={() => handleDeleteUser(s.id, s.username)}
+                          className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition inline-flex items-center"
+                          title="Delete User Account"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}
