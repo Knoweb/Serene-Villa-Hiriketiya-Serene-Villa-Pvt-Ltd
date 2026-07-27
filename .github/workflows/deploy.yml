@@ -17,6 +17,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
+          timeout: 30s
           script: |
             echo "Starting Deployment..."
             cd ~/Serene-Villa-Hiriketiya-Serene-Villa-Pvt-Ltd
