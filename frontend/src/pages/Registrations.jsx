@@ -1346,10 +1346,10 @@ const Registrations = () => {
                   {(() => {
                     const totalAmt = associatedBooking.totalAmount || 0;
                     const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-                    const bal = totalAmt - totalPaid;
-                    let pStatus = 'Unpaid';
+                    let pStatus = associatedBooking.paymentStatus || 'Unpaid';
                     if (totalPaid >= totalAmt && totalAmt > 0) pStatus = 'Paid';
-                    else if (totalPaid > 0) pStatus = 'Partially Paid';
+                    else if (totalPaid > 0 && pStatus !== 'Paid') pStatus = 'Partially Paid';
+                    const bal = pStatus === 'Paid' ? 0 : (totalAmt - totalPaid);
                     return (
                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
                         <div className="flex justify-between font-semibold text-slate-500">
@@ -1416,8 +1416,8 @@ const Registrations = () => {
                   {(() => {
                     const totalAmt = associatedBooking.totalAmount || 0;
                     const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-                    const remainingBal = Math.max(0, totalAmt - totalPaid);
-                    const isFullyPaid = remainingBal <= 0;
+                    const remainingBal = associatedBooking.paymentStatus === 'Paid' ? 0 : Math.max(0, totalAmt - totalPaid);
+                    const isFullyPaid = remainingBal <= 0 || associatedBooking.paymentStatus === 'Paid';
 
                     if (isFullyPaid) return (
                       <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700 font-bold">
