@@ -573,26 +573,25 @@ const Reservations = () => {
   };
 
   const handleCreateNewReservation = () => {
-    const randomId = 'SV-' + Math.floor(1000 + Math.random() * 9000);
     setConfirmationData({
       guestName: '',
-      bookingNumber: randomId,
-      checkInDate: new Date().toISOString().split('T')[0],
-      checkOutDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // tomorrow
-      nights: 1,
-      adults: 2,
-      children: 0,
-      boardBasis: 'Bed & Breakfast',
+      bookingNumber: '',
+      checkInDate: '',
+      checkOutDate: '',
+      nights: '',
+      adults: '',
+      children: '',
+      boardBasis: '',
       address: '',
       email: '',
       vatNo: '',
       whatsappNumber: '',
       nationality: '',
       reservationDate: new Date().toISOString().split('T')[0],
-      roomReference: 'Deluxe Room',
-      roomType: 'Deluxe Room',
-      unitPrice: '100.00',
-      totalPrice: '100.00',
+      roomReference: '',
+      roomType: '',
+      unitPrice: '',
+      totalPrice: '',
       currency: 'USD',
       confirmedBy: user.username,
       reservationStatus: 'Confirm Booking',
