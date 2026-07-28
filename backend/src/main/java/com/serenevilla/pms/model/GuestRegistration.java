@@ -81,7 +81,7 @@ public class GuestRegistration {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (numberOfNights == 0 && checkInDate != null && checkOutDate != null) {
+        if ((numberOfNights == null || numberOfNights == 0) && checkInDate != null && checkOutDate != null) {
             numberOfNights = (int) checkInDate.datesUntil(checkOutDate).count();
         }
     }
@@ -89,7 +89,7 @@ public class GuestRegistration {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-        if (numberOfNights == 0 && checkInDate != null && checkOutDate != null) {
+        if ((numberOfNights == null || numberOfNights == 0) && checkInDate != null && checkOutDate != null) {
             numberOfNights = (int) checkInDate.datesUntil(checkOutDate).count();
         }
     }
