@@ -152,24 +152,34 @@ const Reservations = () => {
   });
 
   const [showRoomSelector, setShowRoomSelector] = useState(false);
-  const [rooms, setRooms] = useState(() => {
-    const saved = localStorage.getItem('pms_rooms');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const isDemo = parsed.length === 8 && parsed.some(r => r.id === 101 && r.roomType === 'Deluxe Room');
-      if (!isDemo) {
-        return parsed.map(r => {
-          let img = r.image;
-          if (r.roomType.toLowerCase().includes('deluxe')) img = deluxeRoomImg;
-          else if (r.roomType.toLowerCase().includes('suite')) img = suiteRoomImg;
-          else if (r.roomType.toLowerCase().includes('standard')) img = standardRoomImg;
-          else if (r.roomType.toLowerCase().includes('budget')) img = budgetRoomImg;
-          return { ...r, image: img };
-        });
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/rooms`);
+        if (res.ok) {
+          const data = await res.json();
+          // Filter out demo/empty rooms if any
+          const filtered = data.filter(r => r.id !== 101 || r.roomType !== 'Deluxe Room');
+          
+          // Map images
+          const mapped = filtered.map(r => {
+            let img = r.image;
+            if (r.roomType.toLowerCase().includes('deluxe')) img = deluxeRoomImg;
+            else if (r.roomType.toLowerCase().includes('suite')) img = suiteRoomImg;
+            else if (r.roomType.toLowerCase().includes('standard')) img = standardRoomImg;
+            else if (r.roomType.toLowerCase().includes('budget')) img = budgetRoomImg;
+            return { ...r, image: img };
+          });
+          setRooms(mapped);
+        }
+      } catch (err) {
+        console.error('Error fetching rooms from server:', err);
       }
-    }
-    return [];
-  });
+    };
+    fetchRooms();
+  }, []);
 
   const uniqueRoomTypes = Array.from(new Set(rooms.map(r => r.roomType)));
   const defaultRoomType = uniqueRoomTypes.length > 0 ? uniqueRoomTypes[0] : '';
@@ -2519,10 +2529,13 @@ Staff: ${receiptData.generatedBy}`;
                       onChange={(e) => setConfirmationData({...confirmationData, roomType: e.target.value, roomReference: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
                     >
-                      <option value="Deluxe Room">Deluxe Room</option>
-                      <option value="Suite Room">Suite Room</option>
-                      <option value="Standard Room">Standard Room</option>
-                      <option value="Budget Room">Budget Room</option>
+                      {uniqueRoomTypes.length === 0 ? (
+                        <option value="">No room types available</option>
+                      ) : (
+                        uniqueRoomTypes.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))
+                      )}
                     </select>
                   </div>
 
