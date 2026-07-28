@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   Users, 
@@ -20,6 +21,7 @@ import {
 
 const Dashboard = () => {
   const { user, currentProperty } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
   
@@ -29,7 +31,7 @@ const Dashboard = () => {
   const [roomsCount, setRoomsCount] = useState(0);
   const [staff, setStaff] = useState([]);
   const [pendingDiscounts, setPendingDiscounts] = useState([]);
-
+  const [pendingHandovers, setPendingHandovers] = useState([]);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -101,6 +103,13 @@ const Dashboard = () => {
           if (staffRes.ok) {
             const staffData = await staffRes.json();
             setStaff(staffData || []);
+          }
+        }
+        if (user?.role === 'ACCOUNTANT' || user?.role === 'ADMIN') {
+          const handoverRes = await fetch(`${API_BASE}/billing/accountant/pending`);
+          if (handoverRes.ok) {
+            const handoverData = await handoverRes.json();
+            setPendingHandovers(handoverData || []);
           }
         }
       } catch (err) {
@@ -441,9 +450,28 @@ const Dashboard = () => {
                 <CheckCircle className="h-4.5 w-4.5 text-emerald-600" /> Pending Shift Handover approvals
               </h3>
               
-              <div className="border border-slate-55 rounded-xl p-8 text-center text-slate-400 font-bold">
-                No pending shift handovers waiting for approval.
-              </div>
+              {pendingHandovers.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="bg-amber-50/60 border border-amber-100/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wide">Pending Handovers</h4>
+                      <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
+                        You have {pendingHandovers.length} pending transaction payment(s) submitted by the Front Office waiting for reconciliation.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate('/handover')}
+                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 px-3 rounded-lg text-[10px] transition uppercase tracking-wide cursor-pointer shrink-0"
+                    >
+                      Review & Approve
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-slate-55 rounded-xl p-8 text-center text-slate-400 font-bold">
+                  No pending shift handovers waiting for approval.
+                </div>
+              )}
             </div>
 
             {/* Financial Overview quick links */}
