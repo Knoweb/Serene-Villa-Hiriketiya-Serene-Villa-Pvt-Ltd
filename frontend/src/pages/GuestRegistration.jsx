@@ -37,75 +37,11 @@ const GuestRegistration = () => {
     paymentSlip: null,
   });
 
-  // Camera capture states
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [activeCaptureField, setActiveCaptureField] = useState(null); // 'guestPhoto' or 'passportFront'
-  const [facingMode, setFacingMode] = useState('user'); // 'user' or 'environment'
-  const videoRef = React.useRef(null);
-  const streamRef = React.useRef(null);
-
-  const startCamera = async (mode = 'user') => {
-    try {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error("Camera access error:", err);
-      alert("Could not access camera. Please ensure permissions are granted.");
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setIsCameraOpen(false);
-    setActiveCaptureField(null);
-  };
-
-  const switchCamera = () => {
-    const newMode = facingMode === 'user' ? 'environment' : 'user';
-    setFacingMode(newMode);
-    startCamera(newMode);
-  };
-
-  const openCameraCapture = (field) => {
-    setActiveCaptureField(field);
-    setIsCameraOpen(true);
-    // Default to 'user' for face photo, 'environment' for passport front
-    const defaultMode = field === 'guestPhoto' ? 'user' : 'environment';
-    setFacingMode(defaultMode);
-    setTimeout(() => startCamera(defaultMode), 100);
-  };
-
-  const capturePhoto = () => {
-    if (videoRef.current) {
-      const video = videoRef.current;
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const fileName = `${activeCaptureField}_${Date.now()}.jpg`;
-          const file = new File([blob], fileName, { type: 'image/jpeg' });
-          setFormData((prev) => ({ ...prev, [activeCaptureField]: file }));
-          setPreviews((prev) => ({ ...prev, [activeCaptureField]: URL.createObjectURL(file) }));
-          stopCamera();
-        }
-      }, 'image/jpeg', 0.85);
-    }
-  };
+  // Native capture refs
+  const guestPhotoFileRef = React.useRef(null);
+  const guestPhotoCamRef = React.useRef(null);
+  const passportFrontFileRef = React.useRef(null);
+  const passportFrontCamRef = React.useRef(null);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -1053,25 +989,42 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
                     </div>
                   ) : (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                      <div className="relative flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition group flex-1 w-full text-center">
-                        <input
-                          type="file"
-                          name="guestPhoto"
-                          onChange={handleFileChange}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          accept="image/*"
-                        />
-                        <Upload className="h-4 w-4 text-slate-500 mr-2 group-hover:text-emerald-600 transition" />
-                        <span className="text-xs font-bold text-slate-700">Upload File</span>
-                      </div>
+                      {/* Hidden File Input */}
+                      <input
+                        type="file"
+                        ref={guestPhotoFileRef}
+                        name="guestPhoto"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                      {/* Hidden Camera Input */}
+                      <input
+                        type="file"
+                        ref={guestPhotoCamRef}
+                        name="guestPhoto"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/*"
+                        capture="user"
+                      />
                       
                       <button
                         type="button"
-                        onClick={() => openCameraCapture('guestPhoto')}
-                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center"
+                        onClick={() => guestPhotoFileRef.current?.click()}
+                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center hover:bg-slate-100"
+                      >
+                        <Upload className="h-4 w-4 text-slate-500 mr-2" />
+                        <span className="text-xs font-bold text-slate-700">Upload File</span>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => guestPhotoCamRef.current?.click()}
+                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center hover:bg-slate-100"
                       >
                         <Camera className="h-4 w-4 text-slate-500 mr-2 text-emerald-600" />
-                        <span className="text-xs font-bold text-slate-700">Take Photo</span>
+                        <span className="text-xs font-bold text-slate-700">Take Selfie</span>
                       </button>
                     </div>
                   )}
@@ -1102,25 +1055,42 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
                     </div>
                   ) : (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                      <div className="relative flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition group flex-1 w-full text-center">
-                        <input
-                          type="file"
-                          name="passportFront"
-                          onChange={handleFileChange}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          accept="image/*"
-                        />
-                        <Upload className="h-4 w-4 text-slate-500 mr-2 group-hover:text-emerald-600 transition" />
-                        <span className="text-xs font-bold text-slate-700">Upload File</span>
-                      </div>
+                      {/* Hidden File Input */}
+                      <input
+                        type="file"
+                        ref={passportFrontFileRef}
+                        name="passportFront"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                      {/* Hidden Camera Input */}
+                      <input
+                        type="file"
+                        ref={passportFrontCamRef}
+                        name="passportFront"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/*"
+                        capture="environment"
+                      />
                       
                       <button
                         type="button"
-                        onClick={() => openCameraCapture('passportFront')}
-                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center"
+                        onClick={() => passportFrontFileRef.current?.click()}
+                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center hover:bg-slate-100"
+                      >
+                        <Upload className="h-4 w-4 text-slate-500 mr-2" />
+                        <span className="text-xs font-bold text-slate-700">Upload File</span>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => passportFrontCamRef.current?.click()}
+                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center hover:bg-slate-100"
                       >
                         <Camera className="h-4 w-4 text-slate-500 mr-2 text-emerald-600" />
-                        <span className="text-xs font-bold text-slate-700">Take Photo</span>
+                        <span className="text-xs font-bold text-slate-700">Scan Passport</span>
                       </button>
                     </div>
                   )}
@@ -1272,61 +1242,7 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
         </form>
       </div>
 
-      {/* Native Camera Capture Overlay Modal */}
-      {isCameraOpen && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
-          <div className="bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-md flex flex-col relative border border-slate-100">
-            {/* Modal Header */}
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                {activeCaptureField === 'guestPhoto' ? 'Capture Face Photo' : 'Capture Passport'}
-              </h3>
-              <button 
-                type="button" 
-                onClick={stopCamera}
-                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-3 py-1.5 rounded-xl transition"
-              >
-                Cancel
-              </button>
-            </div>
 
-            {/* Video Live Stream */}
-            <div className="bg-black aspect-video relative flex items-center justify-center overflow-hidden">
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                className="w-full h-full object-cover scale-x-[-1]" // mirror face camera
-                style={facingMode === 'environment' ? { transform: 'none' } : {}}
-              />
-              <div className="absolute top-3 left-3 bg-black/60 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Mode: {facingMode === 'user' ? 'Front Camera' : 'Back Camera'}
-              </div>
-            </div>
-
-            {/* Modal Controls */}
-            <div className="p-5 bg-slate-50 flex items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={switchCamera}
-                className="flex items-center gap-1.5 bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-xs"
-              >
-                <RefreshCw size={14} className="text-slate-500" />
-                <span>Switch Camera</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={capturePhoto}
-                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-6 py-2.5 rounded-xl transition shadow-md shadow-emerald-600/15"
-              >
-                <Camera size={14} />
-                <span>Capture</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Footer copyright */}
       <footer className="w-full text-center py-4 bg-white border-t border-slate-100 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
