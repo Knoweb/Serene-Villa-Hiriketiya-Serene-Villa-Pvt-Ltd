@@ -96,10 +96,9 @@ public class GuestRegistrationService {
             });
         }
 
-        // Return lightweight entities for listing, stripping heavy Base64 image payload
+        // Return lightweight entities for listing, stripping only heavy passport Base64 image payloads
         return result.map(reg -> {
             entityManager.detach(reg);
-            reg.setGuestPhotoPath(null);
             reg.setPassportFrontPath(null);
             reg.setPassportBackPath(null);
             return reg;
