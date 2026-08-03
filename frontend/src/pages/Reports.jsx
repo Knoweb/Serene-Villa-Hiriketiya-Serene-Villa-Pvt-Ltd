@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import logoImg from '../assets/logo.jpeg';
 import { 
   FileDown, 
   AlertCircle, 
@@ -842,23 +843,25 @@ const Reports = () => {
           {/* Professional Print Only Report (Stunning Corporate Design) */}
           <div className="hidden print:block space-y-8 text-slate-900 font-sans print:p-2 bg-white w-full">
             {/* Professional Letterhead */}
-            <div className="flex justify-between items-start border-b-2 border-emerald-850 border-emerald-800 pb-4">
-              <div className="space-y-1">
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <span className="text-emerald-700">SERENE VILLA</span>
-                  <span className="text-slate-300 font-normal">|</span>
-                  <span className="text-slate-500 text-sm font-semibold tracking-wider">HIRIKETIYA</span>
-                </h1>
-                <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-                  Hiriketiya Beach Road, Dikwella, Sri Lanka<br />
-                  info@serenevillahiriketiya.com | +94 77 123 4567
-                </p>
+            <div className="flex justify-between items-center border-b-2 border-emerald-800 pb-4">
+              <div className="flex items-center gap-3">
+                <img src={logoImg} alt="Serene Villa Logo" className="h-12 w-12 object-contain rounded-lg border border-slate-100" />
+                <div className="space-y-0.5">
+                  <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <span className="text-emerald-700">SERENE VILLA</span>
+                    <span className="text-slate-350 font-normal">|</span>
+                    <span className="text-slate-550 text-xs font-bold tracking-wider">HIRIKETIYA</span>
+                  </h1>
+                  <p className="text-[9px] text-slate-500 font-medium leading-relaxed">
+                    Hiriketiya Beach Road, Dikwella, Sri Lanka | info@serenevillahiriketiya.com | +94 77 123 4567
+                  </p>
+                </div>
               </div>
               <div className="text-right space-y-1">
                 <span className="bg-emerald-50 text-emerald-800 text-[9px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider border border-emerald-100/50">
                   Financial Audit Document
                 </span>
-                <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                <p className="text-[9px] text-slate-400 font-semibold mt-1">
                   Registration No: SV-2026-PVT
                 </p>
               </div>

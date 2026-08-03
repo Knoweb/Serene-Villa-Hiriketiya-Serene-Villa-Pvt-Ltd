@@ -70,8 +70,10 @@
     margin: 0 !important;
   }
 
-  .no-print {
+  .no-print,
+  .no-print * {
     display: none !important;
+    visibility: hidden !important;
   }
 
   @page {
