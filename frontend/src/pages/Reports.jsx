@@ -361,7 +361,7 @@ const Reports = () => {
 
       {/* Report Body */}
       {!loading && !error && data && (
-        <div className="space-y-6">
+        <div className="space-y-6 report-print-area">
           
           {/* Print Only Header Banner */}
           <div className="hidden print:block border-b border-emerald-500 pb-4 mb-6">
