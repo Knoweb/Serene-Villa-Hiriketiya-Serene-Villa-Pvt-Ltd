@@ -53,6 +53,19 @@ const Reports = () => {
   const [activeMainTab, setActiveMainTab] = useState('overview');
   const [breakdownTab, setBreakdownTab] = useState('payments');
 
+  const getReportPeriod = () => {
+    if (reportType === 'Daily') return date;
+    if (reportType === 'Weekly' || reportType === 'Range') return `${startDate} to ${endDate}`;
+    if (reportType === 'Monthly') {
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      return `${monthNames[month - 1]} ${year}`;
+    }
+    return date;
+  };
+
   // Fetch report data from API
   const fetchReport = async () => {
     setLoading(true);
@@ -874,7 +887,7 @@ const Reports = () => {
               </h2>
               <p className="text-xs text-slate-500 font-medium">
                 Scope: <strong className="text-slate-700 capitalize">{reportType} Statement</strong> &nbsp;|&nbsp; 
-                Reconciliation Date: <strong>{selectedDate}</strong>
+                Reconciliation Date: <strong>{getReportPeriod()}</strong>
               </p>
             </div>
 
@@ -883,7 +896,7 @@ const Reports = () => {
               <div className="space-y-1">
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Report Details</p>
                 <p className="text-xs font-semibold text-slate-700">Generated On: <span className="font-normal text-slate-600">{new Date().toLocaleString()}</span></p>
-                <p className="text-xs font-semibold text-slate-700">Period: <span className="font-normal text-slate-600">{selectedDate}</span></p>
+                <p className="text-xs font-semibold text-slate-700">Period: <span className="font-normal text-slate-600">{getReportPeriod()}</span></p>
               </div>
               <div className="space-y-1 text-right">
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Authentication</p>
@@ -1011,7 +1024,7 @@ const Reports = () => {
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                   {data.rows.map((row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/20">
-                      <td className="p-2.5 whitespace-nowrap">{selectedDate}</td>
+                      <td className="p-2.5 whitespace-nowrap">{getReportPeriod()}</td>
                       <td className="p-2.5 font-bold text-slate-850 max-w-[120px] truncate">{row.guestName}</td>
                       <td className="p-2.5 font-mono">{row.bookingNumber}</td>
                       <td className="p-2.5">{row.roomName || 'N/A'}</td>
