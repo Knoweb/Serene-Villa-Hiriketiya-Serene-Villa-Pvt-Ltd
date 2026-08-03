@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toPng } from 'html-to-image';
-import { Building, Upload, Calendar, Send, CheckCircle2, User, FileText, Phone, Globe, Users, ChevronLeft, Loader, MapPin, CreditCard, Receipt, Printer, Share2, X, Search, AlertCircle } from 'lucide-react';
+import { Building, Upload, Calendar, Send, CheckCircle2, User, FileText, Phone, Globe, Users, ChevronLeft, Loader, MapPin, CreditCard, Receipt, Printer, Share2, X, Search, AlertCircle, Camera, RefreshCw } from 'lucide-react';
 import logoImg from '../assets/logo.jpeg';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -29,15 +29,83 @@ const GuestRegistration = () => {
     paymentMethod: 'Cash',
     referenceNumber: '',
     paymentSlip: null,
-    remarks: '',
   });
 
   const [previews, setPreviews] = useState({
     guestPhoto: null,
     passportFront: null,
-    passportBack: null,
     paymentSlip: null,
   });
+
+  // Camera capture states
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [activeCaptureField, setActiveCaptureField] = useState(null); // 'guestPhoto' or 'passportFront'
+  const [facingMode, setFacingMode] = useState('user'); // 'user' or 'environment'
+  const videoRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+
+  const startCamera = async (mode = 'user') => {
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Camera access error:", err);
+      alert("Could not access camera. Please ensure permissions are granted.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraOpen(false);
+    setActiveCaptureField(null);
+  };
+
+  const switchCamera = () => {
+    const newMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newMode);
+    startCamera(newMode);
+  };
+
+  const openCameraCapture = (field) => {
+    setActiveCaptureField(field);
+    setIsCameraOpen(true);
+    // Default to 'user' for face photo, 'environment' for passport front
+    const defaultMode = field === 'guestPhoto' ? 'user' : 'environment';
+    setFacingMode(defaultMode);
+    setTimeout(() => startCamera(defaultMode), 100);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current) {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const fileName = `${activeCaptureField}_${Date.now()}.jpg`;
+          const file = new File([blob], fileName, { type: 'image/jpeg' });
+          setFormData((prev) => ({ ...prev, [activeCaptureField]: file }));
+          setPreviews((prev) => ({ ...prev, [activeCaptureField]: URL.createObjectURL(file) }));
+          stopCamera();
+        }
+      }, 'image/jpeg', 0.85);
+    }
+  };
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -221,8 +289,8 @@ const GuestRegistration = () => {
       }
     }
 
-    if (!formData.guestPhoto || !formData.passportFront || !formData.passportBack) {
-      setError('Please upload all requested images (face photo and passport front/back).');
+    if (!formData.guestPhoto || !formData.passportFront) {
+      setError('Please upload all requested images (face photo and passport front page).');
       return;
     }
 
@@ -243,7 +311,6 @@ const GuestRegistration = () => {
     try {
       const guestPhotoBase64 = await compressImage(formData.guestPhoto);
       const passportFrontBase64 = await compressImage(formData.passportFront);
-      const passportBackBase64 = await compressImage(formData.passportBack);
 
       const payload = {
         guestName: formData.guestName,
@@ -256,7 +323,7 @@ const GuestRegistration = () => {
         children: parseInt(formData.children),
         guestPhotoPath: guestPhotoBase64,
         passportFrontPath: passportFrontBase64,
-        passportBackPath: passportBackBase64
+        passportBackPath: null
       };
 
       const res = await fetch(`${API_BASE}/public/guest-registrations`, {
@@ -965,28 +1032,47 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
               {/* Face Photo */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Guest Photo (Face View) *</label>
-                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-2xl p-5 bg-white transition cursor-pointer relative overflow-hidden group shadow-xs">
-                  <input
-                    type="file"
-                    name="guestPhoto"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    accept="image/*"
-                  />
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-5 bg-white transition relative overflow-hidden shadow-xs">
                   {previews.guestPhoto ? (
                     <div className="flex items-center gap-4 w-full">
                       <img src={previews.guestPhoto} alt="Face Preview" className="h-16 w-16 object-cover rounded-xl border border-slate-150" />
                       <div className="text-left flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{formData.guestPhoto.name}</p>
+                        <p className="text-xs font-bold text-slate-800 truncate">{formData.guestPhoto.name || 'Captured Image'}</p>
                         <p className="text-[9px] text-emerald-600 font-bold">Image loaded successfully</p>
                       </div>
-                      <span className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-3 py-1.5 rounded-xl z-20 transition">Change</span>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, guestPhoto: null }));
+                          setPreviews(prev => ({ ...prev, guestPhoto: null }));
+                        }}
+                        className="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold px-3 py-1.5 rounded-xl transition"
+                      >
+                        Remove
+                      </button>
                     </div>
                   ) : (
-                    <div className="text-center">
-                      <Upload className="h-6 w-6 text-slate-400 mx-auto mb-2 group-hover:text-emerald-600 transition" />
-                      <p className="text-xs font-bold text-slate-700">Click to upload face photo</p>
-                      <p className="text-[9px] text-slate-400 mt-1">PNG, JPG or JPEG format</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                      <div className="relative flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition group flex-1 w-full text-center">
+                        <input
+                          type="file"
+                          name="guestPhoto"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          accept="image/*"
+                        />
+                        <Upload className="h-4 w-4 text-slate-500 mr-2 group-hover:text-emerald-600 transition" />
+                        <span className="text-xs font-bold text-slate-700">Upload File</span>
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={() => openCameraCapture('guestPhoto')}
+                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center"
+                      >
+                        <Camera className="h-4 w-4 text-slate-500 mr-2 text-emerald-600" />
+                        <span className="text-xs font-bold text-slate-700">Take Photo</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -995,58 +1081,47 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
               {/* Passport Front */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Passport Front Page *</label>
-                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-2xl p-5 bg-white transition cursor-pointer relative overflow-hidden group shadow-xs">
-                  <input
-                    type="file"
-                    name="passportFront"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    accept="image/*"
-                  />
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-5 bg-white transition relative overflow-hidden shadow-xs">
                   {previews.passportFront ? (
                     <div className="flex items-center gap-4 w-full">
                       <img src={previews.passportFront} alt="Passport Front Preview" className="h-16 w-16 object-cover rounded-xl border border-slate-150" />
                       <div className="text-left flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{formData.passportFront.name}</p>
+                        <p className="text-xs font-bold text-slate-800 truncate">{formData.passportFront.name || 'Captured Image'}</p>
                         <p className="text-[9px] text-emerald-600 font-bold">Image loaded successfully</p>
                       </div>
-                      <span className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-3 py-1.5 rounded-xl z-20 transition">Change</span>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, passportFront: null }));
+                          setPreviews(prev => ({ ...prev, passportFront: null }));
+                        }}
+                        className="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold px-3 py-1.5 rounded-xl transition"
+                      >
+                        Remove
+                      </button>
                     </div>
                   ) : (
-                    <div className="text-center">
-                      <Upload className="h-6 w-6 text-slate-400 mx-auto mb-2 group-hover:text-emerald-600 transition" />
-                      <p className="text-xs font-bold text-slate-700">Click to upload passport front</p>
-                      <p className="text-[9px] text-slate-400 mt-1">PNG, JPG or JPEG format</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Passport Back */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Passport Back Page *</label>
-                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-2xl p-5 bg-white transition cursor-pointer relative overflow-hidden group shadow-xs">
-                  <input
-                    type="file"
-                    name="passportBack"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    accept="image/*"
-                  />
-                  {previews.passportBack ? (
-                    <div className="flex items-center gap-4 w-full">
-                      <img src={previews.passportBack} alt="Passport Back Preview" className="h-16 w-16 object-cover rounded-xl border border-slate-150" />
-                      <div className="text-left flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{formData.passportBack.name}</p>
-                        <p className="text-[9px] text-emerald-600 font-bold">Image loaded successfully</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                      <div className="relative flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition group flex-1 w-full text-center">
+                        <input
+                          type="file"
+                          name="passportFront"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          accept="image/*"
+                        />
+                        <Upload className="h-4 w-4 text-slate-500 mr-2 group-hover:text-emerald-600 transition" />
+                        <span className="text-xs font-bold text-slate-700">Upload File</span>
                       </div>
-                      <span className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-3 py-1.5 rounded-xl z-20 transition">Change</span>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <Upload className="h-6 w-6 text-slate-400 mx-auto mb-2 group-hover:text-emerald-600 transition" />
-                      <p className="text-xs font-bold text-slate-700">Click to upload passport back</p>
-                      <p className="text-[9px] text-slate-400 mt-1">PNG, JPG or JPEG format</p>
+                      
+                      <button
+                        type="button"
+                        onClick={() => openCameraCapture('passportFront')}
+                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center"
+                      >
+                        <Camera className="h-4 w-4 text-slate-500 mr-2 text-emerald-600" />
+                        <span className="text-xs font-bold text-slate-700">Take Photo</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1196,6 +1271,62 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
 
         </form>
       </div>
+
+      {/* Native Camera Capture Overlay Modal */}
+      {isCameraOpen && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-md flex flex-col relative border border-slate-100">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {activeCaptureField === 'guestPhoto' ? 'Capture Face Photo' : 'Capture Passport'}
+              </h3>
+              <button 
+                type="button" 
+                onClick={stopCamera}
+                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-3 py-1.5 rounded-xl transition"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Video Live Stream */}
+            <div className="bg-black aspect-video relative flex items-center justify-center overflow-hidden">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full h-full object-cover scale-x-[-1]" // mirror face camera
+                style={facingMode === 'environment' ? { transform: 'none' } : {}}
+              />
+              <div className="absolute top-3 left-3 bg-black/60 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Mode: {facingMode === 'user' ? 'Front Camera' : 'Back Camera'}
+              </div>
+            </div>
+
+            {/* Modal Controls */}
+            <div className="p-5 bg-slate-50 flex items-center justify-between gap-4">
+              <button
+                type="button"
+                onClick={switchCamera}
+                className="flex items-center gap-1.5 bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-xs"
+              >
+                <RefreshCw size={14} className="text-slate-500" />
+                <span>Switch Camera</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={capturePhoto}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-6 py-2.5 rounded-xl transition shadow-md shadow-emerald-600/15"
+              >
+                <Camera size={14} />
+                <span>Capture</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer copyright */}
       <footer className="w-full text-center py-4 bg-white border-t border-slate-100 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
