@@ -883,115 +883,98 @@ const Reports = () => {
               </p>
             </div>
 
-            {/* Audit Metadata Table */}
-            <div className="grid grid-cols-2 gap-4 border border-slate-200 rounded-xl p-3 bg-slate-50/50 text-[10px]">
-              <div className="space-y-0.5">
-                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Report Details</p>
-                <p className="font-semibold text-slate-700">Generated On: <span className="font-normal text-slate-600">{new Date().toLocaleString()}</span></p>
-                <p className="font-semibold text-slate-700">Period: <span className="font-normal text-slate-600">{getReportPeriod()}</span></p>
+            {/* Section 1 & 2: Executive Summary & Revenue Breakdown Side-by-Side */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Left Column: Executive Summary */}
+              <div className="space-y-2">
+                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 flex items-center gap-1.5">
+                  <span className="w-1 h-2.5 bg-emerald-600 rounded-xs"></span>
+                  1. Executive Summary
+                </h3>
+                <table className="w-full text-left text-[10px] border border-slate-200 rounded-lg overflow-hidden">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
+                      <th className="p-2">Performance Indicator</th>
+                      <th className="p-2 text-right">Value (LKR / Qty)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    <tr>
+                      <td className="p-2 font-bold text-slate-700">Total Revenue (Settled)</td>
+                      <td className="p-2 text-right font-mono font-bold text-emerald-700">{formatLKR(data.totalRevenue)}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 font-bold text-slate-700">Bookings Volume</td>
+                      <td className="p-2 text-right font-mono text-slate-700">{data.totalBookings}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 font-bold text-slate-700">Invoices Count</td>
+                      <td className="p-2 text-right font-mono text-slate-700">{data.totalInvoices}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 font-bold text-slate-700">Outstanding Balance</td>
+                      <td className="p-2 text-right font-mono font-bold text-rose-600">{formatLKR(data.totalOutstandingAmount)}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 font-bold text-slate-700">Approved Discounts</td>
+                      <td className="p-2 text-right font-mono text-slate-700">{formatLKR(data.approvedDiscountTotal || 0)}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div className="space-y-0.5 text-right">
-                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Authentication</p>
-                <p className="font-semibold text-slate-700">Prepared By: <span className="font-normal text-slate-600">{user?.email || 'admin@serene.com'} ({user?.role || 'ADMIN'})</span></p>
-                <p className="font-semibold text-slate-700">Verification Status: <span className="text-emerald-700 font-bold">System Reconciled</span></p>
+
+              {/* Right Column: Revenue Breakdown */}
+              <div className="space-y-2">
+                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 flex items-center gap-1.5">
+                  <span className="w-1 h-2.5 bg-emerald-600 rounded-xs"></span>
+                  2. Payment Methods
+                </h3>
+                <table className="w-full text-left text-[10px] border border-slate-200 rounded-lg overflow-hidden">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
+                      <th className="p-2">Channel</th>
+                      <th className="p-2 text-right">Amount (LKR)</th>
+                      <th className="p-2 text-right">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {(() => {
+                      const total = (data.cashRevenue || 0) + (data.cardRevenue || 0) + (data.bankTransferRevenue || 0);
+                      const getPct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) + '%' : '0.0%';
+                      return (
+                        <>
+                          <tr>
+                            <td className="p-2 font-bold flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Cash
+                            </td>
+                            <td className="p-2 text-right font-mono font-bold">{formatLKR(data.cashRevenue)}</td>
+                            <td className="p-2 text-right font-mono text-slate-500">{getPct(data.cashRevenue)}</td>
+                          </tr>
+                          <tr>
+                            <td className="p-2 font-bold flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span> Card
+                            </td>
+                            <td className="p-2 text-right font-mono font-bold">{formatLKR(data.cardRevenue)}</td>
+                            <td className="p-2 text-right font-mono text-slate-500">{getPct(data.cardRevenue)}</td>
+                          </tr>
+                          <tr>
+                            <td className="p-2 font-bold flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Transfer
+                            </td>
+                            <td className="p-2 text-right font-mono font-bold">{formatLKR(data.bankTransferRevenue)}</td>
+                            <td className="p-2 text-right font-mono text-slate-500">{getPct(data.bankTransferRevenue)}</td>
+                          </tr>
+                          <tr className="bg-slate-50/80 font-bold border-t border-slate-200 text-slate-900">
+                            <td className="p-2">Total Settled</td>
+                            <td className="p-2 text-right font-mono text-emerald-800">{formatLKR(total)}</td>
+                            <td className="p-2 text-right font-mono">100.0%</td>
+                          </tr>
+                        </>
+                      );
+                    })()}
+                  </tbody>
+                </table>
               </div>
-            </div>
-
-            {/* Section 1: Executive Financial Summary */}
-            <div className="space-y-2">
-              <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                <span className="w-1 h-2.5 bg-emerald-600 rounded-xs"></span>
-                1. Executive Financial Summary
-              </h3>
-              <table className="w-full text-left text-[10px] border border-slate-200 rounded-lg overflow-hidden">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
-                    <th className="p-2">Financial Performance Indicator</th>
-                    <th className="p-2 text-right">Reconciled Value</th>
-                    <th className="p-2">Accounting Remarks / Details</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
-                  <tr>
-                    <td className="p-2 font-bold text-slate-800">Total Revenue (Settled)</td>
-                    <td className="p-2 text-right font-mono font-bold text-emerald-700">{formatLKR(data.totalRevenue)}</td>
-                    <td className="p-2 text-slate-500 font-normal">Fully realized income via settled transactions.</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2 font-bold text-slate-800">Bookings Volume</td>
-                    <td className="p-2 text-right font-mono text-slate-700">{data.totalBookings}</td>
-                    <td className="p-2 text-slate-500 font-normal">Total confirmed stays/bookings within selected period.</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2 font-bold text-slate-800">Invoices Count</td>
-                    <td className="p-2 text-right font-mono text-slate-700">{data.totalInvoices}</td>
-                    <td className="p-2 text-slate-500 font-normal">Billing statements issued and recorded.</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2 font-bold text-slate-800">Outstanding Balance</td>
-                    <td className="p-2 text-right font-mono font-bold text-rose-600">{formatLKR(data.totalOutstandingAmount)}</td>
-                    <td className="p-2 text-slate-500 font-normal">Pending receivables to be collected at checkout.</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2 font-bold text-slate-800">Approved Deductions / Discounts</td>
-                    <td className="p-2 text-right font-mono text-slate-700">{formatLKR(data.approvedDiscountTotal || 0)}</td>
-                    <td className="p-2 text-slate-500 font-normal">Total promotional and compensatory deductions.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Section 2: Revenue Breakdown */}
-            <div className="space-y-2">
-              <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                <span className="w-1 h-2.5 bg-emerald-600 rounded-xs"></span>
-                2. Revenue Breakdown by Payment Method
-              </h3>
-              <table className="w-full text-left text-[10px] border border-slate-200 rounded-lg overflow-hidden">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
-                    <th className="p-2">Payment Channel</th>
-                    <th className="p-2 text-right">Settled Amount (LKR)</th>
-                    <th className="p-2 text-right">Percentage Contribution</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {(() => {
-                    const total = (data.cashRevenue || 0) + (data.cardRevenue || 0) + (data.bankTransferRevenue || 0);
-                    const getPct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) + '%' : '0.0%';
-                    return (
-                      <>
-                        <tr>
-                          <td className="p-3 font-bold flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500"></span> Cash
-                          </td>
-                          <td className="p-3 text-right font-mono font-bold">{formatLKR(data.cashRevenue)}</td>
-                          <td className="p-3 text-right font-mono text-slate-500">{getPct(data.cashRevenue)}</td>
-                        </tr>
-                        <tr>
-                          <td className="p-3 font-bold flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-blue-500"></span> Card
-                          </td>
-                          <td className="p-3 text-right font-mono font-bold">{formatLKR(data.cardRevenue)}</td>
-                          <td className="p-3 text-right font-mono text-slate-500">{getPct(data.cardRevenue)}</td>
-                        </tr>
-                        <tr>
-                          <td className="p-3 font-bold flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-amber-500"></span> Bank Transfer
-                          </td>
-                          <td className="p-2 text-right font-mono font-bold">{formatLKR(data.bankTransferRevenue)}</td>
-                          <td className="p-2 text-right font-mono text-slate-500">{getPct(data.bankTransferRevenue)}</td>
-                        </tr>
-                        <tr className="bg-slate-50/80 font-bold border-t border-slate-200 text-slate-900 text-[10px]">
-                          <td className="p-2">Total Settled Revenue</td>
-                          <td className="p-2 text-right font-mono text-emerald-800">{formatLKR(total)}</td>
-                          <td className="p-2 text-right font-mono">100.0%</td>
-                        </tr>
-                      </>
-                    );
-                  })()}
-                </tbody>
-              </table>
             </div>
 
             {/* Section 3: Detailed Transaction Ledger */}
