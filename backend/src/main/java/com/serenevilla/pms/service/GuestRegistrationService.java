@@ -38,6 +38,9 @@ public class GuestRegistrationService {
     @Autowired
     private com.serenevilla.pms.repository.RoomRepository roomRepository;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     public GuestRegistration createPublicRegistration(GuestRegistration registration) {
         // Calculate nights
         if (registration.getCheckInDate() != null && registration.getCheckOutDate() != null) {
@@ -67,10 +70,8 @@ public class GuestRegistrationService {
 
         // Dynamically recalculate paymentStatus for FRONT_OFFICER based on visible payments
         if ("FRONT_OFFICER".equalsIgnoreCase(role)) {
-            return result.map(reg -> {
-                bookingRepository.findAll().stream()
-                        .filter(b -> b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(reg.getId()))
-                        .findFirst()
+            result = result.map(reg -> {
+                bookingRepository.findByGuestRegistrationId(reg.getId())
                         .ifPresent(booking -> {
                             List<Payment> allPayments = paymentRepository.findByBookingId(booking.getId());
                             // Filter out hidden payments
@@ -95,7 +96,14 @@ public class GuestRegistrationService {
             });
         }
 
-        return result;
+        // Return lightweight entities for listing, stripping heavy Base64 image payload
+        return result.map(reg -> {
+            entityManager.detach(reg);
+            reg.setGuestPhotoPath(null);
+            reg.setPassportFrontPath(null);
+            reg.setPassportBackPath(null);
+            return reg;
+        });
     }
 
     public Optional<GuestRegistration> getRegistrationById(Long id) {

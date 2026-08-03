@@ -379,6 +379,18 @@ const Registrations = () => {
   // Select Guest and Populate Booking Form
   const handleSelectGuest = async (reg) => {
     setSelectedReg(reg);
+    
+    // Fetch full registration details containing base64 images in the background
+    try {
+      const detailRes = await fetch(`${API_BASE}/guest-registrations/${reg.id}`);
+      if (detailRes.ok) {
+        const fullReg = await detailRes.json();
+        setSelectedReg(fullReg);
+      }
+    } catch (err) {
+      console.error('Error fetching full registration details:', err);
+    }
+    
     let associatedBooking = bookings.find(b => b.guestRegistrationId === reg.id);
     
     if (!associatedBooking) {
