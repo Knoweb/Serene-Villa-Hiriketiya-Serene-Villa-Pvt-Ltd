@@ -216,6 +216,7 @@ const Reservations = () => {
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
+  const [isModalRoomDropdownOpen, setIsModalRoomDropdownOpen] = useState(false);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -608,7 +609,8 @@ const Reservations = () => {
       reservationStatus: 'Confirm Booking',
       senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold',
-      remarks: ''
+      remarks: '',
+      room: ''
     });
     setIsCreatingNewReservation(true);
     setShowConfirmationModal(true);
@@ -645,7 +647,7 @@ const Reservations = () => {
           const newBooking = {
             guestRegistrationId: savedGuest.id,
             bookingNumber: confirmationData.bookingNumber,
-            roomNumber: 'Unallocated',
+            roomNumber: confirmationData.room || 'Unallocated',
             roomType: confirmationData.roomType,
             boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
             bookingType: 'Direct',
@@ -2625,6 +2627,71 @@ Staff: ${receiptData.generatedBy}`;
                         ))
                       )}
                     </select>
+                  </div>
+
+                  <div className="space-y-1.5 relative">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room No (Select Multiple)</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsModalRoomDropdownOpen(!isModalRoomDropdownOpen)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer"
+                      >
+                        <span className="truncate">{confirmationData.room || 'Select Rooms...'}</span>
+                        <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
+                      </button>
+
+                      {isModalRoomDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setIsModalRoomDropdownOpen(false)}></div>
+                          <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto p-1 space-y-0.5 select-none">
+                            {rooms.map((room) => {
+                              const roomNumbers = confirmationData.room ? confirmationData.room.split(',').map(r => r.trim()) : [];
+                              const isChecked = roomNumbers.includes(room.roomNumber);
+                              return (
+                                <label 
+                                  key={room.id} 
+                                  className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium"
+                                >
+                                  <input 
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      let newRooms;
+                                      if (isChecked) {
+                                        newRooms = roomNumbers.filter(r => r !== room.roomNumber);
+                                      } else {
+                                        newRooms = [...roomNumbers, room.roomNumber];
+                                      }
+                                      const roomString = newRooms.join(', ');
+                                      
+                                      // Auto-set the room type based on the first selected room
+                                      let newRoomType = confirmationData.roomType;
+                                      if (!isChecked && newRooms.length === 1) {
+                                        let mappedType = room.roomType;
+                                        if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
+                                        else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
+                                        else if (mappedType.toLowerCase().includes('standard')) mappedType = 'Standard Room';
+                                        else if (mappedType.toLowerCase().includes('budget')) mappedType = 'Budget Room';
+                                        newRoomType = mappedType;
+                                      }
+
+                                      setConfirmationData({
+                                        ...confirmationData,
+                                        room: roomString,
+                                        roomType: newRoomType
+                                      });
+                                    }}
+                                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                                  />
+                                  <span>{room.roomNumber} - {room.roomType} ({room.status})</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* Selected Room Preview Card */}
