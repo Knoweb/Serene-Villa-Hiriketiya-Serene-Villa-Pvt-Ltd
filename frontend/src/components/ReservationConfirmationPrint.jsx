@@ -60,19 +60,21 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
               </p>
             </td>
             <td style={{ verticalAlign: 'top', textAlign: 'right', padding: '0', border: 'none' }}>
-              <span style={{ 
-                display: 'inline-block',
-                padding: '4px 10px',
-                fontSize: '10px',
-                fontWeight: '800',
-                color: isConfirmed ? '#166534' : '#991b1b',
-                backgroundColor: isConfirmed ? '#dcfce7' : '#fee2e2',
-                borderRadius: '4px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                {confirmationData.badgeText || 'Hold'}
-              </span>
+              {confirmationData.badgeText && confirmationData.badgeText.trim() !== '' && (
+                <span style={{ 
+                  display: 'inline-block',
+                  padding: '4px 10px',
+                  fontSize: '10px',
+                  fontWeight: '800',
+                  color: isConfirmed ? '#166534' : '#991b1b',
+                  backgroundColor: isConfirmed ? '#dcfce7' : '#fee2e2',
+                  borderRadius: '4px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  {confirmationData.badgeText}
+                </span>
+              )}
             </td>
           </tr>
         </tbody>
