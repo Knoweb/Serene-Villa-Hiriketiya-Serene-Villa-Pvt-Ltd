@@ -225,8 +225,8 @@ const GuestRegistration = () => {
       }
     }
 
-    if (!formData.guestPhoto || !formData.passportFront) {
-      setError('Please upload all requested images (face photo and passport front page).');
+    if (!formData.passportFront) {
+      setError('Please upload the passport front page.');
       return;
     }
 
@@ -245,7 +245,6 @@ const GuestRegistration = () => {
     setSubmitting(true);
     
     try {
-      const guestPhotoBase64 = await compressImage(formData.guestPhoto);
       const passportFrontBase64 = await compressImage(formData.passportFront);
 
       const payload = {
@@ -257,7 +256,7 @@ const GuestRegistration = () => {
         nationality: formData.nationality,
         adults: parseInt(formData.adults),
         children: parseInt(formData.children),
-        guestPhotoPath: guestPhotoBase64,
+        guestPhotoPath: null,
         passportFrontPath: passportFrontBase64,
         passportBackPath: null
       };
@@ -965,71 +964,6 @@ Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleStri
             
             <div className="grid grid-cols-1 gap-4">
               
-              {/* Face Photo */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Guest Photo (Face View) *</label>
-                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-5 bg-white transition relative overflow-hidden shadow-xs">
-                  {previews.guestPhoto ? (
-                    <div className="flex items-center gap-4 w-full">
-                      <img src={previews.guestPhoto} alt="Face Preview" className="h-16 w-16 object-cover rounded-xl border border-slate-150" />
-                      <div className="text-left flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{formData.guestPhoto.name || 'Captured Image'}</p>
-                        <p className="text-[9px] text-emerald-600 font-bold">Image loaded successfully</p>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, guestPhoto: null }));
-                          setPreviews(prev => ({ ...prev, guestPhoto: null }));
-                        }}
-                        className="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold px-3 py-1.5 rounded-xl transition"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                      {/* Hidden File Input */}
-                      <input
-                        type="file"
-                        ref={guestPhotoFileRef}
-                        name="guestPhoto"
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept="image/*"
-                      />
-                      {/* Hidden Camera Input */}
-                      <input
-                        type="file"
-                        ref={guestPhotoCamRef}
-                        name="guestPhoto"
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept="image/*"
-                        capture="user"
-                      />
-                      
-                      <button
-                        type="button"
-                        onClick={() => guestPhotoFileRef.current?.click()}
-                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center hover:bg-slate-100"
-                      >
-                        <Upload className="h-4 w-4 text-slate-500 mr-2" />
-                        <span className="text-xs font-bold text-slate-700">Upload File</span>
-                      </button>
-                      
-                      <button
-                        type="button"
-                        onClick={() => guestPhotoCamRef.current?.click()}
-                        className="flex items-center justify-center border border-slate-200 hover:border-emerald-500 rounded-xl px-4 py-3 bg-slate-50 cursor-pointer transition flex-1 w-full text-center hover:bg-slate-100"
-                      >
-                        <Camera className="h-4 w-4 text-slate-500 mr-2 text-emerald-600" />
-                        <span className="text-xs font-bold text-slate-700">Take Selfie</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
 
               {/* Passport Front */}
               <div className="space-y-1.5">
