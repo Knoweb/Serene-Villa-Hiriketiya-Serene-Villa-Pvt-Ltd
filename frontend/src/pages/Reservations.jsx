@@ -145,9 +145,9 @@ const Reservations = () => {
     unitPrice: '',
     totalPrice: '',
     currency: 'USD',
-    confirmedBy: '',
+    confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
     reservationStatus: 'Confirm Booking',
-    senderName: 'Muthuni Weerasingha',
+    senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
     badgeText: 'Hold'
   });
 
@@ -495,9 +495,9 @@ const Reservations = () => {
       unitPrice: defaultUnitPrice,
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: 'USD',
-      confirmedBy: user.username,
+      confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
-      senderName: user.username || 'Muthuni Weerasingha',
+      senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold'
     });
     setIsCreatingNewReservation(false);
@@ -533,9 +533,9 @@ const Reservations = () => {
       unitPrice: defaultUnitPrice,
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: 'USD',
-      confirmedBy: user.username,
+      confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
-      senderName: user.username || 'Muthuni Weerasingha',
+      senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold',
       remarks: booking.remarks || ''
     });
@@ -603,9 +603,9 @@ const Reservations = () => {
       unitPrice: '',
       totalPrice: '',
       currency: 'USD',
-      confirmedBy: user.username,
+      confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
-      senderName: user.username || 'Muthuni Weerasingha',
+      senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold',
       remarks: ''
     });
@@ -665,6 +665,10 @@ const Reservations = () => {
         console.error('Error saving standalone reservation:', err);
       }
     }
+    
+    // Save values to localStorage so they are remembered next time
+    localStorage.setItem('pms_confirmed_by', confirmationData.confirmedBy || '');
+    localStorage.setItem('pms_sender_name', confirmationData.senderName || '');
     
     setTimeout(() => {
       window.print();
@@ -2707,8 +2711,7 @@ Staff: ${receiptData.generatedBy}`;
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                 >
                   <option value="Confirm Booking">Confirm Booking</option>
-                  <option value="Hold Booking">Hold Booking</option>
-                  <option value="Pending Deposit">Pending Deposit</option>
+                  <option value="Pending Booking">Pending Booking</option>
                 </select>
               </div>
 
