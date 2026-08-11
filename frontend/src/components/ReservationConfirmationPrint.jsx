@@ -50,7 +50,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             </td>
             <td style={{ verticalAlign: 'top', padding: '0 0 0 16px', border: 'none' }}>
               <h1 style={{ fontSize: '18px', fontWeight: '800', color: '#065f46', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Serene Villa Hiriketiya
+                Serene Villa - Hiriketiya
               </h1>
               <p style={{ fontSize: '9.5px', color: '#475569', lineHeight: '1.4', margin: '0' }}>
                 Pehembiya Road, Hiriketiya, Dickwella, Matara, Sri Lanka.<br />
@@ -59,8 +59,18 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
                 Web: www.serenehiriketiya.com
               </p>
             </td>
-            <td style={{ width: '120px', verticalAlign: 'top', textAlign: 'right', padding: '0', border: 'none' }}>
-              <span style={{ fontSize: '14px', fontWeight: '800', color: isConfirmed ? '#10b981' : '#f43f5e', textTransform: 'capitalize' }}>
+            <td style={{ verticalAlign: 'top', textAlign: 'right', padding: '0', border: 'none' }}>
+              <span style={{ 
+                display: 'inline-block',
+                padding: '4px 10px',
+                fontSize: '10px',
+                fontWeight: '800',
+                color: isConfirmed ? '#166534' : '#991b1b',
+                backgroundColor: isConfirmed ? '#dcfce7' : '#fee2e2',
+                borderRadius: '4px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
                 {confirmationData.badgeText || 'Hold'}
               </span>
             </td>
@@ -151,40 +161,40 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', marginBottom: '20px' }}>
         <thead>
           <tr>
-            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '38%' }}>Room Reference</th>
-            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '18%' }}>Room Type</th>
-            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Quantity</th>
-            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Unit Price</th>
-            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Nights</th>
-            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Total Price</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '38%' }}>Room Reference</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '18%' }}>Room Type</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Quantity</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Unit Price</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Nights</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Total Price</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style={{ border: '1px solid #cbd5e1', borderBottom: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
               {confirmationData.roomReference || (associatedBooking ? `Room ${associatedBooking.roomNumber} (${associatedBooking.roomType})` : '')}
             </td>
-            <td style={{ border: '1px solid #cbd5e1', borderBottom: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
               {associatedBooking?.roomType || confirmationData.roomType || ''}
             </td>
-            <td style={{ border: '1px solid #cbd5e1', borderBottom: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>01</td>
-            <td style={{ border: '1px solid #cbd5e1', borderBottom: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right' }}>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>01</td>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
-            <td style={{ border: '1px solid #cbd5e1', borderBottom: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
-            <td style={{ border: '1px solid #cbd5e1', borderBottom: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right', fontWeight: '600' }}>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right', fontWeight: '600' }}>
               {confirmationData.currency} {parseFloat(confirmationData.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
           </tr>
           <tr style={{ fontWeight: '700', backgroundColor: '#ffffff', color: '#0f172a' }}>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: 'none', padding: '8px', fontSize: '10px', textAlign: 'left' }}>Total Amount</td>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: 'none', padding: '8px', fontSize: '10px', textAlign: 'left' }}></td>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: 'none', padding: '8px', fontSize: '10px', textAlign: 'center' }}>01</td>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: 'none', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'left' }}>Total Amount</td>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'left' }}></td>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'center' }}>01</td>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: 'none', padding: '8px', fontSize: '10px', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: 'none', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
           </tr>
