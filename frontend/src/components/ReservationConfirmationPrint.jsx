@@ -163,8 +163,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', marginBottom: '20px' }}>
         <thead>
           <tr>
-            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '38%' }}>Room Reference</th>
-            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '18%' }}>Room Type</th>
+            <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '56%' }}>Room Type</th>
             <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Quantity</th>
             <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Unit Price</th>
             <th style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Nights</th>
@@ -173,9 +172,6 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
         </thead>
         <tbody>
           <tr>
-            <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
-              {confirmationData.roomReference || (associatedBooking ? `Room ${associatedBooking.roomNumber} (${associatedBooking.roomType})` : '')}
-            </td>
             <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
               {associatedBooking?.roomType || confirmationData.roomType || ''}
             </td>
@@ -189,7 +185,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             </td>
           </tr>
           <tr style={{ fontWeight: '700', backgroundColor: '#ffffff', color: '#0f172a' }}>
-            <td colSpan="2" style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'left' }}>Total Amount</td>
+            <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'left' }}>Total Amount</td>
             <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'center' }}>01</td>
             <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

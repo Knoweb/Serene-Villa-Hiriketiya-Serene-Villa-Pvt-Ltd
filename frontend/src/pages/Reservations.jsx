@@ -2649,16 +2649,6 @@ Staff: ${receiptData.generatedBy}`;
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Reference</label>
-                <input 
-                  type="text" 
-                  value={confirmationData.roomReference}
-                  onChange={(e) => setConfirmationData({...confirmationData, roomReference: e.target.value})}
-                  placeholder="e.g. Room 204 - Deluxe Apartment"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
-              </div>
 
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
