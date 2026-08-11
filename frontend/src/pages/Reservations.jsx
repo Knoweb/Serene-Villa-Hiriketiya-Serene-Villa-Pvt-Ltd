@@ -923,10 +923,10 @@ const Reservations = () => {
       </div>
 
       {/* Main Content Grid: Table + Sidebar Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         
         {/* Guest Table Area */}
-        <div className="lg:col-span-7 min-w-0 w-full space-y-4">
+        <div className="xl:col-span-7 min-w-0 w-full space-y-4">
           {loading && (
             <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-slate-100 shadow-sm">
               <Loader className="h-6 w-6 text-emerald-700 animate-spin mr-2" />
@@ -1010,7 +1010,7 @@ const Reservations = () => {
                           </td>
                           <td className="p-4">
                             <p>In: {reg.checkInDate}</p>
-                            <p className="text-slate-400 text-[10px] mt-0.5">
+                            <p className="text-slate-400 text-[10px] mt-0.5 whitespace-normal break-words max-w-[220px]">
                               {booking ? `${booking.roomNumber || 'No Room'} (${booking.roomType})` : 'Unallocated'}
                             </p>
                           </td>
@@ -1123,7 +1123,7 @@ const Reservations = () => {
         </div>
 
         {/* Sidebar Details and Booking Form Panel */}
-        <div className="lg:col-span-5 min-w-0 w-full bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-6">
+        <div className="xl:col-span-5 min-w-0 w-full bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-6">
           {selectedReg ? (
             <div className="space-y-6">
               
