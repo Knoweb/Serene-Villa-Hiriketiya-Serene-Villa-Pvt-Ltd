@@ -50,7 +50,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             </td>
             <td style={{ verticalAlign: 'top', padding: '0 0 0 16px', border: 'none' }}>
               <h1 style={{ fontSize: '18px', fontWeight: '800', color: '#065f46', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Serene Villa - Hiriketiya
+                SERENE VILLA - HIRIKETIYA
               </h1>
               <p style={{ fontSize: '9.5px', color: '#475569', lineHeight: '1.4', margin: '0' }}>
                 Pehembiya Road, Hiriketiya, Dickwella, Matara, Sri Lanka.<br />
