@@ -1333,30 +1333,8 @@ const Reservations = () => {
                 )}
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  {/* Room Type */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room Type</label>
-                    <select
-                      value={bookingForm.roomType}
-                      disabled={isFrontOfficer === false && isAdmin === false} // Read-only for Accountant
-                      onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
-                    >
-                      {uniqueRoomTypes.length === 0 ? (
-                        <option value="">No room types available</option>
-                      ) : (
-                        <>
-                          <option value="">Select Room Type</option>
-                          {uniqueRoomTypes.map((type) => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </>
-                      )}
-                    </select>
-                  </div>
-
                   {/* Room */}
-                  <div className="space-y-1.5 relative">
+                  <div className="space-y-1.5 relative col-span-2">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No (Select Multiple)</label>
                     <div className="flex gap-1.5">
                       <div className="flex-1 min-w-0 relative">
@@ -1394,10 +1372,12 @@ const Reservations = () => {
                                         }
                                         const roomString = newRooms.join(', ');
                                         
-                                        // Auto-set the room type based on the first selected room
-                                        let newRoomType = bookingForm.roomType;
-                                        if (!isChecked && newRooms.length === 1) {
-                                          let mappedType = room.roomType;
+                                        // Auto-set the room type based on the first selected room robustly
+                                        const firstSelectedRoomNum = newRooms[0];
+                                        const matchedRoom = rooms.find(r => r.roomNumber === firstSelectedRoomNum);
+                                        let newRoomType = '';
+                                        if (matchedRoom) {
+                                          let mappedType = matchedRoom.roomType;
                                           if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
                                           else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
                                           else if (mappedType.toLowerCase().includes('standard')) mappedType = 'Standard Room';
@@ -2612,24 +2592,7 @@ Staff: ${receiptData.generatedBy}`;
                     </select>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Type</label>
-                    <select 
-                      value={confirmationData.roomType}
-                      onChange={(e) => setConfirmationData({...confirmationData, roomType: e.target.value, roomReference: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
-                    >
-                      {uniqueRoomTypes.length === 0 ? (
-                        <option value="">No room types available</option>
-                      ) : (
-                        uniqueRoomTypes.map((type) => (
-                          <option key={type} value={type}>{type}</option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5 relative">
+                  <div className="space-y-1.5 relative col-span-2">
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room No (Select Multiple)</label>
                     <div className="relative">
                       <button
@@ -2665,10 +2628,12 @@ Staff: ${receiptData.generatedBy}`;
                                       }
                                       const roomString = newRooms.join(', ');
                                       
-                                      // Auto-set the room type based on the first selected room
-                                      let newRoomType = confirmationData.roomType;
-                                      if (!isChecked && newRooms.length === 1) {
-                                        let mappedType = room.roomType;
+                                      // Auto-set the room type based on the first selected room robustly
+                                      const firstSelectedRoomNum = newRooms[0];
+                                      const matchedRoom = rooms.find(r => r.roomNumber === firstSelectedRoomNum);
+                                      let newRoomType = '';
+                                      if (matchedRoom) {
+                                        let mappedType = matchedRoom.roomType;
                                         if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
                                         else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
                                         else if (mappedType.toLowerCase().includes('standard')) mappedType = 'Standard Room';
