@@ -189,8 +189,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             </td>
           </tr>
           <tr style={{ fontWeight: '700', backgroundColor: '#ffffff', color: '#0f172a' }}>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'left' }}>Total Amount</td>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'left' }}></td>
+            <td colSpan="2" style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'left' }}>Total Amount</td>
             <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'center' }}>01</td>
             <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
