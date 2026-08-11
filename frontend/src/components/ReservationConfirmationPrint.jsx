@@ -164,9 +164,9 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '38%' }}>Room Reference</th>
             <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'left', width: '18%' }}>Room Type</th>
             <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Quantity</th>
-            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Unit Price</th>
-            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Nights</th>
-            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Total Price</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Unit Price</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Nights</th>
+            <th style={{ backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '9px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', textAlign: 'right', width: '12%' }}>Total Price</th>
           </tr>
         </thead>
         <tbody>
@@ -178,11 +178,11 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
               {associatedBooking?.roomType || confirmationData.roomType || ''}
             </td>
             <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>01</td>
-            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right' }}>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
-            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
-            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right', fontWeight: '600' }}>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
+            <td style={{ borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right', fontWeight: '600' }}>
               {confirmationData.currency} {parseFloat(confirmationData.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
           </tr>
@@ -190,11 +190,11 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'left' }}>Total Amount</td>
             <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'left' }}></td>
             <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'center' }}>01</td>
-            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
-            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
-            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: 'none', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
+            <td style={{ borderTop: '2px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', borderLeft: '1px solid #cbd5e1', borderRight: 'none', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
           </tr>
