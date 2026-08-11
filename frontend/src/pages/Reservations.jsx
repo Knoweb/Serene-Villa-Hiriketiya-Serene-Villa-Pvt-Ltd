@@ -1922,12 +1922,16 @@ const Reservations = () => {
             <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {rooms.map((room) => {
+                  const selectedRoomsList = bookingForm.room ? bookingForm.room.split(',').map(r => r.trim()).filter(Boolean) : [];
+                  const isSelected = selectedRoomsList.includes(room.roomNumber);
                   const isAvailable = room.status === 'Available';
                   return (
                     <div 
                       key={room.id} 
                       className={`bg-white border rounded-xl overflow-hidden shadow-sm transition flex flex-col justify-between ${
-                        isAvailable ? 'border-slate-200' : 'border-slate-100 opacity-75'
+                        isSelected 
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20' 
+                          : (isAvailable ? 'border-slate-200' : 'border-slate-100 opacity-75')
                       }`}
                     >
                       <div>
@@ -1968,8 +1972,15 @@ const Reservations = () => {
                       <div className="p-3 pt-0 flex gap-2">
                         <button
                           type="button"
-                          disabled={!isAvailable}
+                          disabled={!isAvailable && !isSelected}
                           onClick={() => {
+                            let newRoomsList;
+                            if (isSelected) {
+                              newRoomsList = selectedRoomsList.filter(r => r !== room.roomNumber);
+                            } else {
+                              newRoomsList = [...selectedRoomsList, room.roomNumber];
+                            }
+                            
                             let mappedType = room.roomType;
                             if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
                             else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
@@ -1979,23 +1990,34 @@ const Reservations = () => {
                             setBookingForm({
                               ...bookingForm,
                               roomType: mappedType,
-                              room: room.roomNumber
+                              room: newRoomsList.join(', ')
                             });
-                            setShowRoomSelector(false);
                           }}
                           className={`w-full py-1.5 rounded-lg font-bold text-center text-xs transition cursor-pointer ${
-                            isAvailable 
-                              ? 'bg-emerald-650 hover:bg-emerald-700 text-white' 
-                              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            isSelected
+                              ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                              : (isAvailable 
+                                  ? 'bg-emerald-650 hover:bg-emerald-700 text-white' 
+                                  : 'bg-slate-100 text-slate-400 cursor-not-allowed')
                           }`}
                         >
-                          {isAvailable ? 'Select' : room.status}
+                          {isSelected ? 'Deselect' : (isAvailable ? 'Select' : room.status)}
                         </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            </div>
+            
+            <div className="p-4 border-t border-slate-100 flex justify-end bg-slate-50 rounded-b-2xl">
+              <button 
+                type="button" 
+                onClick={() => setShowRoomSelector(false)}
+                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+              >
+                Confirm Selection ({bookingForm.room ? bookingForm.room.split(',').map(r => r.trim()).filter(Boolean).length : 0} Selected)
+              </button>
             </div>
           </div>
         </div>
