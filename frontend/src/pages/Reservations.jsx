@@ -2550,19 +2550,13 @@ Staff: ${receiptData.generatedBy}`;
 
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Type</label>
-                    <select 
+                    <input 
+                      type="text" 
                       value={confirmationData.roomType}
-                      onChange={(e) => setConfirmationData({...confirmationData, roomType: e.target.value, roomReference: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
-                    >
-                      {uniqueRoomTypes.length === 0 ? (
-                        <option value="">No room types available</option>
-                      ) : (
-                        uniqueRoomTypes.map((type) => (
-                          <option key={type} value={type}>{type}</option>
-                        ))
-                      )}
-                    </select>
+                      onChange={(e) => setConfirmationData({...confirmationData, roomType: e.target.value})}
+                      placeholder="e.g. Deluxe Room / Deluxe & Suite Rooms"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
                   </div>
 
                   {/* Selected Room Preview Card */}
