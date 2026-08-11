@@ -60,8 +60,7 @@ const Layout = ({ children }) => {
         backgroundImage: `linear-gradient(rgba(240, 253, 244, ${bgOpacity}), rgba(240, 253, 244, ${bgOpacity})), url('${bgImage}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        backgroundRepeat: 'no-repeat'
+        backgroundAttachment: 'fixed'
       }}
     >
       {/* Top Navigation Bar */}
