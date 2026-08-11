@@ -215,6 +215,7 @@ const Reservations = () => {
   });
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -1353,17 +1354,71 @@ const Reservations = () => {
                   </div>
 
                   {/* Room */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No</label>
+                  <div className="space-y-1.5 relative">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No (Select Multiple)</label>
                     <div className="flex gap-1.5">
-                      <input
-                        type="text"
-                        placeholder="e.g. 101"
-                        disabled={isFrontOfficer === false && isAdmin === false}
-                        value={bookingForm.room}
-                        onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
-                        className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs"
-                      />
+                      <div className="flex-1 min-w-0 relative">
+                        <button
+                          type="button"
+                          onClick={() => setIsRoomDropdownOpen(!isRoomDropdownOpen)}
+                          disabled={isFrontOfficer === false && isAdmin === false}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 text-xs text-left flex justify-between items-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span className="truncate">{bookingForm.room || 'Select Rooms...'}</span>
+                          <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
+                        </button>
+
+                        {isRoomDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setIsRoomDropdownOpen(false)}></div>
+                            <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-60 overflow-y-auto p-1 space-y-0.5 select-none">
+                              {rooms.map((room) => {
+                                const roomNumbers = bookingForm.room ? bookingForm.room.split(',').map(r => r.trim()) : [];
+                                const isChecked = roomNumbers.includes(room.roomNumber);
+                                return (
+                                  <label 
+                                    key={room.id} 
+                                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium"
+                                  >
+                                    <input 
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => {
+                                        let newRooms;
+                                        if (isChecked) {
+                                          newRooms = roomNumbers.filter(r => r !== room.roomNumber);
+                                        } else {
+                                          newRooms = [...roomNumbers, room.roomNumber];
+                                        }
+                                        const roomString = newRooms.join(', ');
+                                        
+                                        // Auto-set the room type based on the first selected room
+                                        let newRoomType = bookingForm.roomType;
+                                        if (!isChecked && newRooms.length === 1) {
+                                          let mappedType = room.roomType;
+                                          if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
+                                          else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
+                                          else if (mappedType.toLowerCase().includes('standard')) mappedType = 'Standard Room';
+                                          else if (mappedType.toLowerCase().includes('budget')) mappedType = 'Budget Room';
+                                          newRoomType = mappedType;
+                                        }
+
+                                        setBookingForm({
+                                          ...bookingForm,
+                                          room: roomString,
+                                          roomType: newRoomType
+                                        });
+                                      }}
+                                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                                    />
+                                    <span>{room.roomNumber} - {room.roomType} ({room.status})</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => setShowRoomSelector(true)}
@@ -1922,16 +1977,12 @@ const Reservations = () => {
             <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {rooms.map((room) => {
-                  const selectedRoomsList = bookingForm.room ? bookingForm.room.split(',').map(r => r.trim()).filter(Boolean) : [];
-                  const isSelected = selectedRoomsList.includes(room.roomNumber);
                   const isAvailable = room.status === 'Available';
                   return (
                     <div 
                       key={room.id} 
                       className={`bg-white border rounded-xl overflow-hidden shadow-sm transition flex flex-col justify-between ${
-                        isSelected 
-                          ? 'border-emerald-500 ring-2 ring-emerald-500/20' 
-                          : (isAvailable ? 'border-slate-200' : 'border-slate-100 opacity-75')
+                        isAvailable ? 'border-slate-200' : 'border-slate-100 opacity-75'
                       }`}
                     >
                       <div>
@@ -1970,39 +2021,50 @@ const Reservations = () => {
                         </div>
                       </div>
                       <div className="p-3 pt-0 flex gap-2">
-                        <button
-                          type="button"
-                          disabled={!isAvailable && !isSelected}
-                          onClick={() => {
-                            let newRoomsList;
-                            if (isSelected) {
-                              newRoomsList = selectedRoomsList.filter(r => r !== room.roomNumber);
-                            } else {
-                              newRoomsList = [...selectedRoomsList, room.roomNumber];
-                            }
-                            
-                            let mappedType = room.roomType;
-                            if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
-                            else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
-                            else if (mappedType.toLowerCase().includes('standard')) mappedType = 'Standard Room';
-                            else if (mappedType.toLowerCase().includes('budget')) mappedType = 'Budget Room';
+                        {(() => {
+                          const roomNumbers = bookingForm.room ? bookingForm.room.split(',').map(r => r.trim()) : [];
+                          const isChecked = roomNumbers.includes(room.roomNumber);
+                          return (
+                            <button
+                              type="button"
+                              disabled={!isAvailable && !isChecked}
+                              onClick={() => {
+                                let newRooms;
+                                if (isChecked) {
+                                  newRooms = roomNumbers.filter(r => r !== room.roomNumber);
+                                } else {
+                                  newRooms = [...roomNumbers, room.roomNumber];
+                                }
+                                const roomString = newRooms.join(', ');
 
-                            setBookingForm({
-                              ...bookingForm,
-                              roomType: mappedType,
-                              room: newRoomsList.join(', ')
-                            });
-                          }}
-                          className={`w-full py-1.5 rounded-lg font-bold text-center text-xs transition cursor-pointer ${
-                            isSelected
-                              ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                              : (isAvailable 
-                                  ? 'bg-emerald-650 hover:bg-emerald-700 text-white' 
-                                  : 'bg-slate-100 text-slate-400 cursor-not-allowed')
-                          }`}
-                        >
-                          {isSelected ? 'Deselect' : (isAvailable ? 'Select' : room.status)}
-                        </button>
+                                let newRoomType = bookingForm.roomType;
+                                if (!isChecked && newRooms.length === 1) {
+                                  let mappedType = room.roomType;
+                                  if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
+                                  else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
+                                  else if (mappedType.toLowerCase().includes('standard')) mappedType = 'Standard Room';
+                                  else if (mappedType.toLowerCase().includes('budget')) mappedType = 'Budget Room';
+                                  newRoomType = mappedType;
+                                }
+
+                                setBookingForm({
+                                  ...bookingForm,
+                                  room: roomString,
+                                  roomType: newRoomType
+                                });
+                              }}
+                              className={`w-full py-1.5 rounded-lg font-bold text-center text-xs transition cursor-pointer ${
+                                isChecked 
+                                  ? 'bg-rose-500 hover:bg-rose-600 text-white' 
+                                  : isAvailable 
+                                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200' 
+                                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              }`}
+                            >
+                              {isChecked ? 'Deselect' : isAvailable ? 'Select' : room.status}
+                            </button>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
@@ -2010,13 +2072,13 @@ const Reservations = () => {
               </div>
             </div>
             
-            <div className="p-4 border-t border-slate-100 flex justify-end bg-slate-50 rounded-b-2xl">
+            <div className="p-4 bg-white border-t border-slate-100 flex justify-end">
               <button 
                 type="button" 
                 onClick={() => setShowRoomSelector(false)}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs cursor-pointer transition shadow-md shadow-emerald-500/10"
               >
-                Confirm Selection ({bookingForm.room ? bookingForm.room.split(',').map(r => r.trim()).filter(Boolean).length : 0} Selected)
+                Done Selecting Rooms
               </button>
             </div>
           </div>
@@ -2550,13 +2612,19 @@ Staff: ${receiptData.generatedBy}`;
 
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Type</label>
-                    <input 
-                      type="text" 
+                    <select 
                       value={confirmationData.roomType}
-                      onChange={(e) => setConfirmationData({...confirmationData, roomType: e.target.value})}
-                      placeholder="e.g. Deluxe Room / Deluxe & Suite Rooms"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                    />
+                      onChange={(e) => setConfirmationData({...confirmationData, roomType: e.target.value, roomReference: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
+                    >
+                      {uniqueRoomTypes.length === 0 ? (
+                        <option value="">No room types available</option>
+                      ) : (
+                        uniqueRoomTypes.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))
+                      )}
+                    </select>
                   </div>
 
                   {/* Selected Room Preview Card */}
