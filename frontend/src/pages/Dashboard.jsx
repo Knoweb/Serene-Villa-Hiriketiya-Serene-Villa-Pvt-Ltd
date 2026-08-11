@@ -218,9 +218,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Registration list and guest details split layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+            <div className="lg:col-span-2 min-w-0 w-full bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <h3 className="text-base font-bold text-slate-800 uppercase tracking-wider">Guest Registrations</h3>
                 {/* Search */}
@@ -275,7 +274,7 @@ const Dashboard = () => {
             </div>
 
             {/* Guest Details Panel */}
-            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+            <div className="min-w-0 w-full bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
               <h3 className="text-base font-bold text-slate-800 uppercase tracking-wider">Guest Details</h3>
               {selectedGuest ? (
                 <div className="space-y-4 text-sm text-slate-600 font-semibold">
