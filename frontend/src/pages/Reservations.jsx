@@ -3257,6 +3257,18 @@ Staff: ${receiptData.generatedBy}`;
                      </select>
                    </div>
 
+                   {/* Currency Rate */}
+                   <div className="space-y-1.5 col-span-1">
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency Rate</label>
+                     <input 
+                       type="number" 
+                       step="0.01"
+                       value={confirmationData.exchangeRate || '1.00'}
+                       onChange={(e) => setConfirmationData({...confirmationData, exchangeRate: e.target.value})}
+                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                     />
+                   </div>
+
                    {/* Unit Price */}
                    <div className="space-y-1.5 col-span-1">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Price (Per Night)</label>
@@ -3279,7 +3291,7 @@ Staff: ${receiptData.generatedBy}`;
                    </div>
 
                    {/* Total Price */}
-                   <div className="space-y-1.5 col-span-2">
+                   <div className="space-y-1.5 col-span-1">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
                      <input 
                        type="number" 
