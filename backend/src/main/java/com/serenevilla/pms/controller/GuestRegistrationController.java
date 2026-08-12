@@ -109,6 +109,17 @@ public class GuestRegistrationController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @DeleteMapping("/api/guest-registrations/{id}")
+    public ResponseEntity<?> deleteRegistration(@PathVariable(name = "id") Long id) {
+        try {
+            guestRegistrationService.deleteRegistration(id);
+            return ResponseEntity.ok(java.util.Map.of("message", "Guest registration and associated booking/payments deleted successfully"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+        }
+    }
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<?> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
         ex.printStackTrace();

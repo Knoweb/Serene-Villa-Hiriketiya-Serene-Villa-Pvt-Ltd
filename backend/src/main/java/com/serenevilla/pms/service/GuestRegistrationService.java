@@ -265,4 +265,16 @@ public class GuestRegistrationService {
         }
         return Optional.empty();
     }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteRegistration(Long id) {
+        bookingRepository.findByGuestRegistrationId(id)
+                .ifPresent(booking -> {
+                    List<Payment> payments = paymentRepository.findByBookingId(booking.getId());
+                    paymentRepository.deleteAll(payments);
+                    bookingRepository.delete(booking);
+                });
+        guestRegistrationRepository.deleteById(id);
+        webSocketHandler.broadcast("update");
+    }
 }

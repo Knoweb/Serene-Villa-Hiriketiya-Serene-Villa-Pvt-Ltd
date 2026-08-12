@@ -32,7 +32,8 @@ import {
   Receipt,
   Image as ImageIcon,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
@@ -381,6 +382,29 @@ const Reservations = () => {
       }
     } catch (err) {
       console.error('Failed to change visibility', err);
+    }
+  };
+
+  // Delete Guest Registration (Admin & Front Office)
+  const handleDeleteRegistration = async (id) => {
+    if (window.confirm("Are you sure you want to delete this guest registration and all associated bookings/payments?")) {
+      try {
+        const response = await fetch(`${API_BASE}/guest-registrations/${id}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) {
+          fetchRegistrations();
+          if (selectedReg && selectedReg.id === id) {
+            setSelectedReg(null);
+          }
+        } else {
+          const errData = await response.json();
+          alert(errData.message || "Failed to delete registration");
+        }
+      } catch (err) {
+        console.error('Failed to delete registration', err);
+        alert("An error occurred while deleting the registration");
+      }
     }
   };
 
@@ -971,11 +995,13 @@ const Reservations = () => {
                 <table ref={tableRef} className="w-full text-left border-collapse text-xs whitespace-nowrap">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-450 font-bold uppercase tracking-wider">
-                      <th className="p-4">Guest</th>
-                      <th className="p-4">Passport / WhatsApp</th>
-                      <th className="p-4">Dates & Room</th>
+                      <th className="p-4">Guest Name & Photo</th>
+                      <th className="p-4">Reservation ID</th>
+                      <th className="p-4">WhatsApp No</th>
+                      <th className="p-4">Check-in / Out</th>
                       <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Actions</th>
+                      <th className="p-4 text-center">Manage</th>
+                      <th className="p-4 text-center">Delete</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
@@ -999,7 +1025,6 @@ const Reservations = () => {
                                   alt={reg.guestName}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
-                                    // Hide image and fallback to initials
                                     e.target.style.display = 'none';
                                   }}
                                 />
@@ -1012,13 +1037,16 @@ const Reservations = () => {
                               <p className="text-[10px] text-slate-400 mt-0.5">{reg.nationality}</p>
                             </div>
                           </td>
-                          <td className="p-4">
-                            <p className="font-mono text-slate-800">{reg.passportNumber}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{reg.whatsappNumber || reg.whatsAppNumber}</p>
+                          <td className="p-4 font-mono text-slate-800 font-bold">
+                            {reg.passportNumber}
+                          </td>
+                          <td className="p-4 text-slate-700">
+                            {reg.whatsappNumber || reg.whatsAppNumber}
                           </td>
                           <td className="p-4">
-                            <p>In: {reg.checkInDate}</p>
-                            <p className="text-slate-400 text-[10px] mt-0.5">
+                            <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {reg.checkInDate}</div>
+                            <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {reg.checkOutDate}</div>
+                            <p className="text-slate-400 text-[10px] mt-1">
                               {booking ? `${booking.roomNumber || 'No Room'} (${booking.roomType})` : 'Unallocated'}
                             </p>
                           </td>
@@ -1044,13 +1072,13 @@ const Reservations = () => {
                               </span>
                             </div>
                           </td>
-                          <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center gap-1.5">
                               {isAdmin && (
                                 <button
                                   onClick={(e) => handleToggleVisibility(reg, e)}
                                   title={reg.isHiddenFromFrontOffice ? "Show to Front Office" : "Hide from Front Office"}
-                                  className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition shadow-sm"
+                                  className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition shadow-sm cursor-pointer"
                                 >
                                   {reg.isHiddenFromFrontOffice ? (
                                     <Eye className="h-3.5 w-3.5 text-rose-600" />
@@ -1077,13 +1105,22 @@ const Reservations = () => {
                               </button>
                             </div>
                           </td>
+                          <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => handleDeleteRegistration(reg.id)}
+                              title="Delete Registration"
+                              className="p-2 rounded-xl border border-rose-200 bg-rose-55 hover:bg-rose-100 text-rose-600 transition shadow-sm cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
 
                     {registrations.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="p-8 text-center text-slate-400 font-bold">
+                        <td colSpan="7" className="p-8 text-center text-slate-400 font-bold">
                           No guest registrations match your search filter.
                         </td>
                       </tr>
