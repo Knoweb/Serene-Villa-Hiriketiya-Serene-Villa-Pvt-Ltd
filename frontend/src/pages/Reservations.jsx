@@ -1321,75 +1321,7 @@ const Reservations = () => {
                 </button>
               </div>
 
-              {/* Guest Uploaded Documents */}
-              <div className="space-y-3 text-xs bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1">
-                  <ImageIcon className="h-3.5 w-3.5 text-slate-400" /> Uploaded Documents
-                </h4>
-                <div className="space-y-3.5">
-                  {/* Guest Photo */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Guest Photo</p>
-                    {selectedReg.guestPhotoPath ? (
-                      <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 bg-white">
-                        <img 
-                          src={selectedReg.guestPhotoPath} 
-                          alt="Guest Profile" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <p className="text-slate-450 italic text-[10px]">No photo uploaded</p>
-                    )}
-                  </div>
 
-                  {/* Passports */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">Passport Front</p>
-                      {selectedReg.passportFrontPath ? (
-                        <a 
-                          href={selectedReg.passportFrontPath} 
-                          target="_blank" 
-                          rel="noreferrer" 
-                          className="block aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition cursor-pointer"
-                        >
-                          <img 
-                            src={selectedReg.passportFrontPath} 
-                            alt="Passport Front" 
-                            className="w-full h-full object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <p className="text-slate-450 italic text-[10px]">Not uploaded</p>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">Passport Back</p>
-                      {selectedReg.passportBackPath ? (
-                        <a 
-                          href={selectedReg.passportBackPath} 
-                          target="_blank" 
-                          rel="noreferrer" 
-                          className="block aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition cursor-pointer"
-                        >
-                          <img 
-                            src={selectedReg.passportBackPath} 
-                            alt="Passport Back" 
-                            className="w-full h-full object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <p className="text-slate-450 italic text-[10px]">Not uploaded</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {associatedBooking && (
                 <div className="pt-2">
