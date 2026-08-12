@@ -3059,11 +3059,13 @@ Staff: ${receiptData.generatedBy}`;
                          if (checkIn && checkOut) {
                            stayNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
                          }
+                         const roomCount = confirmationData.room ? confirmationData.room.split(',').filter(r => r.trim()).length : 1;
+                         const price = parseFloat(confirmationData.unitPrice || 0);
                          setConfirmationData({
                            ...confirmationData, 
                            checkInDate: checkIn,
                            nights: stayNights,
-                           totalPrice: (parseFloat(confirmationData.unitPrice || 0) * stayNights).toFixed(2)
+                           totalPrice: (price * stayNights * roomCount).toFixed(2)
                          });
                        }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
@@ -3083,11 +3085,13 @@ Staff: ${receiptData.generatedBy}`;
                          if (checkIn && checkOut) {
                            stayNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
                          }
+                         const roomCount = confirmationData.room ? confirmationData.room.split(',').filter(r => r.trim()).length : 1;
+                         const price = parseFloat(confirmationData.unitPrice || 0);
                          setConfirmationData({
                            ...confirmationData, 
                            checkOutDate: checkOut,
                            nights: stayNights,
-                           totalPrice: (parseFloat(confirmationData.unitPrice || 0) * stayNights).toFixed(2)
+                           totalPrice: (price * stayNights * roomCount).toFixed(2)
                          });
                        }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
@@ -3143,76 +3147,33 @@ Staff: ${receiptData.generatedBy}`;
                    </div>
 
                    {/* Room Name */}
-
-
                    <div className="space-y-1.5">
-
-
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Name</label>
-
-
                      <select 
-
-
                        value={confirmationData.roomType || ''}
-
-
                        onChange={(e) => {
-
-
                          const newRoomType = e.target.value;
-
-
-                         const matchedRoom = rooms.find(r => {
-
-
-                           const roomTypeName = r.roomType.toLowerCase();
-
-
-                           const selectedName = newRoomType.toLowerCase();
-
-
-                           return roomTypeName.includes(selectedName.split(' ')[0]) && r.status.toLowerCase() === 'available';
-
-
-                         }) || rooms.find(r => {
-
-
-                           const roomTypeName = r.roomType.toLowerCase();
-
-
-                           const selectedName = newRoomType.toLowerCase();
-
-
-                           return roomTypeName.includes(selectedName.split(' ')[0]);
-
-
-                         });
-
-
+                         const matchedRoom = rooms.find(r => r.roomType === newRoomType && r.status.toLowerCase() === 'available') 
+                                           || rooms.find(r => r.roomType === newRoomType);
+                         
+                         const newRoom = matchedRoom ? matchedRoom.roomNumber : '';
+                         const roomCount = newRoom ? 1 : 0;
+                         const price = parseFloat(confirmationData.unitPrice || 0);
+                         const nights = parseInt(confirmationData.nights) || 1;
+                         
                          setConfirmationData({
-
-
                            ...confirmationData,
-
-
                            roomType: newRoomType,
-
-
-                           room: matchedRoom ? matchedRoom.roomNumber : ''
-
-
+                           room: newRoom,
+                           totalPrice: (price * nights * roomCount).toFixed(2)
                          });
-
-
                        }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                      >
                        <option value="">Select Room Type</option>
-                       <option value="Deluxe Room">Deluxe Room</option>
-                       <option value="Suite Room">Suite Room</option>
-                       <option value="Standard Room">Standard Room</option>
-                       <option value="Budget Room">Budget Room</option>
+                       {uniqueRoomTypes.map((type, idx) => (
+                         <option key={idx} value={type}>{type}</option>
+                       ))}
                      </select>
                    </div>
 
@@ -3234,81 +3195,47 @@ Staff: ${receiptData.generatedBy}`;
                            <div className="fixed inset-0 z-10" onClick={() => setIsModalRoomDropdownOpen(false)}></div>
                            <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto p-1 space-y-0.5 select-none">
                              {rooms
-
                                .filter((room) => {
-
                                  if (!confirmationData.roomType) return true;
-
-                                 const roomTypeName = room.roomType.toLowerCase();
-
-                                 const selectedName = confirmationData.roomType.toLowerCase();
-
-                                 return roomTypeName.includes(selectedName.split(' ')[0]);
-
+                                 return room.roomType === confirmationData.roomType;
                                })
-
                                .map((room) => {
-
                                  const roomNumbers = confirmationData.room ? confirmationData.room.split(',').map(r => r.trim()) : [];
-
                                  const isChecked = roomNumbers.includes(room.roomNumber);
-
                                  return (
-
                                    <div 
-
                                      key={room.id} 
-
                                      onClick={(e) => {
-
                                        e.stopPropagation();
-
                                        let newRooms;
-
                                        if (isChecked) {
-
                                          newRooms = roomNumbers.filter(r => r !== room.roomNumber);
-
                                        } else {
-
                                          newRooms = [...roomNumbers, room.roomNumber];
-
                                        }
-
                                        const roomString = newRooms.join(', ');
-
+                                       
+                                       const roomCount = newRooms.filter(Boolean).length;
+                                       const price = parseFloat(confirmationData.unitPrice || 0);
+                                       const nights = parseInt(confirmationData.nights) || 1;
+                                       
                                        setConfirmationData({
-
                                          ...confirmationData,
-
-                                         room: roomString
-
+                                         room: roomString,
+                                         totalPrice: (price * nights * roomCount).toFixed(2)
                                        });
-
                                      }}
-
                                      className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium"
-
                                    >
-
                                      <input 
-
                                        type="checkbox"
-
                                        checked={isChecked}
-
                                        readOnly
-
                                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 pointer-events-none"
-
                                      />
-
                                      <span>{room.roomNumber} - {room.roomType} ({room.status})</span>
-
                                    </div>
-
                                  );
-
                                })}
                            </div>
                          </>
@@ -3317,12 +3244,12 @@ Staff: ${receiptData.generatedBy}`;
                    </div>
 
                    {/* Currency */}
-                   <div className="space-y-1.5">
+                   <div className="space-y-1.5 col-span-1">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
                      <select 
                        value={confirmationData.currency}
                        onChange={(e) => setConfirmationData({...confirmationData, currency: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
                      >
                        <option value="USD">USD</option>
                        <option value="LKR">LKR</option>
@@ -3331,8 +3258,8 @@ Staff: ${receiptData.generatedBy}`;
                    </div>
 
                    {/* Unit Price */}
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Price</label>
+                   <div className="space-y-1.5 col-span-1">
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Price (Per Night)</label>
                      <input 
                        type="number" 
                        step="0.01"
@@ -3340,10 +3267,11 @@ Staff: ${receiptData.generatedBy}`;
                        onChange={(e) => {
                          const price = parseFloat(e.target.value) || 0;
                          const nights = parseInt(confirmationData.nights) || 1;
+                         const roomCount = confirmationData.room ? confirmationData.room.split(',').filter(r => r.trim()).length : 1;
                          setConfirmationData({
                            ...confirmationData, 
                            unitPrice: e.target.value, 
-                           totalPrice: (price * nights).toFixed(2)
+                           totalPrice: (price * nights * roomCount).toFixed(2)
                          });
                        }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
@@ -3358,7 +3286,7 @@ Staff: ${receiptData.generatedBy}`;
                        step="0.01"
                        value={confirmationData.totalPrice}
                        onChange={(e) => setConfirmationData({...confirmationData, totalPrice: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-bold"
                      />
                    </div>
 
