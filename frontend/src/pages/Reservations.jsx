@@ -2671,40 +2671,7 @@ Staff: ${receiptData.generatedBy}`;
 
                {isCreatingNewReservation && (
                 <>
-                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Type</label>
-                    <select 
-                      value={confirmationData.bookingType || 'Direct Booking'}
-                      onChange={(e) => {
-                        const newType = e.target.value;
-                        let prefix = 'D-';
-                        if (newType === 'Booking.com Booking') prefix = 'B-';
-                        else if (newType === 'Airbnb Booking') prefix = 'A-';
-                        else if (newType === 'Web Booking') prefix = 'W-';
-                        
-                        let newBookingNum = confirmationData.bookingNumber;
-                        if (newBookingNum.startsWith('D-') || newBookingNum.startsWith('B-') || newBookingNum.startsWith('A-') || newBookingNum.startsWith('W-')) {
-                          newBookingNum = prefix + newBookingNum.substring(2);
-                        } else {
-                          newBookingNum = prefix + newBookingNum;
-                        }
-
-                        setConfirmationData({
-                          ...confirmationData,
-                          bookingType: newType,
-                          bookingNumber: newBookingNum
-                        });
-                      }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
-                    >
-                      <option value="Direct Booking">Direct Booking</option>
-                      <option value="Booking.com Booking">Booking.com Booking</option>
-                      <option value="Airbnb Booking">Airbnb Booking</option>
-                      <option value="Web Booking">Web Booking</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                  <div className="space-y-1.5 col-span-2">
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation ID / Booking Number</label>
                     <input 
                       type="text" 
