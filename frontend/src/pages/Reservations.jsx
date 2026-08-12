@@ -216,6 +216,7 @@ const Reservations = () => {
   });
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [isEditingBooking, setIsEditingBooking] = useState(false);
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
   const [isModalRoomDropdownOpen, setIsModalRoomDropdownOpen] = useState(false);
@@ -611,15 +612,27 @@ const Reservations = () => {
   };
 
   const handleCreateNewReservation = () => {
+    setShowTypeSelector(true);
+  };
+
+  const handleSelectReservationType = (type) => {
+    let prefix = 'D-';
+    if (type === 'Booking.com Booking') prefix = 'B-';
+    else if (type === 'Airbnb Booking') prefix = 'A-';
+    else if (type === 'Web Booking') prefix = 'W-';
+
+    const baseId = 1000 + registrations.length;
+    const defaultBookingNum = `${prefix}${baseId}`;
+
     setConfirmationData({
       guestName: '',
-      bookingNumber: '',
+      bookingNumber: defaultBookingNum,
       checkInDate: '',
       checkOutDate: '',
       nights: '',
       adults: '',
       children: '',
-      boardBasis: '',
+      boardBasis: 'Room Only',
       address: '',
       email: '',
       vatNo: '',
@@ -636,9 +649,11 @@ const Reservations = () => {
       senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold',
       remarks: '',
-      room: ''
+      room: '',
+      bookingType: type
     });
     setIsCreatingNewReservation(true);
+    setShowTypeSelector(false);
     setShowConfirmationModal(true);
   };
 
@@ -676,7 +691,7 @@ const Reservations = () => {
             roomNumber: confirmationData.room || 'Unallocated',
             roomType: confirmationData.roomType,
             boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
-            bookingType: 'Direct',
+            bookingType: confirmationData.bookingType || 'Direct Booking',
             totalAmount: parseFloat(confirmationData.totalPrice) || 0,
             remarks: confirmationData.remarks || '',
             status: 'Confirmed'
@@ -1935,6 +1950,95 @@ const Reservations = () => {
           </div>
         </div>
       )}
+      {/* Select Reservation Type Modal */}
+      {showTypeSelector && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-100 w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
+            <div className="p-5 bg-gradient-to-r from-amber-600 to-amber-700 text-white flex items-center justify-between select-none">
+              <div>
+                <h3 className="text-base font-extrabold tracking-wider uppercase">Select Reservation Type</h3>
+                <p className="text-[11px] text-amber-100 font-medium mt-0.5">Choose the reservation source channel to load the form</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowTypeSelector(false)} 
+                className="text-white hover:text-amber-100 p-1.5 hover:bg-white/10 rounded-lg transition cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 bg-slate-50/50 space-y-3">
+              {[
+                { 
+                  name: 'Direct Booking', 
+                  desc: 'Reservations made directly by the guest through the property.', 
+                  color: 'hover:border-amber-400 hover:bg-amber-50/30',
+                  icon: (
+                    <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600 shrink-0">
+                      <svg className="h-5 w-5 fill-none stroke-current" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                  )
+                },
+                { 
+                  name: 'Booking.com Booking', 
+                  desc: 'Reservations received through Booking.com OTA platform.', 
+                  color: 'hover:border-blue-400 hover:bg-blue-50/30',
+                  icon: (
+                    <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 shrink-0">
+                      <span className="font-extrabold text-xs tracking-tighter">B.</span>
+                    </div>
+                  )
+                },
+                { 
+                  name: 'Airbnb Booking', 
+                  desc: 'Reservations received through Airbnb listing.', 
+                  color: 'hover:border-rose-450 hover:bg-rose-50/30',
+                  icon: (
+                    <div className="p-2.5 bg-rose-50 rounded-xl text-rose-600 shrink-0">
+                      <svg className="h-5 w-5 fill-none stroke-current" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                    </div>
+                  )
+                },
+                { 
+                  name: 'Web Booking', 
+                  desc: 'Reservations made through the property\'s official website.', 
+                  color: 'hover:border-emerald-400 hover:bg-emerald-50/30',
+                  icon: (
+                    <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 shrink-0">
+                      <svg className="h-5 w-5 fill-none stroke-current" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                    </div>
+                  )
+                }
+              ].map((typeOption) => (
+                <button
+                  key={typeOption.name}
+                  type="button"
+                  onClick={() => handleSelectReservationType(typeOption.name)}
+                  className={`w-full text-left p-4 bg-white border border-slate-200/80 rounded-2xl transition flex items-center gap-4 cursor-pointer group shadow-xs ${typeOption.color}`}
+                >
+                  {typeOption.icon}
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-slate-900 transition flex items-center gap-1.5">
+                      {typeOption.name}
+                      <span className="text-[10px] text-slate-400 font-semibold opacity-0 group-hover:opacity-100 transition-all transform translate-x-[-5px] group-hover:translate-x-0">
+                        ➔
+                      </span>
+                    </h4>
+                    <p className="text-[10px] text-slate-450 mt-0.5 leading-normal">{typeOption.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Select a Room Modal */}
       {showRoomSelector && (
         <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -2472,9 +2576,42 @@ Staff: ${receiptData.generatedBy}`;
                 />
               </div>
 
-              {isCreatingNewReservation && (
+               {isCreatingNewReservation && (
                 <>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Type</label>
+                    <select 
+                      value={confirmationData.bookingType || 'Direct Booking'}
+                      onChange={(e) => {
+                        const newType = e.target.value;
+                        let prefix = 'D-';
+                        if (newType === 'Booking.com Booking') prefix = 'B-';
+                        else if (newType === 'Airbnb Booking') prefix = 'A-';
+                        else if (newType === 'Web Booking') prefix = 'W-';
+                        
+                        let newBookingNum = confirmationData.bookingNumber;
+                        if (newBookingNum.startsWith('D-') || newBookingNum.startsWith('B-') || newBookingNum.startsWith('A-') || newBookingNum.startsWith('W-')) {
+                          newBookingNum = prefix + newBookingNum.substring(2);
+                        } else {
+                          newBookingNum = prefix + newBookingNum;
+                        }
+
+                        setConfirmationData({
+                          ...confirmationData,
+                          bookingType: newType,
+                          bookingNumber: newBookingNum
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
+                    >
+                      <option value="Direct Booking">Direct Booking</option>
+                      <option value="Booking.com Booking">Booking.com Booking</option>
+                      <option value="Airbnb Booking">Airbnb Booking</option>
+                      <option value="Web Booking">Web Booking</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation ID / Booking Number</label>
                     <input 
                       type="text" 
