@@ -199,7 +199,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       </table>
 
       {/* Reserved By */}
-      {(!confirmationData.bookingType || confirmationData.bookingType === 'Direct Booking') && (
+      {(!confirmationData.bookingType || confirmationData.bookingType === 'Direct Booking') ? (
         <>
           <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
             RESERVED BY
@@ -219,6 +219,23 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
                 <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Remark</td>
                 <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
                 <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }} colSpan="4">
+                  {associatedBooking?.remarks || confirmationData.remarks || 'None'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+            REMARKS
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+            <tbody>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Remark</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>
                   {associatedBooking?.remarks || confirmationData.remarks || 'None'}
                 </td>
               </tr>
