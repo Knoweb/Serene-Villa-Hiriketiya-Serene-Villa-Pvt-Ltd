@@ -147,6 +147,7 @@ const Reservations = () => {
     totalPrice: '',
     currency: 'USD',
     exchangeRate: '1.00',
+    allocatedRooms: [],
     confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
     reservationStatus: 'Confirm Booking',
     senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -537,7 +538,9 @@ const Reservations = () => {
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: 'USD',
       exchangeRate: '1.00',
+    allocatedRooms: [],
     exchangeRate: '1.00',
+    allocatedRooms: [],
       confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -577,7 +580,9 @@ const Reservations = () => {
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: 'USD',
       exchangeRate: '1.00',
+    allocatedRooms: [],
     exchangeRate: '1.00',
+    allocatedRooms: [],
       confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -661,7 +666,9 @@ const Reservations = () => {
       totalPrice: '',
       currency: 'USD',
       exchangeRate: '1.00',
+    allocatedRooms: [],
     exchangeRate: '1.00',
+    allocatedRooms: [],
       confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -2854,7 +2861,7 @@ Staff: ${receiptData.generatedBy}`;
                          </div>
                        </div>
 
-                       {confirmationData.roomType && ROOM_TEMPLATES[confirmationData.roomType] && (
+                       {confirmationData.roomType && !confirmationData.roomType.includes(',') && ROOM_TEMPLATES[confirmationData.roomType] && (
                          <div className="col-span-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex gap-4 items-center">
                            <div className="w-24 h-16 rounded-xl overflow-hidden shrink-0 border border-slate-100 bg-white shadow-xs">
                              <img 
@@ -3067,13 +3074,10 @@ Staff: ${receiptData.generatedBy}`;
                          if (checkIn && checkOut) {
                            stayNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
                          }
-                         const roomCount = confirmationData.room ? confirmationData.room.split(',').filter(r => r.trim()).length : 1;
-                         const price = parseFloat(confirmationData.unitPrice || 0);
                          setConfirmationData({
                            ...confirmationData, 
                            checkInDate: checkIn,
-                           nights: stayNights,
-                           totalPrice: (price * stayNights * roomCount).toFixed(2)
+                           nights: stayNights
                          });
                        }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
@@ -3093,13 +3097,10 @@ Staff: ${receiptData.generatedBy}`;
                          if (checkIn && checkOut) {
                            stayNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
                          }
-                         const roomCount = confirmationData.room ? confirmationData.room.split(',').filter(r => r.trim()).length : 1;
-                         const price = parseFloat(confirmationData.unitPrice || 0);
                          setConfirmationData({
                            ...confirmationData, 
                            checkOutDate: checkOut,
-                           nights: stayNights,
-                           totalPrice: (price * stayNights * roomCount).toFixed(2)
+                           nights: stayNights
                          });
                        }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
@@ -3155,7 +3156,7 @@ Staff: ${receiptData.generatedBy}`;
                    </div>
 
                    {/* Room Name Dropdown (Multiple-Select) */}
-                   <div className="space-y-1.5 relative col-span-1">
+                   <div className="space-y-1.5 relative col-span-2">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Name(s)</label>
                      <div className="relative">
                        <button
@@ -3192,16 +3193,26 @@ Staff: ${receiptData.generatedBy}`;
                                      const roomNumbers = matchedRooms.map(r => r.roomNumber);
                                      const uniqueRoomNumbers = Array.from(new Set(roomNumbers));
                                      const roomString = uniqueRoomNumbers.join(', ');
+
+                                     // Build/update allocatedRooms array with prices preserved
+                                     const currentAllocated = confirmationData.allocatedRooms || [];
+                                     const newAllocated = matchedRooms.map(r => {
+                                       const existing = currentAllocated.find(ca => ca.roomNumber === r.roomNumber);
+                                       return {
+                                         roomType: r.roomType,
+                                         roomNumber: r.roomNumber,
+                                         price: existing ? existing.price : '0.00'
+                                       };
+                                     });
                                      
-                                     const roomCount = uniqueRoomNumbers.length;
-                                     const price = parseFloat(confirmationData.unitPrice || 0);
-                                     const nights = parseInt(confirmationData.nights) || 1;
+                                     const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
                                      
                                      setConfirmationData({
                                        ...confirmationData,
                                        roomType: typeString,
                                        room: roomString,
-                                       totalPrice: (price * nights * roomCount).toFixed(2)
+                                       allocatedRooms: newAllocated,
+                                       totalPrice: totalSum.toFixed(2)
                                      });
                                    }}
                                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium"
@@ -3222,8 +3233,59 @@ Staff: ${receiptData.generatedBy}`;
                      </div>
                    </div>
 
+                   {/* Room Price Breakdown Table */}
+                   {confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 && (
+                     <div className="col-span-2 mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">Room Allocations & Prices</label>
+                       <div className="overflow-x-auto">
+                         <table className="w-full text-left text-xs">
+                           <thead>
+                             <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                               <th className="pb-1.5 font-semibold">Room Name</th>
+                               <th className="pb-1.5 font-semibold">Room Number</th>
+                               <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.currency || 'USD'})</th>
+                             </tr>
+                           </thead>
+                           <tbody className="divide-y divide-slate-100">
+                             {confirmationData.allocatedRooms.map((item, idx) => (
+                               <tr key={idx} className="text-slate-700">
+                                 <td className="py-2 pr-2 font-medium">{item.roomType}</td>
+                                 <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
+                                 <td className="py-1 text-right">
+                                   <div className="inline-flex items-center gap-1.5 justify-end">
+                                     <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.currency || 'USD'}</span>
+                                     <input
+                                       type="number"
+                                       step="0.01"
+                                       value={item.price}
+                                       onChange={(e) => {
+                                         const val = e.target.value;
+                                         const updatedAllocated = [...confirmationData.allocatedRooms];
+                                         updatedAllocated[idx] = {
+                                           ...updatedAllocated[idx],
+                                           price: val
+                                         };
+                                         const totalSum = updatedAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                                         setConfirmationData({
+                                           ...confirmationData,
+                                           allocatedRooms: updatedAllocated,
+                                           totalPrice: totalSum.toFixed(2)
+                                         });
+                                       }}
+                                       className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
+                                     />
+                                   </div>
+                                 </td>
+                               </tr>
+                             ))}
+                           </tbody>
+                         </table>
+                       </div>
+                     </div>
+                   )}
+
                    {/* Room Number(s) Display (Read-Only) */}
-                   <div className="space-y-1.5 col-span-1">
+                   <div className="space-y-1.5 col-span-2">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Number(s)</label>
                      <input
                        type="text"
@@ -3260,36 +3322,15 @@ Staff: ${receiptData.generatedBy}`;
                      />
                    </div>
 
-                   {/* Unit Price */}
-                   <div className="space-y-1.5 col-span-1">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Price (Per Night)</label>
-                     <input 
-                       type="number" 
-                       step="0.01"
-                       value={confirmationData.unitPrice}
-                       onChange={(e) => {
-                         const price = parseFloat(e.target.value) || 0;
-                         const nights = parseInt(confirmationData.nights) || 1;
-                         const roomCount = confirmationData.room ? confirmationData.room.split(',').filter(r => r.trim()).length : 1;
-                         setConfirmationData({
-                           ...confirmationData, 
-                           unitPrice: e.target.value, 
-                           totalPrice: (price * nights * roomCount).toFixed(2)
-                         });
-                       }}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
-
                    {/* Total Price */}
-                   <div className="space-y-1.5 col-span-1">
+                   <div className="space-y-1.5 col-span-2">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
                      <input 
                        type="number" 
-                       step="0.01"
+                       readOnly
+                       disabled
                        value={confirmationData.totalPrice}
-                       onChange={(e) => setConfirmationData({...confirmationData, totalPrice: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-bold"
+                       className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed font-bold"
                      />
                    </div>
 
