@@ -3143,17 +3143,68 @@ Staff: ${receiptData.generatedBy}`;
                    </div>
 
                    {/* Room Name */}
+
+
                    <div className="space-y-1.5">
+
+
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Name</label>
+
+
                      <select 
+
+
                        value={confirmationData.roomType || ''}
+
+
                        onChange={(e) => {
+
+
                          const newRoomType = e.target.value;
-                         setConfirmationData({
-                           ...confirmationData,
-                           roomType: newRoomType,
-                           room: ''
+
+
+                         const matchedRoom = rooms.find(r => {
+
+
+                           const roomTypeName = r.roomType.toLowerCase();
+
+
+                           const selectedName = newRoomType.toLowerCase();
+
+
+                           return roomTypeName.includes(selectedName.split(' ')[0]) && r.status.toLowerCase() === 'available';
+
+
+                         }) || rooms.find(r => {
+
+
+                           const roomTypeName = r.roomType.toLowerCase();
+
+
+                           const selectedName = newRoomType.toLowerCase();
+
+
+                           return roomTypeName.includes(selectedName.split(' ')[0]);
+
+
                          });
+
+
+                         setConfirmationData({
+
+
+                           ...confirmationData,
+
+
+                           roomType: newRoomType,
+
+
+                           room: matchedRoom ? matchedRoom.roomNumber : ''
+
+
+                         });
+
+
                        }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                      >
@@ -3183,41 +3234,81 @@ Staff: ${receiptData.generatedBy}`;
                            <div className="fixed inset-0 z-10" onClick={() => setIsModalRoomDropdownOpen(false)}></div>
                            <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto p-1 space-y-0.5 select-none">
                              {rooms
+
                                .filter((room) => {
+
                                  if (!confirmationData.roomType) return true;
+
                                  const roomTypeName = room.roomType.toLowerCase();
+
                                  const selectedName = confirmationData.roomType.toLowerCase();
+
                                  return roomTypeName.includes(selectedName.split(' ')[0]);
+
                                })
+
                                .map((room) => {
+
                                  const roomNumbers = confirmationData.room ? confirmationData.room.split(',').map(r => r.trim()) : [];
+
                                  const isChecked = roomNumbers.includes(room.roomNumber);
+
                                  return (
-                                   <label 
+
+                                   <div 
+
                                      key={room.id} 
+
+                                     onClick={(e) => {
+
+                                       e.stopPropagation();
+
+                                       let newRooms;
+
+                                       if (isChecked) {
+
+                                         newRooms = roomNumbers.filter(r => r !== room.roomNumber);
+
+                                       } else {
+
+                                         newRooms = [...roomNumbers, room.roomNumber];
+
+                                       }
+
+                                       const roomString = newRooms.join(', ');
+
+                                       setConfirmationData({
+
+                                         ...confirmationData,
+
+                                         room: roomString
+
+                                       });
+
+                                     }}
+
                                      className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium"
+
                                    >
+
                                      <input 
+
                                        type="checkbox"
+
                                        checked={isChecked}
-                                       onChange={() => {
-                                         let newRooms;
-                                         if (isChecked) {
-                                           newRooms = roomNumbers.filter(r => r !== room.roomNumber);
-                                         } else {
-                                           newRooms = [...roomNumbers, room.roomNumber];
-                                         }
-                                         const roomString = newRooms.join(', ');
-                                         setConfirmationData({
-                                           ...confirmationData,
-                                           room: roomString
-                                         });
-                                       }}
-                                       className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+
+                                       readOnly
+
+                                       className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 pointer-events-none"
+
                                      />
+
                                      <span>{room.roomNumber} - {room.roomType} ({room.status})</span>
-                                   </label>
+
+                                   </div>
+
                                  );
+
                                })}
                            </div>
                          </>
