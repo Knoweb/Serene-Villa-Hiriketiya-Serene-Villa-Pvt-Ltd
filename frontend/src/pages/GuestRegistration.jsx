@@ -284,7 +284,7 @@ const GuestRegistration = () => {
         boardBasis: 'Room Only',
         remarks: formData.remarks || '',
         amount: formData.totalAmount ? parseFloat(formData.totalAmount) : 0,
-        paymentStatus: formData.paymentType !== 'NONE' ? (formData.paymentType === 'FULL' ? 'Paid' : 'Partially Paid') : 'Pending',
+        paymentStatus: formData.paymentType !== 'NONE' ? (formData.paymentType === 'FULL' ? 'Paid' : 'Paid Advance') : 'Confirm',
         registrationStatus: 'Pending'
       };
 

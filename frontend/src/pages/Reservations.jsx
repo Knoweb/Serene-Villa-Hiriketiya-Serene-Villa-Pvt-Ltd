@@ -788,7 +788,7 @@ const Reservations = () => {
       // Determine new payment status
       let newPaymentStatus = 'Unpaid';
       if (isFull || newTotal >= totalBookingAmount) newPaymentStatus = 'Paid';
-      else if (newTotal > 0) newPaymentStatus = 'Partially Paid';
+      else if (newTotal > 0) newPaymentStatus = 'Paid Advance';
 
       await fetch(`${API_BASE}/bookings/${booking.id}/payment-status?paymentStatus=${newPaymentStatus}`, {
         method: 'PUT'
@@ -922,9 +922,10 @@ const Reservations = () => {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-semibold focus:outline-none focus:border-emerald-500 transition cursor-pointer"
           >
             <option value="">All Payment Statuses</option>
+            <option value="Confirm">Confirm</option>
             <option value="Paid">Paid</option>
             <option value="Unpaid">Unpaid</option>
-            <option value="Pending">Pending</option>
+            <option value="Paid Advance">Paid Advance</option>
           </select>
         </div>
       </div>
@@ -1028,7 +1029,11 @@ const Reservations = () => {
                                   ? 'bg-green-100 text-green-700' 
                                   : reg.paymentStatus === 'Unpaid' 
                                   ? 'bg-rose-100 text-rose-700' 
-                                  : 'bg-amber-100 text-amber-700'
+                                  : reg.paymentStatus === 'Confirm' 
+                                  ? 'bg-blue-100 text-blue-700' 
+                                  : reg.paymentStatus === 'Paid Advance' 
+                                  ? 'bg-amber-100 text-amber-700' 
+                                  : 'bg-slate-100 text-slate-700'
                               }`}>
                                 {reg.paymentStatus}
                               </span>
@@ -1517,9 +1522,10 @@ const Reservations = () => {
                       onChange={(e) => setBookingForm({...bookingForm, paymentStatus: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700"
                     >
-                      <option value="Pending">Pending</option>
+                      <option value="Confirm">Confirm</option>
                       <option value="Paid">Paid</option>
                       <option value="Unpaid">Unpaid</option>
+                      <option value="Paid Advance">Paid Advance</option>
                     </select>
                   </div>
 

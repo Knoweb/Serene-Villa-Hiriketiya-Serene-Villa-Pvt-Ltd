@@ -47,7 +47,7 @@ public class GuestRegistrationService {
             long days = registration.getCheckInDate().datesUntil(registration.getCheckOutDate()).count();
             registration.setNumberOfNights((int) days);
         }
-        registration.setPaymentStatus("Pending");
+        registration.setPaymentStatus("Confirm");
         registration.setRegistrationStatus("Pending");
         registration.setHiddenFromFrontOffice(false);
         if (registration.getCreatedBy() == null || registration.getCreatedBy().isEmpty()) {
@@ -88,7 +88,7 @@ public class GuestRegistrationService {
                             if (totalPaid >= totalAmt && totalAmt > 0) {
                                 computedStatus = "Paid";
                             } else if (totalPaid > 0) {
-                                computedStatus = "Partially Paid";
+                                computedStatus = "Paid Advance";
                             }
                             reg.setPaymentStatus(computedStatus);
                         });
