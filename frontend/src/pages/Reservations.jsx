@@ -708,13 +708,20 @@ const Reservations = () => {
   // Switch Booking Number Prefix Dynamically
   const handleBookingChannelChange = (channel) => {
     let newBookingNumber = bookingForm.bookingNumber;
-    if (newBookingNumber.startsWith('B-') && channel === 'Direct') {
-      newBookingNumber = 'D-' + newBookingNumber.substring(2);
-    } else if (newBookingNumber.startsWith('D-') && channel === 'Booking.com') {
-      newBookingNumber = 'B-' + newBookingNumber.substring(2);
-    } else if (!newBookingNumber) {
-      newBookingNumber = (channel === 'Direct' ? 'D-' : 'B-') + (1000 + (selectedReg?.id || 0));
+    let numericPart = '';
+    if (newBookingNumber.startsWith('D-') || newBookingNumber.startsWith('B-') || newBookingNumber.startsWith('A-') || newBookingNumber.startsWith('W-')) {
+      numericPart = newBookingNumber.substring(2);
+    } else {
+      numericPart = newBookingNumber || (1000 + (selectedReg?.id || 0)).toString();
     }
+
+    let prefix = 'D-';
+    if (channel === 'Booking.com Booking') prefix = 'B-';
+    else if (channel === 'Airbnb Booking') prefix = 'A-';
+    else if (channel === 'Web Booking') prefix = 'W-';
+
+    newBookingNumber = prefix + numericPart;
+
     setBookingForm({
       ...bookingForm,
       bookingType: channel,
@@ -1431,15 +1438,17 @@ const Reservations = () => {
 
                   {/* Booking Type */}
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Booking Channel</label>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reservation Type</label>
                     <select
                       value={bookingForm.bookingType}
                       disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                       onChange={(e) => handleBookingChannelChange(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
                     >
-                      <option value="Direct">Direct</option>
-                      <option value="Booking.com">Booking.com</option>
+                      <option value="Direct Booking">Direct Booking</option>
+                      <option value="Booking.com Booking">Booking.com Booking</option>
+                      <option value="Airbnb Booking">Airbnb Booking</option>
+                      <option value="Web Booking">Web Booking</option>
                     </select>
                   </div>
 
