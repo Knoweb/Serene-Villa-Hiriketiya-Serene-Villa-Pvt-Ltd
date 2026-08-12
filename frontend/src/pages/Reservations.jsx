@@ -215,6 +215,7 @@ const Reservations = () => {
     registrationStatus: 'Pending'
   });
   const [updatingBooking, setUpdatingBooking] = useState(false);
+  const [isEditingBooking, setIsEditingBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
   const [isModalRoomDropdownOpen, setIsModalRoomDropdownOpen] = useState(false);
@@ -425,6 +426,7 @@ const Reservations = () => {
   // Select Guest and Populate Booking Form
   const handleSelectGuest = async (reg) => {
     setSelectedReg(reg);
+    setIsEditingBooking(false);
     let associatedBooking = bookings.find(b => b.guestRegistrationId === reg.id);
     
     if (!associatedBooking) {
@@ -741,6 +743,7 @@ const Reservations = () => {
       const updatedReg = await response.json();
       setSelectedReg(updatedReg);
       setBookingSuccess(true);
+      setIsEditingBooking(false);
       
       // Refresh list to update status badges
       await fetchRegistrations();
@@ -1337,7 +1340,7 @@ const Reservations = () => {
 
               {/* Complete Booking Form (Front Office Update) */}
               <form onSubmit={handleBookingSubmit} className="space-y-4 pt-2 border-t border-slate-100">
-                <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Allocate & Complete Booking</h4>
+                <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Room & Payment Details</h4>
                 
                 {bookingSuccess && (
                   <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl flex items-center gap-1.5 animate-pulse">
@@ -1354,7 +1357,7 @@ const Reservations = () => {
                         <button
                           type="button"
                           onClick={() => setIsRoomDropdownOpen(!isRoomDropdownOpen)}
-                          disabled={isFrontOfficer === false && isAdmin === false}
+                          disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 text-xs text-left flex justify-between items-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <span className="truncate">{bookingForm.room || 'Select Rooms...'}</span>
@@ -1376,6 +1379,7 @@ const Reservations = () => {
                                     <input 
                                       type="checkbox"
                                       checked={isChecked}
+                                      disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                                       onChange={() => {
                                         let newRooms;
                                         if (isChecked) {
@@ -1417,7 +1421,7 @@ const Reservations = () => {
                       <button
                         type="button"
                         onClick={() => setShowRoomSelector(true)}
-                        disabled={isFrontOfficer === false && isAdmin === false}
+                        disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                         className="px-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-lg font-bold transition flex items-center justify-center border border-slate-200 cursor-pointer text-xs"
                       >
                         Browse
@@ -1425,53 +1429,12 @@ const Reservations = () => {
                     </div>
                   </div>
 
-                  {/* Room Preview Card */}
-                  {getRoomTypeDetails(bookingForm.roomType) && (() => {
-                    const details = getRoomTypeDetails(bookingForm.roomType);
-                    return (
-                      <div className="col-span-2 mt-1 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex flex-col sm:flex-row gap-3 p-3 select-none">
-                        <div className="w-full sm:w-[120px] h-[90px] rounded-lg overflow-hidden relative shrink-0">
-                          <img 
-                            src={details.image} 
-                            alt={bookingForm.roomType}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent flex items-end p-1.5">
-                            <span className="text-[8px] text-white font-bold bg-slate-900/30 backdrop-blur-xs px-1.5 py-0.5 rounded">
-                              Max: {details.occupancy}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex-1 flex flex-col justify-between py-0.5">
-                          <div>
-                            <h5 className="text-[11px] font-bold text-slate-800">{bookingForm.roomType} Preview</h5>
-                            <p className="text-[9px] text-slate-400 leading-normal">
-                              Premium room layout equipped with modern amenities for a serene guest experience.
-                            </p>
-                          </div>
-                          <div className="mt-1">
-                            <div className="flex flex-wrap gap-1">
-                              {details.features.map((feat, idx) => (
-                                <span 
-                                  key={idx} 
-                                  className="text-[8px] bg-white border border-slate-200/50 text-slate-500 font-bold px-1.5 py-0.5 rounded"
-                                >
-                                  {feat}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
                   {/* Booking Type */}
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Booking Channel</label>
                     <select
                       value={bookingForm.bookingType}
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                       onChange={(e) => handleBookingChannelChange(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
                     >
@@ -1486,7 +1449,7 @@ const Reservations = () => {
                     <input
                       type="text"
                       placeholder="e.g. B-1002"
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                       value={bookingForm.bookingNumber}
                       onChange={(e) => setBookingForm({...bookingForm, bookingNumber: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 font-mono"
@@ -1498,7 +1461,7 @@ const Reservations = () => {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Board Basis</label>
                     <select
                       value={bookingForm.boardBasis}
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                       onChange={(e) => setBookingForm({...bookingForm, boardBasis: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
                     >
@@ -1514,43 +1477,22 @@ const Reservations = () => {
                     <input
                       type="number"
                       placeholder="e.g. 75000"
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                       value={bookingForm.amount}
                       onChange={(e) => setBookingForm({...bookingForm, amount: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-750 font-mono"
                     />
                   </div>
 
-                  {/* Payment Status */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Payment Status</label>
-                    <select
-                      value={bookingForm.paymentStatus}
-                      disabled={isFrontOfficer === false && isAdmin === false}
-                      onChange={(e) => setBookingForm({...bookingForm, paymentStatus: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700"
-                    >
-                      <option value="Confirm">Confirm</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Unpaid">Unpaid</option>
-                      <option value="Paid Advance">Paid Advance</option>
-                    </select>
-                  </div>
-
-                  {/* Booking / Registration Status */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stay Status</label>
-                    <select
-                      value={bookingForm.registrationStatus}
-                      disabled={isFrontOfficer === false && isAdmin === false}
-                      onChange={(e) => setBookingForm({...bookingForm, registrationStatus: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="CheckedIn">Checked In</option>
-                      <option value="CheckedOut">Checked Out</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
+                  {/* Room Type */}
+                  <div className="space-y-1.5 col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room Type</label>
+                    <input
+                      type="text"
+                      disabled={true}
+                      value={bookingForm.roomType}
+                      className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-500 cursor-not-allowed"
+                    />
                   </div>
 
                   {/* Remarks */}
@@ -1558,7 +1500,7 @@ const Reservations = () => {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Remarks / Special Notes</label>
                     <textarea
                       placeholder="e.g. Needs early check-in, extra bedding."
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={(isFrontOfficer === false && isAdmin === false) || (associatedBooking && !isEditingBooking)}
                       value={bookingForm.remarks}
                       onChange={(e) => setBookingForm({...bookingForm, remarks: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 min-h-[50px] focus:outline-none"
@@ -1566,20 +1508,60 @@ const Reservations = () => {
                   </div>
                 </div>
 
-                {/* Save Buttons */}
+                {/* Save / Edit Buttons */}
                 {(isFrontOfficer || isAdmin) && (
-                  <button
-                    type="submit"
-                    disabled={updatingBooking}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10"
-                  >
-                    {updatingBooking ? (
-                      <Loader className="h-4 w-4 animate-spin" />
+                  <div className="flex gap-2 pt-2">
+                    {associatedBooking && !isEditingBooking ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingBooking(true)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        <svg className="h-4 w-4 fill-white" viewBox="0 0 24 24">
+                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                        Edit Booking Details
+                      </button>
                     ) : (
-                      <Check className="h-4 w-4" />
+                      <>
+                        <button
+                          type="submit"
+                          disabled={updatingBooking}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                        >
+                          {updatingBooking ? (
+                            <Loader className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                          Save Booking Details
+                        </button>
+                        {associatedBooking && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsEditingBooking(false);
+                              // Reset form
+                              setBookingForm({
+                                roomType: associatedBooking.roomType || defaultRoomType,
+                                room: associatedBooking.roomNumber || '',
+                                bookingType: associatedBooking.bookingType || 'Direct',
+                                bookingNumber: associatedBooking.bookingNumber || '',
+                                boardBasis: associatedBooking.boardBasis || 'Room Only',
+                                remarks: associatedBooking.remarks || '',
+                                amount: associatedBooking.totalAmount || '',
+                                paymentStatus: selectedReg.paymentStatus || 'Pending',
+                                registrationStatus: selectedReg.registrationStatus || 'Pending'
+                              });
+                            }}
+                            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-xl text-xs transition cursor-pointer shadow-sm"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </>
                     )}
-                    Save Booking Details
-                  </button>
+                  </div>
                 )}
               </form>
 
@@ -1982,20 +1964,15 @@ const Reservations = () => {
                       }`}
                     >
                       <div>
-                        <div className="aspect-[16/10] overflow-hidden relative bg-slate-100">
-                          <img 
-                            src={room.image || deluxeRoomImg} 
-                            alt={room.roomType}
-                            className="w-full h-full object-cover"
-                          />
-                          <span className={`absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm ${
+                      <div className="p-3.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm ${
                             room.status === 'Available' ? 'bg-emerald-500 text-white' : 
                             room.status === 'Occupied' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'
                           }`}>
                             {room.status}
                           </span>
                         </div>
-                        <div className="p-3.5 space-y-2">
                           <div>
                             <h4 className="text-xs font-bold text-slate-800">
                               {room.roomType} - Room No. {room.roomNumber}
