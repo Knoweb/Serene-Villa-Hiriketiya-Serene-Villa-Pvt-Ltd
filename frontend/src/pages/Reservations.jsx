@@ -1274,7 +1274,7 @@ const Reservations = () => {
               </div>
 
               {/* Quick Actions (WhatsApp & PDF Confirmation) */}
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -1294,17 +1294,30 @@ const Reservations = () => {
                     
                     window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`, '_blank');
                   }}
-                  className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold py-2 px-1 rounded-xl text-[10px] transition flex flex-col items-center justify-center gap-1 cursor-pointer shadow-xs"
                 >
-                  <MessageSquare size={14} className="text-blue-700" /> WhatsApp Chat
+                  <svg className="h-4 w-4 fill-emerald-600" viewBox="0 0 24 24">
+                    <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 0 0 1.335 4.963L2 22l5.233-1.372a9.912 9.912 0 0 0 4.773 1.226h.004c5.505 0 9.989-4.478 9.989-9.984a9.963 9.963 0 0 0-2.924-7.064A9.917 9.917 0 0 0 12.012 2zm5.735 14.13c-.315.885-1.536 1.624-2.18 1.764-.582.126-1.341.226-3.896-.828-3.267-1.348-5.385-4.668-5.548-4.887-.163-.219-1.305-1.733-1.305-3.303 0-1.57.818-2.343 1.11-2.656.29-.313.638-.39.85-.39.213 0 .426.002.61.01.196.009.46-.073.72.559.27.653.92 2.247 1.002 2.41.082.164.137.355.027.574-.11.218-.163.355-.327.546-.164.19-.345.426-.492.573-.164.164-.336.345-.145.672.19.327.848 1.4 1.82 2.27.973.87 2.003 1.258 2.33 1.42.327.164.518.137.71-.082.19-.219.82-.955 1.037-1.28.219-.328.437-.273.738-.164.3.11 1.91.9 2.237 1.064.327.164.546.246.628.383.082.136.082.791-.233 1.676z"/>
+                  </svg>
+                  <span>WhatsApp Chat</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleInstantDownloadPDF(selectedReg)}
+                  className="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-850 font-bold py-2 px-1 rounded-xl text-[10px] transition flex flex-col items-center justify-center gap-1 cursor-pointer shadow-xs"
+                >
+                  <Download className="h-4 w-4 text-amber-700" />
+                  <span>Download PDF</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleOpenConfirmationModal}
-                  className="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-850 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2 px-1 rounded-xl text-[10px] transition flex flex-col items-center justify-center gap-1 cursor-pointer shadow-xs"
                 >
-                  <FileText className="h-4 w-4 text-amber-700" /> Get PDF Slip
+                  <Printer className="h-4 w-4 text-blue-700" />
+                  <span>Print PDF</span>
                 </button>
               </div>
 
