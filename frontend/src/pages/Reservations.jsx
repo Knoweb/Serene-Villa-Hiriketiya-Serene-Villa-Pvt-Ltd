@@ -1502,48 +1502,36 @@ const Reservations = () => {
                 {/* Save / Edit Buttons */}
                 {(isFrontOfficer || isAdmin) && (
                   <div className="flex gap-2.5 pt-2">
-                    {!associatedBooking ? (
-                      <button
-                        type="submit"
-                        disabled={updatingBooking}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                      >
-                        {updatingBooking ? (
-                          <Loader className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                        Save Booking Details
-                      </button>
-                    ) : !isEditingBooking ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingBooking(true)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <svg className="h-4 w-4 fill-white" viewBox="0 0 24 24">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                      </svg>
+                      Edit
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={updatingBooking}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                    >
+                      {updatingBooking ? (
+                        <Loader className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                      Save
+                    </button>
+
+                    {isEditingBooking && (
                       <button
                         type="button"
-                        onClick={() => setIsEditingBooking(true)}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                      >
-                        <svg className="h-4 w-4 fill-white" viewBox="0 0 24 24">
-                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                        </svg>
-                        Edit Booking Details
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          type="submit"
-                          disabled={updatingBooking}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                        >
-                          {updatingBooking ? (
-                            <Loader className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Check className="h-4 w-4" />
-                          )}
-                          Save Changes
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsEditingBooking(false);
+                        onClick={() => {
+                          setIsEditingBooking(false);
+                          if (associatedBooking) {
                             setBookingForm({
                               roomType: associatedBooking.roomType || defaultRoomType,
                               room: associatedBooking.roomNumber || '',
@@ -1555,12 +1543,12 @@ const Reservations = () => {
                               paymentStatus: selectedReg.paymentStatus || 'Pending',
                               registrationStatus: selectedReg.registrationStatus || 'Pending'
                             });
-                          }}
-                          className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs transition cursor-pointer shadow-sm"
-                        >
-                          Cancel
-                        </button>
-                      </>
+                          }
+                        }}
+                        className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-xl text-xs transition cursor-pointer shadow-sm"
+                      >
+                        Cancel
+                      </button>
                     )}
                   </div>
                 )}
