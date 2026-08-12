@@ -1175,11 +1175,16 @@ const Reservations = () => {
         <div className="lg:col-span-5 min-w-0 w-full bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-6">
           {selectedReg ? (
             <div className="space-y-6">
-              
-              {/* Header Info */}
-              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-855 text-lg font-bold uppercase shadow-sm">
+                            {/* Header Info */}
+              <div className="relative flex flex-col items-center text-center border-b border-slate-100 pb-5">
+                <button 
+                  onClick={() => setSelectedReg(null)}
+                  className="absolute top-0 right-0 text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="relative">
+                  <div className="h-20 w-20 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-855 text-3xl font-extrabold uppercase shadow-sm border-2 border-white ring-4 ring-emerald-50">
                     {selectedReg.guestPhotoPath ? (
                       <img 
                         src={selectedReg.guestPhotoPath} 
@@ -1193,57 +1198,78 @@ const Reservations = () => {
                       selectedReg.guestName.charAt(0).toUpperCase()
                     )}
                   </div>
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-base leading-tight">{selectedReg.guestName}</h3>
-                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                      <Globe className="h-3 w-3" /> {selectedReg.nationality}
-                    </p>
-                  </div>
                 </div>
-                <button 
-                  onClick={() => setSelectedReg(null)}
-                  className="text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <h3 className="font-extrabold text-slate-900 text-lg mt-3 leading-tight">{selectedReg.guestName}</h3>
+                <p className="text-xs text-slate-500 flex items-center gap-1 mt-1.5 font-bold uppercase tracking-wide">
+                  <Globe className="h-3 w-3 text-emerald-600" /> {selectedReg.nationality}
+                </p>
               </div>
 
               {/* Guest Core Details */}
-              <div className="space-y-3 text-xs bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Guest Information</h4>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-4 text-xs bg-slate-50/50 border border-slate-100/50 p-5 rounded-2xl shadow-xs">
+                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Guest Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  
+                  {/* Reservation ID */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Passport Number</p>
-                    <p className="font-mono font-bold text-slate-805 flex items-center gap-1">
-                      <FileText className="h-3 w-3 text-slate-400" /> {selectedReg.passportNumber}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Reservation ID</p>
+                    <p className="font-mono font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                      <FileText className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.passportNumber}
                     </p>
                   </div>
+
+                  {/* WhatsApp Number */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">WhatsApp Number</p>
-                    <p className="font-bold text-slate-805 flex items-center gap-1">
-                      <Phone className="h-3 w-3 text-slate-400" /> {selectedReg.whatsappNumber || selectedReg.whatsAppNumber}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">WhatsApp Number</p>
+                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                      <Phone className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.whatsappNumber || selectedReg.whatsAppNumber}
                     </p>
                   </div>
+
+                  {/* Check-In */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Check-In</p>
-                    <p className="font-bold text-slate-805 flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-slate-400" /> {selectedReg.checkInDate}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-In</p>
+                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkInDate}
                     </p>
                   </div>
+
+                  {/* Check-Out */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Check-Out</p>
-                    <p className="font-bold text-slate-850 flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-slate-400" /> {selectedReg.checkOutDate}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-Out</p>
+                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkOutDate}
                     </p>
                   </div>
-                  <div className="space-y-1 col-span-2 flex justify-between border-t border-slate-100 pt-2 mt-1">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Total Stay Nights:</span>
-                    <span className="font-extrabold text-emerald-700">{selectedReg.numberOfNights || selectedReg.nights} Nights</span>
+
+                  {/* Total Nights */}
+                  <div className="space-y-1 border-t border-slate-100/80 pt-2.5 mt-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Nights:</span>
+                    <span className="font-extrabold text-emerald-700 text-sm">{selectedReg.numberOfNights || selectedReg.nights} Nights</span>
                   </div>
-                  <div className="space-y-1 col-span-2 flex justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Pax (Adults / Kids):</span>
+
+                  {/* Pax */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Pax:</span>
                     <span className="font-extrabold text-slate-800">{selectedReg.adults} Adults / {selectedReg.children} Children</span>
                   </div>
+
+                  {/* Price */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide font-bold">Total Price:</span>
+                    <span className="font-extrabold text-slate-800 text-sm">
+                      LKR {associatedBooking?.totalAmount ? parseFloat(associatedBooking.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
+                    </span>
+                  </div>
+
+                  {/* Room */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide font-bold">Room:</span>
+                    <span className="font-extrabold text-slate-800">
+                      {associatedBooking ? `${associatedBooking.roomNumber || 'No Room'} (${associatedBooking.roomType})` : 'Unallocated'}
+                    </span>
+                  </div>
+
                 </div>
               </div>
 
