@@ -749,6 +749,46 @@ const Reservations = () => {
     }
   };
 
+  const handleDownloadDraftBill = () => {
+    setShowDirectDownloadContainer(true);
+
+    setTimeout(() => {
+      const element = document.getElementById('direct-pdf-download-container');
+      if (element) {
+        // Temporarily shadow document.styleSheets to return [] to prevent html2canvas from reading and crashing on Tailwind v4's oklab/oklch rules
+        Object.defineProperty(document, 'styleSheets', {
+          value: [],
+          configurable: true
+        });
+
+        const opt = {
+          margin:       0.3,
+          filename:     `Draft_Bill_${confirmationData.bookingNumber || 'Draft'}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { 
+            scale: 2, 
+            useCORS: true, 
+            logging: false,
+            onclone: (clonedDoc) => {
+              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
+            }
+          },
+          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        window.html2pdf().set(opt).from(element).save().then(() => {
+          delete document.styleSheets;
+          setShowDirectDownloadContainer(false);
+        }).catch(err => {
+          console.error(err);
+          delete document.styleSheets;
+          setShowDirectDownloadContainer(false);
+        });
+      } else {
+        setShowDirectDownloadContainer(false);
+      }
+    }, 400);
+  };
+
   // Switch Booking Number Prefix Dynamically
   const handleBookingChannelChange = (channel) => {
     let newBookingNumber = bookingForm.bookingNumber;
@@ -3367,6 +3407,15 @@ Staff: ${receiptData.generatedBy}`;
                 >
                   Cancel
                 </button>
+                {confirmationData.bookingType !== 'Direct Booking' && (
+                  <button 
+                    type="button" 
+                    onClick={handleDownloadDraftBill}
+                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition"
+                  >
+                    <FileText size={13} /> Draft Bill
+                  </button>
+                )}
                 <button type="submit" className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10">
                   {confirmationData.bookingType === 'Direct Booking' ? (
                     <>
