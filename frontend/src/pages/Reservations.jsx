@@ -750,43 +750,7 @@ const Reservations = () => {
   };
 
   const handleDownloadDraftBill = () => {
-    setShowDirectDownloadContainer(true);
-
-    setTimeout(() => {
-      const element = document.getElementById('direct-pdf-download-container');
-      if (element) {
-        // Temporarily shadow document.styleSheets to return [] to prevent html2canvas from reading and crashing on Tailwind v4's oklab/oklch rules
-        Object.defineProperty(document, 'styleSheets', {
-          value: [],
-          configurable: true
-        });
-
-        const opt = {
-          margin:       0.3,
-          filename:     `Draft_Bill_${confirmationData.bookingNumber || 'Draft'}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { 
-            scale: 2, 
-            useCORS: true, 
-            logging: false,
-            onclone: (clonedDoc) => {
-              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
-            }
-          },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-        window.html2pdf().set(opt).from(element).save().then(() => {
-          delete document.styleSheets;
-          setShowDirectDownloadContainer(false);
-        }).catch(err => {
-          console.error(err);
-          delete document.styleSheets;
-          setShowDirectDownloadContainer(false);
-        });
-      } else {
-        setShowDirectDownloadContainer(false);
-      }
-    }, 400);
+    window.print();
   };
 
   // Switch Booking Number Prefix Dynamically

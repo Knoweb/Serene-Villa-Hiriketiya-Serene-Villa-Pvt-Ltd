@@ -60,7 +60,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
               </p>
             </td>
             <td style={{ verticalAlign: 'top', textAlign: 'right', padding: '0', border: 'none' }}>
-              {confirmationData.badgeText && confirmationData.badgeText.trim() !== '' && (
+              {(!confirmationData.bookingType || confirmationData.bookingType === 'Direct Booking') && confirmationData.badgeText && confirmationData.badgeText.trim() !== '' && (
                 <span style={{ 
                   display: 'inline-block',
                   padding: '4px 10px',
@@ -199,29 +199,33 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       </table>
 
       {/* Reserved By */}
-      <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
-        RESERVED BY
-      </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-        <tbody>
-          <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Confirmed By</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.confirmedBy}</td>
-            
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Reservation Status</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.reservationStatus}</td>
-          </tr>
-          <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Remark</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }} colSpan="4">
-              {associatedBooking?.remarks || confirmationData.remarks || 'None'}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      {(!confirmationData.bookingType || confirmationData.bookingType === 'Direct Booking') && (
+        <>
+          <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+            RESERVED BY
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+            <tbody>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Confirmed By</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.confirmedBy}</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Reservation Status</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.reservationStatus}</td>
+              </tr>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Remark</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }} colSpan="4">
+                  {associatedBooking?.remarks || confirmationData.remarks || 'None'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </>
+      )}
 
       {/* Best Regards */}
       <div style={{ fontSize: '9px', color: '#475569', lineHeight: '1.4', marginTop: '16px' }}>
