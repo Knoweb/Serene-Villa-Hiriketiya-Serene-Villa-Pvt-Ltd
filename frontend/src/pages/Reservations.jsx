@@ -3258,57 +3258,52 @@ Staff: ${receiptData.generatedBy}`;
                              </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-100">
-                             {confirmationData.allocatedRooms.map((item, idx) => (
-                               <tr key={idx} className="text-slate-700">
-                                 <td className="py-2 pr-2 font-medium">{item.roomType}</td>
-                                 <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
-                                 <td className="py-1 text-right">
-                                   <div className="inline-flex items-center gap-1.5 justify-end">
-                                     <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.currency || 'USD'}</span>
-                                     <input
-                                       type="number"
-                                       step="0.01"
-                                       value={item.price}
-                                       onChange={(e) => {
-                                         const val = e.target.value;
-                                         const updatedAllocated = [...confirmationData.allocatedRooms];
-                                         updatedAllocated[idx] = {
-                                           ...updatedAllocated[idx],
-                                           price: val
-                                         };
-                                         const totalSum = updatedAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
-                                         setConfirmationData({
-                                           ...confirmationData,
-                                           allocatedRooms: updatedAllocated,
-                                           totalPrice: totalSum.toFixed(2)
-                                         });
-                                       }}
-                                       className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
-                                     />
-                                   </div>
-                                 </td>
-                               </tr>
-                             ))}
-                           </tbody>
+                              {confirmationData.allocatedRooms.map((item, idx) => (
+                                <tr key={idx} className="text-slate-700">
+                                  <td className="py-2 pr-2 font-medium">{item.roomType}</td>
+                                  <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
+                                  <td className="py-1 text-right">
+                                    <div className="inline-flex items-center gap-1.5 justify-end">
+                                      <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.currency || 'USD'}</span>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={item.price}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          const updatedAllocated = [...confirmationData.allocatedRooms];
+                                          updatedAllocated[idx] = {
+                                            ...updatedAllocated[idx],
+                                            price: val
+                                          };
+                                          const totalSum = updatedAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                                          setConfirmationData({
+                                            ...confirmationData,
+                                            allocatedRooms: updatedAllocated,
+                                            totalPrice: totalSum.toFixed(2)
+                                          });
+                                        }}
+                                        className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
+                                      />
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                              {/* Total row at the bottom of the table */}
+                              <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
+                                <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
+                                <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
+                                  {confirmationData.currency || 'USD'} {confirmationData.totalPrice}
+                                </td>
+                              </tr>
+                            </tbody>
                          </table>
                        </div>
                      </div>
                    )}
 
-                   {/* Room Number(s) Display (Read-Only) */}
-                   <div className="space-y-1.5 col-span-2">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Number(s)</label>
-                     <input
-                       type="text"
-                       readOnly
-                       disabled
-                       value={confirmationData.room || 'No rooms allocated'}
-                       className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed font-medium text-xs"
-                     />
-                   </div>
-
                    {/* Currency Rate */}
-                   <div className="space-y-1.5 col-span-1">
+                   <div className="space-y-1.5 col-span-2">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency Rate</label>
                      <input 
                        type="number" 
@@ -3322,13 +3317,20 @@ Staff: ${receiptData.generatedBy}`;
                    {/* Total Price */}
                    <div className="space-y-1.5 col-span-2">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
-                     <input 
-                       type="number" 
-                       readOnly
-                       disabled
-                       value={confirmationData.totalPrice}
-                       className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed font-bold"
-                     />
+                     <div className="relative">
+                       <input 
+                         type="number" 
+                         readOnly
+                         disabled
+                         value={confirmationData.totalPrice}
+                         className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed font-bold"
+                       />
+                       {confirmationData.currency !== 'LKR' && parseFloat(confirmationData.exchangeRate) > 1 && (
+                         <div className="text-[10px] text-emerald-600 font-bold mt-1">
+                           Equivalent LKR: {((parseFloat(confirmationData.totalPrice) || 0) * (parseFloat(confirmationData.exchangeRate) || 1)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} LKR
+                         </div>
+                       )}
+                     </div>
                    </div>
 
                    {/* WhatsApp Number */}
