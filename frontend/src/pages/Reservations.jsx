@@ -3242,19 +3242,7 @@ Staff: ${receiptData.generatedBy}`;
                            <thead>
                              <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
                                <th className="pb-1.5 font-semibold">Room Name</th>
-                               <th className="pb-1.5 font-semibold">Room Number</th>
-                               <th className="pb-1.5 font-semibold w-36 text-right"><div className="inline-flex items-center gap-1 justify-end">
-                                   <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mr-1">Price in</span>
-                                   <select
-                                     value={confirmationData.currency || 'USD'}
-                                     onChange={(e) => setConfirmationData({...confirmationData, currency: e.target.value})}
-                                     className="bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded px-1.5 py-0.5 text-slate-700 font-bold focus:outline-none cursor-pointer text-[10px]"
-                                   >
-                                     <option value="USD">USD</option>
-                                     <option value="LKR">LKR</option>
-                                     <option value="EUR">EUR</option>
-                                   </select>
-                                 </div></th>
+                               <th className="pb-1.5 font-semibold">Room Number</th><th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.currency || 'USD'})</th>
                              </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-100">
@@ -3300,10 +3288,22 @@ Staff: ${receiptData.generatedBy}`;
                          </table>
                        </div>
                      </div>
-                   )}
+                   )}                   {/* Currency */}
+                   <div className="space-y-1.5 col-span-1">
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
+                     <select 
+                       value={confirmationData.currency}
+                       onChange={(e) => setConfirmationData({...confirmationData, currency: e.target.value})}
+                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
+                     >
+                       <option value="USD">USD</option>
+                       <option value="LKR">LKR</option>
+                       <option value="EUR">EUR</option>
+                     </select>
+                   </div>
 
                    {/* Currency Rate */}
-                   <div className="space-y-1.5 col-span-2">
+                   <div className="space-y-1.5 col-span-1">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency Rate</label>
                      <input 
                        type="number" 
