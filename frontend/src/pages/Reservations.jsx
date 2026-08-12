@@ -223,6 +223,7 @@ const Reservations = () => {
   const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
   const [isModalRoomDropdownOpen, setIsModalRoomDropdownOpen] = useState(false);
   const [isModalRoomNameDropdownOpen, setIsModalRoomNameDropdownOpen] = useState(false);
+  const [showDraftPreviewModal, setShowDraftPreviewModal] = useState(false);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -750,7 +751,7 @@ const Reservations = () => {
   };
 
   const handleDownloadDraftBill = () => {
-    window.print();
+    setShowDraftPreviewModal(true);
   };
 
   // Switch Booking Number Prefix Dynamically
@@ -3393,6 +3394,50 @@ Staff: ${receiptData.generatedBy}`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Bill Preview Modal */}
+      {showDraftPreviewModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col p-6 space-y-4">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <FileText size={18} className="text-blue-600" /> Draft Bill Preview
+              </h3>
+              <button
+                onClick={() => setShowDraftPreviewModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl bg-slate-50 p-6 flex justify-center">
+              <div className="bg-white shadow-sm border border-slate-150 rounded-lg p-2 max-w-[760px] w-full">
+                <ReservationConfirmationPrint
+                  confirmationData={confirmationData}
+                  selectedReg={isCreatingNewReservation ? null : selectedReg}
+                  associatedBooking={isCreatingNewReservation ? null : associatedBooking}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10 text-xs"
+              >
+                <Printer size={13} /> Print
+              </button>
+              <button
+                onClick={() => setShowDraftPreviewModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer transition text-xs"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

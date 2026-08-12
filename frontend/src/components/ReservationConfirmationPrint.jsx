@@ -119,9 +119,9 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
         <tbody>
           <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Reservation Id</td>
+            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Booking Number</td>
             <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>ID {bookingNumber}</td>
+            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{bookingNumber}</td>
             
             <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Check - in</td>
             <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
