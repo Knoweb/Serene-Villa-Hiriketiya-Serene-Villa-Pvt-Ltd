@@ -2630,8 +2630,22 @@ Staff: ${receiptData.generatedBy}`;
           <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-2xl shadow-xl p-6 my-auto space-y-6 h-fit">
             <div className="flex justify-between items-center pb-4 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-wider">Generate Confirmation Slip</h3>
-                <p className="text-xs text-slate-400 font-bold">Customize reservation parameters before printing/saving to PDF</p>
+                <h3 className={`text-base font-extrabold uppercase tracking-wider ${
+                  confirmationData.bookingType === 'Booking.com Booking' ? 'text-blue-700' :
+                  confirmationData.bookingType === 'Airbnb Booking' ? 'text-rose-600' :
+                  confirmationData.bookingType === 'Web Booking' ? 'text-emerald-700' :
+                  'text-slate-900'
+                }`}>
+                  {confirmationData.bookingType === 'Booking.com Booking' ? 'Create Booking.com Reservation' :
+                   confirmationData.bookingType === 'Airbnb Booking' ? 'Create Airbnb Reservation' :
+                   confirmationData.bookingType === 'Web Booking' ? 'Create Web Reservation' :
+                   'Generate Confirmation Slip'}
+                </h3>
+                <p className="text-xs text-slate-400 font-bold">
+                  {confirmationData.bookingType === 'Direct Booking' 
+                    ? 'Customize reservation parameters before printing/saving to PDF' 
+                    : `Fill out and save guest booking details for ${confirmationData.bookingType}`}
+                </p>
               </div>
               <button 
                 onClick={() => setShowConfirmationModal(false)}
