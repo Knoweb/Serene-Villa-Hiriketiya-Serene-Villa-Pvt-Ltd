@@ -724,10 +724,14 @@ const Reservations = () => {
     localStorage.setItem('pms_confirmed_by', confirmationData.confirmedBy || '');
     localStorage.setItem('pms_sender_name', confirmationData.senderName || '');
     
-    setTimeout(() => {
-      window.print();
+    if (confirmationData.bookingType === 'Direct Booking') {
+      setTimeout(() => {
+        window.print();
+        setShowConfirmationModal(false);
+      }, 300);
+    } else {
       setShowConfirmationModal(false);
-    }, 300);
+    }
   };
 
   // Switch Booking Number Prefix Dynamically
@@ -2967,91 +2971,95 @@ Staff: ${receiptData.generatedBy}`;
               </div>
 
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
-                <select 
-                  value={confirmationData.currency}
-                  onChange={(e) => setConfirmationData({...confirmationData, currency: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                >
-                  <option value="USD">USD</option>
-                  <option value="LKR">LKR</option>
-                  <option value="EUR">EUR</option>
-                </select>
-              </div>
+              {confirmationData.bookingType === 'Direct Booking' && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
+                    <select 
+                      value={confirmationData.currency}
+                      onChange={(e) => setConfirmationData({...confirmationData, currency: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="LKR">LKR</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Price (Per Night)</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={confirmationData.unitPrice}
-                  onChange={(e) => {
-                    const price = parseFloat(e.target.value) || 0;
-                    const nights = parseInt(confirmationData.nights) || 1;
-                    setConfirmationData({
-                      ...confirmationData, 
-                      unitPrice: e.target.value, 
-                      totalPrice: (price * nights).toFixed(2)
-                    });
-                  }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Price (Per Night)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      value={confirmationData.unitPrice}
+                      onChange={(e) => {
+                        const price = parseFloat(e.target.value) || 0;
+                        const nights = parseInt(confirmationData.nights) || 1;
+                        setConfirmationData({
+                          ...confirmationData, 
+                          unitPrice: e.target.value, 
+                          totalPrice: (price * nights).toFixed(2)
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={confirmationData.totalPrice}
-                  onChange={(e) => setConfirmationData({...confirmationData, totalPrice: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      value={confirmationData.totalPrice}
+                      onChange={(e) => setConfirmationData({...confirmationData, totalPrice: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Status</label>
-                <select 
-                  value={confirmationData.reservationStatus}
-                  onChange={(e) => setConfirmationData({...confirmationData, reservationStatus: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                >
-                  <option value="Confirm Booking">Confirm Booking</option>
-                  <option value="Pending Booking">Pending Booking</option>
-                </select>
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Status</label>
+                    <select 
+                      value={confirmationData.reservationStatus}
+                      onChange={(e) => setConfirmationData({...confirmationData, reservationStatus: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    >
+                      <option value="Confirm Booking">Confirm Booking</option>
+                      <option value="Pending Booking">Pending Booking</option>
+                    </select>
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Badge Status (Top Right)</label>
-                <input 
-                  type="text" 
-                  value={confirmationData.badgeText}
-                  onChange={(e) => setConfirmationData({...confirmationData, badgeText: e.target.value})}
-                  placeholder="e.g. Hold or Confirmed"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Badge Status (Top Right)</label>
+                    <input 
+                      type="text" 
+                      value={confirmationData.badgeText}
+                      onChange={(e) => setConfirmationData({...confirmationData, badgeText: e.target.value})}
+                      placeholder="e.g. Hold or Confirmed"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Confirmed By</label>
-                <input 
-                  type="text" 
-                  value={confirmationData.confirmedBy}
-                  onChange={(e) => setConfirmationData({...confirmationData, confirmedBy: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Confirmed By</label>
+                    <input 
+                      type="text" 
+                      value={confirmationData.confirmedBy}
+                      onChange={(e) => setConfirmationData({...confirmationData, confirmedBy: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender Name (Sign off)</label>
-                <input 
-                  type="text" 
-                  value={confirmationData.senderName}
-                  onChange={(e) => setConfirmationData({...confirmationData, senderName: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender Name (Sign off)</label>
+                    <input 
+                      type="text" 
+                      value={confirmationData.senderName}
+                      onChange={(e) => setConfirmationData({...confirmationData, senderName: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="col-span-2 flex justify-end gap-2 pt-4 border-t border-slate-100">
                 <button 
@@ -3062,7 +3070,15 @@ Staff: ${receiptData.generatedBy}`;
                   Cancel
                 </button>
                 <button type="submit" className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10">
-                  <Printer size={13} /> Print / Save PDF
+                  {confirmationData.bookingType === 'Direct Booking' ? (
+                    <>
+                      <Printer size={13} /> Print / Save PDF
+                    </>
+                  ) : (
+                    <>
+                      <Check size={13} /> Save Reservation
+                    </>
+                  )}
                 </button>
               </div>
             </form>
