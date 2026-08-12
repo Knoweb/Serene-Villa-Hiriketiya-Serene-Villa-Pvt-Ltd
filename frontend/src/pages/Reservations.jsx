@@ -2971,7 +2971,16 @@ Staff: ${receiptData.generatedBy}`;
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
                      <select 
                        value={confirmationData.currency}
-                       onChange={(e) => setConfirmationData({...confirmationData, currency: e.target.value})}
+                       onChange={(e) => {
+                         const curr = e.target.value;
+                         const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
+                         const rate = parseFloat(confirmationData.exchangeRate) || 1;
+                         setConfirmationData({
+                           ...confirmationData,
+                           currency: curr,
+                           totalPrice: (usdSum * rate).toFixed(2)
+                         });
+                       }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                      >
                        <option value="USD">USD</option>
@@ -3247,7 +3256,7 @@ Staff: ${receiptData.generatedBy}`;
                            <thead>
                              <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
                                <th className="pb-1.5 font-semibold">Room Name</th>
-                               <th className="pb-1.5 font-semibold">Room Number</th><th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.currency || 'USD'})</th>
+                               <th className="pb-1.5 font-semibold">Room Number</th><th className="pb-1.5 font-semibold w-36 text-right">Price (USD)</th>
                              </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-100">
@@ -3257,7 +3266,7 @@ Staff: ${receiptData.generatedBy}`;
                                   <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
                                   <td className="py-1 text-right">
                                     <div className="inline-flex items-center gap-1.5 justify-end">
-                                      <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.currency || 'USD'}</span>
+                                      <span className="text-[10px] text-slate-400 font-bold font-mono">USD</span>
                                       <input
                                         type="number"
                                         step="0.01"
@@ -3269,11 +3278,12 @@ Staff: ${receiptData.generatedBy}`;
                                             ...updatedAllocated[idx],
                                             price: val
                                           };
-                                          const totalSum = updatedAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                                          const usdSum = updatedAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                                          const rate = parseFloat(confirmationData.exchangeRate) || 1;
                                           setConfirmationData({
                                             ...confirmationData,
                                             allocatedRooms: updatedAllocated,
-                                            totalPrice: totalSum.toFixed(2)
+                                            totalPrice: (usdSum * rate).toFixed(2)
                                           });
                                         }}
                                         className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
@@ -3286,7 +3296,10 @@ Staff: ${receiptData.generatedBy}`;
                               <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
                                 <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
                                 <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
-                                  {confirmationData.currency || 'USD'} {confirmationData.totalPrice}
+                                  USD {(() => {
+                                    const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
+                                    return usdSum.toFixed(2);
+                                  })()}
                                 </td>
                               </tr>
                             </tbody>
@@ -3298,7 +3311,16 @@ Staff: ${receiptData.generatedBy}`;
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
                      <select 
                        value={confirmationData.currency}
-                       onChange={(e) => setConfirmationData({...confirmationData, currency: e.target.value})}
+                       onChange={(e) => {
+                         const curr = e.target.value;
+                         const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
+                         const rate = parseFloat(confirmationData.exchangeRate) || 1;
+                         setConfirmationData({
+                           ...confirmationData,
+                           currency: curr,
+                           totalPrice: (usdSum * rate).toFixed(2)
+                         });
+                       }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
                      >
                        <option value="USD">USD</option>
