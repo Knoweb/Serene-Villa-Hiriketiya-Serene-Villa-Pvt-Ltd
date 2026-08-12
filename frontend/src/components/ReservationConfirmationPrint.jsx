@@ -171,25 +171,45 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
-              {associatedBooking?.roomType || confirmationData.roomType || ''}
-            </td>
-            <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>01</td>
-            <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right' }}>
-              {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </td>
-            <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
-            <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right', fontWeight: '600' }}>
-              {confirmationData.currency} {parseFloat(confirmationData.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </td>
-          </tr>
+          {confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 ? (
+            confirmationData.allocatedRooms.map((item, idx) => (
+              <tr key={idx}>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
+                  {item.roomType} (Room {item.roomNumber})
+                </td>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>01</td>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right' }}>
+                  USD {parseFloat(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right', fontWeight: '600' }}>
+                  USD {parseFloat(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'left' }}>
+                {associatedBooking?.roomType || confirmationData.roomType || ''}
+              </td>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>01</td>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right' }}>
+                {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </td>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#334155', textAlign: 'right', fontWeight: '600' }}>
+                {confirmationData.currency} {parseFloat(confirmationData.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </td>
+            </tr>
+          )}
           <tr style={{ fontWeight: '700', backgroundColor: '#ffffff', color: '#0f172a' }}>
             <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'left' }}>Total Amount</td>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'center' }}>01</td>
-            <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
-              {confirmationData.currency} {parseFloat(confirmationData.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'center' }}>
+              {confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 
+                ? String(confirmationData.allocatedRooms.length).padStart(2, '0') 
+                : '01'}
             </td>
+            <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'right' }}>-</td>
             <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'center' }}>{String(nights).padStart(2, '0')}</td>
             <td style={{ border: '1px solid #cbd5e1', borderTop: '2px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'right' }}>
               {confirmationData.currency} {parseFloat(confirmationData.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

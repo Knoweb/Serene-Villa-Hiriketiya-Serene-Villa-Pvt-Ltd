@@ -3314,7 +3314,16 @@ Staff: ${receiptData.generatedBy}`;
                        type="number" 
                        step="0.01"
                        value={confirmationData.exchangeRate}
-                       onChange={(e) => setConfirmationData({...confirmationData, exchangeRate: e.target.value})}
+                       onChange={(e) => {
+                         const rateVal = e.target.value;
+                         const rate = parseFloat(rateVal) || 1;
+                         const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
+                         setConfirmationData({
+                           ...confirmationData,
+                           exchangeRate: rateVal,
+                           totalPrice: (usdSum * rate).toFixed(2)
+                         });
+                       }}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-medium"
                      />
                    </div>
