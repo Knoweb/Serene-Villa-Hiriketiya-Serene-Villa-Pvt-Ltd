@@ -467,13 +467,18 @@ const Reservations = () => {
       setBookingForm({
         roomType: associatedBooking.roomType || defaultRoomType,
         room: associatedBooking.roomNumber || '',
-        bookingType: associatedBooking.bookingType || 'Direct',
+        bookingType: associatedBooking.bookingType || 'Direct Booking',
         bookingNumber: associatedBooking.bookingNumber || '',
         boardBasis: associatedBooking.boardBasis || 'Room Only',
         remarks: associatedBooking.remarks || '',
         amount: associatedBooking.totalAmount || '',
         paymentStatus: reg.paymentStatus || 'Pending',
-        registrationStatus: reg.registrationStatus || 'Pending'
+        registrationStatus: reg.registrationStatus || 'Pending',
+        checkInDate: reg.checkInDate || '',
+        checkOutDate: reg.checkOutDate || '',
+        whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || '',
+        adults: reg.adults || 1,
+        children: reg.children || 0
       });
       fetchAdvancePayments(associatedBooking.id);
     } else {
@@ -481,13 +486,18 @@ const Reservations = () => {
       setBookingForm({
         roomType: defaultRoomType,
         room: '',
-        bookingType: 'Direct',
+        bookingType: 'Direct Booking',
         bookingNumber: `D-${1000 + reg.id}`,
         boardBasis: 'Room Only',
         remarks: '',
         amount: '',
         paymentStatus: reg.paymentStatus || 'Pending',
-        registrationStatus: reg.registrationStatus || 'Pending'
+        registrationStatus: reg.registrationStatus || 'Pending',
+        checkInDate: reg.checkInDate || '',
+        checkOutDate: reg.checkOutDate || '',
+        whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || '',
+        adults: reg.adults || 1,
+        children: reg.children || 0
       });
       setAdvancePayments([]);
     }
@@ -1246,37 +1256,97 @@ const Reservations = () => {
                   {/* WhatsApp Number */}
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">WhatsApp Number</p>
-                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                      <Phone className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.whatsappNumber || selectedReg.whatsAppNumber}
-                    </p>
+                    {isEditingBooking ? (
+                      <input 
+                        type="text"
+                        value={bookingForm.whatsappNumber}
+                        onChange={(e) => setBookingForm({...bookingForm, whatsappNumber: e.target.value})}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    ) : (
+                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                        <Phone className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.whatsappNumber || selectedReg.whatsAppNumber}
+                      </p>
+                    )}
                   </div>
 
                   {/* Check-In */}
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-In</p>
-                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkInDate}
-                    </p>
+                    {isEditingBooking ? (
+                      <input 
+                        type="date"
+                        value={bookingForm.checkInDate}
+                        onChange={(e) => setBookingForm({...bookingForm, checkInDate: e.target.value})}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    ) : (
+                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkInDate}
+                      </p>
+                    )}
                   </div>
 
                   {/* Check-Out */}
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-Out</p>
-                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkOutDate}
-                    </p>
+                    {isEditingBooking ? (
+                      <input 
+                        type="date"
+                        value={bookingForm.checkOutDate}
+                        onChange={(e) => setBookingForm({...bookingForm, checkOutDate: e.target.value})}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    ) : (
+                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkOutDate}
+                      </p>
+                    )}
                   </div>
 
                   {/* Total Nights */}
                   <div className="space-y-1 border-t border-slate-100/80 pt-2.5 mt-1 col-span-2 flex justify-between items-center">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Nights:</span>
-                    <span className="font-extrabold text-emerald-700 text-sm">{selectedReg.numberOfNights || selectedReg.nights} Nights</span>
+                    <span className="font-extrabold text-emerald-700 text-sm">
+                      {(() => {
+                        if (bookingForm.checkInDate && bookingForm.checkOutDate) {
+                          const diff = new Date(bookingForm.checkOutDate) - new Date(bookingForm.checkInDate);
+                          return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+                        }
+                        return selectedReg.numberOfNights || selectedReg.nights || 1;
+                      })()} Nights
+                    </span>
                   </div>
 
                   {/* Pax */}
                   <div className="space-y-1 col-span-2 flex justify-between items-center">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Pax:</span>
-                    <span className="font-extrabold text-slate-800">{selectedReg.adults} Adults / {selectedReg.children} Children</span>
+                    {isEditingBooking ? (
+                      <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-1">
+                          <input 
+                            type="number"
+                            min="1"
+                            value={bookingForm.adults}
+                            onChange={(e) => setBookingForm({...bookingForm, adults: parseInt(e.target.value) || 1})}
+                            className="w-12 bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 font-bold text-slate-800 text-xs text-center focus:outline-none focus:border-emerald-500"
+                          />
+                          <span className="text-[10px] text-slate-400 font-semibold">Ad</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <input 
+                            type="number"
+                            min="0"
+                            value={bookingForm.children}
+                            onChange={(e) => setBookingForm({...bookingForm, children: parseInt(e.target.value) || 0})}
+                            className="w-12 bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 font-bold text-slate-800 text-xs text-center focus:outline-none focus:border-emerald-500"
+                          />
+                          <span className="text-[10px] text-slate-400 font-semibold">Ch</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="font-extrabold text-slate-800">{selectedReg.adults} Adults / {selectedReg.children} Children</span>
+                    )}
                   </div>
 
                   {/* Price */}
@@ -1559,13 +1629,18 @@ const Reservations = () => {
                             setBookingForm({
                               roomType: associatedBooking.roomType || defaultRoomType,
                               room: associatedBooking.roomNumber || '',
-                              bookingType: associatedBooking.bookingType || 'Direct',
+                              bookingType: associatedBooking.bookingType || 'Direct Booking',
                               bookingNumber: associatedBooking.bookingNumber || '',
                               boardBasis: associatedBooking.boardBasis || 'Room Only',
                               remarks: associatedBooking.remarks || '',
                               amount: associatedBooking.totalAmount || '',
                               paymentStatus: selectedReg.paymentStatus || 'Pending',
-                              registrationStatus: selectedReg.registrationStatus || 'Pending'
+                              registrationStatus: selectedReg.registrationStatus || 'Pending',
+                              checkInDate: selectedReg.checkInDate || '',
+                              checkOutDate: selectedReg.checkOutDate || '',
+                              whatsappNumber: selectedReg.whatsappNumber || selectedReg.whatsAppNumber || '',
+                              adults: selectedReg.adults || 1,
+                              children: selectedReg.children || 0
                             });
                           }
                         }}

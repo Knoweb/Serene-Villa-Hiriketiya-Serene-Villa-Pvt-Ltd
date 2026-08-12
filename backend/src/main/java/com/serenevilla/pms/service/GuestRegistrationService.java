@@ -144,6 +144,28 @@ public class GuestRegistrationService {
                 long days = reg.getCheckInDate().datesUntil(reg.getCheckOutDate()).count();
                 reg.setNumberOfNights((int) days);
             }
+            if (details.containsKey("guestName") && details.get("guestName") != null) {
+                reg.setGuestName((String) details.get("guestName"));
+            }
+            if (details.containsKey("whatsappNumber") && details.get("whatsappNumber") != null) {
+                reg.setWhatsAppNumber((String) details.get("whatsappNumber"));
+            }
+            if (details.containsKey("adults") && details.get("adults") != null) {
+                Object adultsVal = details.get("adults");
+                if (adultsVal instanceof Number) {
+                    reg.setAdults(((Number) adultsVal).intValue());
+                } else if (adultsVal instanceof String) {
+                    reg.setAdults(Integer.parseInt((String) adultsVal));
+                }
+            }
+            if (details.containsKey("children") && details.get("children") != null) {
+                Object childrenVal = details.get("children");
+                if (childrenVal instanceof Number) {
+                    reg.setChildren(((Number) childrenVal).intValue());
+                } else if (childrenVal instanceof String) {
+                    reg.setChildren(Integer.parseInt((String) childrenVal));
+                }
+            }
 
             GuestRegistration savedReg = guestRegistrationRepository.save(reg);
 
