@@ -642,7 +642,7 @@ const Reservations = () => {
 
     setConfirmationData({
       guestName: '',
-      bookingNumber: defaultBookingNum,
+      bookingNumber: type === 'Direct Booking' ? defaultBookingNum : '',
       checkInDate: '',
       checkOutDate: '',
       nights: '',
