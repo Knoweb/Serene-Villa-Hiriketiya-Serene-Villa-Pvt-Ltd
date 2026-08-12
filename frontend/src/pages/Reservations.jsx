@@ -221,6 +221,7 @@ const Reservations = () => {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
   const [isModalRoomDropdownOpen, setIsModalRoomDropdownOpen] = useState(false);
+  const [isModalRoomNameDropdownOpen, setIsModalRoomNameDropdownOpen] = useState(false);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -3153,84 +3154,84 @@ Staff: ${receiptData.generatedBy}`;
                      </select>
                    </div>
 
-                   {/* Room Name */}
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Name</label>
-                     <select 
-                       value={confirmationData.roomType || ''}
-                       onChange={(e) => {
-                         const newRoomType = e.target.value;
-                         const matchedRoom = rooms.find(r => r.roomType === newRoomType && r.status.toLowerCase() === 'available') 
-                                           || rooms.find(r => r.roomType === newRoomType);
-                         
-                         const newRoom = matchedRoom ? matchedRoom.roomNumber : '';
-                         const roomCount = newRoom ? 1 : 0;
-                         const price = parseFloat(confirmationData.unitPrice || 0);
-                         const nights = parseInt(confirmationData.nights) || 1;
-                         
-                         setConfirmationData({
-                           ...confirmationData,
-                           roomType: newRoomType,
-                           room: newRoom,
-                           totalPrice: (price * nights * roomCount).toFixed(2)
-                         });
-                       }}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     >
-                       <option value="">Select Room Type</option>
-                       {uniqueRoomTypes.map((type, idx) => (
-                         <option key={idx} value={type}>{type}</option>
-                       ))}
-                     </select>
-                   </div>
+                   {/* Room Name Dropdown (Multiple-Select) */}
+                   <div className="space-y-1.5 relative col-span-1">
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Name(s)</label>
+                     <div className="relative">
+                       <button
+                         type="button"
+                         onClick={() => setIsModalRoomNameDropdownOpen(!isModalRoomNameDropdownOpen)}
+                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer"
+                       >
+                         <span className="truncate">{confirmationData.roomType || 'Select Room Types...'}</span>
+                         <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
+                       </button>
 
-                   {/* Room Number Badges List */}
-                   <div className="space-y-1.5 col-span-2">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Rooms</label>
-                     <div className="flex flex-wrap gap-2 p-2 bg-slate-50 border border-slate-200 rounded-lg min-h-[42px]">
-                       {rooms
-                         .filter((room) => {
-                           if (!confirmationData.roomType) return false;
-                           return room.roomType === confirmationData.roomType;
-                         })
-                         .map((room) => {
-                           const roomNumbers = confirmationData.room ? confirmationData.room.split(',').map(r => r.trim()) : [];
-                           const isSelected = roomNumbers.includes(room.roomNumber);
-                           return (
-                             <button
-                               key={room.id}
-                               type="button"
-                               onClick={() => {
-                                 let newRooms;
-                                 if (isSelected) {
-                                   newRooms = roomNumbers.filter(r => r !== room.roomNumber);
-                                 } else {
-                                   newRooms = [...roomNumbers, room.roomNumber];
-                                 }
-                                 const roomString = newRooms.join(', ');
-                                 const roomCount = newRooms.filter(Boolean).length;
-                                 const price = parseFloat(confirmationData.unitPrice || 0);
-                                 const nights = parseInt(confirmationData.nights) || 1;
-                                 setConfirmationData({
-                                   ...confirmationData,
-                                   room: roomString,
-                                   totalPrice: (price * nights * roomCount).toFixed(2)
-                                 });
-                               }}
-                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                 isSelected 
-                                   ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20' 
-                                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                               }`}
-                             >
-                               {room.roomNumber} ({room.status})
-                             </button>
-                           );
-                         })}
-                       {(!confirmationData.roomType || rooms.filter(r => r.roomType === confirmationData.roomType).length === 0) && (
-                         <span className="text-[11px] text-slate-400 self-center pl-1 font-medium">Please select a Room Name first</span>
+                       {isModalRoomNameDropdownOpen && (
+                         <>
+                           <div className="fixed inset-0 z-10" onClick={() => setIsModalRoomNameDropdownOpen(false)}></div>
+                           <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto p-1 space-y-0.5 select-none">
+                             {uniqueRoomTypes.map((type, idx) => {
+                               const selectedTypes = confirmationData.roomType ? confirmationData.roomType.split(',').map(t => t.trim()) : [];
+                               const isChecked = selectedTypes.includes(type);
+                               return (
+                                 <div
+                                   key={idx}
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     let newTypes;
+                                     if (isChecked) {
+                                       newTypes = selectedTypes.filter(t => t !== type);
+                                     } else {
+                                       newTypes = [...selectedTypes, type];
+                                     }
+                                     const typeString = newTypes.join(', ');
+                                     
+                                     // Automatically calculate corresponding room numbers
+                                     const matchedRooms = rooms.filter(r => newTypes.includes(r.roomType));
+                                     const roomNumbers = matchedRooms.map(r => r.roomNumber);
+                                     const uniqueRoomNumbers = Array.from(new Set(roomNumbers));
+                                     const roomString = uniqueRoomNumbers.join(', ');
+                                     
+                                     const roomCount = uniqueRoomNumbers.length;
+                                     const price = parseFloat(confirmationData.unitPrice || 0);
+                                     const nights = parseInt(confirmationData.nights) || 1;
+                                     
+                                     setConfirmationData({
+                                       ...confirmationData,
+                                       roomType: typeString,
+                                       room: roomString,
+                                       totalPrice: (price * nights * roomCount).toFixed(2)
+                                     });
+                                   }}
+                                   className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium"
+                                 >
+                                   <input
+                                     type="checkbox"
+                                     checked={isChecked}
+                                     readOnly
+                                     className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 pointer-events-none"
+                                   />
+                                   <span>{type}</span>
+                                 </div>
+                               );
+                             })}
+                           </div>
+                         </>
                        )}
                      </div>
+                   </div>
+
+                   {/* Room Number(s) Display (Read-Only) */}
+                   <div className="space-y-1.5 col-span-1">
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Number(s)</label>
+                     <input
+                       type="text"
+                       readOnly
+                       disabled
+                       value={confirmationData.room || 'No rooms allocated'}
+                       className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed font-medium text-xs"
+                     />
                    </div>
 
                    {/* Currency */}
