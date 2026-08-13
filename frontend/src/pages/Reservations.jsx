@@ -1454,6 +1454,120 @@ const Reservations = () => {
                 </div>
               )}
 
+              {/* View Draft Bill button for OTA bookings inside drawer */}
+              {associatedBooking && associatedBooking.bookingType !== 'Direct Booking' && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+                      setConfirmationData({
+                        guestName: selectedReg.guestName || '',
+                        bookingNumber: associatedBooking.bookingNumber || '',
+                        checkInDate: selectedReg.checkInDate || '',
+                        checkOutDate: selectedReg.checkOutDate || '',
+                        nights: nightsVal,
+                        adults: selectedReg.adults || 1,
+                        children: selectedReg.children || 0,
+                        boardBasis: associatedBooking.boardBasis || 'Room Only',
+                        email: selectedReg.email || 'N/A',
+                        whatsappNumber: selectedReg.whatsappNumber || 'N/A',
+                        nationality: selectedReg.nationality || 'N/A',
+                        reservationDate: new Date().toISOString().split('T')[0],
+                        roomType: associatedBooking.roomType || '',
+                        unitPrice: associatedBooking.unitPrice || '0.00',
+                        totalPrice: (associatedBooking.totalAmount || 0).toFixed(2),
+                        currency: associatedBooking.currency || 'USD',
+                        exchangeRate: associatedBooking.exchangeRate || '1.00',
+                        allocatedRooms: associatedBooking.roomNumber 
+                          ? associatedBooking.roomNumber.split(',').map(rNum => {
+                              const cleanNum = rNum.trim();
+                              const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+                              return {
+                                roomType: matchedRoom ? matchedRoom.roomType : associatedBooking.roomType,
+                                roomNumber: cleanNum,
+                                price: (parseFloat(associatedBooking.unitPrice) || 0).toFixed(2)
+                              };
+                            })
+                          : [],
+                        confirmedBy: associatedBooking.confirmedBy || 'Muthuni Weerasingha',
+                        reservationStatus: 'Confirm Booking',
+                        senderName: associatedBooking.senderName || 'Muthuni Weerasingha',
+                        badgeText: '',
+                        remarks: associatedBooking.remarks || '',
+                        bookingType: associatedBooking.bookingType || 'Booking.com Booking'
+                      });
+                      setShowDraftPreviewModal(true);
+                    }}
+                    className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <FileText className="h-4 w-4 text-blue-700" /> View Draft Bill
+                  </button>
+                </div>
+              )}
+
+              {/* Save / Edit / Cancel Buttons for Guest Info */}
+              {(isFrontOfficer || isAdmin) && (
+                <div className="flex gap-2.5 pt-2">
+                  {!isEditingBooking ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingBooking(true)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <svg className="h-4 w-4 fill-white" viewBox="0 0 24 24">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                      </svg>
+                      Edit Info
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleBookingSubmit}
+                        disabled={updatingBooking}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                      >
+                        {updatingBooking ? (
+                          <Loader className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                        Save
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingBooking(false);
+                          if (associatedBooking) {
+                            setBookingForm({
+                              roomType: associatedBooking.roomType || defaultRoomType,
+                              room: associatedBooking.roomNumber || '',
+                              bookingType: associatedBooking.bookingType || 'Direct Booking',
+                              bookingNumber: associatedBooking.bookingNumber || '',
+                              boardBasis: associatedBooking.boardBasis || 'Room Only',
+                              remarks: associatedBooking.remarks || '',
+                              amount: associatedBooking.totalAmount || '',
+                              paymentStatus: selectedReg.paymentStatus || 'Pending',
+                              registrationStatus: selectedReg.registrationStatus || 'Pending',
+                              checkInDate: selectedReg.checkInDate || '',
+                              checkOutDate: selectedReg.checkOutDate || '',
+                              whatsappNumber: selectedReg.whatsappNumber || selectedReg.whatsAppNumber || '',
+                              adults: selectedReg.adults || 1,
+                              children: selectedReg.children || 0
+                            });
+                          }
+                        }}
+                        className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-xl text-xs transition cursor-pointer shadow-sm"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
 
 
               {/* Unified Payment Form */}
