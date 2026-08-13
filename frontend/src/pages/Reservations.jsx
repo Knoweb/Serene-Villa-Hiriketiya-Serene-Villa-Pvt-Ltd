@@ -520,32 +520,44 @@ const Reservations = () => {
         roomType: 'Deluxe Room',
         totalAmount: 100.00,
         boardBasis: 'Bed & Breakfast',
-        remarks: ''
+        remarks: '',
+        bookingType: 'Direct Booking'
       };
     }
 
     const nightsCount = reg.numberOfNights || reg.nights || 1;
-    const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);    setConfirmationData({
+    const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);
+    setConfirmationData({
       address: '',
-      email: '',
+      email: reg.email || 'N/A',
       vatNo: '',
-      whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || '',
-      nationality: reg?.nationality || '',
+      whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || 'N/A',
+      nationality: reg?.nationality || 'N/A',
       roomType: booking.roomType || 'Deluxe Room',
       nights: nightsCount,
       reservationDate: new Date().toISOString().split('T')[0],
       roomReference: `Room ${booking.roomNumber || ''} (${booking.roomType || ''})`,
-      unitPrice: defaultUnitPrice,
+      unitPrice: booking.unitPrice || defaultUnitPrice,
       totalPrice: (booking.totalAmount || 0).toFixed(2),
-      currency: 'USD',
-      exchangeRate: '1.00',
-    allocatedRooms: [],
-    exchangeRate: '1.00',
-    allocatedRooms: [],
-      confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
+      currency: booking.currency || 'USD',
+      exchangeRate: booking.exchangeRate || '1.00',
+      allocatedRooms: booking.roomNumber 
+        ? booking.roomNumber.split(',').map(rNum => {
+            const cleanNum = rNum.trim();
+            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+            return {
+              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
+              roomNumber: cleanNum,
+              price: (parseFloat(booking.unitPrice || defaultUnitPrice) || 0).toFixed(2)
+            };
+          })
+        : [],
+      confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
-      senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
-      badgeText: 'Hold'
+      senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
+      badgeText: 'Hold',
+      remarks: booking.remarks || '',
+      bookingType: booking.bookingType || 'Direct Booking'
     });
     setIsCreatingNewReservation(false);
     setShowConfirmationModal(true);
@@ -561,7 +573,8 @@ const Reservations = () => {
         roomType: 'Deluxe Room',
         totalAmount: 100.00,
         boardBasis: 'Bed & Breakfast',
-        remarks: ''
+        remarks: '',
+        bookingType: 'Direct Booking'
       };
     }
 
@@ -569,26 +582,35 @@ const Reservations = () => {
     const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);
     setConfirmationData({
       address: '',
-      email: '',
+      email: reg.email || 'N/A',
       vatNo: '',
-      whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || '',
-      nationality: reg?.nationality || '',
+      whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || 'N/A',
+      nationality: reg?.nationality || 'N/A',
       roomType: booking.roomType || 'Deluxe Room',
       nights: nightsCount,
       reservationDate: new Date().toISOString().split('T')[0],
       roomReference: `Room ${booking.roomNumber || ''} (${booking.roomType || ''})`,
-      unitPrice: defaultUnitPrice,
+      unitPrice: booking.unitPrice || defaultUnitPrice,
       totalPrice: (booking.totalAmount || 0).toFixed(2),
-      currency: 'USD',
-      exchangeRate: '1.00',
-    allocatedRooms: [],
-    exchangeRate: '1.00',
-    allocatedRooms: [],
-      confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
+      currency: booking.currency || 'USD',
+      exchangeRate: booking.exchangeRate || '1.00',
+      allocatedRooms: booking.roomNumber 
+        ? booking.roomNumber.split(',').map(rNum => {
+            const cleanNum = rNum.trim();
+            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+            return {
+              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
+              roomNumber: cleanNum,
+              price: (parseFloat(booking.unitPrice || defaultUnitPrice) || 0).toFixed(2)
+            };
+          })
+        : [],
+      confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
-      senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
+      senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold',
-      remarks: booking.remarks || ''
+      remarks: booking.remarks || '',
+      bookingType: booking.bookingType || 'Direct Booking'
     });
     setIsCreatingNewReservation(false);
     setShowDirectDownloadContainer(true);
