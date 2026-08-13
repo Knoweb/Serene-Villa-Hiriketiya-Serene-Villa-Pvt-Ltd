@@ -3361,11 +3361,7 @@ Staff: ${receiptData.generatedBy}`;
                          value={confirmationData.totalPrice}
                          className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed font-bold"
                        />
-                       {confirmationData.currency !== 'LKR' && parseFloat(confirmationData.exchangeRate) > 1 && (
-                         <div className="text-[10px] text-emerald-600 font-bold mt-1">
-                           Equivalent LKR: {((parseFloat(confirmationData.totalPrice) || 0) * (parseFloat(confirmationData.exchangeRate) || 1)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} LKR
-                         </div>
-                       )}
+
                      </div>
                    </div>
 
