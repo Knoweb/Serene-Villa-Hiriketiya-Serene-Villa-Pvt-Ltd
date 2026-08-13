@@ -20,6 +20,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
   const boardBasis = associatedBooking?.boardBasis || confirmationData.boardBasis || 'Bed & Breakfast';
 
   const isConfirmed = confirmationData.badgeText?.toLowerCase() === 'confirmed';
+  const isDirect = !confirmationData.bookingType || confirmationData.bookingType === 'Direct Booking';
 
   return (
     <div 
@@ -91,24 +92,38 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '18px' }}>
         <tbody>
-          <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Name of Client</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{guestName}</td>
-            
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Nationality</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.nationality || selectedReg?.nationality || 'N/A'}</td>
-          </tr>
-          <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Email</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.email || 'N/A'}</td>
-            
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>WhatsApp Number</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.whatsappNumber || selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || 'N/A'}</td>
-          </tr>
+          {isDirect ? (
+            <>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Name of Client</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{guestName}</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Nationality</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.nationality || selectedReg?.nationality || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Email</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.email || 'N/A'}</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>WhatsApp Number</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.whatsappNumber || selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || 'N/A'}</td>
+              </tr>
+            </>
+          ) : (
+            <tr>
+              <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Name of Client</td>
+              <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+              <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{guestName}</td>
+              
+              <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Booking Channel</td>
+              <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+              <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{confirmationData.bookingType}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
@@ -118,44 +133,78 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
         <tbody>
-          <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Booking Number</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{bookingNumber}</td>
-            
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Check - in</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(checkInDate)}</td>
-          </tr>
-          <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Reservation Date</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(confirmationData.reservationDate)}</td>
-            
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Check - out</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(checkOutDate)}</td>
-          </tr>
-          <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Number of guests</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{String(adults + children).padStart(2, '0')}</td>
-            
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Nights</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{String(nights).padStart(2, '0')} nights</td>
-          </tr>
-          <tr>
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Adults</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>
-              {String(adults).padStart(2, '0')} &nbsp;&nbsp;&nbsp;&nbsp; Children: {String(children).padStart(2, '0')}
-            </td>
-            
-            <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Basis</td>
-            <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
-            <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{boardBasis}</td>
-          </tr>
+          {isDirect ? (
+            <>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Booking Number</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{bookingNumber}</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Check - in</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(checkInDate)}</td>
+              </tr>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Reservation Date</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(confirmationData.reservationDate)}</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Check - out</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(checkOutDate)}</td>
+              </tr>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Number of guests</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{String(adults + children).padStart(2, '0')}</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Nights</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{String(nights).padStart(2, '0')} nights</td>
+              </tr>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Adults</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>
+                  {String(adults).padStart(2, '0')} &nbsp;&nbsp;&nbsp;&nbsp; Children: {String(children).padStart(2, '0')}
+                </td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Basis</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{boardBasis}</td>
+              </tr>
+            </>
+          ) : (
+            <>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Booking Number</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{bookingNumber}</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Check - in</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(checkInDate)}</td>
+              </tr>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Reservation Date</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(confirmationData.reservationDate)}</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Check - out</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{formatDate(checkOutDate)}</td>
+              </tr>
+              <tr>
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0', border: 'none' }}>Nights</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{String(nights).padStart(2, '0')} nights</td>
+                
+                <td style={{ width: '120px', color: '#000000', fontWeight: '600', fontSize: '11px', padding: '4px 0 4px 40px', border: 'none' }}>Basis</td>
+                <td style={{ width: '15px', color: '#000000', textAlign: 'center', fontSize: '11px', padding: '4px 0', border: 'none' }}>:</td>
+                <td style={{ color: '#000000', fontWeight: '700', fontSize: '11px', padding: '4px 0', border: 'none' }}>{boardBasis}</td>
+              </tr>
+            </>
+          )}
         </tbody>
       </table>
 
@@ -265,7 +314,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       )}
 
       {/* Best Regards */}
-      <div style={{ fontSize: '9px', color: '#475569', lineHeight: '1.4', marginTop: '16px' }}>
+      <div style={{ fontSize: '9px', color: '#475569', lineHeight: '1.4', marginTop: '16px', textAlign: isDirect ? 'left' : 'right' }}>
         <p style={{ margin: '0 0 2px 0' }}>Best Regards</p>
         <p style={{ margin: '0 0 4px 0', fontWeight: '700', color: '#1e293b' }}>{confirmationData.senderName}</p>
         <p style={{ margin: '0', fontSize: '8.5px', color: '#64748b' }}>
