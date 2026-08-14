@@ -1533,7 +1533,7 @@ const Reservations = () => {
                       />
                     ) : (
                       <span className="font-extrabold text-slate-800">
-                        {associatedBooking ? `${associatedBooking.roomNumber || 'No Room'} (${associatedBooking.roomType})` : 'Unallocated'}
+                        {associatedBooking ? (associatedBooking.roomNumber || 'No Room') : 'Unallocated'}
                       </span>
                     )}
                   </div>
