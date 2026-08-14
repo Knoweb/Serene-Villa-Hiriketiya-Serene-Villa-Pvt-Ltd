@@ -784,7 +784,8 @@ const Reservations = () => {
           bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
           totalAmount: parseFloat(confirmationData.totalPrice) || 0,
           remarks: confirmationData.remarks || '',
-          status: 'Confirmed'
+          status: 'Confirmed',
+          propertyId: 1
         };
 
         const bookingRes = await fetch(`${API_BASE}/bookings`, {

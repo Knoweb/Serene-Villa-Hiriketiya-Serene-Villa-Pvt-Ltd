@@ -177,6 +177,7 @@ public class GuestRegistrationService {
                         Booking newBooking = new Booking();
                         newBooking.setGuestRegistrationId(id);
                         newBooking.setStatus("Confirmed");
+                        newBooking.setPropertyId(1L);
                         return newBooking;
                     });
 
