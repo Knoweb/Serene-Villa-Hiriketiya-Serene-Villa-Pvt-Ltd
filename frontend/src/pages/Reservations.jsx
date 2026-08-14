@@ -819,7 +819,7 @@ const Reservations = () => {
     localStorage.setItem('pms_confirmed_by', confirmationData.confirmedBy || '');
     localStorage.setItem('pms_sender_name', confirmationData.senderName || '');
     
-    if (confirmationData.bookingType === 'Direct Booking') {
+    if (confirmationData.bookingType?.toLowerCase().includes('direct')) {
       setTimeout(() => {
         window.print();
         setShowConfirmationModal(false);
@@ -1525,7 +1525,7 @@ const Reservations = () => {
               </div>
 
               {/* View Draft Bill button for OTA bookings inside drawer */}
-              {associatedBooking && associatedBooking.bookingType !== 'Direct Booking' && (
+              {associatedBooking && !associatedBooking.bookingType?.toLowerCase().includes('direct') && (
                 <div className="pt-2">
                   <button
                     type="button"
@@ -1641,7 +1641,7 @@ const Reservations = () => {
 
 
               {/* Unified Payment Form */}
-              {associatedBooking && associatedBooking.bookingType !== 'Booking.com Booking' ? (
+              {associatedBooking && !associatedBooking.bookingType?.toLowerCase().includes('booking.com') ? (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                   <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                     <Receipt className="h-4 w-4 text-emerald-600" /> Payments
@@ -1740,14 +1740,14 @@ const Reservations = () => {
                       }
                     };
 
-                    const actualPaymentTab = associatedBooking.bookingType !== 'Direct Booking' ? 'FULL' : paymentTab;
+                    const actualPaymentTab = !associatedBooking.bookingType?.toLowerCase().includes('direct') ? 'FULL' : paymentTab;
                     const isFull = actualPaymentTab === 'FULL';
                     const accentColor = isFull ? 'blue' : 'emerald';
 
                     return (
                       <form onSubmit={(e) => handleSavePayment(e, actualPaymentTab, remainingBal)} className="space-y-3 text-xs">
                         {/* Tab Toggle */}
-                        {associatedBooking.bookingType === 'Direct Booking' && (
+                        {associatedBooking.bookingType?.toLowerCase().includes('direct') && (
                           <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-bold">
                             <button
                               type="button"
@@ -2617,18 +2617,18 @@ Staff: ${receiptData.generatedBy}`;
             <div className="flex justify-between items-center pb-4 border-b border-slate-100">
               <div>
                 <h3 className={`text-base font-extrabold uppercase tracking-wider ${
-                  confirmationData.bookingType === 'Booking.com Booking' ? 'text-blue-700' :
-                  confirmationData.bookingType === 'Airbnb Booking' ? 'text-rose-600' :
-                  confirmationData.bookingType === 'Web Booking' ? 'text-emerald-700' :
+                  confirmationData.bookingType?.toLowerCase().includes('booking.com') ? 'text-blue-700' :
+                  confirmationData.bookingType?.toLowerCase().includes('airbnb') ? 'text-rose-600' :
+                  confirmationData.bookingType?.toLowerCase().includes('web') ? 'text-emerald-700' :
                   'text-slate-900'
                 }`}>
-                  {confirmationData.bookingType === 'Booking.com Booking' ? 'Create Booking.com Reservation' :
-                   confirmationData.bookingType === 'Airbnb Booking' ? 'Create Airbnb Reservation' :
-                   confirmationData.bookingType === 'Web Booking' ? 'Create Web Reservation' :
+                  {confirmationData.bookingType?.toLowerCase().includes('booking.com') ? 'Create Booking.com Reservation' :
+                   confirmationData.bookingType?.toLowerCase().includes('airbnb') ? 'Create Airbnb Reservation' :
+                   confirmationData.bookingType?.toLowerCase().includes('web') ? 'Create Web Reservation' :
                    'Generate Confirmation Slip'}
                 </h3>
                 <p className="text-xs text-slate-400 font-bold">
-                  {confirmationData.bookingType === 'Direct Booking' 
+                  {confirmationData.bookingType?.toLowerCase().includes('direct') 
                     ? 'Customize reservation parameters before printing/saving to PDF' 
                     : `Fill out and save guest booking details for ${confirmationData.bookingType}`}
                 </p>
@@ -2655,7 +2655,7 @@ Staff: ${receiptData.generatedBy}`;
                 />
               </div>
 
-               {confirmationData.bookingType === 'Direct Booking' ? (
+               {confirmationData.bookingType?.toLowerCase().includes('direct') ? (
                  <>
                    {isCreatingNewReservation && (
                      <>
@@ -3365,7 +3365,7 @@ Staff: ${receiptData.generatedBy}`;
                 >
                   Cancel
                 </button>
-                {confirmationData.bookingType !== 'Direct Booking' && (
+                {!confirmationData.bookingType?.toLowerCase().includes('direct') && (
                   <button 
                     type="button" 
                     onClick={handleDownloadDraftBill}
@@ -3375,7 +3375,7 @@ Staff: ${receiptData.generatedBy}`;
                   </button>
                 )}
                 <button type="submit" className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10">
-                  {confirmationData.bookingType === 'Direct Booking' ? (
+                  {confirmationData.bookingType?.toLowerCase().includes('direct') ? (
                     <>
                       <Printer size={13} /> Print / Save PDF
                     </>

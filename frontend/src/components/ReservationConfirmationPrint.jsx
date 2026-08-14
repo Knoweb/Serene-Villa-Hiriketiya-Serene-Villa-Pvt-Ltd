@@ -20,7 +20,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
   const boardBasis = associatedBooking?.boardBasis || confirmationData.boardBasis || 'Bed & Breakfast';
 
   const isConfirmed = confirmationData.badgeText?.toLowerCase() === 'confirmed';
-  const isDirect = !confirmationData.bookingType || confirmationData.bookingType === 'Direct Booking';
+  const isDirect = !confirmationData.bookingType || confirmationData.bookingType.toLowerCase().includes('direct');
 
   return (
     <div 
@@ -61,7 +61,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
               </p>
             </td>
             <td style={{ verticalAlign: 'top', textAlign: 'right', padding: '0', border: 'none' }}>
-              {(!confirmationData.bookingType || confirmationData.bookingType === 'Direct Booking') && confirmationData.badgeText && confirmationData.badgeText.trim() !== '' && (
+              {(!confirmationData.bookingType || confirmationData.bookingType.toLowerCase().includes('direct')) && confirmationData.badgeText && confirmationData.badgeText.trim() !== '' && (
                 <span style={{ 
                   display: 'inline-block',
                   padding: '4px 10px',
@@ -350,7 +350,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       )}
 
       {/* Reserved By */}
-      {(!confirmationData.bookingType || confirmationData.bookingType === 'Direct Booking') ? (
+      {(!confirmationData.bookingType || confirmationData.bookingType.toLowerCase().includes('direct')) ? (
         <>
           <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
             RESERVED BY
