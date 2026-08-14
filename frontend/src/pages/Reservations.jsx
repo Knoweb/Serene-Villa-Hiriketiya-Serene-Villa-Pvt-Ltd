@@ -1456,10 +1456,9 @@ const Reservations = () => {
                       {associatedBooking?.bookingType || 'Direct Booking'}
                     </span>
                   </div>
-
                   {/* Room Type */}
-                  <div className="space-y-1 col-span-2 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Room Type:</span>
+                  <div className="col-span-2 flex justify-between items-start py-2 border-b border-slate-100/40">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room Type:</span>
                     {isEditingBooking ? (
                       <select 
                         value={bookingForm.roomType}
@@ -1472,10 +1471,10 @@ const Reservations = () => {
                         <option value="Budget Room">Budget Room</option>
                       </select>
                     ) : (
-                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-0.5 max-w-[70%]">
+                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-2.5 max-w-[70%]">
                         {associatedBooking && associatedBooking.roomType
                           ? associatedBooking.roomType.split(',').map((type, index) => (
-                              <div key={index} className="leading-tight">{type.trim()}</div>
+                              <div key={index} className="leading-normal">{type.trim()}</div>
                             ))
                           : 'Deluxe Room'}
                       </div>
@@ -1483,7 +1482,7 @@ const Reservations = () => {
                   </div>
 
                   {/* Board Basis */}
-                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                  <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-100/40">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Board Basis:</span>
                     {isEditingBooking ? (
                       <select 
@@ -1504,7 +1503,7 @@ const Reservations = () => {
                   </div>
 
                   {/* Price */}
-                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                  <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-100/40">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
                     {isEditingBooking ? (
                       <div className="flex items-center gap-1.5">
@@ -1518,15 +1517,15 @@ const Reservations = () => {
                         />
                       </div>
                     ) : (
-                      <span className="font-extrabold text-slate-850 text-sm font-mono">
+                      <span className="font-extrabold text-slate-855 text-sm font-mono">
                         LKR {associatedBooking?.totalAmount ? parseFloat(associatedBooking.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
                       </span>
                     )}
                   </div>
 
                   {/* Room */}
-                  <div className="space-y-1 col-span-2 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Room No:</span>
+                  <div className="col-span-2 flex justify-between items-start py-2 border-b border-slate-100/40">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room No:</span>
                     {isEditingBooking ? (
                       <input 
                         type="text"
@@ -1536,10 +1535,10 @@ const Reservations = () => {
                         className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs text-right focus:outline-none focus:border-emerald-500 font-mono"
                       />
                     ) : (
-                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs font-mono gap-0.5">
+                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs font-mono gap-2.5">
                         {associatedBooking && associatedBooking.roomNumber
                           ? associatedBooking.roomNumber.split(',').map((num, index) => (
-                              <div key={index} className="leading-tight">{num.trim()}</div>
+                              <div key={index} className="leading-normal">{num.trim()}</div>
                             ))
                           : 'Unallocated'}
                       </div>
