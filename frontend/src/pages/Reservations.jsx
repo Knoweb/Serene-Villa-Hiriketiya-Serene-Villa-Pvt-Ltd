@@ -1517,7 +1517,9 @@ const Reservations = () => {
                   <Printer className="h-4 w-4 text-blue-700" />
                   <span>Print PDF</span>
                 </button>
-              </div>\n              {/* Save / Edit / Cancel Buttons for Guest Info */}
+              </div>
+
+              {/* Save / Edit / Cancel Buttons for Guest Info */}
               {(isFrontOfficer || isAdmin) && (
                 <div className="flex gap-2.5 pt-2">
                   {!isEditingBooking ? (
