@@ -1186,25 +1186,36 @@ const Reservations = () => {
                             </p>
                           </td>
                           <td className="p-4 space-y-1">
+                            {/* Booking Type Badge */}
                             <div>
-                              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold ${
-                                reg.paymentStatus === 'Paid' 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : reg.paymentStatus === 'Unpaid' 
-                                  ? 'bg-rose-100 text-rose-700' 
-                                  : reg.paymentStatus === 'Confirm' 
-                                  ? 'bg-blue-100 text-blue-700' 
-                                  : reg.paymentStatus === 'Paid Advance' 
-                                  ? 'bg-amber-100 text-amber-700' 
-                                  : 'bg-slate-100 text-slate-700'
-                              }`}>
-                                {reg.paymentStatus}
+                              <span className="inline-block px-2 py-0.5 bg-slate-50 rounded text-[9px] text-slate-500 font-bold border border-slate-100/50">
+                                {booking ? (booking.bookingType || 'Direct Booking') : 'Direct Booking'}
                               </span>
                             </div>
+                            {/* Payment Status Badge */}
                             <div>
-                              <span className={`inline-block px-2 py-0.5 bg-slate-50 rounded text-[9px] text-slate-500 font-bold border border-slate-100/50`}>
-                                {reg.registrationStatus}
-                              </span>
+                              {(() => {
+                                const status = reg.paymentStatus ? reg.paymentStatus.toLowerCase() : 'pending';
+                                let displayStatus = 'Pending';
+                                let colorClass = 'bg-blue-100 text-blue-700';
+
+                                if (status.includes('paid advance') || status.includes('partially') || status === 'advance') {
+                                  displayStatus = 'Advance';
+                                  colorClass = 'bg-amber-100 text-amber-700';
+                                } else if (status === 'paid') {
+                                  displayStatus = 'Paid';
+                                  colorClass = 'bg-green-100 text-green-700';
+                                } else if (status === 'unpaid' || status === 'non paid' || status === 'nonpaid') {
+                                  displayStatus = 'Non Paid';
+                                  colorClass = 'bg-rose-100 text-rose-700';
+                                }
+
+                                return (
+                                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold ${colorClass}`}>
+                                    {displayStatus}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </td>
                           <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
