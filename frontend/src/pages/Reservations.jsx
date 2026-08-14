@@ -1728,10 +1728,6 @@ const Reservations = () => {
                           <span>Total Booking Amount:</span>
                           <span className="font-mono text-slate-900">{totalAmt.toLocaleString()} LKR</span>
                         </div>
-                        <div className="flex justify-between font-semibold text-slate-500">
-                          <span>Total Paid:</span>
-                          <span className="font-mono text-emerald-600">+{totalPaid.toLocaleString()} LKR</span>
-                        </div>
                         <div className="flex justify-between font-bold text-slate-800 border-t border-slate-200/60 pt-2">
                           <span>Remaining Balance:</span>
                           <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
@@ -1919,16 +1915,7 @@ const Reservations = () => {
                                 <option value="Other">Other</option>
                               </select>
                             </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reference No.</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. TXN123"
-                                value={paymentForm.referenceNumber}
-                                onChange={(e) => setPaymentForm({ ...paymentForm, referenceNumber: e.target.value })}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
-                              />
-                            </div>
+
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Date</label>
                               <input
