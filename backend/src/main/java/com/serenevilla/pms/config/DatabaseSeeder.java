@@ -41,5 +41,17 @@ public class DatabaseSeeder implements CommandLineRunner {
             userRepository.save(admin);
             System.out.println(">>> Admin user successfully seeded into database (admin@serene.com / admin@serene123) <<<");
         }
+
+        // Seed default Front Officer user if it doesn't exist
+        if (userRepository.findByUsername("frontoffice1@serene.com").isEmpty()) {
+            User fo = new User();
+            fo.setUsername("frontoffice1@serene.com");
+            fo.setPassword("frontoffice123");
+            fo.setRole(Role.FRONT_OFFICER);
+            fo.setPropertyId(1L);
+            fo.setActive(true);
+            userRepository.save(fo);
+            System.out.println(">>> Front Office user successfully seeded into database (frontoffice1@serene.com / frontoffice123) <<<");
+        }
     }
 }
