@@ -508,6 +508,63 @@ const Reservations = () => {
     setBookingSuccess(false);
   };
 
+  const handlePrintPDFClick = () => {
+    if (!selectedReg) return;
+    let booking = getBookingForReg(selectedReg.id);
+    if (!booking) {
+      booking = {
+        bookingNumber: 'SV-' + (1000 + selectedReg.id),
+        roomNumber: 'Unallocated',
+        roomType: 'Deluxe Room',
+        totalAmount: 100.00,
+        boardBasis: 'Bed & Breakfast',
+        remarks: '',
+        bookingType: 'Direct Booking'
+      };
+    }
+
+    const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+    const defaultUnitPrice = (booking.totalAmount / nightsVal).toFixed(2);
+
+    setConfirmationData({
+      guestName: selectedReg.guestName || '',
+      bookingNumber: booking.bookingNumber || '',
+      checkInDate: selectedReg.checkInDate || '',
+      checkOutDate: selectedReg.checkOutDate || '',
+      nights: nightsVal,
+      adults: selectedReg.adults || 1,
+      children: selectedReg.children || 0,
+      boardBasis: booking.boardBasis || 'Room Only',
+      email: selectedReg.email || 'N/A',
+      whatsappNumber: selectedReg.whatsappNumber || 'N/A',
+      nationality: selectedReg.nationality || 'N/A',
+      reservationDate: new Date().toISOString().split('T')[0],
+      roomType: booking.roomType || '',
+      unitPrice: booking.unitPrice || defaultUnitPrice,
+      totalPrice: (booking.totalAmount || 0).toFixed(2),
+      currency: booking.currency || 'USD',
+      exchangeRate: booking.exchangeRate || '1.00',
+      allocatedRooms: booking.roomNumber 
+        ? booking.roomNumber.split(',').map(rNum => {
+            const cleanNum = rNum.trim();
+            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+            return {
+              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
+              roomNumber: cleanNum,
+              price: (parseFloat(booking.unitPrice || defaultUnitPrice) || 0).toFixed(2)
+            };
+          })
+        : [],
+      confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
+      reservationStatus: 'Confirm Booking',
+      senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
+      badgeText: 'Hold',
+      remarks: booking.remarks || '',
+      bookingType: booking.bookingType || 'Direct Booking'
+    });
+    setShowDraftPreviewModal(true);
+  };
+
   const handleOpenConfirmationModal = (regToUse) => {
     const reg = regToUse || selectedReg;
     if (!reg) return;
@@ -1454,81 +1511,13 @@ const Reservations = () => {
 
                 <button
                   type="button"
-                  onClick={handleOpenConfirmationModal}
+                  onClick={handlePrintPDFClick}
                   className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2 px-1 rounded-xl text-[10px] transition flex flex-col items-center justify-center gap-1 cursor-pointer shadow-xs"
                 >
                   <Printer className="h-4 w-4 text-blue-700" />
                   <span>Print PDF</span>
                 </button>
-              </div>
-
-
-
-              {associatedBooking && (
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleOpenConfirmationModal}
-                    className="w-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-850 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                  >
-                    <FileText className="h-4 w-4 text-amber-700" /> Generate Reservation Confirmation
-                  </button>
-                </div>
-              )}
-
-              {/* View Draft Bill button for OTA bookings inside drawer */}
-              {associatedBooking && associatedBooking.bookingType !== 'Direct Booking' && (
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
-                      setConfirmationData({
-                        guestName: selectedReg.guestName || '',
-                        bookingNumber: associatedBooking.bookingNumber || '',
-                        checkInDate: selectedReg.checkInDate || '',
-                        checkOutDate: selectedReg.checkOutDate || '',
-                        nights: nightsVal,
-                        adults: selectedReg.adults || 1,
-                        children: selectedReg.children || 0,
-                        boardBasis: associatedBooking.boardBasis || 'Room Only',
-                        email: selectedReg.email || 'N/A',
-                        whatsappNumber: selectedReg.whatsappNumber || 'N/A',
-                        nationality: selectedReg.nationality || 'N/A',
-                        reservationDate: new Date().toISOString().split('T')[0],
-                        roomType: associatedBooking.roomType || '',
-                        unitPrice: associatedBooking.unitPrice || '0.00',
-                        totalPrice: (associatedBooking.totalAmount || 0).toFixed(2),
-                        currency: associatedBooking.currency || 'USD',
-                        exchangeRate: associatedBooking.exchangeRate || '1.00',
-                        allocatedRooms: associatedBooking.roomNumber 
-                          ? associatedBooking.roomNumber.split(',').map(rNum => {
-                              const cleanNum = rNum.trim();
-                              const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
-                              return {
-                                roomType: matchedRoom ? matchedRoom.roomType : associatedBooking.roomType,
-                                roomNumber: cleanNum,
-                                price: (parseFloat(associatedBooking.unitPrice) || 0).toFixed(2)
-                              };
-                            })
-                          : [],
-                        confirmedBy: associatedBooking.confirmedBy || 'Muthuni Weerasingha',
-                        reservationStatus: 'Confirm Booking',
-                        senderName: associatedBooking.senderName || 'Muthuni Weerasingha',
-                        badgeText: '',
-                        remarks: associatedBooking.remarks || '',
-                        bookingType: associatedBooking.bookingType || 'Booking.com Booking'
-                      });
-                      setShowDraftPreviewModal(true);
-                    }}
-                    className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                  >
-                    <FileText className="h-4 w-4 text-blue-700" /> View Draft Bill
-                  </button>
-                </div>
-              )}
-
-              {/* Save / Edit / Cancel Buttons for Guest Info */}
+              </div>\n              {/* Save / Edit / Cancel Buttons for Guest Info */}
               {(isFrontOfficer || isAdmin) && (
                 <div className="flex gap-2.5 pt-2">
                   {!isEditingBooking ? (
