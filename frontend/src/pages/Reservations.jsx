@@ -1473,9 +1473,20 @@ const Reservations = () => {
                     ) : (
                       <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-2.5 max-w-[70%]">
                         {associatedBooking && associatedBooking.roomType
-                          ? associatedBooking.roomType.split(',').map((type, index) => (
-                              <div key={index} className="leading-normal">{type.trim()}</div>
-                            ))
+                          ? (() => {
+                              const roomTypesList = associatedBooking.roomType.split(',').map(t => t.trim());
+                              const roomNumbersList = associatedBooking.roomNumber 
+                                ? associatedBooking.roomNumber.split(',').map(r => r.trim())
+                                : [];
+                              return roomTypesList.map((type, index) => {
+                                const roomNum = roomNumbersList[index] || '';
+                                return (
+                                  <div key={index} className="leading-normal">
+                                    {type} {roomNum ? `(Room ${roomNum})` : ''}
+                                  </div>
+                                );
+                              });
+                            })()
                           : 'Deluxe Room'}
                       </div>
                     )}
@@ -1523,10 +1534,10 @@ const Reservations = () => {
                     )}
                   </div>
 
-                  {/* Room */}
-                  <div className="col-span-2 flex justify-between items-start py-2 border-b border-slate-100/40">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room No:</span>
-                    {isEditingBooking ? (
+                  {/* Room No input field (Only displayed in Edit Mode) */}
+                  {isEditingBooking && (
+                    <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-100/40">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Room No:</span>
                       <input 
                         type="text"
                         placeholder="e.g. 101 or 101, 102"
@@ -1534,16 +1545,8 @@ const Reservations = () => {
                         onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
                         className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs text-right focus:outline-none focus:border-emerald-500 font-mono"
                       />
-                    ) : (
-                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs font-mono gap-2.5">
-                        {associatedBooking && associatedBooking.roomNumber
-                          ? associatedBooking.roomNumber.split(',').map((num, index) => (
-                              <div key={index} className="leading-normal">{num.trim()}</div>
-                            ))
-                          : 'Unallocated'}
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                 </div>
               </div>
