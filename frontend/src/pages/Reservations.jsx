@@ -557,10 +557,12 @@ const Reservations = () => {
         ? booking.roomNumber.split(',').map(rNum => {
             const cleanNum = rNum.trim();
             const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+            const numRooms = booking.roomNumber.split(',').length;
+            const uPrice = booking.unitPrice || defaultUnitPrice;
             return {
               roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
               roomNumber: cleanNum,
-              price: (parseFloat(booking.unitPrice || defaultUnitPrice) || 0).toFixed(2)
+              price: (parseFloat(uPrice) / numRooms).toFixed(2)
             };
           })
         : [],
@@ -611,10 +613,12 @@ const Reservations = () => {
         ? booking.roomNumber.split(',').map(rNum => {
             const cleanNum = rNum.trim();
             const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+            const numRooms = booking.roomNumber.split(',').length;
+            const uPrice = booking.unitPrice || defaultUnitPrice;
             return {
               roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
               roomNumber: cleanNum,
-              price: (parseFloat(booking.unitPrice || defaultUnitPrice) || 0).toFixed(2)
+              price: (parseFloat(uPrice) / numRooms).toFixed(2)
             };
           })
         : [],
@@ -664,10 +668,12 @@ const Reservations = () => {
         ? booking.roomNumber.split(',').map(rNum => {
             const cleanNum = rNum.trim();
             const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+            const numRooms = booking.roomNumber.split(',').length;
+            const uPrice = booking.unitPrice || defaultUnitPrice;
             return {
               roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
               roomNumber: cleanNum,
-              price: (parseFloat(booking.unitPrice || defaultUnitPrice) || 0).toFixed(2)
+              price: (parseFloat(uPrice) / numRooms).toFixed(2)
             };
           })
         : [],
@@ -807,6 +813,7 @@ const Reservations = () => {
             boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
             bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
             totalAmount: parseFloat(confirmationData.totalPrice) || 0,
+            unitPrice: parseFloat(confirmationData.unitPrice) || 0,
             remarks: confirmationData.remarks || '',
             status: 'Confirmed'
           };
@@ -874,12 +881,20 @@ const Reservations = () => {
     setBookingSuccess(false);
 
     try {
+      const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+      const calculatedUnitPrice = (parseFloat(bookingForm.amount) / nightsVal).toFixed(2);
+      
+      const payload = {
+        ...bookingForm,
+        unitPrice: calculatedUnitPrice
+      };
+
       const response = await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(bookingForm)
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) throw new Error('Failed to update booking details');
@@ -1635,10 +1650,12 @@ const Reservations = () => {
                           ? associatedBooking.roomNumber.split(',').map(rNum => {
                               const cleanNum = rNum.trim();
                               const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+                              const numRooms = associatedBooking.roomNumber.split(',').length;
+                              const uPrice = associatedBooking.unitPrice || (associatedBooking.totalAmount / nightsVal);
                               return {
                                 roomType: matchedRoom ? matchedRoom.roomType : associatedBooking.roomType,
                                 roomNumber: cleanNum,
-                                price: (parseFloat(associatedBooking.unitPrice) || 0).toFixed(2)
+                                price: (parseFloat(uPrice) / numRooms).toFixed(2)
                               };
                             })
                           : [],
