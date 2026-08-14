@@ -2371,6 +2371,48 @@ Staff: ${receiptData.generatedBy}`;
           }
         };
 
+        const roomsList = associatedBooking?.roomNumber 
+          ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean)
+          : [];
+        const numRooms = roomsList.length || 1;
+        const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+        const totalAmount = associatedBooking?.totalAmount || 0;
+        
+        // Calculate LKR rate and amount details with perfect cent adjustment
+        const totalCents = Math.round(totalAmount * 100);
+        
+        const itemizedRows = roomsList.map((roomNumber, idx) => {
+          const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
+          const prevCentsSum = Math.round((totalCents / numRooms) * idx);
+          const rowCents = currentCentsSum - prevCentsSum;
+          const rowAmount = rowCents / 100;
+          
+          const rateAmount = rowAmount / nightsVal;
+          
+          const amountVal = Math.floor(rowAmount);
+          const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
+          
+          return {
+            roomNumber,
+            description: `Night - ${associatedBooking?.roomType || 'Room'} (Room ${roomNumber})`,
+            rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            amountVal: amountVal.toLocaleString(),
+            amountCts: amountCts
+          };
+        });
+
+        const defaultRowAmount = totalAmount;
+        const defaultRateAmount = defaultRowAmount / nightsVal;
+        const defaultAmountVal = Math.floor(defaultRowAmount);
+        const defaultAmountCts = Math.round((defaultRowAmount - defaultAmountVal) * 100).toString().padStart(2, '0');
+        
+        const fallbackRow = {
+          description: `Night - ${associatedBooking?.roomType || 'Room'}`,
+          rate: defaultRateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          amountVal: defaultAmountVal.toLocaleString(),
+          amountCts: defaultAmountCts
+        };
+
         return (
           <div id="printable-receipt-modal-wrapper" className="no-print fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:py-8 print:p-0 print:bg-transparent print:static overflow-y-auto">
             <div 
@@ -2455,75 +2497,58 @@ Staff: ${receiptData.generatedBy}`;
               <div className="mb-4">
                 <table className="w-full border-collapse border border-emerald-800/30 text-[11px] print:border-slate-400">
                   <thead>
-                    <tr className="bg-emerald-800 text-white uppercase text-[8px] tracking-wider print:bg-slate-100 print:text-slate-900">
-                      <th className="border border-emerald-800/30 px-2 py-1 text-center w-12 print:border-slate-400">Qty</th>
-                      <th className="border border-emerald-800/30 px-3 py-1 text-left print:border-slate-400">Description</th>
-                      <th className="border border-emerald-800/30 px-3 py-1 text-right w-24 print:border-slate-400">Rate (LKR)</th>
-                      <th className="border border-emerald-800/30 px-3 py-1 text-right w-28 print:border-slate-400">Amount (LKR)</th>
+                    <tr className="bg-emerald-800 text-white uppercase text-[8px] tracking-wider print:bg-emerald-800 print:text-white">
+                      <th className="border border-emerald-800/30 px-3 py-1.5 text-left print:border-slate-400" style={{ width: '56%' }}>Description</th>
+                      <th className="border border-emerald-800/30 px-3 py-1.5 text-right w-36 print:border-slate-400" style={{ width: '22%' }}>Rate</th>
+                      <th className="border border-emerald-800/30 px-3 py-1.5 text-right print:border-slate-400" style={{ width: '14%' }}>LKR</th>
+                      <th className="border border-emerald-800/30 px-2 py-1.5 text-center print:border-slate-400" style={{ width: '8%' }}>Cts.</th>
                     </tr>
                   </thead>
-                  <tbody className="font-medium text-slate-700">
-                    {/* Main Accommodation Row */}
-                    <tr className="border-b border-emerald-800/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1.5 text-center print:border-slate-400">
-                        {selectedReg.numberOfNights || selectedReg.nights}
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1.5 print:border-slate-400">
-                        Accommodation ({selectedReg.checkInDate} - {selectedReg.checkOutDate})
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right print:border-slate-400">
-                        {((associatedBooking.totalAmount || 0) / (selectedReg.numberOfNights || selectedReg.nights || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-3 py-1.5 text-right">
-                        {(associatedBooking.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-
-                    {/* Additional Detail Rows */}
-                    <tr className="border-b border-emerald-800/10 bg-slate-50/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1 text-center text-slate-400 print:border-slate-400">-</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-slate-500 print:border-slate-400">
-                        <span className="font-bold text-[8px] uppercase tracking-wider mr-1.5 text-slate-400">Room Type:</span>
-                        <span className="font-bold text-slate-700">{associatedBooking.roomType}</span>
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-right text-slate-400 print:border-slate-400">-</td>
-                      <td className="px-3 py-1 text-right text-slate-400">-</td>
-                    </tr>
-                    <tr className="border-b border-emerald-800/10 bg-slate-50/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1 text-center text-slate-400 print:border-slate-400">-</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-slate-500 print:border-slate-400">
-                        <span className="font-bold text-[8px] uppercase tracking-wider mr-1.5 text-slate-400">Room Number:</span>
-                        <span className="font-bold text-slate-700">{associatedBooking.roomNumber || 'TBD'}</span>
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-right text-slate-400 print:border-slate-400">-</td>
-                      <td className="px-3 py-1 text-right text-slate-400">-</td>
-                    </tr>
-                    <tr className="border-b border-emerald-800/10 bg-slate-50/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1 text-center text-slate-400 print:border-slate-400">-</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-slate-500 print:border-slate-400">
-                        <span className="font-bold text-[8px] uppercase tracking-wider mr-1.5 text-slate-400">Board Basis:</span>
-                        <span className="font-bold text-slate-700">{associatedBooking.boardBasis || 'Room Only'}</span>
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-right text-slate-400 print:border-slate-400">-</td>
-                      <td className="px-3 py-1 text-right text-slate-400">-</td>
-                    </tr>
-                    <tr className="border-b border-emerald-800/20 bg-slate-50/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1 text-center text-slate-400 print:border-slate-400">-</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-slate-500 print:border-slate-400">
-                        <span className="font-bold text-[8px] uppercase tracking-wider mr-1.5 text-slate-400">Booking Type:</span>
-                        <span className="font-bold text-slate-700">{associatedBooking.bookingType || 'Direct'}</span>
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-right text-slate-400 print:border-slate-400">-</td>
-                      <td className="px-3 py-1 text-right text-slate-400">-</td>
-                    </tr>
+                  <tbody className="font-semibold text-slate-800">
+                    {itemizedRows.length > 0 ? (
+                      itemizedRows.map((row, idx) => (
+                        <tr key={idx} className="border-b border-emerald-800/20 print:border-slate-400">
+                          <td className="border-r border-emerald-800/20 px-3 py-1.5 text-left print:border-slate-400">
+                            {row.description}
+                          </td>
+                          <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400 text-slate-500">
+                            LKR {row.rate}
+                          </td>
+                          <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400">
+                            {row.amountVal}
+                          </td>
+                          <td className="px-2 py-1.5 text-center font-mono border-emerald-800/20">
+                            {row.amountCts}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className="border-b border-emerald-800/20 print:border-slate-400">
+                        <td className="border-r border-emerald-800/20 px-3 py-1.5 text-left print:border-slate-400">
+                          {fallbackRow.description}
+                        </td>
+                        <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400 text-slate-500">
+                          LKR {fallbackRow.rate}
+                        </td>
+                        <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400">
+                          {fallbackRow.amountVal}
+                        </td>
+                        <td className="px-2 py-1.5 text-center font-mono">
+                          {fallbackRow.amountCts}
+                        </td>
+                      </tr>
+                    )}
 
                     {/* Total Row */}
-                    <tr className="bg-emerald-50/30 font-bold text-slate-800 border-t border-emerald-800/30 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1.5 text-center print:border-slate-400"></td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right uppercase text-[8px] tracking-wider print:border-slate-400">Total Value</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right print:border-slate-400"></td>
-                      <td className="px-3 py-1.5 text-right text-emerald-800 print:text-slate-900">
-                        {(associatedBooking.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <tr className="bg-emerald-50/10 font-bold text-slate-900 border-t-2 border-emerald-800/30 print:border-slate-400">
+                      <td className="border-r border-emerald-800/20 px-3 py-2 text-right uppercase text-[8px] tracking-wider print:border-slate-400 font-extrabold" colSpan={2}>
+                        Total
+                      </td>
+                      <td className="border-r border-emerald-800/20 px-3 py-2 text-right font-mono font-bold print:border-slate-400 text-emerald-800">
+                        {Math.floor(totalAmount).toLocaleString()}
+                      </td>
+                      <td className="px-2 py-2 text-center font-mono font-bold text-emerald-800">
+                        {Math.round((totalAmount - Math.floor(totalAmount)) * 100).toString().padStart(2, '0')}
                       </td>
                     </tr>
                   </tbody>
