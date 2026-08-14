@@ -1457,20 +1457,106 @@ const Reservations = () => {
                     )}
                   </div>
 
+                  {/* Booking Channel */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Booking Channel:</span>
+                    {isEditingBooking ? (
+                      <select 
+                        value={bookingForm.bookingType}
+                        onChange={(e) => setBookingForm({...bookingForm, bookingType: e.target.value})}
+                        className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="Direct Booking">Direct Booking</option>
+                        <option value="Booking.com">Booking.com</option>
+                        <option value="Airbnb">Airbnb</option>
+                        <option value="Web Booking">Web Booking</option>
+                      </select>
+                    ) : (
+                      <span className="font-extrabold text-slate-800">
+                        {associatedBooking?.bookingType || 'Direct Booking'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Room Type */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Room Type:</span>
+                    {isEditingBooking ? (
+                      <select 
+                        value={bookingForm.roomType}
+                        onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
+                        className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="Standard Room">Standard Room</option>
+                        <option value="Deluxe Room">Deluxe Room</option>
+                        <option value="Suite Room">Suite Room</option>
+                        <option value="Budget Room">Budget Room</option>
+                      </select>
+                    ) : (
+                      <span className="font-extrabold text-slate-800">
+                        {associatedBooking?.roomType || 'Deluxe Room'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Board Basis */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Board Basis:</span>
+                    {isEditingBooking ? (
+                      <select 
+                        value={bookingForm.boardBasis}
+                        onChange={(e) => setBookingForm({...bookingForm, boardBasis: e.target.value})}
+                        className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="Room Only">Room Only</option>
+                        <option value="Bed & Breakfast">Bed & Breakfast</option>
+                        <option value="Half Board">Half Board</option>
+                        <option value="Full Board">Full Board</option>
+                      </select>
+                    ) : (
+                      <span className="font-extrabold text-slate-800">
+                        {associatedBooking?.boardBasis || 'Room Only'}
+                      </span>
+                    )}
+                  </div>
+
                   {/* Price */}
                   <div className="space-y-1 col-span-2 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide font-bold">Total Price:</span>
-                    <span className="font-extrabold text-slate-800 text-sm">
-                      LKR {associatedBooking?.totalAmount ? parseFloat(associatedBooking.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
-                    </span>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
+                    {isEditingBooking ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-400 font-bold text-xs">LKR</span>
+                        <input 
+                          type="number"
+                          step="any"
+                          value={bookingForm.amount}
+                          onChange={(e) => setBookingForm({...bookingForm, amount: e.target.value})}
+                          className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs text-right focus:outline-none focus:border-emerald-500 font-mono"
+                        />
+                      </div>
+                    ) : (
+                      <span className="font-extrabold text-slate-850 text-sm font-mono">
+                        LKR {associatedBooking?.totalAmount ? parseFloat(associatedBooking.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
+                      </span>
+                    )}
                   </div>
 
                   {/* Room */}
                   <div className="space-y-1 col-span-2 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide font-bold">Room:</span>
-                    <span className="font-extrabold text-slate-800">
-                      {associatedBooking ? `${associatedBooking.roomNumber || 'No Room'} (${associatedBooking.roomType})` : 'Unallocated'}
-                    </span>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Room No:</span>
+                    {isEditingBooking ? (
+                      <input 
+                        type="text"
+                        placeholder="e.g. 101 or 101, 102"
+                        value={bookingForm.room}
+                        onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
+                        className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs text-right focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    ) : (
+                      <span className="font-extrabold text-slate-800">
+                        {associatedBooking ? `${associatedBooking.roomNumber || 'No Room'} (${associatedBooking.roomType})` : 'Unallocated'}
+                      </span>
+                    )}
                   </div>
 
                 </div>
@@ -1641,7 +1727,7 @@ const Reservations = () => {
 
 
               {/* Unified Payment Form */}
-              {associatedBooking && !associatedBooking.bookingType?.toLowerCase().includes('booking.com') ? (
+              {associatedBooking && !associatedBooking.bookingType?.toLowerCase().includes('booking.com') && (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                   <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                     <Receipt className="h-4 w-4 text-emerald-600" /> Payments
@@ -1912,10 +1998,11 @@ const Reservations = () => {
                       </form>
                     );
                   })()}
-
-
                 </div>
-              ) : (
+              )}
+
+              {/* Warning card ONLY if associatedBooking is completely missing OR if booking details have not been saved (amount is 0 or empty) */}
+              {(!associatedBooking || !associatedBooking.totalAmount || associatedBooking.totalAmount <= 0) && (
                 <div className="bg-amber-50/50 border border-amber-100/50 rounded-xl p-3.5 text-xs text-amber-700 font-semibold text-center mt-4">
                   Please save the room allocation details first to record advance payments.
                 </div>
