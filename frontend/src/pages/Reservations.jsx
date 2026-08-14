@@ -3424,16 +3424,16 @@ Staff: ${receiptData.generatedBy}`;
 
                    {/* Total Price */}
                    <div className="space-y-1.5 col-span-2">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price (LKR)</label>
                      <div className="relative">
+                       <span className="absolute left-3 top-2 text-slate-450 font-bold text-xs select-none">LKR</span>
                        <input 
                          type="number" 
                          readOnly
                          disabled
                          value={confirmationData.totalPrice}
-                         className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed font-bold"
+                         className="w-full bg-slate-100 border border-slate-200 rounded-lg pl-10 pr-3 py-2 text-slate-500 cursor-not-allowed font-bold font-mono"
                        />
-
                      </div>
                    </div>
 
