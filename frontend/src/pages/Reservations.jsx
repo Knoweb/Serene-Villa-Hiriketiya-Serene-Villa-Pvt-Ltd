@@ -3024,10 +3024,12 @@ Staff: ${receiptData.generatedBy}`;
                        onChange={(e) => {
                          const curr = e.target.value;
                          const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
-                         const rate = parseFloat(confirmationData.exchangeRate) || 1;
+                         const newRate = curr === 'LKR' ? '1.00' : (curr === 'USD' ? '330.00' : (confirmationData.exchangeRate || '1.00'));
+                         const rate = parseFloat(newRate) || 1;
                          setConfirmationData({
                            ...confirmationData,
                            currency: curr,
+                           exchangeRate: newRate,
                            totalPrice: (usdSum * rate).toFixed(2)
                          });
                        }}
@@ -3306,7 +3308,7 @@ Staff: ${receiptData.generatedBy}`;
                            <thead>
                              <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
                                <th className="pb-1.5 font-semibold">Room Name</th>
-                               <th className="pb-1.5 font-semibold">Room Number</th><th className="pb-1.5 font-semibold w-36 text-right">Price (USD)</th>
+                               <th className="pb-1.5 font-semibold">Room Number</th><th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.currency || 'USD'})</th>
                              </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-100">
@@ -3316,7 +3318,7 @@ Staff: ${receiptData.generatedBy}`;
                                   <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
                                   <td className="py-1 text-right">
                                     <div className="inline-flex items-center gap-1.5 justify-end">
-                                      <span className="text-[10px] text-slate-400 font-bold font-mono">USD</span>
+                                      <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.currency || 'USD'}</span>
                                       <input
                                         type="number"
                                         step="0.01"
@@ -3346,7 +3348,7 @@ Staff: ${receiptData.generatedBy}`;
                               <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
                                 <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
                                 <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
-                                  USD {(() => {
+                                  {confirmationData.currency || 'USD'} {(() => {
                                     const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
                                     return usdSum.toFixed(2);
                                   })()}
@@ -3364,10 +3366,12 @@ Staff: ${receiptData.generatedBy}`;
                        onChange={(e) => {
                          const curr = e.target.value;
                          const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
-                         const rate = parseFloat(confirmationData.exchangeRate) || 1;
+                         const newRate = curr === 'LKR' ? '1.00' : (curr === 'USD' ? '330.00' : (confirmationData.exchangeRate || '1.00'));
+                         const rate = parseFloat(newRate) || 1;
                          setConfirmationData({
                            ...confirmationData,
                            currency: curr,
+                           exchangeRate: newRate,
                            totalPrice: (usdSum * rate).toFixed(2)
                          });
                        }}
