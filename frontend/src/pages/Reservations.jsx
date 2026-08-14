@@ -742,7 +742,7 @@ const Reservations = () => {
 
     setConfirmationData({
       guestName: '',
-      bookingNumber: type === 'Direct Booking' ? defaultBookingNum : '',
+      bookingNumber: defaultBookingNum,
       checkInDate: '',
       checkOutDate: '',
       nights: '',
@@ -802,31 +802,39 @@ const Reservations = () => {
           body: JSON.stringify(newGuest)
         });
 
-        if (guestRes.ok) {
-          const savedGuest = await guestRes.json();
-          
-          const newBooking = {
-            guestRegistrationId: savedGuest.id,
-            bookingNumber: confirmationData.bookingNumber,
-            roomNumber: confirmationData.room || 'Unallocated',
-            roomType: confirmationData.roomType,
-            boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
-            bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
-            totalAmount: parseFloat(confirmationData.totalPrice) || 0,
-            unitPrice: parseFloat(confirmationData.unitPrice) || 0,
-            remarks: confirmationData.remarks || '',
-            status: 'Confirmed'
-          };
-
-          await fetch(`${API_BASE}/bookings`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newBooking)
-          });
-
-          fetchRegistrations();
+        if (!guestRes.ok) {
+          throw new Error('Failed to create guest registration.');
         }
+
+        const savedGuest = await guestRes.json();
+        
+        const newBooking = {
+          guestRegistrationId: savedGuest.id,
+          bookingNumber: confirmationData.bookingNumber,
+          roomNumber: confirmationData.room || 'Unallocated',
+          roomType: confirmationData.roomType,
+          boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
+          bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
+          totalAmount: parseFloat(confirmationData.totalPrice) || 0,
+          unitPrice: parseFloat(confirmationData.unitPrice) || 0,
+          remarks: confirmationData.remarks || '',
+          status: 'Confirmed'
+        };
+
+        const bookingRes = await fetch(`${API_BASE}/bookings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newBooking)
+        });
+
+        if (!bookingRes.ok) {
+          const errData = await bookingRes.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to save booking details. Make sure the booking number is unique!');
+        }
+
+        await fetchRegistrations();
       } catch (err) {
+        alert('Error saving reservation: ' + err.message);
         console.error('Error saving standalone reservation:', err);
       }
     }
