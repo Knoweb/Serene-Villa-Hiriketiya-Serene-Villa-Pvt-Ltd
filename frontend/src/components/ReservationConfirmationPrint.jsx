@@ -406,11 +406,6 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
         </p>
       </div>
 
-      {/* Slogan Bordered Box */}
-      <div style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '700', color: '#334155', marginTop: '24px', marginBottom: '24px' }}>
-        #Welcome Serene Villa # Welcome to the Hiriketiya #Visit of Sri Lanka
-      </div>
-
       {/* Signature Lines */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '48px', marginBottom: '24px' }}>
         <div style={{ width: '220px', textAlign: 'center' }}>
@@ -421,6 +416,11 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
           <div style={{ borderBottom: '1px dotted #000000', marginBottom: '6px', width: '100%' }}></div>
           <div style={{ fontSize: '10px', fontWeight: '800', color: '#000000' }}>Received By</div>
         </div>
+      </div>
+
+      {/* Slogan Bordered Box */}
+      <div style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '700', color: '#334155', marginTop: '24px', marginBottom: '24px' }}>
+        #Welcome Serene Villa # Welcome to the Hiriketiya #Visit of Sri Lanka
       </div>
 
       {/* Footer Meta */}
