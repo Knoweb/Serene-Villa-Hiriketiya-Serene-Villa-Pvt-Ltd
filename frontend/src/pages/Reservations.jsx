@@ -2844,7 +2844,7 @@ Staff: ${receiptData.generatedBy}`;
                          <input 
                            type="number" 
                            value={confirmationData.adults}
-                           onChange={(e) => setConfirmationData({...confirmationData, adults: parseInt(e.target.value) || 1})}
+                           onChange={(e) => setConfirmationData({...confirmationData, adults: e.target.value})}
                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                          />
                        </div>
@@ -2854,7 +2854,7 @@ Staff: ${receiptData.generatedBy}`;
                          <input 
                            type="number" 
                            value={confirmationData.children}
-                           onChange={(e) => setConfirmationData({...confirmationData, children: parseInt(e.target.value) || 0})}
+                           onChange={(e) => setConfirmationData({...confirmationData, children: e.target.value})}
                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                          />
                        </div>
@@ -3228,7 +3228,7 @@ Staff: ${receiptData.generatedBy}`;
                      <input 
                        type="number" 
                        value={confirmationData.adults}
-                       onChange={(e) => setConfirmationData({...confirmationData, adults: parseInt(e.target.value) || 1})}
+                       onChange={(e) => setConfirmationData({...confirmationData, adults: e.target.value})}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                      />
                    </div>
@@ -3239,7 +3239,7 @@ Staff: ${receiptData.generatedBy}`;
                      <input 
                        type="number" 
                        value={confirmationData.children}
-                       onChange={(e) => setConfirmationData({...confirmationData, children: parseInt(e.target.value) || 0})}
+                       onChange={(e) => setConfirmationData({...confirmationData, children: e.target.value})}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
                      />
                    </div>
