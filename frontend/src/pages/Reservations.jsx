@@ -1472,9 +1472,13 @@ const Reservations = () => {
                         <option value="Budget Room">Budget Room</option>
                       </select>
                     ) : (
-                      <span className="font-extrabold text-slate-800">
-                        {associatedBooking?.roomType || 'Deluxe Room'}
-                      </span>
+                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-0.5 max-w-[70%]">
+                        {associatedBooking && associatedBooking.roomType
+                          ? associatedBooking.roomType.split(',').map((type, index) => (
+                              <div key={index} className="leading-tight">{type.trim()}</div>
+                            ))
+                          : 'Deluxe Room'}
+                      </div>
                     )}
                   </div>
 
@@ -1532,9 +1536,13 @@ const Reservations = () => {
                         className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs text-right focus:outline-none focus:border-emerald-500 font-mono"
                       />
                     ) : (
-                      <span className="font-extrabold text-slate-800">
-                        {associatedBooking ? (associatedBooking.roomNumber || 'No Room') : 'Unallocated'}
-                      </span>
+                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs font-mono gap-0.5">
+                        {associatedBooking && associatedBooking.roomNumber
+                          ? associatedBooking.roomNumber.split(',').map((num, index) => (
+                              <div key={index} className="leading-tight">{num.trim()}</div>
+                            ))
+                          : 'Unallocated'}
+                      </div>
                     )}
                   </div>
 
