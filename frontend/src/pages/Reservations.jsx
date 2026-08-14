@@ -64,6 +64,15 @@ const ROOM_TEMPLATES = {
   }
 };
 
+const mapBookingTypeForBackend = (type) => {
+  if (!type) return 'Direct';
+  const t = type.toLowerCase();
+  if (t.includes('booking.com')) return 'Booking.com';
+  if (t.includes('airbnb')) return 'Airbnb';
+  if (t.includes('web')) return 'Web Booking';
+  return 'Direct';
+};
+
 const Reservations = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -796,7 +805,7 @@ const Reservations = () => {
             roomNumber: confirmationData.room || 'Unallocated',
             roomType: confirmationData.roomType,
             boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
-            bookingType: confirmationData.bookingType || 'Direct Booking',
+            bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
             totalAmount: parseFloat(confirmationData.totalPrice) || 0,
             remarks: confirmationData.remarks || '',
             status: 'Confirmed'
@@ -1460,22 +1469,9 @@ const Reservations = () => {
                   {/* Booking Channel */}
                   <div className="space-y-1 col-span-2 flex justify-between items-center">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Booking Channel:</span>
-                    {isEditingBooking ? (
-                      <select 
-                        value={bookingForm.bookingType}
-                        onChange={(e) => setBookingForm({...bookingForm, bookingType: e.target.value})}
-                        className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500"
-                      >
-                        <option value="Direct Booking">Direct Booking</option>
-                        <option value="Booking.com">Booking.com</option>
-                        <option value="Airbnb">Airbnb</option>
-                        <option value="Web Booking">Web Booking</option>
-                      </select>
-                    ) : (
-                      <span className="font-extrabold text-slate-800">
-                        {associatedBooking?.bookingType || 'Direct Booking'}
-                      </span>
-                    )}
+                    <span className="font-extrabold text-slate-800">
+                      {associatedBooking?.bookingType || 'Direct Booking'}
+                    </span>
                   </div>
 
                   {/* Room Type */}
@@ -2889,6 +2885,21 @@ Staff: ${receiptData.generatedBy}`;
                                            }
                                            const roomString = newRooms.join(', ');
                                            
+                                           // Re-build allocatedRooms and recalculate price sum
+                                           const currentAllocated = confirmationData.allocatedRooms || [];
+                                           const newAllocated = newRooms.map(rNum => {
+                                             const existing = currentAllocated.find(ca => ca.roomNumber === rNum);
+                                             const matchedR = rooms.find(rm => rm.roomNumber === rNum);
+                                             return {
+                                               roomType: matchedR ? matchedR.roomType : (confirmationData.roomType || 'Deluxe Room'),
+                                               roomNumber: rNum,
+                                               price: existing ? existing.price : '0.00'
+                                             };
+                                           });
+
+                                           const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                                           const rate = parseFloat(confirmationData.exchangeRate) || 1;
+
                                            const firstSelectedRoomNum = newRooms[0];
                                            const matchedRoom = rooms.find(r => r.roomNumber === firstSelectedRoomNum);
                                            let newRoomType = '';
@@ -2904,7 +2915,9 @@ Staff: ${receiptData.generatedBy}`;
                                            setConfirmationData({
                                              ...confirmationData,
                                              room: roomString,
-                                             roomType: newRoomType
+                                             roomType: newRoomType,
+                                             allocatedRooms: newAllocated,
+                                             totalPrice: (totalSum * rate).toFixed(2)
                                            });
                                          }}
                                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
