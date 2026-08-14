@@ -443,39 +443,6 @@ const Reservations = () => {
     setIsEditingBooking(false);
     let associatedBooking = bookings.find(b => b.guestRegistrationId === reg.id);
     
-    if (!associatedBooking) {
-      try {
-        const defaultForm = {
-          roomType: defaultRoomType,
-          room: '',
-          bookingType: 'Direct',
-          bookingNumber: `D-${1000 + reg.id}`,
-          boardBasis: 'Room Only',
-          remarks: '',
-          amount: '0.00',
-          paymentStatus: reg.paymentStatus || 'Pending',
-          registrationStatus: reg.registrationStatus || 'Pending'
-        };
-        const response = await fetch(`${API_BASE}/guest-registrations/${reg.id}/booking-details`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(defaultForm)
-        });
-        if (response.ok) {
-          const bookingRes = await fetch(`${API_BASE}/bookings`);
-          if (bookingRes.ok) {
-            const bookingData = await bookingRes.json();
-            setBookings(bookingData);
-            associatedBooking = bookingData.find(b => b.guestRegistrationId === reg.id);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to auto-create booking details', err);
-      }
-    }
-    
     if (associatedBooking) {
       setBookingForm({
         roomType: associatedBooking.roomType || defaultRoomType,
