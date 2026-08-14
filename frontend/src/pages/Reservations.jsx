@@ -99,6 +99,7 @@ const Reservations = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const [customHost, setCustomHost] = useState(() => window.location.hostname);
 
@@ -745,6 +746,8 @@ const Reservations = () => {
   };
 
   const handlePrintConfirmation = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
     if (isCreatingNewReservation) {
       try {
         const newGuest = {
@@ -803,7 +806,11 @@ const Reservations = () => {
       } catch (err) {
         alert('Error saving reservation: ' + err.message);
         console.error('Error saving standalone reservation:', err);
+      } finally {
+        setIsSaving(false);
       }
+    } else {
+      setIsSaving(false);
     }
     
     // Save values to localStorage so they are remembered next time
@@ -3518,8 +3525,14 @@ Staff: ${receiptData.generatedBy}`;
                     <FileText size={13} /> Draft Bill
                   </button>
                 )}
-                <button type="submit" className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10">
-                  {confirmationData.bookingType?.toLowerCase().includes('direct') ? (
+                <button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>Saving...</>
+                  ) : confirmationData.bookingType?.toLowerCase().includes('direct') ? (
                     <>
                       <Printer size={13} /> Print / Save PDF
                     </>
