@@ -903,14 +903,19 @@ const Reservations = () => {
     if (!selectedReg) return;
     const booking = getBookingForReg(selectedReg.id);
     if (!booking) { alert('Please save the booking details first.'); return; }
-    if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
+    
+    const actualAmount = tab === 'FULL' ? remainingBalance : parseFloat(paymentForm.amount);
+    const actualExchangeRate = tab === 'FULL' ? 1.00 : parseFloat(paymentForm.exchangeRate);
+    const actualCurrency = tab === 'FULL' ? 'LKR' : paymentForm.currencyCode;
+
+    if (!actualAmount || actualAmount <= 0) {
       alert('Please enter a valid amount.'); return;
     }
-    if (!paymentForm.exchangeRate || parseFloat(paymentForm.exchangeRate) <= 0) {
+    if (!actualExchangeRate || actualExchangeRate <= 0) {
       alert('Please enter a valid exchange rate.'); return;
     }
 
-    const convertedLkr = parseFloat(paymentForm.amount) * parseFloat(paymentForm.exchangeRate);
+    const convertedLkr = actualAmount * actualExchangeRate;
     const totalBookingAmount = booking.totalAmount || 0;
     const totalPaidSoFar = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
     const newTotal = totalPaidSoFar + convertedLkr;
@@ -920,13 +925,13 @@ const Reservations = () => {
       bookingId: booking.id,
       guestRegistrationId: selectedReg.id,
       paymentType: isFull ? 'FINAL' : 'ADVANCE',
-      amount: parseFloat(paymentForm.amount),
-      currencyCode: paymentForm.currencyCode,
-      currency: paymentForm.currencyCode,
-      exchangeRate: parseFloat(paymentForm.exchangeRate),
+      amount: actualAmount,
+      currencyCode: actualCurrency,
+      currency: actualCurrency,
+      exchangeRate: actualExchangeRate,
       convertedAmountLkr: convertedLkr,
       amountLkr: convertedLkr,
-      amountInCurrency: parseFloat(paymentForm.amount),
+      amountInCurrency: actualAmount,
       paymentMethod: paymentForm.paymentMethod,
       referenceNumber: paymentForm.referenceNumber,
       receiptNumber: paymentForm.referenceNumber,
@@ -1519,6 +1524,58 @@ const Reservations = () => {
                 </button>
               </div>
 
+              {/* View Draft Bill button for OTA bookings inside drawer */}
+              {associatedBooking && associatedBooking.bookingType !== 'Direct Booking' && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+                      setConfirmationData({
+                        guestName: selectedReg.guestName || '',
+                        bookingNumber: associatedBooking.bookingNumber || '',
+                        checkInDate: selectedReg.checkInDate || '',
+                        checkOutDate: selectedReg.checkOutDate || '',
+                        nights: nightsVal,
+                        adults: selectedReg.adults || 1,
+                        children: selectedReg.children || 0,
+                        boardBasis: associatedBooking.boardBasis || 'Room Only',
+                        email: selectedReg.email || 'N/A',
+                        whatsappNumber: selectedReg.whatsappNumber || 'N/A',
+                        nationality: selectedReg.nationality || 'N/A',
+                        reservationDate: new Date().toISOString().split('T')[0],
+                        roomType: associatedBooking.roomType || '',
+                        unitPrice: associatedBooking.unitPrice || '0.00',
+                        totalPrice: (associatedBooking.totalAmount || 0).toFixed(2),
+                        currency: associatedBooking.currency || 'USD',
+                        exchangeRate: associatedBooking.exchangeRate || '1.00',
+                        allocatedRooms: associatedBooking.roomNumber 
+                          ? associatedBooking.roomNumber.split(',').map(rNum => {
+                              const cleanNum = rNum.trim();
+                              const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+                              return {
+                                roomType: matchedRoom ? matchedRoom.roomType : associatedBooking.roomType,
+                                roomNumber: cleanNum,
+                                price: (parseFloat(associatedBooking.unitPrice) || 0).toFixed(2)
+                              };
+                            })
+                          : [],
+                        confirmedBy: associatedBooking.confirmedBy || 'Muthuni Weerasingha',
+                        reservationStatus: 'Confirm Booking',
+                        senderName: associatedBooking.senderName || 'Muthuni Weerasingha',
+                        badgeText: '',
+                        remarks: associatedBooking.remarks || '',
+                        bookingType: associatedBooking.bookingType || 'Booking.com Booking'
+                      });
+                      setShowDraftPreviewModal(true);
+                    }}
+                    className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <FileText className="h-4 w-4 text-blue-700" /> View Draft Bill
+                  </button>
+                </div>
+              )}
+
               {/* Save / Edit / Cancel Buttons for Guest Info */}
               {(isFrontOfficer || isAdmin) && (
                 <div className="flex gap-2.5 pt-2">
@@ -1584,7 +1641,7 @@ const Reservations = () => {
 
 
               {/* Unified Payment Form */}
-              {associatedBooking ? (
+              {associatedBooking && associatedBooking.bookingType !== 'Booking.com Booking' ? (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                   <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                     <Receipt className="h-4 w-4 text-emerald-600" /> Payments
@@ -1683,43 +1740,46 @@ const Reservations = () => {
                       }
                     };
 
-                    const isFull = paymentTab === 'FULL';
+                    const actualPaymentTab = associatedBooking.bookingType !== 'Direct Booking' ? 'FULL' : paymentTab;
+                    const isFull = actualPaymentTab === 'FULL';
                     const accentColor = isFull ? 'blue' : 'emerald';
 
                     return (
-                      <form onSubmit={(e) => handleSavePayment(e, paymentTab, remainingBal)} className="space-y-3 text-xs">
+                      <form onSubmit={(e) => handleSavePayment(e, actualPaymentTab, remainingBal)} className="space-y-3 text-xs">
                         {/* Tab Toggle */}
-                        <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-bold">
-                          <button
-                            type="button"
-                            onClick={() => handleTabChange('ADVANCE')}
-                            className={`flex-1 py-2 transition ${
-                              !isFull
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-white text-slate-500 hover:bg-slate-50'
-                            }`}
-                          >
-                            Advance Payment
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleTabChange('FULL')}
-                            className={`flex-1 py-2 transition border-l border-slate-200 ${
-                              isFull
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-500 hover:bg-slate-50'
-                            }`}
-                          >
-                            Full Payment
-                            {remainingBal > 0 && (
-                              <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full ${
-                                isFull ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'
-                              }`}>
-                                {remainingBal.toLocaleString()} LKR
-                              </span>
-                            )}
-                          </button>
-                        </div>
+                        {associatedBooking.bookingType === 'Direct Booking' && (
+                          <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-bold">
+                            <button
+                              type="button"
+                              onClick={() => handleTabChange('ADVANCE')}
+                              className={`flex-1 py-2 transition ${
+                                !isFull
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-white text-slate-500 hover:bg-slate-50'
+                              }`}
+                            >
+                              Advance Payment
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleTabChange('FULL')}
+                              className={`flex-1 py-2 transition border-l border-slate-200 ${
+                                isFull
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white text-slate-500 hover:bg-slate-50'
+                              }`}
+                            >
+                              Full Payment
+                              {remainingBal > 0 && (
+                                <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full ${
+                                  isFull ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'
+                                }`}>
+                                  {remainingBal.toLocaleString()} LKR
+                                </span>
+                              )}
+                            </button>
+                          </div>
+                        )}
 
                         {/* Form Fields */}
                         <div className={`border rounded-xl p-3.5 space-y-3 ${
