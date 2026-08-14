@@ -1524,8 +1524,8 @@ const Reservations = () => {
                 </button>
               </div>
 
-              {/* View Draft Bill button for OTA bookings inside drawer */}
-              {associatedBooking && !associatedBooking.bookingType?.toLowerCase().includes('direct') && (
+              {/* View Draft Bill button for bookings inside drawer */}
+              {associatedBooking && (
                 <div className="pt-2">
                   <button
                     type="button"
