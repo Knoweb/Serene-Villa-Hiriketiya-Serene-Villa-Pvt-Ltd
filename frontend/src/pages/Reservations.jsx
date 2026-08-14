@@ -783,7 +783,6 @@ const Reservations = () => {
           boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
           bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
           totalAmount: parseFloat(confirmationData.totalPrice) || 0,
-          unitPrice: parseFloat(confirmationData.unitPrice) || 0,
           remarks: confirmationData.remarks || '',
           status: 'Confirmed'
         };
@@ -856,20 +855,12 @@ const Reservations = () => {
     setBookingSuccess(false);
 
     try {
-      const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
-      const calculatedUnitPrice = (parseFloat(bookingForm.amount) / nightsVal).toFixed(2);
-      
-      const payload = {
-        ...bookingForm,
-        unitPrice: calculatedUnitPrice
-      };
-
       const response = await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(bookingForm)
       });
 
       if (!response.ok) throw new Error('Failed to update booking details');

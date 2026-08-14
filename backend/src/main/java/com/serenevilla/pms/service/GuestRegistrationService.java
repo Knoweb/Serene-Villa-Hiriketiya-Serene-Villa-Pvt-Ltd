@@ -206,14 +206,6 @@ public class GuestRegistrationService {
                     booking.setTotalAmount(Double.parseDouble((String) amountVal));
                 }
             }
-            if (details.containsKey("unitPrice")) {
-                Object unitPriceVal = details.get("unitPrice");
-                if (unitPriceVal instanceof Number) {
-                    booking.setUnitPrice(((Number) unitPriceVal).doubleValue());
-                } else if (unitPriceVal instanceof String) {
-                    booking.setUnitPrice(Double.parseDouble((String) unitPriceVal));
-                }
-            }
 
             bookingRepository.save(booking);
 
