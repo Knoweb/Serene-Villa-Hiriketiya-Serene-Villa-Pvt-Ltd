@@ -704,8 +704,7 @@ const Reservations = () => {
     else if (type === 'Airbnb Booking') prefix = 'A-';
     else if (type === 'Web Booking') prefix = 'W-';
 
-    const baseId = 1000 + registrations.length;
-    const defaultBookingNum = `${prefix}${baseId}`;
+    const defaultBookingNum = prefix;
 
     setConfirmationData({
       guestName: '',
@@ -757,7 +756,7 @@ const Reservations = () => {
           children: parseInt(confirmationData.children) || 0,
           whatsappNumber: confirmationData.whatsappNumber,
           nationality: confirmationData.nationality,
-          passportNumber: confirmationData.bookingNumber,
+          passportNumber: `SV-${confirmationData.bookingNumber}`,
           paymentStatus: 'Pending',
           registrationStatus: 'Pending',
           isHiddenFromFrontOffice: false,
