@@ -210,19 +210,18 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
 
       {/* Itemized Room Table */}
       {!isDirect ? (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '20px', border: '1px solid #000000' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
           <thead>
             <tr>
-              <th rowSpan="2" style={{ border: '1px solid #000000', padding: '6px', fontSize: '10px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', textAlign: 'center', width: '10%' }}>Qty</th>
-              <th rowSpan="2" style={{ border: '1px solid #000000', padding: '6px', fontSize: '10px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', textAlign: 'left', width: '50%' }}>Description</th>
-              <th rowSpan="2" style={{ border: '1px solid #000000', padding: '6px', fontSize: '10px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', textAlign: 'right', width: '15%' }}>Rate</th>
-              <th colSpan="2" style={{ border: '1px solid #000000', padding: '4px', fontSize: '10px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', textAlign: 'center', width: '25%' }}>Amount</th>
+              <th rowSpan="2" style={{ backgroundColor: '#004d36', border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', fontWeight: '850', color: '#ffffff', textTransform: 'uppercase', textAlign: 'left', width: '60%' }}>Description</th>
+              <th rowSpan="2" style={{ backgroundColor: '#004d36', border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', fontWeight: '850', color: '#ffffff', textTransform: 'uppercase', textAlign: 'right', width: '18%' }}>Rate</th>
+              <th colSpan="2" style={{ backgroundColor: '#004d36', border: '1px solid #cbd5e1', padding: '4px', fontSize: '10px', fontWeight: '850', color: '#ffffff', textTransform: 'uppercase', textAlign: 'center', width: '22%' }}>Amount</th>
             </tr>
             <tr>
-              <th style={{ border: '1px solid #000000', padding: '4px', fontSize: '9px', fontWeight: '800', color: '#000000', textAlign: 'right' }}>
+              <th style={{ backgroundColor: '#004d36', border: '1px solid #cbd5e1', padding: '4px', fontSize: '9px', fontWeight: '850', color: '#ffffff', textAlign: 'right' }}>
                 {confirmationData.currency === 'USD' ? 'US$' : confirmationData.currency}
               </th>
-              <th style={{ border: '1px solid #000000', padding: '4px', fontSize: '9px', fontWeight: '800', color: '#000000', textAlign: 'center', width: '50px' }}>Cts.</th>
+              <th style={{ backgroundColor: '#004d36', border: '1px solid #cbd5e1', padding: '4px', fontSize: '9px', fontWeight: '850', color: '#ffffff', textAlign: 'center', width: '50px' }}>Cts.</th>
             </tr>
           </thead>
           <tbody>
@@ -236,31 +235,27 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
                 return (
                   <React.Fragment key={idx}>
                     <tr>
-                      <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'center', fontWeight: '600' }}>
-                        {String(nights).padStart(2, '0')}
-                      </td>
-                      <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'left', fontWeight: '600' }}>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'left', fontWeight: '600' }}>
                         Night - {item.roomType} (Room {item.roomNumber})
                       </td>
-                      <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'right', fontWeight: '600' }}>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'right', fontWeight: '600' }}>
                         US$ {rateVal.toFixed(2)}
                       </td>
-                      <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'right', fontWeight: '700' }}>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'right', fontWeight: '700' }}>
                         {mainPart.toLocaleString()}
                       </td>
-                      <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'center', fontWeight: '700' }}>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'center', fontWeight: '700' }}>
                         {String(centsPart).padStart(2, '0')}
                       </td>
                     </tr>
                     {confirmationData.currency !== 'USD' && parseFloat(confirmationData.exchangeRate) !== 1 && (
                       <tr>
-                        <td style={{ border: '1px solid #000000', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'center' }}></td>
-                        <td style={{ border: '1px solid #000000', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'left', fontStyle: 'italic' }}>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'left', fontStyle: 'italic' }}>
                           &nbsp;&nbsp;&nbsp;&nbsp;@ {parseFloat(confirmationData.exchangeRate).toFixed(2)}
                         </td>
-                        <td style={{ border: '1px solid #000000', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'right' }}></td>
-                        <td style={{ border: '1px solid #000000', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'right' }}></td>
-                        <td style={{ border: '1px solid #000000', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'center' }}></td>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'right' }}></td>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'right' }}></td>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '4px 8px', fontSize: '9.5px', color: '#475569', textAlign: 'center' }}></td>
                       </tr>
                     )}
                   </React.Fragment>
@@ -268,31 +263,27 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
               })
             ) : (
               <tr>
-                <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'center' }}>
-                  {String(nights).padStart(2, '0')}
-                </td>
-                <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'left' }}>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'left' }}>
                   Night - {associatedBooking?.roomType || confirmationData.roomType || ''}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'right' }}>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'right' }}>
                   US$ {parseFloat(confirmationData.unitPrice || 0).toFixed(2)}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'right', fontWeight: '700' }}>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'right', fontWeight: '700' }}>
                   {Math.floor(parseFloat(confirmationData.totalPrice || 0)).toLocaleString()}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'center', fontWeight: '700' }}>
+                <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', color: '#000000', textAlign: 'center', fontWeight: '700' }}>
                   {String(Math.round((parseFloat(confirmationData.totalPrice || 0) - Math.floor(parseFloat(confirmationData.totalPrice || 0))) * 100)).padStart(2, '0')}
                 </td>
               </tr>
             )}
             <tr style={{ fontWeight: '800', backgroundColor: '#ffffff', color: '#000000' }}>
-              <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', textAlign: 'center' }}></td>
-              <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', textAlign: 'right', textTransform: 'uppercase' }}>Total</td>
-              <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', textAlign: 'right' }}></td>
-              <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', textAlign: 'right', fontWeight: '800' }}>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'right', textTransform: 'uppercase' }}>Total</td>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'right' }}></td>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'right', fontWeight: '800' }}>
                 {Math.floor(parseFloat(confirmationData.totalPrice || 0)).toLocaleString()}
               </td>
-              <td style={{ border: '1px solid #000000', padding: '8px', fontSize: '10px', textAlign: 'center', fontWeight: '800' }}>
+              <td style={{ border: '1px solid #cbd5e1', padding: '8px', fontSize: '10px', textAlign: 'center', fontWeight: '800' }}>
                 {String(Math.round((parseFloat(confirmationData.totalPrice || 0) - Math.floor(parseFloat(confirmationData.totalPrice || 0))) * 100)).padStart(2, '0')}
               </td>
             </tr>
