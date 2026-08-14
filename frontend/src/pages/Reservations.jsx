@@ -2374,6 +2374,9 @@ Staff: ${receiptData.generatedBy}`;
         const roomsList = associatedBooking?.roomNumber 
           ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean)
           : [];
+        const roomTypesList = associatedBooking?.roomType
+          ? associatedBooking.roomType.split(',').map(t => t.trim())
+          : [];
         const numRooms = roomsList.length || 1;
         const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
         const totalAmount = associatedBooking?.totalAmount || 0;
@@ -2392,9 +2395,12 @@ Staff: ${receiptData.generatedBy}`;
           const amountVal = Math.floor(rowAmount);
           const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
           
+          // Map to corresponding room type dynamically
+          const currentRoomType = roomTypesList[idx] || roomTypesList[0] || 'Room';
+          
           return {
             roomNumber,
-            description: `Night - ${associatedBooking?.roomType || 'Room'} (Room ${roomNumber})`,
+            description: `Night - ${currentRoomType} (Room ${roomNumber})`,
             rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             amountVal: amountVal.toLocaleString(),
             amountCts: amountCts
