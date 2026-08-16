@@ -3570,6 +3570,7 @@ Staff: ${receiptData.generatedBy}`;
                   confirmationData={confirmationData}
                   selectedReg={isCreatingNewReservation ? null : selectedReg}
                   associatedBooking={isCreatingNewReservation ? null : associatedBooking}
+                  payments={isCreatingNewReservation ? [] : advancePayments}
                 />
               </div>
             </div>
@@ -3608,6 +3609,7 @@ Staff: ${receiptData.generatedBy}`;
               confirmationData={confirmationData}
               selectedReg={isCreatingNewReservation ? null : selectedReg}
               associatedBooking={isCreatingNewReservation ? null : associatedBooking}
+              payments={isCreatingNewReservation ? [] : advancePayments}
             />
           </div>
         </div>
@@ -3630,6 +3632,7 @@ Staff: ${receiptData.generatedBy}`;
             confirmationData={confirmationData}
             selectedReg={isCreatingNewReservation ? null : selectedReg}
             associatedBooking={isCreatingNewReservation ? null : associatedBooking}
+            payments={isCreatingNewReservation ? [] : advancePayments}
           />
         )}
       </div>
