@@ -23,25 +23,18 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
   const isDirect = !confirmationData.bookingType || confirmationData.bookingType.toLowerCase().includes('direct');
 
   // Table computations
-  const totalAmount = parseFloat(confirmationData.totalPrice || 0);
-  const totalCents = Math.round(totalAmount * 100);
-  const totalPaid = payments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-  const remainingBalance = Math.max(0, totalAmount - totalPaid);
-  const isFullyPaid = totalPaid >= totalAmount && totalAmount > 0;
-  const isPartiallyPaid = totalPaid > 0 && totalPaid < totalAmount;
-
+  let totalAmount = 0;
   let itemizedRows = [];
+
   if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
-    const numRooms = confirmationData.allocatedRooms.length;
-    itemizedRows = confirmationData.allocatedRooms.map((item, idx) => {
-      const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
-      const prevCentsSum = Math.round((totalCents / numRooms) * idx);
-      const rowCents = currentCentsSum - prevCentsSum;
-      const rowAmount = rowCents / 100;
-      const rateAmount = rowAmount / nights;
+    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+    
+    itemizedRows = confirmationData.allocatedRooms.map((item) => {
+      const roomTotalAmount = parseFloat(item.price || 0);
+      const rateAmount = roomTotalAmount / nights;
       
-      const amountVal = Math.floor(rowAmount);
-      const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
+      const amountVal = Math.floor(roomTotalAmount);
+      const amountCts = Math.round((roomTotalAmount - amountVal) * 100).toString().padStart(2, '0');
 
       return {
         description: `Night - ${item.roomType} (Room ${item.roomNumber})`,
@@ -51,6 +44,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       };
     });
   } else {
+    totalAmount = parseFloat(confirmationData.totalPrice || 0);
     const defaultRowAmount = totalAmount;
     const defaultRateAmount = defaultRowAmount / nights;
     const defaultAmountVal = Math.floor(defaultRowAmount);
@@ -63,6 +57,12 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       amountCts: defaultAmountCts
     }];
   }
+
+  const totalCents = Math.round(totalAmount * 100);
+  const totalPaid = payments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+  const remainingBalance = Math.max(0, totalAmount - totalPaid);
+  const isFullyPaid = totalPaid >= totalAmount && totalAmount > 0;
+  const isPartiallyPaid = totalPaid > 0 && totalPaid < totalAmount;
 
   return (
     <div 
