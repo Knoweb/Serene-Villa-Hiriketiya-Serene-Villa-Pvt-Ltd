@@ -18,6 +18,43 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
   const remainingBalance = Math.max(0, (associatedBooking.totalAmount || 0) - totalPaidUpToThis);
 
+  // Split and map room-by-room itemized rows matching Draft Bill
+  const roomTypes = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()) : [];
+  const roomNumbers = associatedBooking.roomNumber ? associatedBooking.roomNumber.split(',').map(n => n.trim()) : [];
+  const numRooms = Math.max(1, roomNumbers.length);
+  const totalAmount = associatedBooking.totalAmount || 0;
+  const totalCents = Math.round(totalAmount * 100);
+
+  let itemizedRows = [];
+  if (roomNumbers.length > 0) {
+    itemizedRows = roomNumbers.map((rNum, idx) => {
+      const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
+      const prevCentsSum = Math.round((totalCents / numRooms) * idx);
+      const rowCents = currentCentsSum - prevCentsSum;
+      const rowAmount = rowCents / 100;
+      
+      const rType = roomTypes[idx] || roomTypes[0] || 'Room';
+      const amountVal = Math.floor(rowAmount);
+      const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
+
+      return {
+        description: `Night - ${rType} (Room ${rNum})`,
+        amountVal: amountVal.toLocaleString(),
+        amountCts: amountCts
+      };
+    });
+  } else {
+    const defaultRowAmount = totalAmount;
+    const defaultAmountVal = Math.floor(defaultRowAmount);
+    const defaultAmountCts = Math.round((defaultRowAmount - defaultAmountVal) * 100).toString().padStart(2, '0');
+    
+    itemizedRows = [{
+      description: `Night - ${associatedBooking.roomType || 'Room'}`,
+      amountVal: defaultAmountVal.toLocaleString(),
+      amountCts: defaultAmountCts
+    }];
+  }
+
   // Format Dates
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -97,71 +134,33 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
         <table className="w-full border-collapse border border-emerald-800/20 text-[11px]" style={{ border: '1px solid rgba(6, 95, 70, 0.2)' }}>
           <thead>
             <tr className="bg-[#065f46] text-white uppercase text-[8px] tracking-wider" style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>
-              <th className="px-2 py-2 text-center w-12" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)' }}>Qty</th>
-              <th className="px-3 py-2 text-left" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)' }}>Description</th>
-              <th className="px-3 py-2 text-right w-24" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)' }}>Rate (LKR)</th>
-              <th className="px-3 py-2 text-right w-28">Amount (LKR)</th>
+              <th className="px-3 py-2 text-left" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)', width: '78%' }}>Description</th>
+              <th className="px-3 py-2 text-right w-28" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)', width: '14%' }}>LKR</th>
+              <th className="px-3 py-2 text-center w-12" style={{ width: '8%' }}>Cts.</th>
             </tr>
           </thead>
           <tbody className="font-medium text-slate-700" style={{ fontWeight: '600', color: '#1e293b' }}>
-            <tr style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.15)' }}>
-              <td className="px-2 py-1.5 text-center" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                {selectedReg.numberOfNights || selectedReg.nights}
-              </td>
-              <td className="px-3 py-1.5" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                Accommodation ({formatDate(selectedReg.checkInDate)} - {formatDate(selectedReg.checkOutDate)})
-              </td>
-              <td className="px-3 py-1.5 text-right font-mono" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                {((associatedBooking.totalAmount || 0) / (selectedReg.numberOfNights || selectedReg.nights || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </td>
-              <td className="px-3 py-1.5 text-right text-slate-800 font-mono font-bold">
-                {(associatedBooking.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </td>
-            </tr>
-
-            <tr style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.1)' }}>
-              <td className="px-2 py-1 text-center text-slate-400" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>-</td>
-              <td className="px-3 py-1 text-slate-655" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                <span className="font-semibold text-[8px] uppercase tracking-wider mr-2 text-slate-400">Room Type:</span>
-                <span className="text-slate-700">{associatedBooking.roomType}</span>
-              </td>
-              <td className="px-3 py-1 text-right text-slate-400" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>-</td>
-              <td className="px-3 py-1 text-right text-slate-400">-</td>
-            </tr>
-            <tr style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.1)' }}>
-              <td className="px-2 py-1 text-center text-slate-400" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>-</td>
-              <td className="px-3 py-1 text-slate-655" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                <span className="font-semibold text-[8px] uppercase tracking-wider mr-2 text-slate-400">Room Number:</span>
-                <span className="text-slate-700">{associatedBooking.roomNumber || 'TBD'}</span>
-              </td>
-              <td className="px-3 py-1 text-right text-slate-400" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>-</td>
-              <td className="px-3 py-1 text-right text-slate-400">-</td>
-            </tr>
-            <tr style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.1)' }}>
-              <td className="px-2 py-1 text-center text-slate-400" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>-</td>
-              <td className="px-3 py-1 text-slate-655" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                <span className="font-semibold text-[8px] uppercase tracking-wider mr-2 text-slate-400">Board Basis:</span>
-                <span className="text-slate-700">{associatedBooking.boardBasis || 'Room Only'}</span>
-              </td>
-              <td className="px-3 py-1 text-right text-slate-400" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>-</td>
-              <td className="px-3 py-1 text-right text-slate-400">-</td>
-            </tr>
-            <tr style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.15)' }}>
-              <td className="px-2 py-1 text-center text-slate-400" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>-</td>
-              <td className="px-3 py-1 text-slate-655" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                <span className="font-semibold text-[8px] uppercase tracking-wider mr-2 text-slate-400">Booking Type:</span>
-                <span className="text-slate-700">{associatedBooking.bookingType || 'Direct'}</span>
-              </td>
-              <td className="px-3 py-1 text-right text-slate-400" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>-</td>
-              <td className="px-3 py-1 text-right text-slate-400">-</td>
-            </tr>
+            {itemizedRows.map((row, idx) => (
+              <tr key={idx} style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                <td className="px-3 py-1.5" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                  {row.description}
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono font-bold" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                  {row.amountVal}
+                </td>
+                <td className="px-3 py-1.5 text-center font-mono font-bold">
+                  {row.amountCts}
+                </td>
+              </tr>
+            ))}
 
             <tr style={{ backgroundColor: 'rgba(6, 95, 70, 0.03)', fontWeight: '800', borderTop: '2px solid #065f46', color: '#065f46' }}>
-              <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}></td>
               <td className="px-3 py-2 text-right uppercase text-[8px] tracking-wider font-black" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>Total Value</td>
-              <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}></td>
-              <td className="px-3 py-2 text-right font-black font-mono">
-                {(associatedBooking.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <td className="px-3 py-2 text-right font-black font-mono" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                {Math.floor(totalAmount).toLocaleString()}
+              </td>
+              <td className="px-3 py-2 text-center font-black font-mono">
+                {Math.round((totalAmount - Math.floor(totalAmount)) * 100).toString().padStart(2, '0')}
               </td>
             </tr>
           </tbody>
