@@ -48,4 +48,17 @@ public class Booking {
 
     @Column(name = "property_id")
     private Long propertyId = 1L;
+
+    // Currency & pricing metadata for print accuracy
+    private String currency = "LKR";
+
+    private String exchangeRate = "1.00";
+
+    private double unitPrice;
+
+    // JSON string: [{"roomNumber":"101","roomType":"Deluxe","price":"150.00"},...]
+    @Column(columnDefinition = "TEXT")
+    private String roomPrices;
+
+    private String guestName;
 }

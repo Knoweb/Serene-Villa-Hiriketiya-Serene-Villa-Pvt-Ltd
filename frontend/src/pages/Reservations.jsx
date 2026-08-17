@@ -508,7 +508,7 @@ const Reservations = () => {
     const defaultUnitPrice = (booking.totalAmount / nightsVal).toFixed(2);
 
     setConfirmationData({
-      guestName: selectedReg.guestName || '',
+      guestName: selectedReg.guestName || booking.guestName || '',
       bookingNumber: booking.bookingNumber || '',
       checkInDate: selectedReg.checkInDate || '',
       checkOutDate: selectedReg.checkOutDate || '',
@@ -525,19 +525,33 @@ const Reservations = () => {
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
-      allocatedRooms: booking.roomNumber 
-        ? booking.roomNumber.split(',').map(rNum => {
-            const cleanNum = rNum.trim();
-            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
-            const numRooms = booking.roomNumber.split(',').length;
-            const uPrice = booking.unitPrice || defaultUnitPrice;
-            return {
-              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
-              roomNumber: cleanNum,
-              price: (parseFloat(uPrice) / numRooms).toFixed(2)
-            };
-          })
-        : [],
+      allocatedRooms: (() => {
+        // Use stored roomPrices JSON if available (most accurate)
+        if (booking.roomPrices) {
+          try {
+            const stored = JSON.parse(booking.roomPrices);
+            return stored.map(r => ({
+              roomType: r.roomType,
+              roomNumber: r.roomNumber,
+              price: r.price
+            }));
+          } catch (e) {}
+        }
+        // Fallback: split totalAmount equally across rooms
+        if (!booking.roomNumber) return [];
+        const roomNums = booking.roomNumber.split(',');
+        const numRooms = roomNums.length;
+        const perRoomPrice = ((booking.totalAmount || 0) / numRooms).toFixed(2);
+        return roomNums.map(rNum => {
+          const cleanNum = rNum.trim();
+          const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+          return {
+            roomType: matchedRoom ? matchedRoom.roomType : (booking.roomType || 'Room'),
+            roomNumber: cleanNum,
+            price: perRoomPrice
+          };
+        });
+      })(),
       confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -581,19 +595,33 @@ const Reservations = () => {
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
-      allocatedRooms: booking.roomNumber 
-        ? booking.roomNumber.split(',').map(rNum => {
-            const cleanNum = rNum.trim();
-            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
-            const numRooms = booking.roomNumber.split(',').length;
-            const uPrice = booking.unitPrice || defaultUnitPrice;
-            return {
-              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
-              roomNumber: cleanNum,
-              price: (parseFloat(uPrice) / numRooms).toFixed(2)
-            };
-          })
-        : [],
+      allocatedRooms: (() => {
+        // Use stored roomPrices JSON if available (most accurate)
+        if (booking.roomPrices) {
+          try {
+            const stored = JSON.parse(booking.roomPrices);
+            return stored.map(r => ({
+              roomType: r.roomType,
+              roomNumber: r.roomNumber,
+              price: r.price
+            }));
+          } catch (e) {}
+        }
+        // Fallback: split totalAmount equally across rooms
+        if (!booking.roomNumber) return [];
+        const roomNums = booking.roomNumber.split(',');
+        const numRooms = roomNums.length;
+        const perRoomPrice = ((booking.totalAmount || 0) / numRooms).toFixed(2);
+        return roomNums.map(rNum => {
+          const cleanNum = rNum.trim();
+          const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+          return {
+            roomType: matchedRoom ? matchedRoom.roomType : (booking.roomType || 'Room'),
+            roomNumber: cleanNum,
+            price: perRoomPrice
+          };
+        });
+      })(),
       confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -636,19 +664,33 @@ const Reservations = () => {
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
-      allocatedRooms: booking.roomNumber 
-        ? booking.roomNumber.split(',').map(rNum => {
-            const cleanNum = rNum.trim();
-            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
-            const numRooms = booking.roomNumber.split(',').length;
-            const uPrice = booking.unitPrice || defaultUnitPrice;
-            return {
-              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
-              roomNumber: cleanNum,
-              price: (parseFloat(uPrice) / numRooms).toFixed(2)
-            };
-          })
-        : [],
+      allocatedRooms: (() => {
+        // Use stored roomPrices JSON if available (most accurate)
+        if (booking.roomPrices) {
+          try {
+            const stored = JSON.parse(booking.roomPrices);
+            return stored.map(r => ({
+              roomType: r.roomType,
+              roomNumber: r.roomNumber,
+              price: r.price
+            }));
+          } catch (e) {}
+        }
+        // Fallback: split totalAmount equally across rooms
+        if (!booking.roomNumber) return [];
+        const roomNums = booking.roomNumber.split(',');
+        const numRooms = roomNums.length;
+        const perRoomPrice = ((booking.totalAmount || 0) / numRooms).toFixed(2);
+        return roomNums.map(rNum => {
+          const cleanNum = rNum.trim();
+          const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+          return {
+            roomType: matchedRoom ? matchedRoom.roomType : (booking.roomType || 'Room'),
+            roomNumber: cleanNum,
+            price: perRoomPrice
+          };
+        });
+      })(),
       confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -797,12 +839,25 @@ const Reservations = () => {
         
         const newBooking = {
           guestRegistrationId: savedGuest.id,
+          guestName: confirmationData.guestName || '',
           bookingNumber: confirmationData.bookingNumber,
-          roomNumber: confirmationData.room || 'Unallocated',
+          roomNumber: (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0)
+            ? confirmationData.allocatedRooms.map(r => r.roomNumber).join(',')
+            : (confirmationData.room || 'Unallocated'),
           roomType: confirmationData.roomType,
           boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
           bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
           totalAmount: parseFloat(confirmationData.totalPrice) || 0,
+          currency: confirmationData.currency || 'LKR',
+          exchangeRate: confirmationData.exchangeRate || '1.00',
+          unitPrice: parseFloat(confirmationData.unitPrice) || 0,
+          roomPrices: (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0)
+            ? JSON.stringify(confirmationData.allocatedRooms.map(r => ({
+                roomNumber: r.roomNumber,
+                roomType: r.roomType,
+                price: r.price
+              })))
+            : null,
           remarks: confirmationData.remarks || '',
           status: 'Confirmed',
           propertyId: 1
