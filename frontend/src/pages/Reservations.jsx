@@ -2468,6 +2468,8 @@ Staff: ${receiptData.generatedBy}`;
         const numRooms = roomsList.length || 1;
         const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
         const totalAmount = associatedBooking?.totalAmount || 0;
+        const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Card Fee: ([\d.]+)\]/);
+        const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
         
         // Calculate LKR rate and amount details with perfect cent adjustment
         const totalCents = Math.round(totalAmount * 100);
@@ -2592,8 +2594,7 @@ Staff: ${receiptData.generatedBy}`;
                 <table className="w-full border-collapse border border-emerald-800/30 text-[11px] print:border-slate-400">
                   <thead>
                     <tr className="bg-emerald-800 text-white uppercase text-[8px] tracking-wider print:bg-emerald-800 print:text-white">
-                      <th className="border border-emerald-800/30 px-3 py-1.5 text-left print:border-slate-400" style={{ width: '56%' }}>Description</th>
-                      <th className="border border-emerald-800/30 px-3 py-1.5 text-right w-36 print:border-slate-400" style={{ width: '22%' }}>Rate</th>
+                      <th className="border border-emerald-800/30 px-3 py-1.5 text-left print:border-slate-400" style={{ width: '78%' }}>Description</th>
                       <th className="border border-emerald-800/30 px-3 py-1.5 text-right print:border-slate-400" style={{ width: '14%' }}>LKR</th>
                       <th className="border border-emerald-800/30 px-2 py-1.5 text-center print:border-slate-400" style={{ width: '8%' }}>Cts.</th>
                     </tr>
@@ -2604,9 +2605,6 @@ Staff: ${receiptData.generatedBy}`;
                         <tr key={idx} className="border-b border-emerald-800/20 print:border-slate-400">
                           <td className="border-r border-emerald-800/20 px-3 py-1.5 text-left print:border-slate-400">
                             {row.description}
-                          </td>
-                          <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400 text-slate-500">
-                            LKR {row.rate}
                           </td>
                           <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400">
                             {row.amountVal}
@@ -2621,9 +2619,6 @@ Staff: ${receiptData.generatedBy}`;
                         <td className="border-r border-emerald-800/20 px-3 py-1.5 text-left print:border-slate-400">
                           {fallbackRow.description}
                         </td>
-                        <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400 text-slate-500">
-                          LKR {fallbackRow.rate}
-                        </td>
                         <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400">
                           {fallbackRow.amountVal}
                         </td>
@@ -2635,7 +2630,7 @@ Staff: ${receiptData.generatedBy}`;
 
                     {/* Total Row */}
                     <tr className="bg-emerald-50/10 font-bold text-slate-900 border-t-2 border-emerald-800/30 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-3 py-2 text-right uppercase text-[8px] tracking-wider print:border-slate-400 font-extrabold" colSpan={2}>
+                      <td className="border-r border-emerald-800/20 px-3 py-2 text-right uppercase text-[8px] tracking-wider print:border-slate-400 font-extrabold" colSpan={1}>
                         Total
                       </td>
                       <td className="border-r border-emerald-800/20 px-3 py-2 text-right font-mono font-bold print:border-slate-400 text-emerald-800">
@@ -2658,7 +2653,7 @@ Staff: ${receiptData.generatedBy}`;
                         <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
                         {selectedPaymentForReceipt.remarks && (
                           <p className="mt-1 text-[10px] leading-snug">
-                            <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks}
+                            <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks.replace(/\[Card Fee: [\d.]+\]/g, '').trim()}
                           </p>
                         )}
                       </div>
@@ -2696,6 +2691,13 @@ Staff: ${receiptData.generatedBy}`;
                             </span>
                           </div>
                         </>
+                      )}
+
+                      {cardFeeVal > 0 && (
+                        <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                          <span className="text-slate-500 font-semibold">Card Fee (3%):</span>
+                          <span className="font-bold text-slate-850">LKR {cardFeeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
                       )}
 
                       <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">

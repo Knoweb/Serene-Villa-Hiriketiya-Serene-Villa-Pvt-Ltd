@@ -176,7 +176,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             <p className="font-mono text-slate-800 font-semibold mb-2">Ref: {selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
             {selectedPaymentForReceipt.remarks && (
               <p className="text-[10px] leading-tight text-slate-750">
-                {selectedPaymentForReceipt.remarks}
+                {selectedPaymentForReceipt.remarks.replace(/\[Card Fee: [\d.]+\]/g, '').trim()}
               </p>
             )}
           </div>
