@@ -173,8 +173,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '20px', border: '1px solid rgba(6, 95, 70, 0.2)' }}>
         <thead>
           <tr style={{ backgroundColor: '#065f46', color: '#ffffff' }}>
-            <th style={{ border: '1px solid rgba(6, 95, 70, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '56%' }}>Description</th>
-            <th style={{ border: '1px solid rgba(6, 95, 70, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '22%' }}>Rate</th>
+            <th style={{ border: '1px solid rgba(6, 95, 70, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '78%' }}>Description</th>
             <th style={{ border: '1px solid rgba(6, 95, 70, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '14%' }}>
               {confirmationData.currency || 'LKR'}
             </th>
@@ -187,9 +186,6 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
               <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', padding: '8px 12px', fontSize: '10px', color: '#1e293b', textAlign: 'left' }}>
                 {row.description}
               </td>
-              <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', padding: '8px 12px', fontSize: '10px', color: '#64748b', textAlign: 'right', fontFamily: 'monospace' }}>
-                {confirmationData.tableCurrency || 'USD'} {row.rate}
-              </td>
               <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', padding: '8px 12px', fontSize: '10px', color: '#1e293b', textAlign: 'right', fontFamily: 'monospace', fontWeight: '700' }}>
                 {row.amountVal}
               </td>
@@ -201,7 +197,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
 
           {/* Total Row */}
           <tr style={{ backgroundColor: 'rgba(6, 95, 70, 0.03)', fontWeight: '800', borderTop: '2px solid #065f46', color: '#065f46' }}>
-            <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', padding: '10px 12px', fontSize: '10px', textAlign: 'right', textTransform: 'uppercase', fontWeight: '900' }} colSpan={2}>
+            <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', padding: '10px 12px', fontSize: '10px', textAlign: 'right', textTransform: 'uppercase', fontWeight: '900' }} colSpan={1}>
               Total ({confirmationData.currency || 'LKR'})
             </td>
             <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', padding: '10px 12px', fontSize: '11px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '900' }}>
