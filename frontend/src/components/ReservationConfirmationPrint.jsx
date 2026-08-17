@@ -173,7 +173,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
           </tr>
           <tr style={{ backgroundColor: '#065f46', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
             <th style={{ backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none', padding: '6px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '14%' }}>
-              {confirmationData.currency === 'LKR' ? 'RS.' : (confirmationData.currency || 'RS.')}
+              {displayCurrency === 'LKR' ? 'RS.' : displayCurrency}
             </th>
             <th style={{ backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none', padding: '6px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '8%' }}>
               Cts.
@@ -198,7 +198,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
           {/* Total Row */}
           <tr style={{ backgroundColor: 'rgba(6, 95, 70, 0.03)', fontWeight: '800', borderTop: '2px solid #065f46', color: '#065f46' }}>
             <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', padding: '10px 12px', fontSize: '10px', textAlign: 'right', textTransform: 'uppercase', fontWeight: '900' }} colSpan={1}>
-              Total ({confirmationData.currency || 'LKR'})
+              Total ({displayCurrency})
             </td>
             <td style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', padding: '10px 12px', fontSize: '11px', textAlign: 'right', fontFamily: 'monospace', fontWeight: '900' }}>
               {Math.floor(totalAmount).toLocaleString()}
