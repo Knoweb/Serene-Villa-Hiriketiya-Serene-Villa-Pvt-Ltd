@@ -80,5 +80,13 @@
     size: A4;
     margin: 8mm;
   }
+
+  /* Force background colors (green headers) to render in print/PDF */
+  .confirmation-print-area *,
+  .receipt-print-area * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
 }
 

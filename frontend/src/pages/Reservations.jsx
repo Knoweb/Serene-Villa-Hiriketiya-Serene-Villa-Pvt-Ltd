@@ -2595,8 +2595,13 @@ Staff: ${receiptData.generatedBy}`;
                   <thead>
                     <tr className="bg-emerald-800 text-white uppercase text-[8px] tracking-wider print:bg-emerald-800 print:text-white">
                       <th className="border border-emerald-800/30 px-3 py-1.5 text-left print:border-slate-400" style={{ width: '78%' }}>Description</th>
-                      <th className="border border-emerald-800/30 px-3 py-1.5 text-right print:border-slate-400" style={{ width: '14%' }}>LKR</th>
+                      <th className="border border-emerald-800/30 px-3 py-1.5 text-right print:border-slate-400" style={{ width: '14%' }}>Amount</th>
                       <th className="border border-emerald-800/30 px-2 py-1.5 text-center print:border-slate-400" style={{ width: '8%' }}>Cts.</th>
+                    </tr>
+                    <tr className="text-emerald-800" style={{ backgroundColor: 'rgba(6,95,70,0.08)' }}>
+                      <th className="border border-emerald-800/20 px-3 py-0.5 text-left text-[8px] font-bold"></th>
+                      <th className="border border-emerald-800/20 px-3 py-0.5 text-right text-[8px] font-bold">LKR.</th>
+                      <th className="border border-emerald-800/20 px-2 py-0.5 text-center text-[8px] font-bold">Cts.</th>
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-slate-800">
@@ -3639,6 +3644,15 @@ Staff: ${receiptData.generatedBy}`;
             </div>
             
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setConfirmationData(prev => ({ ...prev, currency: 'LKR', tableCurrency: 'LKR' }));
+                  setTimeout(() => window.print(), 150);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-blue-500/10 text-xs"
+              >
+                <Printer size={13} /> Print in LKR
+              </button>
               <button
                 onClick={() => window.print()}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10 text-xs"

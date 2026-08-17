@@ -135,8 +135,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           <thead>
             <tr className="bg-[#065f46] text-white uppercase text-[8px] tracking-wider" style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>
               <th className="px-3 py-2 text-left" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)', width: '78%' }}>Description</th>
-              <th className="px-3 py-2 text-right w-28" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)', width: '14%' }}>LKR</th>
+              <th className="px-3 py-2 text-right w-28" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)', width: '14%' }}>Amount</th>
               <th className="px-3 py-2 text-center w-12" style={{ width: '8%' }}>Cts.</th>
+            </tr>
+            <tr className="text-emerald-800" style={{ backgroundColor: 'rgba(6,95,70,0.08)' }}>
+              <th className="px-3 py-1 text-left" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', fontSize: '8px', fontWeight: '700' }}></th>
+              <th className="px-3 py-1 text-right" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)', fontSize: '8px', fontWeight: '700' }}>LKR.</th>
+              <th className="px-3 py-1 text-center" style={{ fontSize: '8px', fontWeight: '700' }}>Cts.</th>
             </tr>
           </thead>
           <tbody className="font-medium text-slate-700" style={{ fontWeight: '600', color: '#1e293b' }}>
