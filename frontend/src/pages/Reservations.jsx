@@ -2608,15 +2608,10 @@ Staff: ${receiptData.generatedBy}`;
               <div className="mb-4">
                 <table className="w-full border-collapse border border-emerald-800/30 text-[11px] print:border-slate-400">
                   <thead>
-                    <tr className="bg-emerald-800 text-white uppercase text-[8px] tracking-wider print:bg-emerald-800 print:text-white">
-                      <th className="border border-emerald-800/30 px-3 py-1.5 text-left print:border-slate-400" style={{ width: '78%' }}>Description</th>
-                      <th className="border border-emerald-800/30 px-3 py-1.5 text-right print:border-slate-400" style={{ width: '14%' }}>Amount</th>
-                      <th className="border border-emerald-800/30 px-2 py-1.5 text-center print:border-slate-400" style={{ width: '8%' }}>Cts.</th>
-                    </tr>
-                    <tr className="text-emerald-800" style={{ backgroundColor: 'rgba(6,95,70,0.08)' }}>
-                      <th className="border border-emerald-800/20 px-3 py-0.5 text-left text-[8px] font-bold"></th>
-                      <th className="border border-emerald-800/20 px-3 py-0.5 text-right text-[8px] font-bold">LKR.</th>
-                      <th className="border border-emerald-800/20 px-2 py-0.5 text-center text-[8px] font-bold">Cts.</th>
+                    <tr style={{ backgroundColor: '#065f46', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                      <th className="px-3 py-1.5 text-left uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '78%' }}>Description</th>
+                      <th className="px-3 py-1.5 text-right uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '14%' }}>Amount (LKR)</th>
+                      <th className="px-2 py-1.5 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', width: '8%' }}>Cts.</th>
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-slate-800">

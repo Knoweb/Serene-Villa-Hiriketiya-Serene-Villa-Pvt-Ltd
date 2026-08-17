@@ -168,15 +168,10 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       {/* Itemized Invoice Table (Exactly matching final receipt layout) */}
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '20px', border: '1px solid rgba(6, 95, 70, 0.2)' }}>
         <thead>
-          <tr style={{ backgroundColor: '#065f46', color: '#ffffff' }}>
-            <th style={{ border: '1px solid rgba(6, 95, 70, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '78%' }}>Description</th>
-            <th style={{ border: '1px solid rgba(6, 95, 70, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '14%' }}>Amount</th>
-            <th style={{ border: '1px solid rgba(6, 95, 70, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '8%' }}>Cts.</th>
-          </tr>
-          <tr style={{ backgroundColor: 'rgba(6,95,70,0.08)', color: '#065f46' }}>
-            <th style={{ border: '1px solid rgba(6, 95, 70, 0.15)', padding: '4px 12px', fontSize: '8px', fontWeight: '700', textAlign: 'right', letterSpacing: '0.03em' }}></th>
-            <th style={{ border: '1px solid rgba(6, 95, 70, 0.15)', padding: '4px 12px', fontSize: '8px', fontWeight: '700', textAlign: 'right' }}>{confirmationData.currency || 'LKR'}.</th>
-            <th style={{ border: '1px solid rgba(6, 95, 70, 0.15)', padding: '4px 12px', fontSize: '8px', fontWeight: '700', textAlign: 'center' }}>Cts.</th>
+          <tr style={{ backgroundColor: '#065f46', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact' }}>
+            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '78%' }}>Description</th>
+            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '14%' }}>Amount ({confirmationData.currency || 'LKR'})</th>
+            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '8%' }}>Cts.</th>
           </tr>
         </thead>
         <tbody style={{ fontWeight: '600', color: '#1e293b' }}>
