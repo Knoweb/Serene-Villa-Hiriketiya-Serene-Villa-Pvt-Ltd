@@ -285,22 +285,7 @@ const Reservations = () => {
     }
   }, [showReceiptModal, receiptData]);
 
-  // Auto-populate remaining balance into paymentForm when associatedBooking or payments change
-  useEffect(() => {
-    if (associatedBooking) {
-      const totalAmt = associatedBooking.totalAmount || 0;
-      const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-      const remainingBal = Math.max(0, totalAmt - totalPaid);
-      setPaymentForm(prev => ({
-        ...prev,
-        amount: remainingBal > 0 ? remainingBal.toFixed(2) : '',
-        currencyCode: 'LKR',
-        exchangeRate: 1,
-        paymentMethod: 'Cash',
-        cardFee: ''
-      }));
-    }
-  }, [associatedBooking, advancePayments]);
+
 
   // 1. Debounce Search logic
   useEffect(() => {
@@ -1064,6 +1049,23 @@ const Reservations = () => {
   };
 
   const associatedBooking = selectedReg ? getBookingForReg(selectedReg.id) : null;
+
+  // Auto-populate remaining balance into paymentForm when associatedBooking or payments change
+  useEffect(() => {
+    if (associatedBooking) {
+      const totalAmt = associatedBooking.totalAmount || 0;
+      const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+      const remainingBal = Math.max(0, totalAmt - totalPaid);
+      setPaymentForm(prev => ({
+        ...prev,
+        amount: remainingBal > 0 ? remainingBal.toFixed(2) : '',
+        currencyCode: 'LKR',
+        exchangeRate: 1,
+        paymentMethod: 'Cash',
+        cardFee: ''
+      }));
+    }
+  }, [associatedBooking, advancePayments]);
 
   return (
     <div className="space-y-6">
