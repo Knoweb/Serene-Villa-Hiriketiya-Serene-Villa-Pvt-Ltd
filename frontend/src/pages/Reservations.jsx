@@ -1833,14 +1833,14 @@ const Reservations = () => {
                       }
                     };
 
-                    const actualPaymentTab = paymentTab;
+                    const actualPaymentTab = !associatedBooking.bookingType?.toLowerCase().includes('direct') ? 'FULL' : paymentTab;
                     const isFull = actualPaymentTab === 'FULL';
                     const accentColor = isFull ? 'blue' : 'emerald';
 
                     return (
                       <form onSubmit={(e) => handleSavePayment(e, actualPaymentTab, remainingBal)} className="space-y-3 text-xs">
                         {/* Tab Toggle */}
-                        {true && (
+                        {associatedBooking.bookingType?.toLowerCase().includes('direct') && (
                           <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-bold">
                             <button
                               type="button"
