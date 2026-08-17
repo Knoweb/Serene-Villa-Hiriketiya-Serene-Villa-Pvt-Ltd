@@ -285,6 +285,23 @@ const Reservations = () => {
     }
   }, [showReceiptModal, receiptData]);
 
+  // Auto-populate remaining balance into paymentForm when associatedBooking or payments change
+  useEffect(() => {
+    if (associatedBooking) {
+      const totalAmt = associatedBooking.totalAmount || 0;
+      const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+      const remainingBal = Math.max(0, totalAmt - totalPaid);
+      setPaymentForm(prev => ({
+        ...prev,
+        amount: remainingBal > 0 ? remainingBal.toFixed(2) : '',
+        currencyCode: 'LKR',
+        exchangeRate: 1,
+        paymentMethod: 'Cash',
+        cardFee: ''
+      }));
+    }
+  }, [associatedBooking, advancePayments]);
+
   // 1. Debounce Search logic
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1981,6 +1998,20 @@ const Reservations = () => {
                                 className="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-slate-100 file:text-slate-600 hover:file:bg-slate-200"
                               />
                             </div>
+                            {paymentForm.paymentMethod === 'Card' && (
+                              <div className="col-span-2">
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Card Fee (3%)</label>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder="0.00"
+                                  value={paymentForm.cardFee}
+                                  onChange={(e) => setPaymentForm({ ...paymentForm, cardFee: e.target.value })}
+                                  className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none text-slate-700"
+                                />
+                              </div>
+                            )}
+
                             <div className="col-span-2">
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
                               <input
