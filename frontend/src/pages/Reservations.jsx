@@ -748,6 +748,19 @@ const Reservations = () => {
     setShowConfirmationModal(true);
   };
 
+  const handleBookingNumberChange = (val, bookingType) => {
+    const bt = bookingType?.toLowerCase() || '';
+    let prefix = 'D-';
+    if (bt.includes('airbnb')) prefix = 'A-';
+    else if (bt.includes('web')) prefix = 'W-';
+    else if (bt.includes('booking.com')) prefix = 'B-';
+
+    if (!val.startsWith(prefix)) {
+      val = prefix + val.replace(/^[AWBD]-?/g, '');
+    }
+    setConfirmationData(prev => ({ ...prev, bookingNumber: val }));
+  };
+
   const handlePrintConfirmation = async () => {
     if (isSaving) return;
     setIsSaving(true);
@@ -2825,7 +2838,7 @@ Staff: ${receiptData.generatedBy}`;
                          <input 
                            type="text" 
                            value={confirmationData.bookingNumber}
-                           onChange={(e) => setConfirmationData({...confirmationData, bookingNumber: e.target.value})}
+                           onChange={(e) => handleBookingNumberChange(e.target.value, confirmationData.bookingType)}
                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-mono"
                          />
                        </div>
@@ -3214,7 +3227,7 @@ Staff: ${receiptData.generatedBy}`;
                      <input 
                        type="text" 
                        value={confirmationData.bookingNumber}
-                       onChange={(e) => setConfirmationData({...confirmationData, bookingNumber: e.target.value})}
+                       onChange={(e) => handleBookingNumberChange(e.target.value, confirmationData.bookingType)}
                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-mono"
                      />
                    </div>
