@@ -24,19 +24,15 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
 
   // Table computations
   const displayCurrency = confirmationData.currency || 'LKR';
-  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
-  // When currency is LKR, factor = 1. When printing as LKR from foreign currency, multiply by rate.
-  const convFactor = displayCurrency === 'LKR' ? 1 : exchangeRateVal;
 
   let totalAmount = 0;
   let itemizedRows = [];
 
   if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
-    // item.price is stored in the form's selected currency
-    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * convFactor, 0);
+    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
     
     itemizedRows = confirmationData.allocatedRooms.map((item) => {
-      const roomTotalAmount = (parseFloat(item.price || 0)) * convFactor;
+      const roomTotalAmount = parseFloat(item.price || 0);
       const rateAmount = roomTotalAmount / nights;
       
       const amountVal = Math.floor(roomTotalAmount);
@@ -50,7 +46,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       };
     });
   } else {
-    totalAmount = parseFloat(confirmationData.totalPrice || 0) * convFactor;
+    totalAmount = parseFloat(confirmationData.totalPrice || 0);
     const defaultRowAmount = totalAmount;
     const defaultRateAmount = defaultRowAmount / nights;
     const defaultAmountVal = Math.floor(defaultRowAmount);
@@ -172,7 +168,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             <th rowSpan={2} style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '78%' }}>Description</th>
             <th colSpan={2} style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '22%' }}>Amount</th>
           </tr>
-          <tr>
+          <tr style={{ backgroundColor: '#065f46', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
             <th style={{ backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none', padding: '6px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '14%' }}>
               {confirmationData.currency === 'LKR' ? 'RS.' : (confirmationData.currency || 'RS.')}
             </th>

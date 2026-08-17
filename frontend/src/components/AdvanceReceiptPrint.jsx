@@ -137,9 +137,9 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               <th rowSpan={2} className="px-3 py-2 text-left uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '78%' }}>Description</th>
               <th colSpan={2} className="px-3 py-2 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', width: '22%' }}>Amount</th>
             </tr>
-            <tr style={{ backgroundColor: '#ffffff', color: '#1e293b' }}>
-              <th className="px-3 py-1.5 text-right uppercase text-[8px] tracking-wider w-28" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>RS.</th>
-              <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-12" style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>Cts.</th>
+            <tr style={{ backgroundColor: '#065f46', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+              <th className="px-3 py-1.5 text-right uppercase text-[8px] tracking-wider w-28" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>RS.</th>
+              <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-12" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>Cts.</th>
             </tr>
           </thead>
           <tbody className="font-medium text-slate-700" style={{ fontWeight: '600', color: '#1e293b' }}>
