@@ -169,9 +169,16 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '20px', border: '1px solid rgba(6, 95, 70, 0.2)' }}>
         <thead>
           <tr style={{ backgroundColor: '#065f46', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact' }}>
-            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '78%' }}>Description</th>
-            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '14%' }}>Amount ({confirmationData.currency || 'LKR'})</th>
-            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '8%' }}>Cts.</th>
+            <th rowSpan={2} style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '78%' }}>Description</th>
+            <th colSpan={2} style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '22%' }}>Amount</th>
+          </tr>
+          <tr>
+            <th style={{ backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none', padding: '6px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '14%' }}>
+              {confirmationData.currency === 'LKR' ? 'RS.' : (confirmationData.currency || 'RS.')}
+            </th>
+            <th style={{ backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none', padding: '6px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '8%' }}>
+              Cts.
+            </th>
           </tr>
         </thead>
         <tbody style={{ fontWeight: '600', color: '#1e293b' }}>

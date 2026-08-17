@@ -2609,9 +2609,12 @@ Staff: ${receiptData.generatedBy}`;
                 <table className="w-full border-collapse border border-emerald-800/30 text-[11px] print:border-slate-400">
                   <thead>
                     <tr style={{ backgroundColor: '#065f46', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                      <th className="px-3 py-1.5 text-left uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '78%' }}>Description</th>
-                      <th className="px-3 py-1.5 text-right uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '14%' }}>Amount (LKR)</th>
-                      <th className="px-2 py-1.5 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', width: '8%' }}>Cts.</th>
+                      <th rowSpan={2} className="px-3 py-1.5 text-left uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '78%' }}>Description</th>
+                      <th colSpan={2} className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', width: '22%' }}>Amount</th>
+                    </tr>
+                    <tr style={{ backgroundColor: '#ffffff', color: '#1e293b' }}>
+                      <th className="px-3 py-1 text-right uppercase text-[8px] tracking-wider" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>RS.</th>
+                      <th className="px-2 py-1 text-center uppercase text-[8px] tracking-wider" style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>Cts.</th>
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-slate-800">
