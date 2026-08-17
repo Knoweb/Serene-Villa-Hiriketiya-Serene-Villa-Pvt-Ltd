@@ -58,11 +58,16 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
     }];
   }
 
+  const displayCurrency = confirmationData.currency || 'LKR';
+  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
+  const isSelectedLkr = displayCurrency === 'LKR';
+
   const totalCents = Math.round(totalAmount * 100);
-  const totalPaid = payments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-  const remainingBalance = Math.max(0, totalAmount - totalPaid);
-  const isFullyPaid = totalPaid >= totalAmount && totalAmount > 0;
-  const isPartiallyPaid = totalPaid > 0 && totalPaid < totalAmount;
+  const totalPaidLkr = payments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+  const totalPaidConverted = isSelectedLkr ? totalPaidLkr : (totalPaidLkr / exchangeRateVal);
+  const remainingBalance = Math.max(0, totalAmount - totalPaidConverted);
+  const isFullyPaid = totalPaidConverted >= totalAmount && totalAmount > 0;
+  const isPartiallyPaid = totalPaidConverted > 0 && totalPaidConverted < totalAmount;
 
   return (
     <div 
@@ -233,15 +238,15 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
         <div style={{ border: '1px solid rgba(6, 95, 70, 0.2)', borderRadius: '8px', padding: '12px', backgroundColor: 'rgba(6, 95, 70, 0.02)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Booking Amount:</span>
-            <span style={{ fontWeight: '700', color: '#1e293b' }}>LKR {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Paid So Far:</span>
-            <span style={{ fontWeight: '700', color: '#1e293b' }}>LKR {totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {totalPaidConverted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
             <span style={{ color: '#64748b', fontWeight: '600' }}>Remaining Balance:</span>
-            <span style={{ fontWeight: '700', color: '#1e293b' }}>LKR {remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           {(isFullyPaid || isPartiallyPaid) && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
