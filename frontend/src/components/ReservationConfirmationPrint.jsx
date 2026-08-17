@@ -60,6 +60,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
     }];
   }
   const isSelectedLkr = displayCurrency === 'LKR';
+  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
 
   const totalCents = Math.round(totalAmount * 100);
   const totalPaidLkr = payments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
