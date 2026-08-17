@@ -2037,6 +2037,21 @@ const Reservations = () => {
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
                               />
                             </div>
+                            {associatedBooking?.bookingType?.toLowerCase().includes('web') && (
+                              <div className="col-span-2">
+                                <label className="block text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                  <span>Other Charges</span>
+                                  <span className="text-[9px] font-normal text-slate-400 normal-case">(Web Booking fees, commission, etc.)</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Booking.com 15% commission, platform fee..."
+                                  value={paymentForm.otherCharges || ''}
+                                  onChange={(e) => setPaymentForm({ ...paymentForm, otherCharges: e.target.value })}
+                                  className="w-full bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
+                                />
+                              </div>
+                            )}
                           </div>
                           <button
                             type="submit"
@@ -3646,8 +3661,21 @@ Staff: ${receiptData.generatedBy}`;
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 onClick={() => {
-                  setConfirmationData(prev => ({ ...prev, currency: 'LKR', tableCurrency: 'LKR' }));
-                  setTimeout(() => window.print(), 150);
+                  // Convert all room prices to LKR using the exchange rate, then print
+                  const rate = parseFloat(confirmationData.exchangeRate || 1) || 1;
+                  const origCurrency = confirmationData.currency || 'LKR';
+                  const convRooms = (confirmationData.allocatedRooms || []).map(r => ({
+                    ...r,
+                    price: (parseFloat(r.price || 0) * (origCurrency === 'LKR' ? 1 : rate)).toFixed(2)
+                  }));
+                  setConfirmationData(prev => ({
+                    ...prev,
+                    currency: 'LKR',
+                    tableCurrency: 'LKR',
+                    exchangeRate: '1',
+                    allocatedRooms: convRooms
+                  }));
+                  setTimeout(() => window.print(), 200);
                 }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-blue-500/10 text-xs"
               >

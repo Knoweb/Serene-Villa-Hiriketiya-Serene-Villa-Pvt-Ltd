@@ -23,14 +23,20 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
   const isDirect = !confirmationData.bookingType || confirmationData.bookingType.toLowerCase().includes('direct');
 
   // Table computations
+  const displayCurrency = confirmationData.currency || 'LKR';
+  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
+  // When currency is LKR, factor = 1. When printing as LKR from foreign currency, multiply by rate.
+  const convFactor = displayCurrency === 'LKR' ? 1 : exchangeRateVal;
+
   let totalAmount = 0;
   let itemizedRows = [];
 
   if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
-    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+    // item.price is stored in the form's selected currency
+    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * convFactor, 0);
     
     itemizedRows = confirmationData.allocatedRooms.map((item) => {
-      const roomTotalAmount = parseFloat(item.price || 0);
+      const roomTotalAmount = (parseFloat(item.price || 0)) * convFactor;
       const rateAmount = roomTotalAmount / nights;
       
       const amountVal = Math.floor(roomTotalAmount);
@@ -44,7 +50,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       };
     });
   } else {
-    totalAmount = parseFloat(confirmationData.totalPrice || 0);
+    totalAmount = parseFloat(confirmationData.totalPrice || 0) * convFactor;
     const defaultRowAmount = totalAmount;
     const defaultRateAmount = defaultRowAmount / nights;
     const defaultAmountVal = Math.floor(defaultRowAmount);
@@ -57,9 +63,6 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       amountCts: defaultAmountCts
     }];
   }
-
-  const displayCurrency = confirmationData.currency || 'LKR';
-  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
   const isSelectedLkr = displayCurrency === 'LKR';
 
   const totalCents = Math.round(totalAmount * 100);
@@ -122,24 +125,20 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
         </div>
       </div>
 
-      {/* Guest Name & Booking Channel block (Receipt Style Card) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px 20px', padding: '10px 14px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '8px', fontSize: '11px', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-          <span style={{ color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '8px', width: '70px', flexShrink: 0 }}>Guest Name:</span>
-          <span style={{ fontWeight: '700', color: '#1e293b', borderBottom: '1px dashed #cbd5e1', flex: 1, paddingBottom: '2px' }}>{guestName}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-          <span style={{ color: '#64748b', fontWeight: '800', textTransform: 'uppercase', fontSize: '8px', width: '70px', flexShrink: 0 }}>Channel:</span>
-          <span style={{ fontWeight: '700', color: '#1e293b', borderBottom: '1px dashed #cbd5e1', flex: 1, paddingBottom: '2px' }}>{confirmationData.bookingType || 'Direct Booking'}</span>
-        </div>
-      </div>
-
-      {/* Reservation Details Section */}
+      {/* Reservation Details Section - Guest Name + Channel included */}
       <div style={{ fontSize: '9px', fontWeight: '800', color: '#065f46', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>
         RESERVATION DETAILS
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 24px', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px', marginBottom: '20px', backgroundColor: '#ffffff' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+          <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Guest Name</span>
+          <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{guestName}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+          <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Channel</span>
+          <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{confirmationData.bookingType || 'Direct Booking'}</span>
+        </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
           <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Check - in</span>
           <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{formatDate(checkInDate)}</span>
@@ -163,14 +162,6 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
           <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Children</span>
           <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{String(children).padStart(2, '0')}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-          <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Reservation Date</span>
-          <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{formatDate(confirmationData.reservationDate)}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-          <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Table Currency</span>
-          <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{confirmationData.tableCurrency || 'USD'}</span>
         </div>
       </div>
 
