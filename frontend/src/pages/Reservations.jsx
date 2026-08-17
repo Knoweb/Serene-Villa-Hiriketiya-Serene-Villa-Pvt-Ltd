@@ -1682,11 +1682,10 @@ const Reservations = () => {
                               const cleanNum = rNum.trim();
                               const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
                               const numRooms = associatedBooking.roomNumber.split(',').length;
-                              const uPrice = associatedBooking.unitPrice || (associatedBooking.totalAmount / nightsVal);
                               return {
                                 roomType: matchedRoom ? matchedRoom.roomType : associatedBooking.roomType,
                                 roomNumber: cleanNum,
-                                price: (parseFloat(uPrice) / numRooms).toFixed(2)
+                                price: ((associatedBooking.totalAmount || 0) / numRooms).toFixed(2)
                               };
                             })
                           : [],
