@@ -246,6 +246,7 @@ const Reservations = () => {
     paymentMethod: 'Cash',
     referenceNumber: '',
     remarks: '',
+    cardFee: '',
     paymentDate: new Date().toISOString().split('T')[0],
     slipPath: ''
   });
@@ -902,9 +903,9 @@ const Reservations = () => {
     const booking = getBookingForReg(selectedReg.id);
     if (!booking) { alert('Please save the booking details first.'); return; }
     
-    const actualAmount = tab === 'FULL' ? remainingBalance : parseFloat(paymentForm.amount);
-    const actualExchangeRate = tab === 'FULL' ? 1.00 : parseFloat(paymentForm.exchangeRate);
-    const actualCurrency = tab === 'FULL' ? 'LKR' : paymentForm.currencyCode;
+    const actualAmount = parseFloat(paymentForm.amount) || remainingBalance;
+    const actualExchangeRate = parseFloat(paymentForm.exchangeRate) || 1.00;
+    const actualCurrency = paymentForm.currencyCode || 'LKR';
 
     if (!actualAmount || actualAmount <= 0) {
       alert('Please enter a valid amount.'); return;
@@ -933,7 +934,9 @@ const Reservations = () => {
       paymentMethod: paymentForm.paymentMethod,
       referenceNumber: paymentForm.referenceNumber,
       receiptNumber: paymentForm.referenceNumber,
-      remarks: paymentForm.remarks,
+      remarks: paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0 
+        ? `${paymentForm.remarks || ''} [Card Fee: ${parseFloat(paymentForm.cardFee)}]`.trim() 
+        : paymentForm.remarks,
       createdBy: user.username,
       slipPath: paymentForm.slipPath || '/uploads/dummy_slip.png',
       paymentSlipUrl: paymentForm.slipPath || '/uploads/dummy_slip.png',
@@ -1830,14 +1833,14 @@ const Reservations = () => {
                       }
                     };
 
-                    const actualPaymentTab = !associatedBooking.bookingType?.toLowerCase().includes('direct') ? 'FULL' : paymentTab;
+                    const actualPaymentTab = paymentTab;
                     const isFull = actualPaymentTab === 'FULL';
                     const accentColor = isFull ? 'blue' : 'emerald';
 
                     return (
                       <form onSubmit={(e) => handleSavePayment(e, actualPaymentTab, remainingBal)} className="space-y-3 text-xs">
                         {/* Tab Toggle */}
-                        {associatedBooking.bookingType?.toLowerCase().includes('direct') && (
+                        {true && (
                           <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-bold">
                             <button
                               type="button"
@@ -1881,7 +1884,6 @@ const Reservations = () => {
                               <select
                                 value={paymentForm.currencyCode}
                                 onChange={handlePaymentCurrencyChange}
-                                disabled={isFull}
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
                               >
                                 <option value="LKR">LKR</option>
@@ -1898,13 +1900,18 @@ const Reservations = () => {
                                 type="number"
                                 step="any"
                                 required
-                                readOnly={isFull}
                                 placeholder="0.00"
                                 value={paymentForm.amount}
-                                onChange={(e) => !isFull && setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                                className={`w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none ${
-                                  isFull ? 'bg-blue-50 text-blue-700 cursor-default' : 'bg-white text-slate-700'
-                                }`}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const fee = paymentForm.paymentMethod === 'Card' ? (parseFloat(val) || 0) * 0.03 : '';
+                                  setPaymentForm({ 
+                                    ...paymentForm, 
+                                    amount: val,
+                                    cardFee: fee !== '' ? fee.toFixed(2) : ''
+                                  });
+                                }}
+                                className={`w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none bg-white text-slate-700`}
                               />
                             </div>
                             {!isFull && (
@@ -1933,7 +1940,15 @@ const Reservations = () => {
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
                               <select
                                 value={paymentForm.paymentMethod}
-                                onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                                onChange={(e) => {
+                                  const method = e.target.value;
+                                  const fee = method === 'Card' ? (parseFloat(paymentForm.amount) || 0) * 0.03 : '';
+                                  setPaymentForm({ 
+                                    ...paymentForm, 
+                                    paymentMethod: method,
+                                    cardFee: fee !== '' ? fee.toFixed(2) : ''
+                                  });
+                                }}
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
                               >
                                 <option value="Cash">Cash</option>
