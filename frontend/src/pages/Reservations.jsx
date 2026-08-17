@@ -234,6 +234,7 @@ const Reservations = () => {
   const [isModalRoomDropdownOpen, setIsModalRoomDropdownOpen] = useState(false);
   const [isModalRoomNameDropdownOpen, setIsModalRoomNameDropdownOpen] = useState(false);
   const [showDraftPreviewModal, setShowDraftPreviewModal] = useState(false);
+  const [forceLkr, setForceLkr] = useState(false);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -3652,6 +3653,7 @@ Staff: ${receiptData.generatedBy}`;
                   selectedReg={isCreatingNewReservation ? null : selectedReg}
                   associatedBooking={isCreatingNewReservation ? null : associatedBooking}
                   payments={isCreatingNewReservation ? [] : advancePayments}
+                  forceLkr={forceLkr}
                 />
               </div>
             </div>
@@ -3659,21 +3661,11 @@ Staff: ${receiptData.generatedBy}`;
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 onClick={() => {
-                  // Convert all room prices to LKR using the exchange rate, then print
-                  const rate = parseFloat(confirmationData.exchangeRate || 1) || 1;
-                  const origCurrency = confirmationData.currency || 'LKR';
-                  const convRooms = (confirmationData.allocatedRooms || []).map(r => ({
-                    ...r,
-                    price: (parseFloat(r.price || 0) * (origCurrency === 'LKR' ? 1 : rate)).toFixed(2)
-                  }));
-                  setConfirmationData(prev => ({
-                    ...prev,
-                    currency: 'LKR',
-                    tableCurrency: 'LKR',
-                    exchangeRate: '1',
-                    allocatedRooms: convRooms
-                  }));
-                  setTimeout(() => window.print(), 200);
+                  setForceLkr(true);
+                  setTimeout(() => {
+                    window.print();
+                    setForceLkr(false);
+                  }, 200);
                 }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-blue-500/10 text-xs"
               >

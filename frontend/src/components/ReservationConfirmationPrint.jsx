@@ -1,7 +1,7 @@
 import React from 'react';
 import logoImg from '../assets/logo.jpeg';
 
-const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selectedReg, associatedBooking, payments = [] }, ref) => {
+const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selectedReg, associatedBooking, payments = [], forceLkr = false }, ref) => {
   if (!confirmationData) return null;
 
   // Format Dates
@@ -23,16 +23,19 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
   const isDirect = !confirmationData.bookingType || confirmationData.bookingType.toLowerCase().includes('direct');
 
   // Table computations
-  const displayCurrency = confirmationData.currency || 'LKR';
+  const baseCurrency = confirmationData.currency || 'LKR';
+  const displayCurrency = forceLkr ? 'LKR' : baseCurrency;
+  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
+  const convFactor = (forceLkr && baseCurrency !== 'LKR') ? exchangeRateVal : 1;
 
   let totalAmount = 0;
   let itemizedRows = [];
 
   if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
-    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * convFactor, 0);
     
     itemizedRows = confirmationData.allocatedRooms.map((item) => {
-      const roomTotalAmount = parseFloat(item.price || 0);
+      const roomTotalAmount = (parseFloat(item.price || 0)) * convFactor;
       const rateAmount = roomTotalAmount / nights;
       
       const amountVal = Math.floor(roomTotalAmount);
@@ -46,7 +49,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       };
     });
   } else {
-    totalAmount = parseFloat(confirmationData.totalPrice || 0);
+    totalAmount = parseFloat(confirmationData.totalPrice || 0) * convFactor;
     const defaultRowAmount = totalAmount;
     const defaultRateAmount = defaultRowAmount / nights;
     const defaultAmountVal = Math.floor(defaultRowAmount);
@@ -60,7 +63,6 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
     }];
   }
   const isSelectedLkr = displayCurrency === 'LKR';
-  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
 
   const totalCents = Math.round(totalAmount * 100);
   const totalPaidLkr = payments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
