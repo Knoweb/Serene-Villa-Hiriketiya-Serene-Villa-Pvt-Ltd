@@ -155,7 +155,7 @@ const Reservations = () => {
     roomReference: '',
     unitPrice: '',
     totalPrice: '',
-    currency: 'USD',
+    currency: 'LKR',
     exchangeRate: '1.00',
     allocatedRooms: [],
     confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
@@ -522,7 +522,7 @@ const Reservations = () => {
       roomType: booking.roomType || '',
       unitPrice: booking.unitPrice || defaultUnitPrice,
       totalPrice: (booking.totalAmount || 0).toFixed(2),
-      currency: booking.currency || 'USD',
+      currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
       allocatedRooms: booking.roomNumber 
         ? booking.roomNumber.split(',').map(rNum => {
@@ -578,7 +578,7 @@ const Reservations = () => {
       roomReference: `Room ${booking.roomNumber || ''} (${booking.roomType || ''})`,
       unitPrice: booking.unitPrice || defaultUnitPrice,
       totalPrice: (booking.totalAmount || 0).toFixed(2),
-      currency: booking.currency || 'USD',
+      currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
       allocatedRooms: booking.roomNumber 
         ? booking.roomNumber.split(',').map(rNum => {
@@ -633,7 +633,7 @@ const Reservations = () => {
       roomReference: `Room ${booking.roomNumber || ''} (${booking.roomType || ''})`,
       unitPrice: booking.unitPrice || defaultUnitPrice,
       totalPrice: (booking.totalAmount || 0).toFixed(2),
-      currency: booking.currency || 'USD',
+      currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
       allocatedRooms: booking.roomNumber 
         ? booking.roomNumber.split(',').map(rNum => {
@@ -729,8 +729,8 @@ const Reservations = () => {
       roomType: '',
       unitPrice: '',
       totalPrice: '',
-      currency: 'USD',
-      tableCurrency: 'USD',
+      currency: 'LKR',
+      tableCurrency: 'LKR',
       exchangeRate: '1.00',
     allocatedRooms: [],
     exchangeRate: '1.00',
@@ -1674,7 +1674,8 @@ const Reservations = () => {
                         roomType: associatedBooking.roomType || '',
                         unitPrice: associatedBooking.unitPrice || '0.00',
                         totalPrice: (associatedBooking.totalAmount || 0).toFixed(2),
-                        currency: associatedBooking.currency || 'USD',
+                        currency: associatedBooking.currency || 'LKR',
+                        tableCurrency: associatedBooking.currency || 'LKR',
                         exchangeRate: associatedBooking.exchangeRate || '1.00',
                         allocatedRooms: associatedBooking.roomNumber 
                           ? associatedBooking.roomNumber.split(',').map(rNum => {
@@ -3412,7 +3413,7 @@ Staff: ${receiptData.generatedBy}`;
                          <div className="flex items-center gap-1.5">
                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Table Currency:</span>
                            <select
-                             value={confirmationData.tableCurrency || 'USD'}
+                             value={confirmationData.tableCurrency || 'LKR'}
                              onChange={(e) => {
                                const newTableCurr = e.target.value;
                                setConfirmationData({
@@ -3434,7 +3435,7 @@ Staff: ${receiptData.generatedBy}`;
                              <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
                                <th className="pb-1.5 font-semibold">Room Name</th>
                                <th className="pb-1.5 font-semibold">Room Number</th>
-                               <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.tableCurrency || 'USD'})</th>
+                               <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.tableCurrency || 'LKR'})</th>
                              </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-100">
@@ -3444,7 +3445,7 @@ Staff: ${receiptData.generatedBy}`;
                                   <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
                                   <td className="py-1 text-right">
                                     <div className="inline-flex items-center gap-1.5 justify-end">
-                                      <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.tableCurrency || 'USD'}</span>
+                                      <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.tableCurrency || 'LKR'}</span>
                                       <input
                                         type="number"
                                         step="0.01"
@@ -3474,7 +3475,7 @@ Staff: ${receiptData.generatedBy}`;
                               <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
                                 <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
                                 <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
-                                  {confirmationData.tableCurrency || 'USD'} {(() => {
+                                  {confirmationData.tableCurrency || 'LKR'} {(() => {
                                     const tableSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
                                     return tableSum.toFixed(2);
                                   })()}
