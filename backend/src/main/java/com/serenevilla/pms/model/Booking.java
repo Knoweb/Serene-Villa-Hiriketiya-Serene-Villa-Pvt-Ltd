@@ -54,7 +54,7 @@ public class Booking {
 
     private String exchangeRate = "1.00";
 
-    private double unitPrice;
+    private Double unitPrice = 0.0;
 
     // JSON string: [{"roomNumber":"101","roomType":"Deluxe","price":"150.00"},...]
     @Column(columnDefinition = "TEXT")
