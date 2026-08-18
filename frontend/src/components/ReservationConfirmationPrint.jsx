@@ -239,6 +239,12 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Booking Amount:</span>
             <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
+          {displayCurrency === 'LKR' && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
+              <span style={{ color: '#64748b', fontWeight: '600' }}>Currency Rate:</span>
+              <span style={{ fontWeight: '700', color: '#1e293b' }}>{exchangeRateVal}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Paid So Far:</span>
             <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {totalPaidConverted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
