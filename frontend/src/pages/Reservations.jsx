@@ -236,6 +236,7 @@ const Reservations = () => {
   const [isModalRoomNameDropdownOpen, setIsModalRoomNameDropdownOpen] = useState(false);
   const [showDraftPreviewModal, setShowDraftPreviewModal] = useState(false);
   const [forceLkr, setForceLkr] = useState(false);
+  const [forceReceiptLkr, setForceReceiptLkr] = useState(false);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -2535,21 +2536,37 @@ Staff: ${receiptData.generatedBy}`;
         const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Bank Charges: ([\d.]+)\]/);
         const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
         
-        // Calculate LKR rate and amount details with perfect cent adjustment
-        const totalCents = Math.round(totalAmount * 100);
+        const bCurr = getBookingCurrency(associatedBooking);
+        const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
+        const dispCurr = forceReceiptLkr ? 'LKR' : bCurr;
+        const convFactor = (forceReceiptLkr && bCurr !== 'LKR') ? exRate : 1;
+
+        // Parse roomPrices if available
+        let parsedRoomPrices = null;
+        if (associatedBooking.roomPrices) {
+          try {
+            const p = JSON.parse(associatedBooking.roomPrices);
+            if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
+          } catch(e) {}
+        }
+
+        const dispTotalAmount = totalAmount * convFactor;
+        const totalCents = Math.round(dispTotalAmount * 100);
         
         const itemizedRows = roomsList.map((roomNumber, idx) => {
-          const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
-          const prevCentsSum = Math.round((totalCents / numRooms) * idx);
-          const rowCents = currentCentsSum - prevCentsSum;
-          const rowAmount = rowCents / 100;
+          let rowAmount = 0;
+          if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
+            rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
+          } else {
+            const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
+            const prevCentsSum = Math.round((totalCents / numRooms) * idx);
+            const rowCents = currentCentsSum - prevCentsSum;
+            rowAmount = rowCents / 100;
+          }
           
           const rateAmount = rowAmount / nightsVal;
-          
           const amountVal = Math.floor(rowAmount);
           const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
-          
-          // Map to corresponding room type dynamically
           const currentRoomType = roomTypesList[idx] || roomTypesList[0] || 'Room';
           
           return {
@@ -2561,7 +2578,7 @@ Staff: ${receiptData.generatedBy}`;
           };
         });
 
-        const defaultRowAmount = totalAmount;
+        const defaultRowAmount = dispTotalAmount;
         const defaultRateAmount = defaultRowAmount / nightsVal;
         const defaultAmountVal = Math.floor(defaultRowAmount);
         const defaultAmountCts = Math.round((defaultRowAmount - defaultAmountVal) * 100).toString().padStart(2, '0');
@@ -2658,12 +2675,13 @@ Staff: ${receiptData.generatedBy}`;
                 <table className="w-full border-collapse border border-emerald-800/30 text-[11px] print:border-slate-400">
                   <thead>
                     <tr style={{ backgroundColor: '#065f46', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                      <th rowSpan={2} className="px-3 py-1.5 text-left uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '78%' }}>Description</th>
-                      <th colSpan={2} className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', width: '22%' }}>Amount</th>
+                      <th className="px-3 py-1.5 text-left uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '70%' }}>DESCRIPTION</th>
+                      <th colSpan={2} className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', width: '30%' }}>AMOUNT</th>
                     </tr>
-                    <tr style={{ backgroundColor: '#065f46', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                      <th className="px-3 py-1 text-right uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>RS.</th>
-                      <th className="px-2 py-1 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>Cts.</th>
+                    <tr style={{ backgroundColor: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                      <th style={{ backgroundColor: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none' }}></th>
+                      <th className="px-3 py-1 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>{dispCurr === 'LKR' ? 'RS.' : dispCurr}</th>
+                      <th className="px-2 py-1 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>CTS.</th>
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-slate-800">
@@ -2698,13 +2716,13 @@ Staff: ${receiptData.generatedBy}`;
                     {/* Total Row */}
                     <tr className="bg-emerald-50/10 font-bold text-slate-900 border-t-2 border-emerald-800/30 print:border-slate-400">
                       <td className="border-r border-emerald-800/20 px-3 py-2 text-right uppercase text-[8px] tracking-wider print:border-slate-400 font-extrabold" colSpan={1}>
-                        Total
+                        TOTAL VALUE
                       </td>
                       <td className="border-r border-emerald-800/20 px-3 py-2 text-right font-mono font-bold print:border-slate-400 text-emerald-800">
-                        {Math.floor(totalAmount).toLocaleString()}
+                        {Math.floor(dispTotalAmount).toLocaleString()}
                       </td>
                       <td className="px-2 py-2 text-center font-mono font-bold text-emerald-800">
-                        {Math.round((totalAmount - Math.floor(totalAmount)) * 100).toString().padStart(2, '0')}
+                        {Math.round((dispTotalAmount - Math.floor(dispTotalAmount)) * 100).toString().padStart(2, '0')}
                       </td>
                     </tr>
                   </tbody>
@@ -2732,55 +2750,69 @@ Staff: ${receiptData.generatedBy}`;
                     </div>
 
                     {/* Right Column: Numeric breakdown */}
-                    <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
-                      <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                        <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-                        <span className="font-bold text-slate-800">LKR {(associatedBooking.totalAmount || 0).toLocaleString()}</span>
-                      </div>
-                      
-                      <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                        <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
-                        <span className="font-bold text-emerald-850 print:text-slate-900">
-                          {selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} {selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency}
-                        </span>
-                      </div>
+                    {(() => {
+                      const bCurr = getBookingCurrency(associatedBooking);
+                      const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
+                      const dispCurr = forceReceiptLkr ? 'LKR' : bCurr;
 
-                      {(selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (
-                        <>
-                          <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
-                            <span className="text-slate-500">Exchange Rate:</span>
-                            <span className="font-medium text-slate-700">{selectedPaymentForReceipt.exchangeRate}</span>
-                          </div>
+                      const totAmt = forceReceiptLkr && bCurr !== 'LKR' ? (associatedBooking.totalAmount || 0) * exRate : (associatedBooking.totalAmount || 0);
+                      const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
+                        ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0) 
+                        : (selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+                      const remBal = Math.max(0, totAmt - paidAmt);
+
+                      return (
+                        <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
                           <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                            <span className="text-slate-500 font-semibold">Converted Amount:</span>
+                            <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
+                            <span className="font-bold text-slate-800">{dispCurr} {totAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                          
+                          <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                            <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
                             <span className="font-bold text-emerald-850 print:text-slate-900">
-                              LKR {(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0).toLocaleString()}
+                              {dispCurr} {parseFloat(paidAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
-                        </>
-                      )}
 
-                      {cardFeeVal > 0 && (
-                        <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                          <span className="text-slate-500 font-semibold">BANK CHARGES (3%):</span>
-                          <span className="font-bold text-slate-850">LKR {cardFeeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                      )}
+                          {!forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (
+                            <>
+                              <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
+                                <span className="text-slate-500">Exchange Rate:</span>
+                                <span className="font-medium text-slate-700">{exRate}</span>
+                              </div>
+                              <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                                <span className="text-slate-500 font-semibold">Converted Amount:</span>
+                                <span className="font-bold text-emerald-850 print:text-slate-900">
+                                  LKR {(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </>
+                          )}
 
-                      <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">
-                        <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>
-                        <span className={`font-mono text-xs ${
-                          isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
-                        } print:text-slate-900`}>
-                          LKR {Math.max(0, (associatedBooking.totalAmount || 0) - (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0)).toLocaleString()}
-                        </span>
-                      </div>
-                      {isFinalPayment && (
-                        <div className="text-center mt-1">
-                          <span className="text-[9px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">✓ FULLY PAID</span>
+                          {cardFeeVal > 0 && (
+                            <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                              <span className="text-slate-500 font-semibold">BANK CHARGES (3%):</span>
+                              <span className="font-bold text-slate-850">LKR {cardFeeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">
+                            <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>
+                            <span className={`font-mono text-xs ${
+                              isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
+                            } print:text-slate-900`}>
+                              {dispCurr} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          {isFinalPayment && (
+                            <div className="text-center mt-1">
+                              <span className="text-[9px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">✓ FULLY PAID</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      );
+                    })()}
                   </div>
 
               {/* Footer Signatures */}
@@ -2830,10 +2862,28 @@ Staff: ${receiptData.generatedBy}`;
                 </button>
                 <button
                   type="button"
-                  onClick={handlePrintReceipt}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-1.5 px-4 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer"
+                  onClick={() => {
+                    setForceReceiptLkr(true);
+                    setTimeout(() => {
+                      window.print();
+                      setForceReceiptLkr(false);
+                    }, 200);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
                 >
-                  <Printer size={11} /> Print
+                  <Printer size={11} /> Print in LKR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForceReceiptLkr(false);
+                    setTimeout(() => {
+                      window.print();
+                    }, 200);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
+                >
+                  <Printer size={11} /> Print in USD
                 </button>
                 {isFinalPayment && (
                   <button

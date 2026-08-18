@@ -1,7 +1,7 @@
 import React from 'react';
 import logoImg from '../assets/logo.jpeg';
 
-const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking, payments = [] }, ref) => {
+const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking, payments = [], forceLkr = false }, ref) => {
   if (!receiptData || !selectedPaymentForReceipt || !selectedReg || !associatedBooking) return null;
 
   const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
@@ -18,20 +18,41 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
   const remainingBalance = Math.max(0, (associatedBooking.totalAmount || 0) - totalPaidUpToThis);
 
+  const bCurr = associatedBooking.currency || 'USD';
+  const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
+  const displayCurrency = forceLkr ? 'LKR' : (bCurr !== 'LKR' ? bCurr : 'USD');
+  const convFactor = (forceLkr && bCurr !== 'LKR') ? exRate : 1;
+
   // Split and map room-by-room itemized rows matching Draft Bill
   const roomTypes = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()) : [];
   const roomNumbers = associatedBooking.roomNumber ? associatedBooking.roomNumber.split(',').map(n => n.trim()) : [];
   const numRooms = Math.max(1, roomNumbers.length);
-  const totalAmount = associatedBooking.totalAmount || 0;
-  const totalCents = Math.round(totalAmount * 100);
+
+  // If stored roomPrices JSON exists, parse exact room prices
+  let parsedRoomPrices = null;
+  if (associatedBooking.roomPrices) {
+    try {
+      const p = JSON.parse(associatedBooking.roomPrices);
+      if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
+    } catch(e) {}
+  }
+
+  const baseTotalAmount = associatedBooking.totalAmount || 0;
+  const displayTotalAmount = baseTotalAmount * convFactor;
+  const totalCents = Math.round(displayTotalAmount * 100);
 
   let itemizedRows = [];
   if (roomNumbers.length > 0) {
     itemizedRows = roomNumbers.map((rNum, idx) => {
-      const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
-      const prevCentsSum = Math.round((totalCents / numRooms) * idx);
-      const rowCents = currentCentsSum - prevCentsSum;
-      const rowAmount = rowCents / 100;
+      let rowAmount = 0;
+      if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
+        rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
+      } else {
+        const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
+        const prevCentsSum = Math.round((totalCents / numRooms) * idx);
+        const rowCents = currentCentsSum - prevCentsSum;
+        rowAmount = rowCents / 100;
+      }
       
       const rType = roomTypes[idx] || roomTypes[0] || 'Room';
       const amountVal = Math.floor(rowAmount);
@@ -44,7 +65,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       };
     });
   } else {
-    const defaultRowAmount = totalAmount;
+    const defaultRowAmount = displayTotalAmount;
     const defaultAmountVal = Math.floor(defaultRowAmount);
     const defaultAmountCts = Math.round((defaultRowAmount - defaultAmountVal) * 100).toString().padStart(2, '0');
     
@@ -139,7 +160,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             </tr>
             <tr style={{ backgroundColor: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
               <th style={{ backgroundColor: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none' }}></th>
-              <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-28" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>{currencyCode === 'LKR' ? 'RS.' : currencyCode}</th>
+              <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-28" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>{displayCurrency === 'LKR' ? 'RS.' : displayCurrency}</th>
               <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-12" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>CTS.</th>
             </tr>
           </thead>
