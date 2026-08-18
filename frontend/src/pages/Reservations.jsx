@@ -1581,11 +1581,34 @@ const Reservations = () => {
                               const roomNumbersList = associatedBooking.roomNumber 
                                 ? associatedBooking.roomNumber.split(',').map(r => r.trim())
                                 : [];
+
+                              let parsedPrices = [];
+                              if (associatedBooking.roomPrices) {
+                                try {
+                                  parsedPrices = JSON.parse(associatedBooking.roomPrices);
+                                } catch (e) {}
+                              }
+
+                              const curr = associatedBooking.currency || 'USD';
+
                               return roomTypesList.map((type, index) => {
                                 const roomNum = roomNumbersList[index] || '';
+                                const matchedPriceObj = parsedPrices.find(p => p.roomNumber === roomNum) || parsedPrices[index];
+                                let priceVal = matchedPriceObj ? matchedPriceObj.price : null;
+
+                                if (priceVal === null || priceVal === undefined || priceVal === '') {
+                                  if (roomTypesList.length === 1) {
+                                    priceVal = associatedBooking.totalAmount || associatedBooking.totalPrice;
+                                  }
+                                }
+
+                                const formattedPrice = priceVal !== null && priceVal !== undefined && priceVal !== '' && !isNaN(parseFloat(priceVal))
+                                  ? `${curr} ${parseFloat(priceVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : '';
+
                                 return (
                                   <div key={index} className="leading-normal">
-                                    {type} {roomNum ? `(Room ${roomNum})` : ''}
+                                    {type} {roomNum ? `(Room ${roomNum})` : ''} {formattedPrice ? `- ${formattedPrice}` : ''}
                                   </div>
                                 );
                               });
