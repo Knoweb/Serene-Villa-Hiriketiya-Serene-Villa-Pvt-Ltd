@@ -3184,8 +3184,22 @@ Staff: ${receiptData.generatedBy}`;
                             <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">Room Allocations & Prices</label>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Currency:</span>
-                                <span className="text-[10px] font-bold text-slate-700">{confirmationData.currency || 'USD'}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Table Currency:</span>
+                                <select
+                                  value={confirmationData.tableCurrency || 'USD'}
+                                  onChange={(e) => {
+                                    const newTableCurr = e.target.value;
+                                    setConfirmationData({
+                                      ...confirmationData,
+                                      tableCurrency: newTableCurr
+                                    });
+                                  }}
+                                  className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                                >
+                                  <option value="USD">USD</option>
+                                  <option value="LKR">LKR</option>
+                                  <option value="EUR">EUR</option>
+                                </select>
                               </div>
                             </div>
                             <div className="overflow-x-auto">
@@ -3194,7 +3208,7 @@ Staff: ${receiptData.generatedBy}`;
                                   <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
                                     <th className="pb-1.5 font-semibold">Room Name</th>
                                     <th className="pb-1.5 font-semibold">Room Number</th>
-                                    <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.currency || 'USD'})</th>
+                                    <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.tableCurrency || 'USD'})</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -3204,7 +3218,7 @@ Staff: ${receiptData.generatedBy}`;
                                       <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
                                       <td className="py-1 text-right">
                                         <div className="inline-flex items-center gap-1.5 justify-end">
-                                          <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.currency || 'USD'}</span>
+                                          <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.tableCurrency || 'USD'}</span>
                                           <input
                                             type="number"
                                             step="0.01"
@@ -3233,7 +3247,7 @@ Staff: ${receiptData.generatedBy}`;
                                   <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
                                     <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
                                     <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
-                                      {confirmationData.currency || 'USD'} {(() => {
+                                      {confirmationData.tableCurrency || 'USD'} {(() => {
                                         const tableSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, itm) => sum + (parseFloat(itm.price) || 0), 0) : 0;
                                         return tableSum.toFixed(2);
                                       })()}
@@ -3323,17 +3337,8 @@ Staff: ${receiptData.generatedBy}`;
                       </select>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Date</label>
-                      <input 
-                        type="date" 
-                        value={confirmationData.reservationDate}
-                        onChange={(e) => setConfirmationData({...confirmationData, reservationDate: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
+                    {/* Currency */}
+                    <div className="space-y-1.5 col-span-1">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
                       <select 
                         value={confirmationData.currency}
@@ -3347,7 +3352,7 @@ Staff: ${receiptData.generatedBy}`;
                             totalPrice: (usdSum * rate).toFixed(2)
                           });
                         }}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
                       >
                         <option value="USD">USD</option>
                         <option value="LKR">LKR</option>
@@ -3355,15 +3360,40 @@ Staff: ${receiptData.generatedBy}`;
                       </select>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
+                    {/* Currency Rate */}
+                    <div className="space-y-1.5 col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency Rate</label>
                       <input 
                         type="number" 
                         step="0.01"
-                        value={confirmationData.totalPrice}
-                        onChange={(e) => setConfirmationData({...confirmationData, totalPrice: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-bold"
+                        value={confirmationData.exchangeRate}
+                        onChange={(e) => {
+                          const rateVal = e.target.value;
+                          const rate = parseFloat(rateVal) || 1;
+                          const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
+                          setConfirmationData({
+                            ...confirmationData,
+                            exchangeRate: rateVal,
+                            totalPrice: (usdSum * rate).toFixed(2)
+                          });
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-medium"
                       />
+                    </div>
+
+                    {/* Total Price (LKR) */}
+                    <div className="space-y-1.5 col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price (LKR)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-slate-450 font-bold text-xs select-none">LKR</span>
+                        <input 
+                          type="number" 
+                          readOnly
+                          disabled
+                          value={confirmationData.totalPrice}
+                          className="w-full bg-slate-100 border border-slate-200 rounded-lg pl-10 pr-3 py-2 text-slate-500 cursor-not-allowed font-bold font-mono"
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
