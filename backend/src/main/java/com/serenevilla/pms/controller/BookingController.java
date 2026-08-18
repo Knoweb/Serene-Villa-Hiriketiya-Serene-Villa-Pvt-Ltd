@@ -24,8 +24,17 @@ public class BookingController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Booking>> getBookings(@RequestParam(name = "propertyId", defaultValue = "1") Long propertyId) {
-        return ResponseEntity.ok(bookingRepository.findByPropertyId(propertyId));
+    public ResponseEntity<?> getBookings(@RequestParam(name = "propertyId", required = false, defaultValue = "1") Long propertyId) {
+        try {
+            List<Booking> bookings = bookingRepository.findByPropertyId(propertyId != null ? propertyId : 1L);
+            if (bookings == null || bookings.isEmpty()) {
+                bookings = bookingRepository.findAll();
+            }
+            return ResponseEntity.ok(bookings);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(java.util.Map.of("error", e.getClass().getName(), "message", e.getMessage() != null ? e.getMessage() : "Unknown error"));
+        }
     }
 
     @PutMapping("/{id}/status")

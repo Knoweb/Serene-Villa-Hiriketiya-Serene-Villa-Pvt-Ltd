@@ -12,7 +12,7 @@ import java.time.LocalDate;
     indexes = {
         @Index(name = "idx_booking_reg_id", columnList = "guest_registration_id"),
         @Index(name = "idx_booking_room_num", columnList = "roomNumber"),
-        @Index(name = "idx_booking_property", columnList = "propertyId")
+        @Index(name = "idx_booking_property", columnList = "property_id")
     }
 )
 @Data
