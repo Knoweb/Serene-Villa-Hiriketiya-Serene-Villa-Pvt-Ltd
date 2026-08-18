@@ -38,8 +38,7 @@ public class GuestRegistrationService {
     @Autowired
     private com.serenevilla.pms.repository.RoomRepository roomRepository;
 
-    @jakarta.persistence.PersistenceContext
-    private jakarta.persistence.EntityManager entityManager;
+
 
     public GuestRegistration createPublicRegistration(GuestRegistration registration) {
         // Calculate nights
@@ -96,9 +95,8 @@ public class GuestRegistrationService {
             });
         }
 
-        // Return lightweight entities for listing, stripping only heavy passport Base64 image payloads
+        // Return lightweight entities for listing, stripping heavy passport Base64 image payloads
         return result.map(reg -> {
-            entityManager.detach(reg);
             reg.setPassportFrontPath(null);
             reg.setPassportBackPath(null);
             return reg;
