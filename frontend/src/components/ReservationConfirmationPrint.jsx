@@ -43,7 +43,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
 
       return {
         description: `Night - ${item.roomType} (Room ${item.roomNumber})`,
-        rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        rate: roomTotalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         amountVal: amountVal.toLocaleString(),
         amountCts: amountCts
       };
@@ -51,13 +51,12 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
   } else {
     totalAmount = parseFloat(confirmationData.totalPrice || 0) * convFactor;
     const defaultRowAmount = totalAmount;
-    const defaultRateAmount = defaultRowAmount / nights;
     const defaultAmountVal = Math.floor(defaultRowAmount);
     const defaultAmountCts = Math.round((defaultRowAmount - defaultAmountVal) * 100).toString().padStart(2, '0');
     
     itemizedRows = [{
       description: `Night - ${associatedBooking?.roomType || confirmationData.roomType || 'Room'}`,
-      rate: defaultRateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      rate: defaultRowAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       amountVal: defaultAmountVal.toLocaleString(),
       amountCts: defaultAmountCts
     }];
