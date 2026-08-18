@@ -1109,11 +1109,12 @@ const Reservations = () => {
       const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
       const remainingBal = Math.max(0, totalAmt - totalPaid);
       const bCurr = getBookingCurrency(associatedBooking);
+      const savedRate = parseFloat(associatedBooking.exchangeRate) || (bCurr === 'USD' ? 335 : 1);
       setPaymentForm(prev => ({
         ...prev,
         amount: remainingBal > 0 ? remainingBal.toFixed(2) : '',
         currencyCode: bCurr,
-        exchangeRate: bCurr === 'USD' ? 335 : 1,
+        exchangeRate: savedRate,
         paymentMethod: 'Cash',
         cardFee: ''
       }));
@@ -1977,7 +1978,7 @@ const Reservations = () => {
                                 className={`w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none bg-white text-slate-700`}
                               />
                             </div>
-                            {!isFull && (
+                            {paymentForm.currencyCode !== 'LKR' && (
                               <>
                                 <div>
                                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
@@ -1985,16 +1986,15 @@ const Reservations = () => {
                                     type="number"
                                     step="any"
                                     required
-                                    disabled={paymentForm.currencyCode === 'LKR'}
                                     value={paymentForm.exchangeRate}
                                     onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100"
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none font-mono font-bold"
                                   />
                                 </div>
                                 <div>
                                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted (LKR)</label>
                                   <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700 font-mono">
-                                    {((parseFloat(paymentForm.amount) || 0) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString()} LKR
+                                    {((parseFloat(paymentForm.amount) || 0) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR
                                   </div>
                                 </div>
                               </>
