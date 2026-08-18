@@ -989,9 +989,16 @@ const Reservations = () => {
       paymentMethod: paymentForm.paymentMethod,
       referenceNumber: paymentForm.referenceNumber,
       receiptNumber: paymentForm.referenceNumber,
-      remarks: paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0 
-        ? `${paymentForm.remarks || ''} [Bank Charges: ${parseFloat(paymentForm.cardFee)}]`.trim() 
-        : paymentForm.remarks,
+      remarks: (() => {
+        let r = paymentForm.remarks || '';
+        if (paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0) {
+          r += ` [Bank Charges: ${parseFloat(paymentForm.cardFee)}]`;
+        }
+        if (parseFloat(paymentForm.otherCharges) > 0) {
+          r += ` [Other Charges: ${parseFloat(paymentForm.otherCharges)}]`;
+        }
+        return r.trim();
+      })(),
       createdBy: user.username,
       slipPath: paymentForm.slipPath || '/uploads/dummy_slip.png',
       paymentSlipUrl: paymentForm.slipPath || '/uploads/dummy_slip.png',
@@ -2087,21 +2094,25 @@ const Reservations = () => {
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
                               />
                             </div>
-                            {associatedBooking?.bookingType?.toLowerCase().includes('web') && (
-                              <div className="col-span-2">
-                                <label className="block text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                  <span>Other Charges</span>
-                                  <span className="text-[9px] font-normal text-slate-400 normal-case">(Web Booking fees, commission, etc.)</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  placeholder="e.g. Booking.com 15% commission, platform fee..."
-                                  value={paymentForm.otherCharges || ''}
-                                  onChange={(e) => setPaymentForm({ ...paymentForm, otherCharges: e.target.value })}
-                                  className="w-full bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
-                                />
-                              </div>
-                            )}
+                             <div className="col-span-2 mt-1">
+                               <label className="block text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                 <span>OTHER CHARGES</span>
+                                 <span className="text-[9px] font-normal text-slate-400 normal-case">(Web Booking fees, commission, extra services, etc.)</span>
+                               </label>
+                               <div className="relative">
+                                 <input
+                                   type="number"
+                                   step="any"
+                                   placeholder="0.00"
+                                   value={paymentForm.otherCharges || ''}
+                                   onChange={(e) => setPaymentForm({ ...paymentForm, otherCharges: e.target.value })}
+                                   className="w-full bg-amber-50/20 border border-amber-300 focus:border-amber-500 rounded-lg px-3 py-2 font-bold font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500 pr-14 text-xs"
+                                 />
+                                 <span className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-500">
+                                   {paymentForm.currencyCode || 'USD'}
+                                 </span>
+                               </div>
+                             </div>
                           </div>
                           <button
                             type="submit"
@@ -2800,6 +2811,23 @@ Staff: ${receiptData.generatedBy}`;
                               </span>
                             </div>
                           )}
+
+                          {(() => {
+                            const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                            const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
+                            if (otherVal > 0) {
+                              const otherDisp = forceReceiptLkr || dispCurr === 'LKR'
+                                ? `LKR ${(selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : (otherVal * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : `${dispCurr} ${otherVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                              return (
+                                <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                                  <span className="text-slate-500 font-semibold">OTHER CHARGES:</span>
+                                  <span className="font-bold text-amber-700">{otherDisp}</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
 
                           <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">
                             <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>

@@ -260,6 +260,25 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 return null;
               })()}
 
+              {(() => {
+                const otherFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                const otherFee = otherFeeMatch ? parseFloat(otherFeeMatch[1]) : 0;
+                if (otherFee > 0) {
+                  const feeDisplay = forceLkr || displayCurrency === 'LKR'
+                    ? `LKR ${(currencyCode === 'LKR' ? otherFee : (otherFee * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : `${displayCurrency} ${otherFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  return (
+                    <div className="flex justify-between pb-1 border-b border-slate-200">
+                      <span className="text-slate-550 font-semibold">OTHER CHARGES:</span>
+                      <span className="font-bold text-slate-800">
+                        {feeDisplay}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               {!forceLkr && (currencyCode !== 'LKR') && (
                 <>
                   <div className="flex justify-between pb-1 border-b border-slate-200 text-[10px]">
