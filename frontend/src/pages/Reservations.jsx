@@ -3178,6 +3178,72 @@ Staff: ${receiptData.generatedBy}`;
                            )}
                          </div>
                        </div>
+                       
+                        {confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 && (
+                          <div className="col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                            <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">Room Allocations & Prices</label>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Currency:</span>
+                                <span className="text-[10px] font-bold text-slate-700">{confirmationData.currency || 'USD'}</span>
+                              </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                                    <th className="pb-1.5 font-semibold">Room Name</th>
+                                    <th className="pb-1.5 font-semibold">Room Number</th>
+                                    <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.currency || 'USD'})</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {confirmationData.allocatedRooms.map((item, idx) => (
+                                    <tr key={idx} className="text-slate-700">
+                                      <td className="py-2 pr-2 font-medium">{item.roomType}</td>
+                                      <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
+                                      <td className="py-1 text-right">
+                                        <div className="inline-flex items-center gap-1.5 justify-end">
+                                          <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.currency || 'USD'}</span>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            value={item.price}
+                                            onChange={(e) => {
+                                              const val = e.target.value;
+                                              const updatedAllocated = [...confirmationData.allocatedRooms];
+                                              updatedAllocated[idx] = {
+                                                ...updatedAllocated[idx],
+                                                price: val
+                                              };
+                                              const tableSum = updatedAllocated.reduce((sum, itm) => sum + (parseFloat(itm.price) || 0), 0);
+                                              const rate = parseFloat(confirmationData.exchangeRate) || 1;
+                                              setConfirmationData({
+                                                ...confirmationData,
+                                                allocatedRooms: updatedAllocated,
+                                                totalPrice: (tableSum * rate).toFixed(2)
+                                              });
+                                            }}
+                                            className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
+                                          />
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
+                                    <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
+                                    <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
+                                      {confirmationData.currency || 'USD'} {(() => {
+                                        const tableSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, itm) => sum + (parseFloat(itm.price) || 0), 0) : 0;
+                                        return tableSum.toFixed(2);
+                                      })()}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
 
                        {confirmationData.roomType && !confirmationData.roomType.includes(',') && ROOM_TEMPLATES[confirmationData.roomType] && (
                          <div className="col-span-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex gap-4 items-center">
@@ -3204,177 +3270,137 @@ Staff: ${receiptData.generatedBy}`;
                          </div>
                        )}
 
-                       <div className="space-y-1.5 col-span-2">
-                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remarks / Special Notes</label>
-                         <input 
-                           type="text" 
-                           value={confirmationData.remarks}
-                           onChange={(e) => setConfirmationData({...confirmationData, remarks: e.target.value})}
-                           placeholder="e.g. Booking.com no is 5165813303"
-                           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                         />
-                       </div>
-                     </>
-                   )}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Email</label>
+                      <input 
+                        type="email" 
+                        value={confirmationData.email}
+                        onChange={(e) => setConfirmationData({...confirmationData, email: e.target.value})}
+                        placeholder="e.g. client@email.com"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                      />
+                    </div>
 
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Email</label>
-                     <input 
-                       type="email" 
-                       value={confirmationData.email}
-                       onChange={(e) => setConfirmationData({...confirmationData, email: e.target.value})}
-                       placeholder="e.g. client@email.com"
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp Number</label>
+                      <input 
+                        type="text" 
+                        value={confirmationData.whatsappNumber || ''}
+                        onChange={(e) => setConfirmationData({...confirmationData, whatsappNumber: e.target.value})}
+                        placeholder="e.g. +94771234567"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                      />
+                    </div>
 
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp Number</label>
-                     <input 
-                       type="text" 
-                       value={confirmationData.whatsappNumber || ''}
-                       onChange={(e) => setConfirmationData({...confirmationData, whatsappNumber: e.target.value})}
-                       placeholder="e.g. +94771234567"
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Country</label>
+                      <select 
+                        value={confirmationData.nationality || ''}
+                        onChange={(e) => setConfirmationData({...confirmationData, nationality: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
+                      >
+                        <option value="">Select Country</option>
+                        <option value="Sri Lankan">Sri Lankan</option>
+                        <option value="British">British</option>
+                        <option value="German">German</option>
+                        <option value="Russian">Russian</option>
+                        <option value="French">French</option>
+                        <option value="Indian">Indian</option>
+                        <option value="Australian">Australian</option>
+                        <option value="Chinese">Chinese</option>
+                        <option value="Maldivian">Maldivian</option>
+                        <option value="American">American</option>
+                        <option value="Canadian">Canadian</option>
+                        <option value="Italian">Italian</option>
+                        <option value="Swiss">Swiss</option>
+                        <option value="Dutch">Dutch</option>
+                        <option value="Swedish">Swedish</option>
+                        <option value="Japanese">Japanese</option>
+                        <option value="Ukrainian">Ukrainian</option>
+                        <option value="Polish">Polish</option>
+                        <option value="Spanish">Spanish</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
 
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nationality</label>
-                     <select 
-                       value={confirmationData.nationality || ''}
-                       onChange={(e) => setConfirmationData({...confirmationData, nationality: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
-                     >
-                       <option value="">Select Nationality</option>
-                       <option value="Sri Lankan">Sri Lankan</option>
-                       <option value="British">British</option>
-                       <option value="German">German</option>
-                       <option value="Russian">Russian</option>
-                       <option value="French">French</option>
-                       <option value="Indian">Indian</option>
-                       <option value="Australian">Australian</option>
-                       <option value="Chinese">Chinese</option>
-                       <option value="Maldivian">Maldivian</option>
-                       <option value="American">American</option>
-                       <option value="Canadian">Canadian</option>
-                       <option value="Italian">Italian</option>
-                       <option value="Swiss">Swiss</option>
-                       <option value="Dutch">Dutch</option>
-                       <option value="Swedish">Swedish</option>
-                       <option value="Japanese">Japanese</option>
-                       <option value="Ukrainian">Ukrainian</option>
-                       <option value="Polish">Polish</option>
-                       <option value="Spanish">Spanish</option>
-                       <option value="Other">Other</option>
-                     </select>
-                   </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Date</label>
+                      <input 
+                        type="date" 
+                        value={confirmationData.reservationDate}
+                        onChange={(e) => setConfirmationData({...confirmationData, reservationDate: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                      />
+                    </div>
 
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Date</label>
-                     <input 
-                       type="date" 
-                       value={confirmationData.reservationDate}
-                       onChange={(e) => setConfirmationData({...confirmationData, reservationDate: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
+                      <select 
+                        value={confirmationData.currency}
+                        onChange={(e) => {
+                          const curr = e.target.value;
+                          const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
+                          const rate = parseFloat(confirmationData.exchangeRate) || 1;
+                          setConfirmationData({
+                            ...confirmationData,
+                            currency: curr,
+                            totalPrice: (usdSum * rate).toFixed(2)
+                          });
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="LKR">LKR</option>
+                        <option value="EUR">EUR</option>
+                      </select>
+                    </div>
 
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
-                     <select 
-                       value={confirmationData.currency}
-                       onChange={(e) => {
-                         const curr = e.target.value;
-                         const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
-                         const rate = parseFloat(confirmationData.exchangeRate) || 1;
-                         setConfirmationData({
-                           ...confirmationData,
-                           currency: curr,
-                           totalPrice: (usdSum * rate).toFixed(2)
-                         });
-                       }}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     >
-                       <option value="USD">USD</option>
-                       <option value="LKR">LKR</option>
-                       <option value="EUR">EUR</option>
-                     </select>
-                   </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        value={confirmationData.totalPrice}
+                        onChange={(e) => setConfirmationData({...confirmationData, totalPrice: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-bold"
+                      />
+                    </div>
 
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit Price (Per Night)</label>
-                     <input 
-                       type="number" 
-                       step="0.01"
-                       value={confirmationData.unitPrice}
-                       onChange={(e) => {
-                         const price = parseFloat(e.target.value) || 0;
-                         const nights = parseInt(confirmationData.nights) || 1;
-                         setConfirmationData({
-                           ...confirmationData, 
-                           unitPrice: e.target.value, 
-                           totalPrice: (price * nights).toFixed(2)
-                         });
-                       }}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Status</label>
+                      <select 
+                        value={confirmationData.reservationStatus}
+                        onChange={(e) => setConfirmationData({...confirmationData, reservationStatus: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                      >
+                        <option value="Confirm Booking">Confirm Booking</option>
+                        <option value="Pending Booking">Pending Booking</option>
+                      </select>
+                    </div>
 
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</label>
-                     <input 
-                       type="number" 
-                       step="0.01"
-                       value={confirmationData.totalPrice}
-                       onChange={(e) => setConfirmationData({...confirmationData, totalPrice: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
+                    <div className="space-y-1.5 col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender Name (Sign off)</label>
+                      <input 
+                        type="text" 
+                        value={confirmationData.senderName}
+                        onChange={(e) => setConfirmationData({...confirmationData, senderName: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                      />
+                    </div>
 
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Status</label>
-                     <select 
-                       value={confirmationData.reservationStatus}
-                       onChange={(e) => setConfirmationData({...confirmationData, reservationStatus: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     >
-                       <option value="Confirm Booking">Confirm Booking</option>
-                       <option value="Pending Booking">Pending Booking</option>
-                     </select>
-                   </div>
-
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Badge Status (Top Right)</label>
-                     <input 
-                       type="text" 
-                       value={confirmationData.badgeText}
-                       onChange={(e) => setConfirmationData({...confirmationData, badgeText: e.target.value})}
-                       placeholder="e.g. Hold or Confirmed"
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
-
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Confirmed By</label>
-                     <input 
-                       type="text" 
-                       value={confirmationData.confirmedBy}
-                       onChange={(e) => setConfirmationData({...confirmationData, confirmedBy: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
-
-                   <div className="space-y-1.5">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender Name (Sign off)</label>
-                     <input 
-                       type="text" 
-                       value={confirmationData.senderName}
-                       onChange={(e) => setConfirmationData({...confirmationData, senderName: e.target.value})}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                     />
-                   </div>
-                 </>
+                    <div className="space-y-1.5 col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remarks / Special Notes</label>
+                      <input 
+                        type="text" 
+                        value={confirmationData.remarks}
+                        onChange={(e) => setConfirmationData({...confirmationData, remarks: e.target.value})}
+                        placeholder="e.g. Special notes or instructions"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
+                      />
+                    </div>
+                        </>
+                      )}
+                    </>
                ) : (
                  <>
                    {/* Booking Number */}
