@@ -2793,7 +2793,11 @@ Staff: ${receiptData.generatedBy}`;
                           {cardFeeVal > 0 && (
                             <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
                               <span className="text-slate-500 font-semibold">BANK CHARGES (3%):</span>
-                              <span className="font-bold text-slate-850">LKR {cardFeeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              <span className="font-bold text-slate-850">
+                                {forceReceiptLkr || dispCurr === 'LKR'
+                                  ? `LKR ${cardFeeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : `${dispCurr} ${(cardFeeVal / exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                              </span>
                             </div>
                           )}
 

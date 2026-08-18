@@ -235,11 +235,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Bank Charges: ([\d.]+)\]/);
             const cardFee = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
             if (cardFee > 0) {
+              const feeDisplay = forceLkr || displayCurrency === 'LKR'
+                ? `LKR ${cardFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : `${displayCurrency} ${(cardFee / exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
               return (
                 <div className="flex justify-between pb-1 border-b border-slate-200">
                   <span className="text-slate-550 font-semibold">BANK CHARGES (3%):</span>
                   <span className="font-bold text-slate-800">
-                    LKR {cardFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {feeDisplay}
                   </span>
                 </div>
               );
