@@ -2870,8 +2870,7 @@ Staff: ${receiptData.generatedBy}`;
                     setForceReceiptLkr(true);
                     setTimeout(() => {
                       window.print();
-                      setForceReceiptLkr(false);
-                    }, 200);
+                    }, 150);
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
                 >
@@ -2883,7 +2882,7 @@ Staff: ${receiptData.generatedBy}`;
                     setForceReceiptLkr(false);
                     setTimeout(() => {
                       window.print();
-                    }, 200);
+                    }, 150);
                   }}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
                 >
