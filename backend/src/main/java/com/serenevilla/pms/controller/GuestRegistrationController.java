@@ -29,15 +29,19 @@ public class GuestRegistrationController {
 
     // Paginated Search & Filter Guest Registrations
     @GetMapping("/api/guest-registrations")
-    public ResponseEntity<Page<GuestRegistration>> getRegistrations(
+    public ResponseEntity<?> getRegistrations(
             @RequestParam(name = "search", required = false, defaultValue = "") String search,
             @RequestParam(name = "status", required = false, defaultValue = "") String status,
             @RequestParam(name = "role", defaultValue = "FRONT_OFFICER") String role,
             @RequestParam(name = "source", required = false, defaultValue = "") String source,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
-        
-        return ResponseEntity.ok(guestRegistrationService.searchRegistrations(search, status, role, source, page, size));
+        try {
+            return ResponseEntity.ok(guestRegistrationService.searchRegistrations(search, status, role, source, page, size));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(java.util.Map.of("error", e.getClass().getName(), "message", e.getMessage() != null ? e.getMessage() : "Unknown error"));
+        }
     }
 
     // Get Guest Registration Details

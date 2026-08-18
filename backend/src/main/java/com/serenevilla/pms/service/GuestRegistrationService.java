@@ -70,12 +70,15 @@ public class GuestRegistrationService {
         // Dynamically recalculate paymentStatus for FRONT_OFFICER based on visible payments
         if ("FRONT_OFFICER".equalsIgnoreCase(role)) {
             result = result.map(reg -> {
-                bookingRepository.findByGuestRegistrationId(reg.getId())
-                        .ifPresent(booking -> {
-                            List<Payment> allPayments = paymentRepository.findByBookingId(booking.getId());
+                try {
+                    List<Booking> bookings = bookingRepository.findByGuestRegistrationId(reg.getId());
+                    if (bookings != null && !bookings.isEmpty()) {
+                        Booking booking = bookings.get(bookings.size() - 1);
+                        List<Payment> allPayments = paymentRepository.findByBookingId(booking.getId());
+                        if (allPayments != null) {
                             // Filter out hidden payments
                             List<Payment> visiblePayments = allPayments.stream()
-                                    .filter(p -> p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice())
+                                    .filter(p -> p != null && (p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice()))
                                     .toList();
                             
                             double totalPaid = visiblePayments.stream()
@@ -90,7 +93,11 @@ public class GuestRegistrationService {
                                 computedStatus = "Paid Advance";
                             }
                             reg.setPaymentStatus(computedStatus);
-                        });
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 return reg;
             });
         }
@@ -289,12 +296,16 @@ public class GuestRegistrationService {
 
     @org.springframework.transaction.annotation.Transactional
     public void deleteRegistration(Long id) {
-        bookingRepository.findByGuestRegistrationId(id)
-                .ifPresent(booking -> {
-                    List<Payment> payments = paymentRepository.findByBookingId(booking.getId());
+        List<Booking> bookings = bookingRepository.findByGuestRegistrationId(id);
+        if (bookings != null && !bookings.isEmpty()) {
+            for (Booking booking : bookings) {
+                List<Payment> payments = paymentRepository.findByBookingId(booking.getId());
+                if (payments != null) {
                     paymentRepository.deleteAll(payments);
-                    bookingRepository.delete(booking);
-                });
+                }
+                bookingRepository.delete(booking);
+            }
+        }
         guestRegistrationRepository.deleteById(id);
         webSocketHandler.broadcast("update");
     }
