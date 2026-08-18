@@ -167,15 +167,14 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '20px', border: '1px solid rgba(6, 95, 70, 0.2)' }}>
         <thead>
           <tr style={{ backgroundColor: '#065f46', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact' }}>
-            <th rowSpan={2} style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '78%' }}>Description</th>
-            <th colSpan={2} style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.4)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '22%' }}>Amount</th>
-          </tr>
-          <tr style={{ backgroundColor: '#065f46', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-            <th style={{ backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none', padding: '6px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '14%' }}>
-              {displayCurrency === 'LKR' ? 'RS.' : displayCurrency}
+            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'left', width: '70%' }}>
+              DESCRIPTION
             </th>
-            <th style={{ backgroundColor: '#ffffff', color: '#1e293b', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none', padding: '6px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '8%' }}>
-              Cts.
+            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right', width: '18%' }}>
+              AMOUNT ({displayCurrency === 'LKR' ? 'RS.' : displayCurrency})
+            </th>
+            <th style={{ backgroundColor: '#065f46', color: '#ffffff', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '10px 12px', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', width: '12%' }}>
+              CTS.
             </th>
           </tr>
         </thead>
