@@ -784,14 +784,28 @@ const Reservations = () => {
 
         const savedGuest = await guestRes.json();
         
+        const roomSum = confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0
+          ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0)
+          : (parseFloat(confirmationData.totalPrice) || 0);
+
+        const selCurr = confirmationData.tableCurrency || confirmationData.currency || 'USD';
+
         const newBooking = {
           guestRegistrationId: savedGuest.id,
           bookingNumber: confirmationData.bookingNumber,
-          roomNumber: confirmationData.room || 'Unallocated',
+          roomNumber: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0
+            ? confirmationData.allocatedRooms.map(r => r.roomNumber).join(', ')
+            : (confirmationData.room || 'Unallocated'),
           roomType: confirmationData.roomType,
           boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
           bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
-          totalAmount: parseFloat(confirmationData.totalPrice) || 0,
+          totalAmount: roomSum,
+          currency: selCurr,
+          exchangeRate: confirmationData.exchangeRate || '1.00',
+          roomPrices: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 
+            ? JSON.stringify(confirmationData.allocatedRooms) 
+            : '',
+          guestName: confirmationData.guestName || '',
           remarks: confirmationData.remarks || '',
           status: 'Confirmed',
           propertyId: 1
