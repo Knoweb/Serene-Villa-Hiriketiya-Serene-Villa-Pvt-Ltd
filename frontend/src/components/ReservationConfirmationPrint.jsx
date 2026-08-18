@@ -23,7 +23,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
   const isDirect = !confirmationData.bookingType || confirmationData.bookingType.toLowerCase().includes('direct');
 
   // Table computations
-  const baseCurrency = confirmationData.currency || 'LKR';
+  const baseCurrency = (confirmationData.currency && confirmationData.currency !== 'LKR') ? confirmationData.currency : (confirmationData.tableCurrency || 'USD');
   const displayCurrency = forceLkr ? 'LKR' : baseCurrency;
   const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
   const convFactor = (forceLkr && baseCurrency !== 'LKR') ? exchangeRateVal : 1;

@@ -493,8 +493,8 @@ const Reservations = () => {
   const getBookingCurrency = (booking) => {
     if (!booking) return 'USD';
     if (booking.currency && booking.currency !== 'LKR') return booking.currency;
-    if (booking.bookingType && booking.bookingType.toLowerCase().includes('booking.com')) return 'USD';
-    return booking.currency || 'USD';
+    // For all channels (Airbnb, Booking.com, Web, Direct), default past invoices to USD
+    return 'USD';
   };
 
   const getRoomsForBooking = (booking) => {
