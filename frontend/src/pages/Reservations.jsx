@@ -503,7 +503,7 @@ const Reservations = () => {
       return roomNums.map(cleanNum => {
         const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
         return {
-          roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
+          roomType: matchedRoom ? matchedRoom.roomType : (booking.roomType || 'Room'),
           roomNumber: cleanNum,
           price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
         };
@@ -867,11 +867,19 @@ const Reservations = () => {
     setBookingSuccess(false);
 
     try {
+      const tableSum = confirmationData.allocatedRooms 
+        ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0)
+        : (parseFloat(confirmationData.totalPrice) || 0);
+
+      const selCurr = confirmationData.tableCurrency || confirmationData.currency || 'USD';
+
       const payload = {
         ...bookingForm,
-        currency: confirmationData.currency || 'LKR',
+        amount: tableSum,
+        currency: selCurr,
+        tableCurrency: selCurr,
         exchangeRate: confirmationData.exchangeRate || '1.00',
-        unitPrice: confirmationData.unitPrice || '0.00',
+        unitPrice: '0.00',
         roomPrices: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 
           ? JSON.stringify(confirmationData.allocatedRooms) 
           : '',

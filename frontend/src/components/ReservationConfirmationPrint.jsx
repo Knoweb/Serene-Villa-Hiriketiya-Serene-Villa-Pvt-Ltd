@@ -36,7 +36,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
     
     itemizedRows = confirmationData.allocatedRooms.map((item) => {
       const roomTotalAmount = (parseFloat(item.price || 0)) * convFactor;
-      const rateAmount = roomTotalAmount / nights;
+
       
       const amountVal = Math.floor(roomTotalAmount);
       const amountCts = Math.round((roomTotalAmount - amountVal) * 100).toString().padStart(2, '0');
