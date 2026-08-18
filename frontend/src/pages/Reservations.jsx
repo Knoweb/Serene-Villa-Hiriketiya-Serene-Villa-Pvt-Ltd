@@ -530,11 +530,10 @@ const Reservations = () => {
             const cleanNum = rNum.trim();
             const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
             const numRooms = booking.roomNumber.split(',').length;
-            const uPrice = booking.unitPrice || defaultUnitPrice;
             return {
               roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
               roomNumber: cleanNum,
-              price: (parseFloat(uPrice) / numRooms).toFixed(2)
+              price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
             };
           })
         : [],
@@ -586,11 +585,10 @@ const Reservations = () => {
             const cleanNum = rNum.trim();
             const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
             const numRooms = booking.roomNumber.split(',').length;
-            const uPrice = booking.unitPrice || defaultUnitPrice;
             return {
               roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
               roomNumber: cleanNum,
-              price: (parseFloat(uPrice) / numRooms).toFixed(2)
+              price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
             };
           })
         : [],
@@ -641,11 +639,10 @@ const Reservations = () => {
             const cleanNum = rNum.trim();
             const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
             const numRooms = booking.roomNumber.split(',').length;
-            const uPrice = booking.unitPrice || defaultUnitPrice;
             return {
               roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
               roomNumber: cleanNum,
-              price: (parseFloat(uPrice) / numRooms).toFixed(2)
+              price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
             };
           })
         : [],
