@@ -832,6 +832,7 @@ const Reservations = () => {
   };
 
   const handleDownloadDraftBill = () => {
+    setForceLkr(false);
     setShowDraftPreviewModal(true);
   };
 
