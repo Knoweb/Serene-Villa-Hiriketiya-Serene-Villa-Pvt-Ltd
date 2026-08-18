@@ -3820,6 +3820,8 @@ Staff: ${receiptData.generatedBy}`;
             selectedPaymentForReceipt={selectedPaymentForReceipt}
             selectedReg={selectedReg}
             associatedBooking={associatedBooking}
+            payments={advancePayments}
+            forceLkr={forceReceiptLkr}
           />
         )}
         {showConfirmationModal && (
@@ -3829,6 +3831,7 @@ Staff: ${receiptData.generatedBy}`;
             selectedReg={isCreatingNewReservation ? null : selectedReg}
             associatedBooking={isCreatingNewReservation ? null : associatedBooking}
             payments={isCreatingNewReservation ? [] : advancePayments}
+            forceLkr={forceLkr}
           />
         )}
       </div>
