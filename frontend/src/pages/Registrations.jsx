@@ -1958,15 +1958,42 @@ Staff: ${receiptData.generatedBy}`;
                 </div>
               </div>
 
-              {/* Header Information (Guest / Booking Details) */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-4 bg-slate-50/50 px-3 py-2 border border-slate-100 rounded-lg text-[11px] print:bg-transparent print:border-0 print:p-0 print:mb-4">
+              {/* Reservation Details Section (Matching Draft Bill / Print layout) */}
+              <div className="text-[9px] font-extrabold text-emerald-800 uppercase mb-2 tracking-wider">
+                RESERVATION DETAILS
+              </div>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 p-3 border border-slate-200 rounded-lg text-[11px] mb-4 bg-white">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-550 font-bold uppercase tracking-wider text-[8px] w-20 shrink-0">Guest Name:</span>
-                  <span className="font-bold text-slate-850 border-b border-dashed border-slate-305 flex-1 pb-0.5">{selectedReg.guestName}</span>
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Guest Name</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{selectedReg?.guestName || associatedBooking?.guestName || ''}</span>
                 </div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-550 font-bold uppercase tracking-wider text-[8px] w-20 shrink-0">Booking No:</span>
-                  <span className="font-mono font-bold text-slate-850 border-b border-dashed border-slate-305 flex-1 pb-0.5">{associatedBooking.bookingNumber}</span>
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Channel</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.bookingType || 'Direct Booking'}</span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Check - in</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkInDate || associatedBooking?.checkInDate || '').replace(/-/g, '.')}</span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Check - out</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '').replace(/-/g, '.')}</span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Nights</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.nights || 1).padStart(2, '0')} nights</span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Basis</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.boardBasis || 'Bed & Breakfast'}</span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Adults</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.adults || associatedBooking?.adults || 1).padStart(2, '0')}</span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Children</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.children || associatedBooking?.children || 0).padStart(2, '0')}</span>
                 </div>
               </div>
 
