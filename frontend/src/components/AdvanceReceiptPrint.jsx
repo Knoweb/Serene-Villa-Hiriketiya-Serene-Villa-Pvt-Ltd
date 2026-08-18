@@ -139,7 +139,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             </tr>
             <tr style={{ backgroundColor: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
               <th style={{ backgroundColor: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none' }}></th>
-              <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-28" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>{receiptCurrency === 'LKR' ? 'RS.' : receiptCurrency}</th>
+              <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-28" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>{currencyCode === 'LKR' ? 'RS.' : currencyCode}</th>
               <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-12" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>CTS.</th>
             </tr>
           </thead>
