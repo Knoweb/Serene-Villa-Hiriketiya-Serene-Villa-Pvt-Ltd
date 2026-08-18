@@ -282,7 +282,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                     : `${displayCurrency} ${(cardFee / exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   return (
                     <div className="flex justify-between pb-1 border-b border-slate-200">
-                      <span className="text-slate-550 font-semibold">BANK CHARGES (3%):</span>
+                      <span className="text-slate-550 font-semibold">BANK CHARGES:</span>
                       <span className="font-bold text-slate-800">
                         {feeDisplay}
                       </span>
