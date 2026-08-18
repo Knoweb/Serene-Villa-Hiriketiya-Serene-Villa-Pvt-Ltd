@@ -126,29 +126,61 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
         </div>
       </div>
 
-      {/* Guest Details Section (Bordered single row) */}
-      <div className="border border-slate-350 rounded mb-6 p-2 text-[11px] grid grid-cols-4 gap-4">
-        <div>
-          <span className="text-slate-500 font-semibold block text-[8px] uppercase tracking-wider">Guest Name</span>
-          <span className="font-bold text-slate-800 block truncate">{selectedReg.guestName}</span>
-        </div>
-        <div>
-          <span className="text-slate-500 font-semibold block text-[8px] uppercase tracking-wider">Booking Number</span>
-          <span className="font-mono font-bold text-slate-800 block">{associatedBooking.bookingNumber}</span>
-        </div>
-        <div>
-          <span className="text-slate-500 font-semibold block text-[8px] uppercase tracking-wider">Check-in / Check-out</span>
-          <span className="font-bold text-slate-800 block text-[10px]">
-            {formatDate(selectedReg.checkInDate)} to {formatDate(selectedReg.checkOutDate)}
-          </span>
-        </div>
-        <div>
-          <span className="text-slate-500 font-semibold block text-[8px] uppercase tracking-wider">Stay Duration</span>
-          <span className="font-bold text-slate-800 block">
-            {selectedReg.numberOfNights || selectedReg.nights || 0} Nights
-          </span>
-        </div>
-      </div>
+      {/* Reservation Details Section (Matching Draft Bill layout) */}
+      {(() => {
+        const guestName = selectedReg?.guestName || associatedBooking?.guestName || '';
+        const bookingChannel = associatedBooking?.bookingType || 'Direct Booking';
+        const checkInDate = selectedReg?.checkInDate || associatedBooking?.checkInDate || '';
+        const checkOutDate = selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '';
+        const nights = selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.nights || 1;
+        const boardBasis = associatedBooking?.boardBasis || 'Bed & Breakfast';
+        const adults = selectedReg?.adults || associatedBooking?.adults || 1;
+        const children = selectedReg?.children || associatedBooking?.children || 0;
+        const formatDateDots = (dStr) => dStr ? dStr.replace(/-/g, '.') : '';
+
+        return (
+          <>
+            <div style={{ fontSize: '9px', fontWeight: '800', color: '#065f46', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>
+              RESERVATION DETAILS
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 24px', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px', marginBottom: '20px', backgroundColor: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Guest Name</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{guestName}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Channel</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{bookingChannel}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Check - in</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{formatDateDots(checkInDate)}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Check - out</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{formatDateDots(checkOutDate)}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Nights</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{String(nights).padStart(2, '0')} nights</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Basis</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{boardBasis}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Adults</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{String(adults).padStart(2, '0')}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Children</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{String(children).padStart(2, '0')}</span>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Main Table */}
       <div className="mb-6">
