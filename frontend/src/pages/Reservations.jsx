@@ -989,7 +989,7 @@ const Reservations = () => {
       referenceNumber: paymentForm.referenceNumber,
       receiptNumber: paymentForm.referenceNumber,
       remarks: paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0 
-        ? `${paymentForm.remarks || ''} [Card Fee: ${parseFloat(paymentForm.cardFee)}]`.trim() 
+        ? `${paymentForm.remarks || ''} [Bank Charges: ${parseFloat(paymentForm.cardFee)}]`.trim() 
         : paymentForm.remarks,
       createdBy: user.username,
       slipPath: paymentForm.slipPath || '/uploads/dummy_slip.png',
@@ -1108,11 +1108,12 @@ const Reservations = () => {
       const totalAmt = associatedBooking.totalAmount || 0;
       const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
       const remainingBal = Math.max(0, totalAmt - totalPaid);
+      const bCurr = getBookingCurrency(associatedBooking);
       setPaymentForm(prev => ({
         ...prev,
         amount: remainingBal > 0 ? remainingBal.toFixed(2) : '',
-        currencyCode: 'LKR',
-        exchangeRate: 1,
+        currencyCode: bCurr,
+        exchangeRate: bCurr === 'USD' ? 335 : 1,
         paymentMethod: 'Cash',
         cardFee: ''
       }));
@@ -1611,7 +1612,7 @@ const Reservations = () => {
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
                     {isEditingBooking ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-slate-400 font-bold text-xs">LKR</span>
+                        <span className="text-slate-400 font-bold text-xs">{getBookingCurrency(associatedBooking)}</span>
                         <input 
                           type="number"
                           step="any"
@@ -1622,7 +1623,7 @@ const Reservations = () => {
                       </div>
                     ) : (
                       <span className="font-extrabold text-slate-855 text-sm font-mono">
-                        LKR {associatedBooking?.totalAmount ? parseFloat(associatedBooking.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
+                        {getBookingCurrency(associatedBooking)} {associatedBooking?.totalAmount ? parseFloat(associatedBooking.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
                       </span>
                     )}
                   </div>
@@ -1818,12 +1819,12 @@ const Reservations = () => {
                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
                         <div className="flex justify-between font-semibold text-slate-500">
                           <span>Total Booking Amount:</span>
-                          <span className="font-mono text-slate-900">{totalAmt.toLocaleString()} LKR</span>
+                          <span className="font-mono text-slate-900">{getBookingCurrency(associatedBooking)} {totalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </div>
                         <div className="flex justify-between font-bold text-slate-800 border-t border-slate-200/60 pt-2">
                           <span>Remaining Balance:</span>
                           <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                            {Math.max(0, bal).toLocaleString()} LKR
+                            {getBookingCurrency(associatedBooking)} {Math.max(0, bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                         <div className="flex justify-between items-center border-t border-slate-200/60 pt-2">
@@ -2045,7 +2046,7 @@ const Reservations = () => {
                             </div>
                             {paymentForm.paymentMethod === 'Card' && (
                               <div className="col-span-2">
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Card Fee (3%)</label>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">BANK CHARGES (3%)</label>
                                 <input
                                   type="number"
                                   step="any"
@@ -2513,7 +2514,7 @@ Staff: ${receiptData.generatedBy}`;
         const numRooms = roomsList.length || 1;
         const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
         const totalAmount = associatedBooking?.totalAmount || 0;
-        const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Card Fee: ([\d.]+)\]/);
+        const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Bank Charges: ([\d.]+)\]/);
         const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
         
         // Calculate LKR rate and amount details with perfect cent adjustment
@@ -2701,7 +2702,7 @@ Staff: ${receiptData.generatedBy}`;
                         <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
                         {selectedPaymentForReceipt.remarks && (
                           <p className="mt-1 text-[10px] leading-snug">
-                            <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks.replace(/\[Card Fee: [\d.]+\]/g, '').trim()}
+                            <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks.replace(/\[Bank Charges: [\d.]+\]/g, '').trim()}
                           </p>
                         )}
                       </div>
@@ -2743,7 +2744,7 @@ Staff: ${receiptData.generatedBy}`;
 
                       {cardFeeVal > 0 && (
                         <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                          <span className="text-slate-500 font-semibold">Card Fee (3%):</span>
+                          <span className="text-slate-500 font-semibold">BANK CHARGES (3%):</span>
                           <span className="font-bold text-slate-850">LKR {cardFeeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
