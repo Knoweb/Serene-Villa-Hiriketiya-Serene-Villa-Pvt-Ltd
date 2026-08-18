@@ -212,6 +212,23 @@ public class GuestRegistrationService {
                     booking.setTotalAmount(Double.parseDouble((String) amountVal));
                 }
             }
+            if (details.containsKey("currency") && details.get("currency") != null) {
+                booking.setCurrency((String) details.get("currency"));
+            }
+            if (details.containsKey("exchangeRate") && details.get("exchangeRate") != null) {
+                booking.setExchangeRate(String.valueOf(details.get("exchangeRate")));
+            }
+            if (details.containsKey("unitPrice") && details.get("unitPrice") != null) {
+                Object up = details.get("unitPrice");
+                if (up instanceof Number) booking.setUnitPrice(((Number) up).doubleValue());
+                else if (up instanceof String && !((String) up).trim().isEmpty()) booking.setUnitPrice(Double.parseDouble((String) up));
+            }
+            if (details.containsKey("roomPrices") && details.get("roomPrices") != null) {
+                booking.setRoomPrices(String.valueOf(details.get("roomPrices")));
+            }
+            if (details.containsKey("guestName") && details.get("guestName") != null) {
+                booking.setGuestName((String) details.get("guestName"));
+            }
 
             bookingRepository.save(booking);
 

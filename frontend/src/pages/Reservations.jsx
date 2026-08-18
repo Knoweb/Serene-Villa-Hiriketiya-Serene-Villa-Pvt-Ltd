@@ -489,6 +489,29 @@ const Reservations = () => {
     setBookingSuccess(false);
   };
 
+  const getRoomsForBooking = (booking) => {
+    if (!booking) return [];
+    if (booking.roomPrices) {
+      try {
+        const parsed = JSON.parse(booking.roomPrices);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    if (booking.roomNumber) {
+      const roomNums = booking.roomNumber.split(',').map(r => r.trim());
+      const numRooms = roomNums.length;
+      return roomNums.map(cleanNum => {
+        const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
+        return {
+          roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
+          roomNumber: cleanNum,
+          price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
+        };
+      });
+    }
+    return [];
+  };
+
   const handlePrintPDFClick = () => {
     if (!selectedReg) return;
     let booking = getBookingForReg(selectedReg.id);
@@ -525,18 +548,7 @@ const Reservations = () => {
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
-      allocatedRooms: booking.roomNumber 
-        ? booking.roomNumber.split(',').map(rNum => {
-            const cleanNum = rNum.trim();
-            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
-            const numRooms = booking.roomNumber.split(',').length;
-            return {
-              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
-              roomNumber: cleanNum,
-              price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
-            };
-          })
-        : [],
+      allocatedRooms: getRoomsForBooking(booking),
       confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -580,18 +592,7 @@ const Reservations = () => {
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
-      allocatedRooms: booking.roomNumber 
-        ? booking.roomNumber.split(',').map(rNum => {
-            const cleanNum = rNum.trim();
-            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
-            const numRooms = booking.roomNumber.split(',').length;
-            return {
-              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
-              roomNumber: cleanNum,
-              price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
-            };
-          })
-        : [],
+      allocatedRooms: getRoomsForBooking(booking),
       confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -634,18 +635,7 @@ const Reservations = () => {
       totalPrice: (booking.totalAmount || 0).toFixed(2),
       currency: booking.currency || 'LKR',
       exchangeRate: booking.exchangeRate || '1.00',
-      allocatedRooms: booking.roomNumber 
-        ? booking.roomNumber.split(',').map(rNum => {
-            const cleanNum = rNum.trim();
-            const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
-            const numRooms = booking.roomNumber.split(',').length;
-            return {
-              roomType: matchedRoom ? matchedRoom.roomType : booking.roomType,
-              roomNumber: cleanNum,
-              price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
-            };
-          })
-        : [],
+      allocatedRooms: getRoomsForBooking(booking),
       confirmedBy: booking.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -877,12 +867,23 @@ const Reservations = () => {
     setBookingSuccess(false);
 
     try {
+      const payload = {
+        ...bookingForm,
+        currency: confirmationData.currency || 'LKR',
+        exchangeRate: confirmationData.exchangeRate || '1.00',
+        unitPrice: confirmationData.unitPrice || '0.00',
+        roomPrices: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 
+          ? JSON.stringify(confirmationData.allocatedRooms) 
+          : '',
+        guestName: selectedReg ? selectedReg.guestName : ''
+      };
+
       const response = await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(bookingForm)
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) throw new Error('Failed to update booking details');
@@ -1677,18 +1678,7 @@ const Reservations = () => {
                         currency: associatedBooking.currency || 'LKR',
                         tableCurrency: associatedBooking.currency || 'LKR',
                         exchangeRate: associatedBooking.exchangeRate || '1.00',
-                        allocatedRooms: associatedBooking.roomNumber 
-                          ? associatedBooking.roomNumber.split(',').map(rNum => {
-                              const cleanNum = rNum.trim();
-                              const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
-                              const numRooms = associatedBooking.roomNumber.split(',').length;
-                              return {
-                                roomType: matchedRoom ? matchedRoom.roomType : associatedBooking.roomType,
-                                roomNumber: cleanNum,
-                                price: ((associatedBooking.totalAmount || 0) / numRooms).toFixed(2)
-                              };
-                            })
-                          : [],
+                        allocatedRooms: getRoomsForBooking(associatedBooking),
                         confirmedBy: associatedBooking.confirmedBy || 'Muthuni Weerasingha',
                         reservationStatus: 'Confirm Booking',
                         senderName: associatedBooking.senderName || 'Muthuni Weerasingha',
