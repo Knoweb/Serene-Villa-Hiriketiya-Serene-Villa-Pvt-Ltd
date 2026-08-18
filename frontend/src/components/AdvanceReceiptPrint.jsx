@@ -182,10 +182,10 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             <tr style={{ backgroundColor: 'rgba(6, 95, 70, 0.03)', fontWeight: '800', borderTop: '2px solid #065f46', color: '#065f46' }}>
               <td className="px-3 py-2 text-right uppercase text-[8px] tracking-wider font-black" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>Total Value</td>
               <td className="px-3 py-2 text-right font-black font-mono" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                {Math.floor(totalAmount).toLocaleString()}
+                {Math.floor(displayTotalAmount).toLocaleString()}
               </td>
               <td className="px-3 py-2 text-center font-black font-mono">
-                {Math.round((totalAmount - Math.floor(totalAmount)) * 100).toString().padStart(2, '0')}
+                {Math.round((displayTotalAmount - Math.floor(displayTotalAmount)) * 100).toString().padStart(2, '0')}
               </td>
             </tr>
           </tbody>
@@ -210,11 +210,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               ? '* This is the final payment receipt. Account fully settled.'
               : '* Please preserve this receipt for final checkout subtraction.'}
           </div>
-        </div>        {/* Right Column: Numeric breakdown */}
+        </div>
+
+        {/* Right Column: Numeric breakdown */}
         <div className="border border-slate-350 rounded p-3 space-y-2 bg-slate-50/20">
           <div className="flex justify-between pb-1 border-b border-slate-200">
             <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-            <span className="font-bold text-slate-800">LKR {(associatedBooking.totalAmount || 0).toLocaleString()}</span>
+            <span className="font-bold text-slate-800">{displayCurrency} {displayTotalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           
           <div className="flex justify-between pb-1 border-b border-slate-200">
