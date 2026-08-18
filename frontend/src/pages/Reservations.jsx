@@ -3259,31 +3259,6 @@ Staff: ${receiptData.generatedBy}`;
                           </div>
                         )}
 
-                       {confirmationData.roomType && !confirmationData.roomType.includes(',') && ROOM_TEMPLATES[confirmationData.roomType] && (
-                         <div className="col-span-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex gap-4 items-center">
-                           <div className="w-24 h-16 rounded-xl overflow-hidden shrink-0 border border-slate-100 bg-white shadow-xs">
-                             <img 
-                               src={ROOM_TEMPLATES[confirmationData.roomType].image} 
-                               alt={confirmationData.roomType}
-                               className="w-full h-full object-cover"
-                             />
-                           </div>
-                           <div className="space-y-1.5">
-                             <h4 className="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
-                               {confirmationData.roomType}
-                               <span className="text-[10px] text-slate-400 font-normal">({ROOM_TEMPLATES[confirmationData.roomType].occupancy})</span>
-                             </h4>
-                             <div className="flex flex-wrap gap-1">
-                               {ROOM_TEMPLATES[confirmationData.roomType].features.map((feat, idx) => (
-                                 <span key={idx} className="bg-emerald-50 text-emerald-800 text-[9px] px-2 py-0.5 rounded-md font-bold border border-emerald-100/60">
-                                   {feat}
-                                 </span>
-                               ))}
-                             </div>
-                           </div>
-                         </div>
-                       )}
-
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Email</label>
                       <input 
