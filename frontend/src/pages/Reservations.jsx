@@ -490,6 +490,13 @@ const Reservations = () => {
     setBookingSuccess(false);
   };
 
+  const getBookingCurrency = (booking) => {
+    if (!booking) return 'USD';
+    if (booking.currency && booking.currency !== 'LKR') return booking.currency;
+    if (booking.bookingType && booking.bookingType.toLowerCase().includes('booking.com')) return 'USD';
+    return booking.currency || 'USD';
+  };
+
   const getRoomsForBooking = (booking) => {
     if (!booking) return [];
     if (booking.roomPrices) {
@@ -501,12 +508,20 @@ const Reservations = () => {
     if (booking.roomNumber) {
       const roomNums = booking.roomNumber.split(',').map(r => r.trim());
       const numRooms = roomNums.length;
+      const curr = getBookingCurrency(booking);
+      const exRate = parseFloat(booking.exchangeRate || 335) || 335;
+      
+      let total = booking.totalAmount || 0;
+      if (curr === 'USD' && total > 20000 && exRate > 1) {
+        total = total / exRate;
+      }
+
       return roomNums.map(cleanNum => {
         const matchedRoom = rooms.find(room => room.roomNumber === cleanNum);
         return {
           roomType: matchedRoom ? matchedRoom.roomType : (booking.roomType || 'Room'),
           roomNumber: cleanNum,
-          price: ((booking.totalAmount || 0) / numRooms).toFixed(2)
+          price: (total / numRooms).toFixed(2)
         };
       });
     }
