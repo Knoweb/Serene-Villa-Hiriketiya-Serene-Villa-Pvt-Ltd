@@ -18,10 +18,10 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
   const remainingBalance = Math.max(0, (associatedBooking.totalAmount || 0) - totalPaidUpToThis);
 
-  const bCurr = associatedBooking.currency || 'USD';
+  const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : 'USD';
   const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
-  const displayCurrency = forceLkr ? 'LKR' : (bCurr !== 'LKR' ? bCurr : 'USD');
-  const convFactor = (forceLkr && bCurr !== 'LKR') ? exRate : 1;
+  const displayCurrency = forceLkr ? 'LKR' : bCurr;
+  const convFactor = forceLkr ? exRate : 1;
 
   // Split and map room-by-room itemized rows matching Draft Bill
   const roomTypes = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()) : [];
@@ -211,74 +211,84 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               : '* Please preserve this receipt for final checkout subtraction.'}
           </div>
         </div>
-
         {/* Right Column: Numeric breakdown */}
-        <div className="border border-slate-350 rounded p-3 space-y-2 bg-slate-50/20">
-          <div className="flex justify-between pb-1 border-b border-slate-200">
-            <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-            <span className="font-bold text-slate-800">{displayCurrency} {displayTotalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-          </div>
-          
-          <div className="flex justify-between pb-1 border-b border-slate-200">
-            <span className="text-slate-500 font-semibold">This Payment:</span>
-            <span className="font-bold text-slate-900">
-              {selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} {currencyCode}
-            </span>
-          </div>
+        {(() => {
+          const totAmt = forceLkr ? (associatedBooking.totalAmount || 0) * exRate : (associatedBooking.totalAmount || 0);
+          const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+          const paidDisplayAmt = forceLkr 
+            ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
+            : rawPaid;
+          const remBal = Math.max(0, totAmt - paidDisplayAmt);
 
-          {paymentsUpToThis.length > 1 && (
-            <div className="flex justify-between pb-1 border-b border-slate-200 text-slate-500">
-              <span>Total Paid So Far:</span>
-              <span className="font-bold">LKR {totalPaidUpToThis.toLocaleString()}</span>
-            </div>
-          )}
-
-          {(() => {
-            const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Bank Charges: ([\d.]+)\]/);
-            const cardFee = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
-            if (cardFee > 0) {
-              const feeDisplay = forceLkr || displayCurrency === 'LKR'
-                ? `LKR ${cardFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : `${displayCurrency} ${(cardFee / exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-              return (
-                <div className="flex justify-between pb-1 border-b border-slate-200">
-                  <span className="text-slate-550 font-semibold">BANK CHARGES (3%):</span>
-                  <span className="font-bold text-slate-800">
-                    {feeDisplay}
-                  </span>
-                </div>
-              );
-            }
-            return null;
-          })()}
-
-          {!isLkr && (
-            <>
-              <div className="flex justify-between pb-1 border-b border-slate-200 text-[10px]">
-                <span className="text-slate-500">Exchange Rate:</span>
-                <span className="font-medium text-slate-750">{selectedPaymentForReceipt.exchangeRate}</span>
-              </div>
+          return (
+            <div className="border border-slate-350 rounded p-3 space-y-2 bg-slate-50/20">
               <div className="flex justify-between pb-1 border-b border-slate-200">
-                <span className="text-slate-500 font-semibold">Converted Amount:</span>
+                <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
+                <span className="font-bold text-slate-800">{displayCurrency} {totAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              
+              <div className="flex justify-between pb-1 border-b border-slate-200">
+                <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
                 <span className="font-bold text-slate-900">
-                  LKR {paidAmt.toLocaleString()}
+                  {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-            </>
-          )}
 
-          <div className="flex justify-between pt-1 font-bold text-sm border-t border-slate-350">
-            <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
-            <span className="font-bold text-xs text-slate-900">
-              LKR {remainingBalance.toLocaleString()}
-            </span>
-          </div>
-          {isFinalPayment && (
-            <div className="text-center mt-2">
-              <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">✓ FULLY PAID</span>
+              {paymentsUpToThis.length > 1 && (
+                <div className="flex justify-between pb-1 border-b border-slate-200 text-slate-500">
+                  <span>Total Paid So Far:</span>
+                  <span className="font-bold">{displayCurrency} {(totalPaidUpToThis * (forceLkr ? 1 : (1/exRate))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
+
+              {(() => {
+                const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Bank Charges: ([\d.]+)\]/);
+                const cardFee = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
+                if (cardFee > 0) {
+                  const feeDisplay = forceLkr
+                    ? `LKR ${cardFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : `${displayCurrency} ${(cardFee / exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  return (
+                    <div className="flex justify-between pb-1 border-b border-slate-200">
+                      <span className="text-slate-550 font-semibold">BANK CHARGES (3%):</span>
+                      <span className="font-bold text-slate-800">
+                        {feeDisplay}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {!forceLkr && (currencyCode !== 'LKR') && (
+                <>
+                  <div className="flex justify-between pb-1 border-b border-slate-200 text-[10px]">
+                    <span className="text-slate-500">Exchange Rate:</span>
+                    <span className="font-medium text-slate-750">{exRate}</span>
+                  </div>
+                  <div className="flex justify-between pb-1 border-b border-slate-200">
+                    <span className="text-slate-500 font-semibold">Converted Amount:</span>
+                    <span className="font-bold text-slate-900">
+                      LKR {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-between pt-1 font-bold text-sm border-t border-slate-350">
+                <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
+                <span className="font-bold text-xs text-slate-900">
+                  {displayCurrency} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              {isFinalPayment && (
+                <div className="text-center mt-2">
+                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">✓ FULLY PAID</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
       </div>
 
       {/* Signature Lines */}
