@@ -1231,7 +1231,9 @@ const Reservations = () => {
                             {/* Booking Type Badge */}
                             <div>
                               <span className="inline-block px-2 py-0.5 bg-slate-50 rounded text-[9px] text-slate-500 font-bold border border-slate-100/50">
-                                {booking ? (booking.bookingType || 'Direct Booking') : 'Direct Booking'}
+                                {booking && booking.bookingType 
+                                  ? booking.bookingType 
+                                  : (reg.createdBy === 'Public QR Code' || !reg.createdBy ? 'Web / QR Booking' : 'Direct Booking')}
                               </span>
                             </div>
                             {/* Payment Status Badge */}
