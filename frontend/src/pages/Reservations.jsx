@@ -3090,7 +3090,7 @@ Staff: ${receiptData.generatedBy}`;
         const associatedB = getBookingForReg(selectedReg.id);
 
         const handleDownloadAdvancePDF = async () => {
-          const element = document.getElementById('printable-advance-modal-content');
+          const element = advancePrintRef.current;
           if (!element) return;
 
           try {
@@ -3098,8 +3098,13 @@ Staff: ${receiptData.generatedBy}`;
               cacheBust: true,
               pixelRatio: 2,
               backgroundColor: '#ffffff',
-              width: element.offsetWidth,
-              height: element.offsetHeight
+              width: 720,
+              height: element.offsetHeight || 750,
+              style: {
+                width: '720px',
+                margin: '0',
+                transform: 'none'
+              }
             });
 
             const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
@@ -3113,7 +3118,7 @@ Staff: ${receiptData.generatedBy}`;
               const pdfWidth = pdf.internal.pageSize.getWidth();
               const margin = 20;
               const imgWidth = pdfWidth - (margin * 2);
-              const imgHeight = (element.offsetHeight * imgWidth) / element.offsetWidth;
+              const imgHeight = ((element.offsetHeight || 750) * imgWidth) / 720;
 
               pdf.addImage(dataUrl, 'PNG', margin, margin, imgWidth, imgHeight);
               pdf.save(`Advance_Request_${selectedReg?.guestName || 'Guest'}.pdf`);
@@ -3140,29 +3145,18 @@ Staff: ${receiptData.generatedBy}`;
             phone = '94' + phone.substring(1);
           }
 
-          const bookingNo = associatedB?.bookingNumber || confirmationData?.bookingNumber || '';
+          const bookingNo = associatedB?.bookingNumber || confirmationData?.bookingNumber || 'N/A';
+          const curr = advanceFormData.currency || 'USD';
+          const totAmt = parseFloat(advanceFormData.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const advAmt = parseFloat(advanceFormData.advanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const balAmt = Math.max(0, parseFloat(advanceFormData.totalAmount || 0) - parseFloat(advanceFormData.advanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-          const text = `Hello ${advanceFormData.guestName},
+          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank / Company:* Serene Villa\n• *Account Holder:* D.W.C Prasad\n• *Account Number:* 288402130016448\n• *Branch:* Kudawella\n• *Contact Hotline:* 0412255070\n\nPlease send us the payment receipt/confirmation once the transfer is completed.\nThank you for choosing Serene Villa! 🙏`;
 
-Greetings from *Serene Villa - Hiriketiya*! 🌴
+          const url = phone 
+            ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
+            : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
 
-Here are your Advance Payment Request details for Booking *#${bookingNo}*:
-
-🗓 Check-in: ${advanceFormData.checkIn}
-🗓 Check-out: ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)
-💵 Total Amount: ${advanceFormData.currency} ${parseFloat(advanceFormData.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-💳 *Required Advance Amount: ${advanceFormData.currency} ${parseFloat(advanceFormData.advanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}*
-
-🏦 *Bank Transfer Details:*
-• Company Name: Serene Villa
-• Account Holder: D.W.C Prasad
-• Account Number: 288402130016448
-• Branch: Kudawella
-• Contact Hotline: 0412255070
-
-Please share the bank transfer receipt once completed. Thank you! 🙏`;
-
-          const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
           window.open(url, '_blank');
         };
 

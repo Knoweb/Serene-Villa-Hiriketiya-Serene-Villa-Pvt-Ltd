@@ -35,13 +35,16 @@
   .receipt-print-area *,
   .confirmation-print-area,
   .confirmation-print-area *,
+  .advance-request-print-area,
+  .advance-request-print-area *,
   .report-print-area,
   .report-print-area * {
     visibility: visible !important;
   }
 
   .receipt-print-area,
-  .confirmation-print-area {
+  .confirmation-print-area,
+  .advance-request-print-area {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
