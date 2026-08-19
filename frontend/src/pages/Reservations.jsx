@@ -35,7 +35,8 @@ import {
   MessageSquare,
   Trash2,
   PlusCircle,
-  CreditCard
+  CreditCard,
+  Upload
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
