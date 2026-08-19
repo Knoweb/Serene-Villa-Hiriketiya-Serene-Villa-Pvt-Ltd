@@ -3151,7 +3151,7 @@ Staff: ${receiptData.generatedBy}`;
           const advAmt = parseFloat(advanceFormData.advanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           const balAmt = Math.max(0, parseFloat(advanceFormData.totalAmount || 0) - parseFloat(advanceFormData.advanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank / Company:* Serene Villa\n• *Account Holder:* D.W.C Prasad\n• *Account Number:* 288402130016448\n• *Branch:* Kudawella\n• *Contact Hotline:* 0412255070\n\nPlease send us the payment receipt/confirmation once the transfer is completed.\nThank you for choosing Serene Villa! 🙏`;
+          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear Mr / Mrs *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank / Company:* Serene Villa\n• *Account Holder:* D.W.C Prasad\n• *Account Number:* 288402130016448\n• *Branch:* Kudawella\n• *Contact Hotline:* 0412255070\n\nPlease send us the payment receipt/confirmation once the transfer is completed.\nThank you for choosing Serene Villa! 🙏`;
 
           const url = phone 
             ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
@@ -4292,6 +4292,14 @@ Staff: ${receiptData.generatedBy}`;
 
       {/* Print-only layout */}
       <div className="print-only">
+        {showAdvanceModal && (
+          <AdvanceRequestPrint
+            ref={advancePrintRef}
+            advanceData={advanceFormData}
+            selectedReg={selectedReg}
+            associatedBooking={associatedBooking}
+          />
+        )}
         {showReceiptModal && (
           <AdvanceReceiptPrint
             ref={receiptRef}
