@@ -812,7 +812,9 @@ const Reservations = () => {
           roomNumber: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0
             ? confirmationData.allocatedRooms.map(r => r.roomNumber).join(', ')
             : (confirmationData.room || 'Unallocated'),
-          roomType: confirmationData.roomType,
+          roomType: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0
+            ? confirmationData.allocatedRooms.map(r => r.roomType).join(', ')
+            : (confirmationData.roomType || 'Deluxe Room'),
           boardBasis: confirmationData.boardBasis || 'Bed & Breakfast',
           bookingType: mapBookingTypeForBackend(confirmationData.bookingType),
           totalAmount: roomSum,
@@ -1575,12 +1577,10 @@ const Reservations = () => {
                       </select>
                     ) : (
                       <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-2.5 max-w-[70%]">
-                        {associatedBooking && associatedBooking.roomType
+                        {associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber || associatedBooking.roomPrices)
                           ? (() => {
-                              const roomTypesList = associatedBooking.roomType.split(',').map(t => t.trim());
-                              const roomNumbersList = associatedBooking.roomNumber 
-                                ? associatedBooking.roomNumber.split(',').map(r => r.trim())
-                                : [];
+                              const roomTypesList = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()) : [];
+                              const roomNumbersList = associatedBooking.roomNumber ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean) : [];
 
                               let parsedPrices = [];
                               if (associatedBooking.roomPrices) {
@@ -1591,22 +1591,35 @@ const Reservations = () => {
 
                               const curr = associatedBooking.currency || 'USD';
 
-                              return roomTypesList.map((type, index) => {
-                                const roomNum = roomNumbersList[index] || '';
-                                const matchedPriceObj = parsedPrices.find(p => p.roomNumber === roomNum) || parsedPrices[index];
-                                let priceVal = matchedPriceObj ? matchedPriceObj.price : null;
+                              let displayItems = [];
 
-                                if (priceVal === null || priceVal === undefined || priceVal === '') {
-                                  if (roomTypesList.length === 1) {
-                                    priceVal = associatedBooking.totalAmount || associatedBooking.totalPrice;
-                                  }
-                                }
+                              if (parsedPrices && parsedPrices.length > 0) {
+                                displayItems = parsedPrices.map((p, idx) => ({
+                                  roomNum: p.roomNumber || roomNumbersList[idx] || '',
+                                  type: p.roomType || roomTypesList[idx] || roomTypesList[0] || 'Room',
+                                  priceVal: p.price
+                                }));
+                              } else if (roomNumbersList.length > 0) {
+                                displayItems = roomNumbersList.map((rNum, idx) => ({
+                                  roomNum: rNum,
+                                  type: roomTypesList[idx] || roomTypesList[0] || 'Room',
+                                  priceVal: roomNumbersList.length === 1 ? (associatedBooking.totalAmount || associatedBooking.totalPrice) : null
+                                }));
+                              } else if (roomTypesList.length > 0) {
+                                displayItems = roomTypesList.map((t, idx) => ({
+                                  roomNum: '',
+                                  type: t,
+                                  priceVal: roomTypesList.length === 1 ? (associatedBooking.totalAmount || associatedBooking.totalPrice) : null
+                                }));
+                              }
+
+                              return displayItems.map((item, index) => {
+                                const label = item.roomNum ? `Room ${item.roomNum}` : item.type;
+                                const priceVal = item.priceVal;
 
                                 const formattedPrice = priceVal !== null && priceVal !== undefined && priceVal !== '' && !isNaN(parseFloat(priceVal))
                                   ? `${curr} ${parseFloat(priceVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                   : '';
-
-                                const label = roomNum ? `Room ${roomNum}` : type;
 
                                 return (
                                   <div key={index} className="leading-normal">
