@@ -22,6 +22,7 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
   const currency = advanceData.currency || associatedBooking?.currency || 'USD';
   const totalAmount = parseFloat(advanceData.totalAmount || 0);
   const advanceAmount = parseFloat(advanceData.advanceAmount || 0);
+  const balanceAmount = Math.max(0, totalAmount - advanceAmount);
   const bankDetails = advanceData.bankDetails || {
     bankName: "People's Bank",
     companyName: "Serene Villa",
