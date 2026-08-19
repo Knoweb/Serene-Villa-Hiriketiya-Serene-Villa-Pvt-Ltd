@@ -22,7 +22,15 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
   const currency = advanceData.currency || associatedBooking?.currency || 'USD';
   const totalAmount = parseFloat(advanceData.totalAmount || 0);
   const advanceAmount = parseFloat(advanceData.advanceAmount || 0);
-  const balanceAmount = Math.max(0, totalAmount - advanceAmount);
+  const bankDetails = advanceData.bankDetails || {
+    bankName: "People's Bank",
+    companyName: "Serene Villa",
+    accountHolder: "Serene Villa Hiriketiya",
+    accountNumber: "288402130016448",
+    branch: "Kudawella",
+    swiftCode: "PSBKLKLX",
+    hotline: "0412255070"
+  };
 
   return (
     <div 
@@ -126,24 +134,30 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
           </div>
           <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '2px' }}>
-              <span style={{ color: '#64748b', fontWeight: '600' }}>Company Name:</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>Serene Villa</span>
+              <span style={{ color: '#64748b', fontWeight: '600' }}>Bank Name:</span>
+              <span style={{ fontWeight: '700', color: '#0f172a' }}>{bankDetails.bankName}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '2px' }}>
               <span style={{ color: '#64748b', fontWeight: '600' }}>Account Holder:</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>D.W.C Prasad</span>
+              <span style={{ fontWeight: '700', color: '#0f172a' }}>{bankDetails.accountHolder}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '2px' }}>
               <span style={{ color: '#64748b', fontWeight: '600' }}>Account Number:</span>
-              <span style={{ fontWeight: '800', color: '#065f46', fontFamily: 'monospace' }}>288402130016448</span>
+              <span style={{ fontWeight: '800', color: '#065f46', fontFamily: 'monospace' }}>{bankDetails.accountNumber}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '2px' }}>
               <span style={{ color: '#64748b', fontWeight: '600' }}>Branch:</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>Kudawella</span>
+              <span style={{ fontWeight: '700', color: '#0f172a' }}>{bankDetails.branch}</span>
             </div>
+            {bankDetails.swiftCode && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '2px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Swift Code:</span>
+                <span style={{ fontWeight: '700', color: '#0f172a', fontFamily: 'monospace' }}>{bankDetails.swiftCode}</span>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: '#64748b', fontWeight: '600' }}>Hotline / Contact:</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>0412255070</span>
+              <span style={{ fontWeight: '700', color: '#0f172a' }}>{bankDetails.hotline || '0412255070'}</span>
             </div>
           </div>
         </div>

@@ -44,6 +44,57 @@ import AdvanceRequestPrint from '../components/AdvanceRequestPrint';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
+const BANK_ACCOUNTS = {
+  USD_PB: {
+    key: 'USD_PB',
+    label: "USD ($) - People's Bank (Acc: 288402130016448)",
+    currency: 'USD',
+    bankName: "People's Bank",
+    companyName: "Serene Villa",
+    accountHolder: "Serene Villa Hiriketiya",
+    accountNumber: "288402130016448",
+    branch: "Kudawella",
+    swiftCode: "PSBKLKLX",
+    hotline: "0412255070"
+  },
+  LKR_PB_COMPANY: {
+    key: 'LKR_PB_COMPANY',
+    label: "LKR 1 - Serene Villa (pvt)LTD (People's Bank - Acc: 288100190017275)",
+    currency: 'LKR',
+    bankName: "People's Bank",
+    companyName: "Serene Villa (pvt)LTD",
+    accountHolder: "Serene Villa (pvt)LTD",
+    accountNumber: "288100190017275",
+    branch: "Kudawella",
+    swiftCode: "PSBKLKLX",
+    hotline: "0412255070"
+  },
+  LKR_PB_PERSONAL: {
+    key: 'LKR_PB_PERSONAL',
+    label: "LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)",
+    currency: 'LKR',
+    bankName: "People's Bank",
+    companyName: "Serene Villa",
+    accountHolder: "D.W.C Prasad",
+    accountNumber: "288100186167023",
+    branch: "Kudawella",
+    swiftCode: "PSBKLKLX",
+    hotline: "0412255070"
+  },
+  EUR_SB: {
+    key: 'EUR_SB',
+    label: "EUR (€) - Sampath Bank (Acc: 521630000114)",
+    currency: 'EUR',
+    bankName: "Sampath Bank (EURO)",
+    companyName: "Thasara Architectural Design and Construction",
+    accountHolder: "Thasara Architectural Design and Construction",
+    accountNumber: "521630000114",
+    branch: "Dickwella",
+    swiftCode: "BSAMLKLX",
+    hotline: "0412255070"
+  }
+};
+
 const ROOM_TEMPLATES = {
   'Deluxe Room': {
     image: deluxeRoomImg,
@@ -281,10 +332,16 @@ const Reservations = () => {
   const openCreateAdvanceModal = () => {
     if (!selectedReg) return;
     const associatedB = getBookingForReg(selectedReg.id);
-    const baseCurr = associatedB?.currency || confirmationData?.currency || 'USD';
+    const baseCurr = (associatedB?.currency || confirmationData?.currency || 'USD').toUpperCase();
     const exRate = parseFloat(associatedB?.exchangeRate || confirmationData?.exchangeRate) || 335;
     const baseTotal = parseFloat(associatedB?.totalAmount || confirmationData?.totalPrice || 0);
     const baseAdvance = Math.round(baseTotal * 0.5 * 100) / 100;
+
+    let initialBankKey = 'USD_PB';
+    if (baseCurr === 'LKR') initialBankKey = 'LKR_PB_COMPANY';
+    else if (baseCurr === 'EUR') initialBankKey = 'EUR_SB';
+
+    const selectedBank = BANK_ACCOUNTS[initialBankKey];
 
     setAdvanceFormData({
       guestName: selectedReg.guestName || confirmationData?.guestName || '',
@@ -296,17 +353,20 @@ const Reservations = () => {
       baseAdvanceAmount: baseAdvance,
       exchangeRate: exRate,
       baseCurrency: baseCurr,
-      currency: baseCurr,
-      totalAmount: baseTotal,
-      advanceAmount: baseAdvance
+      bankKey: initialBankKey,
+      currency: selectedBank.currency,
+      totalAmount: selectedBank.currency === 'LKR' ? baseTotal * exRate : baseTotal,
+      advanceAmount: selectedBank.currency === 'LKR' ? Math.round(baseAdvance * exRate * 100) / 100 : baseAdvance,
+      bankDetails: selectedBank
     });
     setShowAdvanceModal(true);
   };
 
-  const handleAdvanceCurrencyChange = (newCurrency) => {
-    const prevCurrency = advanceFormData.currency;
-    if (prevCurrency === newCurrency) return;
+  const handleAdvanceBankOptionChange = (newBankKey) => {
+    const selectedBank = BANK_ACCOUNTS[newBankKey];
+    if (!selectedBank) return;
 
+    const newCurrency = selectedBank.currency;
     const exRate = parseFloat(advanceFormData.exchangeRate) || 335;
     const baseTotal = parseFloat(advanceFormData.baseTotalAmount || 0);
     const baseAdvance = parseFloat(advanceFormData.baseAdvanceAmount || 0);
@@ -324,9 +384,11 @@ const Reservations = () => {
 
     setAdvanceFormData({
       ...advanceFormData,
+      bankKey: newBankKey,
       currency: newCurrency,
       totalAmount: Math.round(newTotal * 100) / 100,
-      advanceAmount: Math.round(newAdvance * 100) / 100
+      advanceAmount: Math.round(newAdvance * 100) / 100,
+      bankDetails: selectedBank
     });
   };
 
@@ -3150,8 +3212,9 @@ Staff: ${receiptData.generatedBy}`;
           const totAmt = parseFloat(advanceFormData.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           const advAmt = parseFloat(advanceFormData.advanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           const balAmt = Math.max(0, parseFloat(advanceFormData.totalAmount || 0) - parseFloat(advanceFormData.advanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const bd = advanceFormData.bankDetails || BANK_ACCOUNTS.USD_PB;
 
-          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear Mr / Mrs *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank / Company:* Serene Villa\n• *Account Holder:* D.W.C Prasad\n• *Account Number:* 288402130016448\n• *Branch:* Kudawella\n• *Contact Hotline:* 0412255070\n\nPlease send us the payment receipt/confirmation once the transfer is completed.\nThank you for choosing Serene Villa! 🙏`;
+          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear Mr / Mrs *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank Name:* ${bd.bankName}\n• *Account Holder:* ${bd.accountHolder}\n• *Account Number:* ${bd.accountNumber}\n• *Branch:* ${bd.branch}${bd.swiftCode ? `\n• *Swift Code:* ${bd.swiftCode}` : ''}\n• *Contact Hotline:* ${bd.hotline || '0412255070'}\n\nPlease send us the payment receipt/confirmation once the transfer is completed.\nThank you for choosing Serene Villa! 🙏`;
 
           const url = phone 
             ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
@@ -3257,48 +3320,57 @@ Staff: ${receiptData.generatedBy}`;
 
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        Currency Type
+                        Currency & Bank Account Selection
                       </label>
                       <select 
-                        value={advanceFormData.currency}
-                        onChange={(e) => handleAdvanceCurrencyChange(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                        value={advanceFormData.bankKey || 'USD_PB'}
+                        onChange={(e) => handleAdvanceBankOptionChange(e.target.value)}
+                        className="w-full bg-white border-2 border-emerald-500/80 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600 cursor-pointer"
                       >
-                        <option value="USD">USD ($)</option>
-                        <option value="LKR">LKR (Rs.)</option>
-                        <option value="EUR">EUR (€)</option>
+                        <option value="USD_PB">USD ($) - People's Bank (Acc: 288402130016448)</option>
+                        <option value="LKR_PB_COMPANY">LKR 1 - Serene Villa (pvt)LTD (People's Bank - Acc: 288100190017275)</option>
+                        <option value="LKR_PB_PERSONAL">LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)</option>
+                        <option value="EUR_SB">EUR (€) - Sampath Bank (Acc: 521630000114)</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Bank Details Display */}
-                  <div className="bg-emerald-50/50 border border-emerald-200/60 rounded-xl p-4 shadow-sm space-y-2 text-xs">
-                    <h4 className="text-[11px] font-black text-emerald-900 uppercase tracking-wider border-b border-emerald-200/60 pb-1.5">
-                      Bank Transfer Details
-                    </h4>
-                    <div className="space-y-1 text-slate-700 text-[11px]">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Company Name:</span>
-                        <span className="font-bold text-slate-900">Serene Villa</span>
+                  {(() => {
+                    const bd = advanceFormData.bankDetails || BANK_ACCOUNTS.USD_PB;
+                    return (
+                      <div className="bg-emerald-50/50 border border-emerald-200/60 rounded-xl p-4 shadow-sm space-y-2 text-xs">
+                        <h4 className="text-[11px] font-black text-emerald-900 uppercase tracking-wider border-b border-emerald-200/60 pb-1.5 flex justify-between items-center">
+                          <span>Bank Transfer Details</span>
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">{bd.bankName}</span>
+                        </h4>
+                        <div className="space-y-1 text-slate-700 text-[11px]">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 font-medium">Account Holder:</span>
+                            <span className="font-bold text-slate-900">{bd.accountHolder}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 font-medium">Account Number:</span>
+                            <span className="font-mono font-extrabold text-emerald-800">{bd.accountNumber}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 font-medium">Branch:</span>
+                            <span className="font-bold text-slate-900">{bd.branch}</span>
+                          </div>
+                          {bd.swiftCode && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-500 font-medium">Swift Code:</span>
+                              <span className="font-mono font-bold text-slate-800">{bd.swiftCode}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between border-t border-emerald-100 pt-1">
+                            <span className="text-slate-500 font-medium">Hotline:</span>
+                            <span className="font-bold text-slate-900">{bd.hotline || '0412255070'}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Account Holder:</span>
-                        <span className="font-bold text-slate-900">D.W.C Prasad</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Account Number:</span>
-                        <span className="font-mono font-extrabold text-emerald-800">288402130016448</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Branch:</span>
-                        <span className="font-bold text-slate-900">Kudawella</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Hotline:</span>
-                        <span className="font-bold text-slate-900">0412255070</span>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                 </div>
 
