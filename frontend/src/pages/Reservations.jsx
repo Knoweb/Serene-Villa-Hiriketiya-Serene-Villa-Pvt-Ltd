@@ -33,11 +33,14 @@ import {
   Image as ImageIcon,
   ArrowRight,
   MessageSquare,
-  Trash2
+  Trash2,
+  PlusCircle,
+  CreditCard
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
 import ReservationConfirmationPrint from '../components/ReservationConfirmationPrint';
+import AdvanceRequestPrint from '../components/AdvanceRequestPrint';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -142,6 +145,18 @@ const Reservations = () => {
   }, []);
 
   const confirmationPrintRef = React.useRef(null);
+  const advancePrintRef = React.useRef(null);
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [advanceFormData, setAdvanceFormData] = useState({
+    guestName: '',
+    nights: 1,
+    checkIn: '',
+    checkOut: '',
+    remarks: '',
+    totalAmount: 0,
+    advanceAmount: 0,
+    currency: 'USD'
+  });
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showDirectDownloadContainer, setShowDirectDownloadContainer] = useState(false);
   const [isCreatingNewReservation, setIsCreatingNewReservation] = useState(false);
@@ -263,6 +278,23 @@ const Reservations = () => {
   const autoPrintRef = React.useRef(false);
 
   // Print only the receipt content.
+  const openCreateAdvanceModal = () => {
+    if (!selectedReg) return;
+    const associatedB = getBookingForReg(selectedReg.id);
+    const tot = parseFloat(associatedB?.totalAmount || confirmationData?.totalPrice || 0);
+    setAdvanceFormData({
+      guestName: selectedReg.guestName || confirmationData?.guestName || '',
+      nights: selectedReg.numberOfNights || selectedReg.nights || associatedB?.nights || 1,
+      checkIn: selectedReg.checkInDate || associatedB?.checkInDate || '',
+      checkOut: selectedReg.checkOutDate || associatedB?.checkOutDate || '',
+      remarks: associatedB?.remarks || selectedReg?.remarks || confirmationData?.remarks || '',
+      totalAmount: tot,
+      advanceAmount: Math.round(tot * 0.5 * 100) / 100,
+      currency: associatedB?.currency || confirmationData?.currency || 'USD'
+    });
+    setShowAdvanceModal(true);
+  };
+
   const printReceiptOnly = () => {
     console.log("receiptRef.current:", receiptRef.current);
     console.log("receiptData / invoiceData:", receiptData);
@@ -1785,18 +1817,31 @@ const Reservations = () => {
 
               {/* Save / Edit / Cancel Buttons for Guest Info */}
               {(isFrontOfficer || isAdmin) && (
-                <div className="flex gap-2.5 pt-2">
+                <div className="flex flex-col gap-2 pt-2">
                   {!isEditingBooking ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingBooking(true)}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                    >
-                      <svg className="h-4 w-4 fill-white" viewBox="0 0 24 24">
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                      </svg>
-                      Edit Info
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingBooking(true)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        <svg className="h-4 w-4 fill-white" viewBox="0 0 24 24">
+                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                        Edit Info
+                      </button>
+
+                      {((associatedBooking?.bookingType || '').toLowerCase().includes('direct') || (selectedReg?.channel || '').toLowerCase().includes('direct')) && (
+                        <button
+                          type="button"
+                          onClick={openCreateAdvanceModal}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                          Create Advance
+                        </button>
+                      )}
+                    </>
                   ) : (
                     <>
                       <button
@@ -2999,6 +3044,272 @@ Staff: ${receiptData.generatedBy}`;
                     <ArrowRight size={11} /> Go to Handover
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Create Advance Request Modal */}
+      {showAdvanceModal && selectedReg && (() => {
+        const associatedB = getBookingForReg(selectedReg.id);
+
+        const handleDownloadAdvancePDF = async () => {
+          const element = document.getElementById('printable-advance-modal-content');
+          if (!element) return;
+
+          try {
+            const dataUrl = await toPng(element, {
+              cacheBust: true,
+              pixelRatio: 2,
+              backgroundColor: '#ffffff',
+              width: element.offsetWidth,
+              height: element.offsetHeight
+            });
+
+            const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
+            if (jsPDF) {
+              const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'pt',
+                format: 'a4'
+              });
+
+              const pdfWidth = pdf.internal.pageSize.getWidth();
+              const margin = 20;
+              const imgWidth = pdfWidth - (margin * 2);
+              const imgHeight = (element.offsetHeight * imgWidth) / element.offsetWidth;
+
+              pdf.addImage(dataUrl, 'PNG', margin, margin, imgWidth, imgHeight);
+              pdf.save(`Advance_Request_${selectedReg?.guestName || 'Guest'}.pdf`);
+            } else {
+              const link = document.createElement('a');
+              link.download = `Advance_Request_${selectedReg?.guestName || 'Guest'}.png`;
+              link.href = dataUrl;
+              link.click();
+            }
+          } catch (err) {
+            console.error('Error generating PDF:', err);
+            alert('Failed to generate PDF. Please try again.');
+          }
+        };
+
+        const handlePrintAdvance = () => {
+          window.print();
+        };
+
+        const handleWhatsAppAdvance = () => {
+          let phone = selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || '';
+          phone = phone.replace(/[^0-9]/g, '');
+          if (phone.startsWith('0')) {
+            phone = '94' + phone.substring(1);
+          }
+
+          const bookingNo = associatedB?.bookingNumber || confirmationData?.bookingNumber || '';
+
+          const text = `Hello ${advanceFormData.guestName},
+
+Greetings from *Serene Villa - Hiriketiya*! 🌴
+
+Here are your Advance Payment Request details for Booking *#${bookingNo}*:
+
+🗓 Check-in: ${advanceFormData.checkIn}
+🗓 Check-out: ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)
+💵 Total Amount: ${advanceFormData.currency} ${parseFloat(advanceFormData.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+💳 *Required Advance Amount: ${advanceFormData.currency} ${parseFloat(advanceFormData.advanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}*
+
+🏦 *Bank Transfer Details:*
+• Company Name: Serene Villa
+• Account Holder: D.W.C Prasad
+• Account Number: 288402130016448
+• Branch: Kudawella
+• Contact Hotline: 0412255070
+
+Please share the bank transfer receipt once completed. Thank you! 🙏`;
+
+          const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
+          window.open(url, '_blank');
+        };
+
+        return (
+          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 overflow-y-auto flex justify-center py-6 px-4 no-print">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col my-auto max-h-[92vh]">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-emerald-800 to-emerald-950 text-white px-6 py-4 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="text-base font-black tracking-wide flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-emerald-400" />
+                    CREATE ADVANCE PAYMENT REQUEST
+                  </h3>
+                  <p className="text-[10px] text-emerald-200 font-medium mt-0.5">
+                    Direct Booking - Serene Villa Hiriketiya
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowAdvanceModal(false)} 
+                  className="text-emerald-200 hover:text-white bg-emerald-900/50 hover:bg-emerald-900 p-1.5 rounded-lg transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50/50">
+                {/* Left Column: Controls & Inputs */}
+                <div className="lg:col-span-5 space-y-4">
+                  
+                  {/* Guest Details (Auto-filled) */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-2.5">
+                    <h4 className="text-xs font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                      <User size={14} /> Guest Details (Auto-filled)
+                    </h4>
+                    <div className="text-xs space-y-1.5 text-slate-700">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-semibold">Name:</span>
+                        <span className="font-bold text-slate-900">{advanceFormData.guestName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-semibold">Nights:</span>
+                        <span className="font-bold text-slate-900">{advanceFormData.nights} Nights</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400 font-semibold">Check-in / Check-out:</span>
+                        <span className="font-bold text-slate-900 text-[11px]">{advanceFormData.checkIn} to {advanceFormData.checkOut}</span>
+                      </div>
+                      {advanceFormData.remarks && (
+                        <div className="flex justify-between border-t border-slate-100 pt-1.5">
+                          <span className="text-slate-400 font-semibold">Remarks:</span>
+                          <span className="font-medium text-slate-800 text-[11px] text-right truncate max-w-[180px]">{advanceFormData.remarks}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Payment Details (Editable) */}
+                  <div className="bg-white border border-emerald-100 rounded-xl p-4 shadow-sm space-y-3">
+                    <h4 className="text-xs font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-emerald-50 pb-2">
+                      <CreditCard size={14} /> Payment Details
+                    </h4>
+                    
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Total Amount ({advanceFormData.currency})
+                      </label>
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={`${advanceFormData.currency} ${parseFloat(advanceFormData.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}`}
+                        className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-1">
+                        Advance Amount ({advanceFormData.currency}) *
+                      </label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        value={advanceFormData.advanceAmount}
+                        onChange={(e) => setAdvanceFormData({...advanceFormData, advanceAmount: parseFloat(e.target.value) || 0})}
+                        className="w-full bg-white border-2 border-emerald-500 rounded-lg px-3 py-2 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        placeholder="Enter required advance amount"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Currency Type
+                      </label>
+                      <select 
+                        value={advanceFormData.currency}
+                        onChange={(e) => setAdvanceFormData({...advanceFormData, currency: e.target.value})}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                      >
+                        <option value="USD">USD ($)</option>
+                        <option value="LKR">LKR (Rs.)</option>
+                        <option value="EUR">EUR (€)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Bank Details Display */}
+                  <div className="bg-emerald-50/50 border border-emerald-200/60 rounded-xl p-4 shadow-sm space-y-2 text-xs">
+                    <h4 className="text-[11px] font-black text-emerald-900 uppercase tracking-wider border-b border-emerald-200/60 pb-1.5">
+                      Bank Transfer Details
+                    </h4>
+                    <div className="space-y-1 text-slate-700 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-medium">Company Name:</span>
+                        <span className="font-bold text-slate-900">Serene Villa</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-medium">Account Holder:</span>
+                        <span className="font-bold text-slate-900">D.W.C Prasad</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-medium">Account Number:</span>
+                        <span className="font-mono font-extrabold text-emerald-800">288402130016448</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-medium">Branch:</span>
+                        <span className="font-bold text-slate-900">Kudawella</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-medium">Hotline:</span>
+                        <span className="font-bold text-slate-900">0412255070</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Right Column: Live Printable Document Preview */}
+                <div className="lg:col-span-7 flex flex-col justify-between">
+                  <div id="printable-advance-modal-content" className="bg-white border border-slate-200 rounded-xl p-2 shadow-sm overflow-x-auto">
+                    <AdvanceRequestPrint 
+                      ref={advancePrintRef}
+                      advanceData={advanceFormData}
+                      selectedReg={selectedReg}
+                      associatedBooking={associatedB}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer / Action Buttons */}
+              <div className="bg-slate-100 border-t border-slate-200 px-6 py-3.5 flex justify-end gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanceModal(false)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <X size={14} /> Close
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={handleDownloadAdvancePDF}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-sm flex items-center gap-1.5"
+                >
+                  <Download size={14} /> Download
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrintAdvance}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-sm flex items-center gap-1.5"
+                >
+                  <Printer size={14} /> Print
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleWhatsAppAdvance}
+                  className="px-4.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-sm flex items-center gap-1.5"
+                >
+                  <MessageSquare size={14} /> WhatsApp
+                </button>
               </div>
             </div>
           </div>
