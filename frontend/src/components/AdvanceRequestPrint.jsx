@@ -30,7 +30,7 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
     accountNumber: "288402130016448",
     branch: "Kudawella",
     swiftCode: "PSBKLKLX",
-    hotline: "0412255070"
+    hotline: "+94 70 499 8787"
   };
 
   return (
@@ -158,7 +158,7 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: '#64748b', fontWeight: '600' }}>Hotline / Contact:</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>{bankDetails.hotline || '0412255070'}</span>
+              <span style={{ fontWeight: '700', color: '#0f172a' }}>{bankDetails.hotline || '+94 70 499 8787'}</span>
             </div>
           </div>
         </div>

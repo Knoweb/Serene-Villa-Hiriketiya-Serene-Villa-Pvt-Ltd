@@ -55,7 +55,7 @@ const BANK_ACCOUNTS = {
     accountNumber: "288402130016448",
     branch: "Kudawella",
     swiftCode: "PSBKLKLX",
-    hotline: "0412255070"
+    hotline: "+94 70 499 8787"
   },
   LKR_PB_COMPANY: {
     key: 'LKR_PB_COMPANY',
@@ -67,7 +67,7 @@ const BANK_ACCOUNTS = {
     accountNumber: "288100190017275",
     branch: "Kudawella",
     swiftCode: "PSBKLKLX",
-    hotline: "0412255070"
+    hotline: "+94 70 499 8787"
   },
   LKR_PB_PERSONAL: {
     key: 'LKR_PB_PERSONAL',
@@ -79,7 +79,7 @@ const BANK_ACCOUNTS = {
     accountNumber: "288100186167023",
     branch: "Kudawella",
     swiftCode: "PSBKLKLX",
-    hotline: "0412255070"
+    hotline: "+94 70 499 8787"
   },
   EUR_SB: {
     key: 'EUR_SB',
@@ -91,7 +91,19 @@ const BANK_ACCOUNTS = {
     accountNumber: "521630000114",
     branch: "Dickwella",
     swiftCode: "BSAMLKLX",
-    hotline: "0412255070"
+    hotline: "+94 70 499 8787"
+  },
+  AUD_SB: {
+    key: 'AUD_SB',
+    label: "AUD ($) - Sampath Bank (Acc: 521630000092)",
+    currency: 'AUD',
+    bankName: "Sampath Bank (AUD)",
+    companyName: "Thasara Architectural Design and Construction",
+    accountHolder: "Thasara Architectural Design and Construction",
+    accountNumber: "521630000092",
+    branch: "Dickwella",
+    swiftCode: "BSAMLKLX",
+    hotline: "+94 70 499 8787"
   }
 };
 
@@ -340,6 +352,7 @@ const Reservations = () => {
     let initialBankKey = 'USD_PB';
     if (baseCurr === 'LKR') initialBankKey = 'LKR_PB_COMPANY';
     else if (baseCurr === 'EUR') initialBankKey = 'EUR_SB';
+    else if (baseCurr === 'AUD') initialBankKey = 'AUD_SB';
 
     const selectedBank = BANK_ACCOUNTS[initialBankKey];
 
@@ -377,7 +390,7 @@ const Reservations = () => {
     if (newCurrency === 'LKR') {
       newTotal = baseTotal * exRate;
       newAdvance = baseAdvance * exRate;
-    } else if (newCurrency === 'USD' || newCurrency === 'EUR') {
+    } else if (newCurrency === 'USD' || newCurrency === 'EUR' || newCurrency === 'AUD') {
       newTotal = baseTotal;
       newAdvance = baseAdvance;
     }
@@ -3214,7 +3227,7 @@ Staff: ${receiptData.generatedBy}`;
           const balAmt = Math.max(0, parseFloat(advanceFormData.totalAmount || 0) - parseFloat(advanceFormData.advanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           const bd = advanceFormData.bankDetails || BANK_ACCOUNTS.USD_PB;
 
-          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear Mr / Mrs *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank Name:* ${bd.bankName}\n• *Account Holder:* ${bd.accountHolder}\n• *Account Number:* ${bd.accountNumber}\n• *Branch:* ${bd.branch}${bd.swiftCode ? `\n• *Swift Code:* ${bd.swiftCode}` : ''}\n• *Contact Hotline:* ${bd.hotline || '0412255070'}\n\nPlease send us the payment receipt/confirmation once the transfer is completed.\nThank you for choosing Serene Villa! 🙏`;
+          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear Mr / Mrs *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank Name:* ${bd.bankName}\n• *Account Holder:* ${bd.accountHolder}\n• *Account Number:* ${bd.accountNumber}\n• *Branch:* ${bd.branch}${bd.swiftCode ? `\n• *Swift Code:* ${bd.swiftCode}` : ''}\n• *Contact Hotline:* ${bd.hotline || '+94 70 499 8787'}\n\nPlease send us the payment receipt/confirmation once the transfer is completed.\nThank you for choosing Serene Villa! 🙏`;
 
           const url = phone 
             ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
@@ -3331,6 +3344,7 @@ Staff: ${receiptData.generatedBy}`;
                         <option value="LKR_PB_COMPANY">LKR 1 - Serene Villa (pvt)LTD (People's Bank - Acc: 288100190017275)</option>
                         <option value="LKR_PB_PERSONAL">LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)</option>
                         <option value="EUR_SB">EUR (€) - Sampath Bank (Acc: 521630000114)</option>
+                        <option value="AUD_SB">AUD ($) - Sampath Bank (Acc: 521630000092)</option>
                       </select>
                     </div>
                   </div>
@@ -3365,7 +3379,7 @@ Staff: ${receiptData.generatedBy}`;
                           )}
                           <div className="flex justify-between border-t border-emerald-100 pt-1">
                             <span className="text-slate-500 font-medium">Hotline:</span>
-                            <span className="font-bold text-slate-900">{bd.hotline || '0412255070'}</span>
+                            <span className="font-bold text-slate-900">{bd.hotline || '+94 70 499 8787'}</span>
                           </div>
                         </div>
                       </div>
@@ -3685,6 +3699,7 @@ Staff: ${receiptData.generatedBy}`;
                                   <option value="USD">USD</option>
                                   <option value="LKR">LKR</option>
                                   <option value="EUR">EUR</option>
+                                  <option value="AUD">AUD</option>
                                 </select>
                               </div>
                             </div>
@@ -3818,6 +3833,7 @@ Staff: ${receiptData.generatedBy}`;
                         <option value="USD">USD</option>
                         <option value="LKR">LKR</option>
                         <option value="EUR">EUR</option>
+                        <option value="AUD">AUD</option>
                       </select>
                     </div>
 
@@ -4098,6 +4114,7 @@ Staff: ${receiptData.generatedBy}`;
                              <option value="USD">USD</option>
                              <option value="LKR">LKR</option>
                              <option value="EUR">EUR</option>
+                             <option value="AUD">AUD</option>
                            </select>
                          </div>
                        </div>
@@ -4177,6 +4194,7 @@ Staff: ${receiptData.generatedBy}`;
                        <option value="USD">USD</option>
                        <option value="LKR">LKR</option>
                        <option value="EUR">EUR</option>
+                       <option value="AUD">AUD</option>
                      </select>
                    </div>
 
