@@ -281,18 +281,53 @@ const Reservations = () => {
   const openCreateAdvanceModal = () => {
     if (!selectedReg) return;
     const associatedB = getBookingForReg(selectedReg.id);
-    const tot = parseFloat(associatedB?.totalAmount || confirmationData?.totalPrice || 0);
+    const baseCurr = associatedB?.currency || confirmationData?.currency || 'USD';
+    const exRate = parseFloat(associatedB?.exchangeRate || confirmationData?.exchangeRate) || 335;
+    const baseTotal = parseFloat(associatedB?.totalAmount || confirmationData?.totalPrice || 0);
+    const baseAdvance = Math.round(baseTotal * 0.5 * 100) / 100;
+
     setAdvanceFormData({
       guestName: selectedReg.guestName || confirmationData?.guestName || '',
       nights: selectedReg.numberOfNights || selectedReg.nights || associatedB?.nights || 1,
       checkIn: selectedReg.checkInDate || associatedB?.checkInDate || '',
       checkOut: selectedReg.checkOutDate || associatedB?.checkOutDate || '',
       remarks: associatedB?.remarks || selectedReg?.remarks || confirmationData?.remarks || '',
-      totalAmount: tot,
-      advanceAmount: Math.round(tot * 0.5 * 100) / 100,
-      currency: associatedB?.currency || confirmationData?.currency || 'USD'
+      baseTotalAmount: baseTotal,
+      baseAdvanceAmount: baseAdvance,
+      exchangeRate: exRate,
+      baseCurrency: baseCurr,
+      currency: baseCurr,
+      totalAmount: baseTotal,
+      advanceAmount: baseAdvance
     });
     setShowAdvanceModal(true);
+  };
+
+  const handleAdvanceCurrencyChange = (newCurrency) => {
+    const prevCurrency = advanceFormData.currency;
+    if (prevCurrency === newCurrency) return;
+
+    const exRate = parseFloat(advanceFormData.exchangeRate) || 335;
+    const baseTotal = parseFloat(advanceFormData.baseTotalAmount || 0);
+    const baseAdvance = parseFloat(advanceFormData.baseAdvanceAmount || 0);
+
+    let newTotal = baseTotal;
+    let newAdvance = baseAdvance;
+
+    if (newCurrency === 'LKR') {
+      newTotal = baseTotal * exRate;
+      newAdvance = baseAdvance * exRate;
+    } else if (newCurrency === 'USD' || newCurrency === 'EUR') {
+      newTotal = baseTotal;
+      newAdvance = baseAdvance;
+    }
+
+    setAdvanceFormData({
+      ...advanceFormData,
+      currency: newCurrency,
+      totalAmount: Math.round(newTotal * 100) / 100,
+      advanceAmount: Math.round(newAdvance * 100) / 100
+    });
   };
 
   const printReceiptOnly = () => {
@@ -3198,7 +3233,7 @@ Please share the bank transfer receipt once completed. Thank you! 🙏`;
                       <input 
                         type="text" 
                         readOnly 
-                        value={`${advanceFormData.currency} ${parseFloat(advanceFormData.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}`}
+                        value={`${advanceFormData.currency} ${parseFloat(advanceFormData.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}
                         className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none"
                       />
                     </div>
@@ -3211,7 +3246,16 @@ Please share the bank transfer receipt once completed. Thank you! 🙏`;
                         type="number" 
                         step="0.01" 
                         value={advanceFormData.advanceAmount}
-                        onChange={(e) => setAdvanceFormData({...advanceFormData, advanceAmount: parseFloat(e.target.value) || 0})}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const exRate = parseFloat(advanceFormData.exchangeRate) || 335;
+                          const baseAdv = advanceFormData.currency === 'LKR' ? (val / exRate) : val;
+                          setAdvanceFormData({
+                            ...advanceFormData,
+                            advanceAmount: val,
+                            baseAdvanceAmount: baseAdv
+                          });
+                        }}
                         className="w-full bg-white border-2 border-emerald-500 rounded-lg px-3 py-2 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                         placeholder="Enter required advance amount"
                       />
@@ -3223,7 +3267,7 @@ Please share the bank transfer receipt once completed. Thank you! 🙏`;
                       </label>
                       <select 
                         value={advanceFormData.currency}
-                        onChange={(e) => setAdvanceFormData({...advanceFormData, currency: e.target.value})}
+                        onChange={(e) => handleAdvanceCurrencyChange(e.target.value)}
                         className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
                       >
                         <option value="USD">USD ($)</option>
