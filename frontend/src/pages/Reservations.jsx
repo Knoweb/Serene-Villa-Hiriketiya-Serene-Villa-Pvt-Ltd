@@ -1606,9 +1606,11 @@ const Reservations = () => {
                                   ? `${curr} ${parseFloat(priceVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                   : '';
 
+                                const label = roomNum ? `Room ${roomNum}` : type;
+
                                 return (
                                   <div key={index} className="leading-normal">
-                                    {type} {roomNum ? `(Room ${roomNum})` : ''} {formattedPrice ? `- ${formattedPrice}` : ''}
+                                    {label}{formattedPrice ? ` - ${formattedPrice}` : ''}
                                   </div>
                                 );
                               });
