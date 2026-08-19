@@ -1194,9 +1194,17 @@ const Reservations = () => {
 
     const convertedLkr = actualAmount * actualExchangeRate;
     const totalBookingAmount = booking.totalAmount || 0;
+    const bookingExRate = parseFloat(booking.exchangeRate) || (actualCurrency === 'LKR' ? 1 : actualExchangeRate);
+    const bookingCurrency = (booking.currency || 'USD').toUpperCase();
+    const totalBookingAmountLkr = bookingCurrency === 'LKR' 
+      ? totalBookingAmount 
+      : (totalBookingAmount * bookingExRate);
+
     const totalPaidSoFar = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
     const newTotal = totalPaidSoFar + convertedLkr;
-    const isFull = tab === 'FULL' || newTotal >= totalBookingAmount;
+    
+    // isFull is true ONLY IF explicitly submitted as FULL OR total paid in LKR meets/exceeds total booking amount in LKR
+    const isFull = tab === 'FULL' || (totalBookingAmountLkr > 0 && newTotal >= (totalBookingAmountLkr - 10));
 
     const payload = {
       bookingId: booking.id,
