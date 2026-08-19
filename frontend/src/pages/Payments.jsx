@@ -159,7 +159,6 @@ const Payments = () => {
                 <option value="USD">USD (US Dollar)</option>
                 <option value="EUR">EUR (Euro)</option>
                 <option value="AUD">AUD (Australian Dollar)</option>
-                <option value="GBP">GBP (British Pound)</option>
               </select>
             </div>
             <div>

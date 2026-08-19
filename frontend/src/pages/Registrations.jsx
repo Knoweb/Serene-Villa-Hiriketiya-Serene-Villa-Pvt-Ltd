@@ -536,7 +536,7 @@ const Registrations = () => {
     let rate = 1;
     if (curr === 'USD') rate = 300;
     else if (curr === 'EUR') rate = 325;
-    else if (curr === 'GBP') rate = 385;
+    else if (curr === 'AUD') rate = 220;
     setPaymentForm(prev => ({ ...prev, currencyCode: curr, exchangeRate: rate }));
   };
 
@@ -1501,7 +1501,7 @@ const Registrations = () => {
                                 <option value="LKR">LKR</option>
                                 <option value="USD">USD</option>
                                 <option value="EUR">EUR</option>
-                                <option value="GBP">GBP</option>
+                                <option value="AUD">AUD</option>
                               </select>
                             </div>
                             <div>
