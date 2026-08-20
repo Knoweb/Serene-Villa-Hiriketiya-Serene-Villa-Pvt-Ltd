@@ -23,6 +23,7 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
   const totalAmount = parseFloat(advanceData.totalAmount || 0);
   const advanceAmount = parseFloat(advanceData.advanceAmount || 0);
   const balanceAmount = Math.max(0, totalAmount - advanceAmount);
+  const exRate = parseFloat(advanceData.exchangeRate || associatedBooking?.exchangeRate || 1) || 1;
   const bankDetails = advanceData.bankDetails || {
     bankName: "People's Bank",
     companyName: "Serene Villa",
@@ -176,11 +177,11 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px', fontSize: '11px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Exchange Rate:</span>
-                <span style={{ fontWeight: '700', color: '#1e293b' }}>{exchangeRate}</span>
+                <span style={{ fontWeight: '700', color: '#1e293b' }}>{exRate}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px', fontSize: '11px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Converted Amount:</span>
-                <span style={{ fontWeight: '700', color: '#1e293b' }}>LKR {(totalAmount * (parseFloat(exchangeRate) || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span style={{ fontWeight: '700', color: '#1e293b' }}>LKR {(totalAmount * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </>
           )}
