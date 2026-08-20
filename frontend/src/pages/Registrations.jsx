@@ -77,6 +77,7 @@ const Registrations = () => {
   };
 
   const receiptRef = React.useRef(null);
+  const [forceReceiptLkr, setForceReceiptLkr] = useState(false);
 
   // State
   const [registrations, setRegistrations] = useState([]);
@@ -2217,11 +2218,30 @@ Serene Villa Hiriketiya`;
                 </button>
                 <button
                   type="button"
-                  onClick={handlePrintReceipt}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-1.5 px-4 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer"
+                  onClick={() => {
+                    setForceReceiptLkr(true);
+                    setTimeout(() => {
+                      window.print();
+                    }, 150);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
                 >
-                  <Printer size={11} /> Print
+                  <Printer size={11} /> Print in LKR
                 </button>
+                {bCurr !== 'LKR' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForceReceiptLkr(false);
+                      setTimeout(() => {
+                        window.print();
+                      }, 150);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
+                  >
+                    <Printer size={11} /> Print in {bCurr}
+                  </button>
+                )}
                 {isFinalPayment && (
                   <button
                     type="button"
@@ -2250,6 +2270,7 @@ Serene Villa Hiriketiya`;
             selectedReg={selectedReg}
             associatedBooking={associatedBooking}
             payments={advancePayments}
+            forceLkr={forceReceiptLkr}
           />
         )}
       </div>

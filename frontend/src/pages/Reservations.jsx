@@ -3436,18 +3436,20 @@ Serene Villa Hiriketiya`;
                 >
                   <Printer size={11} /> Print in LKR
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForceReceiptLkr(false);
-                    setTimeout(() => {
-                      window.print();
-                    }, 150);
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
-                >
-                  <Printer size={11} /> Print in USD
-                </button>
+                {bCurr !== 'LKR' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForceReceiptLkr(false);
+                      setTimeout(() => {
+                        window.print();
+                      }, 150);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
+                  >
+                    <Printer size={11} /> Print in {bCurr}
+                  </button>
+                )}
                 {isFinalPayment && (
                   <button
                     type="button"
@@ -4673,24 +4675,38 @@ Serene Villa Hiriketiya`;
             </div>
             
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                onClick={() => {
-                  setForceLkr(true);
-                  setTimeout(() => {
-                    window.print();
-                    setForceLkr(false);
-                  }, 200);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-blue-500/10 text-xs"
-              >
-                <Printer size={13} /> Print in LKR
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10 text-xs"
-              >
-                <Printer size={13} /> Print
-              </button>
+              {(() => {
+                const draftBookingCurr = isCreatingNewReservation ? (confirmationData.currency || 'USD') : ((associatedBooking?.currency && associatedBooking?.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking?.tableCurrency || 'USD'));
+                return (
+                  <>
+                    <button
+                      onClick={() => {
+                        setForceLkr(true);
+                        setTimeout(() => {
+                          window.print();
+                          setForceLkr(false);
+                        }, 200);
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-blue-500/10 text-xs"
+                    >
+                      <Printer size={13} /> Print in LKR
+                    </button>
+                    {draftBookingCurr !== 'LKR' && (
+                      <button
+                        onClick={() => {
+                          setForceLkr(false);
+                          setTimeout(() => {
+                            window.print();
+                          }, 150);
+                        }}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10 text-xs"
+                      >
+                        <Printer size={13} /> Print in {draftBookingCurr}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
               <button
                 onClick={() => setShowDraftPreviewModal(false)}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer transition text-xs"
