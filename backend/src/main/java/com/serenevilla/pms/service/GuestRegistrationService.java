@@ -284,11 +284,30 @@ public class GuestRegistrationService {
     public Optional<Map<String, Object>> findReservationForPublicCheckIn(String bookingNumber, String passportNumber) {
         if (bookingNumber != null && !bookingNumber.trim().isEmpty()) {
             String trimmedNum = bookingNumber.trim();
+            
+            // 1. Try exact case-insensitive match first (e.g. D-4562358 or W-4562358)
             Optional<Booking> bookingOpt = bookingRepository.findByBookingNumber(trimmedNum);
             if (bookingOpt.isEmpty()) {
                 bookingOpt = bookingRepository.findAll().stream()
                     .filter(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(trimmedNum))
                     .findFirst();
+            }
+
+            // 2. Smart fallback: If exact prefix didn't match, search by numeric part (e.g. 4562358)
+            if (bookingOpt.isEmpty()) {
+                String numericPart = trimmedNum.replaceAll("^[A-Za-z]+-?", "").trim();
+                if (!numericPart.isEmpty()) {
+                    bookingOpt = bookingRepository.findAll().stream()
+                        .filter(b -> {
+                            if (b.getBookingNumber() == null) return false;
+                            String bNum = b.getBookingNumber();
+                            String bNumeric = bNum.replaceAll("^[A-Za-z]+-?", "").trim();
+                            return bNum.equalsIgnoreCase(trimmedNum) 
+                                || bNum.endsWith(numericPart) 
+                                || bNumeric.equalsIgnoreCase(numericPart);
+                        })
+                        .findFirst();
+                }
             }
 
             if (bookingOpt.isPresent()) {

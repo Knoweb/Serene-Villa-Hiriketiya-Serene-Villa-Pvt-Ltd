@@ -866,8 +866,31 @@ Serene Villa Hiriketiya`;
                       placeholder="Enter Number (e.g. 789452)"
                       value={searchBookingNumber}
                       onChange={(e) => {
-                        const raw = e.target.value;
-                        const prefix = bookingPrefixes[selectedBookingType] || 'D-';
+                        let raw = e.target.value;
+                        const upper = raw.trim().toUpperCase();
+                        
+                        // Auto-switch prefix if user types or pastes full booking number (e.g., W-4562358, B-123456)
+                        if (upper.startsWith('W-')) {
+                          setSelectedBookingType('Web Booking');
+                          raw = raw.substring(2);
+                        } else if (upper.startsWith('A-')) {
+                          setSelectedBookingType('Agoda Booking');
+                          raw = raw.substring(2);
+                        } else if (upper.startsWith('B-')) {
+                          setSelectedBookingType('Booking.com Booking');
+                          raw = raw.substring(2);
+                        } else if (upper.startsWith('D-')) {
+                          setSelectedBookingType('Direct Booking');
+                          raw = raw.substring(2);
+                        }
+
+                        const currentType = upper.startsWith('W-') ? 'Web Booking'
+                          : upper.startsWith('A-') ? 'Agoda Booking'
+                          : upper.startsWith('B-') ? 'Booking.com Booking'
+                          : upper.startsWith('D-') ? 'Direct Booking'
+                          : selectedBookingType;
+
+                        const prefix = bookingPrefixes[currentType] || 'D-';
                         let cleaned = raw;
                         if (cleaned.toUpperCase().startsWith(prefix.toUpperCase())) {
                           cleaned = cleaned.substring(prefix.length);
