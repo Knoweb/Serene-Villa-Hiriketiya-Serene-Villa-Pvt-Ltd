@@ -1818,23 +1818,35 @@ const Registrations = () => {
           const paidAmtLkr = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
           const paidAmtOrig = selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || paidAmtLkr;
 
-          const balanceDisplay = bCurr === 'LKR'
-            ? `${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`
-            : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR)`;
+          const amountPaidStr = isLkr
+            ? `LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : `${(parseFloat(paidAmtOrig) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode} (LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
 
-          const text = `*${receiptTitle.toUpperCase()}*
-Receipt No: ${receiptData.receiptNumber}
-Date: ${new Date(receiptData.generatedAt).toLocaleDateString()}
-Guest Name: ${selectedReg.guestName}
-Booking No: ${associatedBooking.bookingNumber}
-Room Type: ${associatedBooking.roomType}
-Check-in: ${selectedReg.checkInDate}
-Check-out: ${selectedReg.checkOutDate}
-Nights: ${selectedReg.numberOfNights || selectedReg.nights}
-Method: ${selectedPaymentForReceipt.paymentMethod}
-Amount: ${paidAmtOrig} ${currencyCode}
-${!isLkr ? `Exchange Rate: ${exRate}\nConverted: ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR\n` : ''}Balance: ${balanceDisplay}
-Staff: ${receiptData.generatedBy || 'Serene Villa Staff'}`;
+          const balanceStr = bCurr === 'LKR'
+            ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+
+          const nightsCount = selectedReg.numberOfNights || selectedReg.nights || 1;
+
+          const text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴
+
+Dear *${selectedReg.guestName || 'Guest'}*,
+
+Thank you for your payment! Here is your official payment receipt:
+
+📄 *Receipt No:* ${receiptData.receiptNumber}
+🔖 *Booking Ref:* ${associatedBooking.bookingNumber}
+🗓 *Check-in - Check-out:* ${selectedReg.checkInDate} to ${selectedReg.checkOutDate} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'})
+
+💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}
+💵 *Amount Paid:* ${amountPaidStr}
+💰 *Remaining Balance:* ${balanceStr}
+
+We look forward to welcoming you to Serene Villa! 😊
+
+Best regards,
+*Reservation Department*
+Serene Villa Hiriketiya`;
 
           const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
           window.open(url, '_blank');
