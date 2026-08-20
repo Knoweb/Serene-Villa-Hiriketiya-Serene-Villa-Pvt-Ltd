@@ -384,22 +384,25 @@ const GuestRegistration = () => {
     const totalBookingAmountLkr = bCurr === 'LKR' ? (associatedBookingData.totalAmount || 0) : ((associatedBookingData.totalAmount || 0) * exRate);
     
     const paidAmtLkr = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
-    const remainingBalLkr = Math.max(0, totalBookingAmountLkr - paidAmtLkr);
-    const remainingBalInBookingCurr = bCurr === 'LKR' ? remainingBalLkr : (remainingBalLkr / exRate);
-
     const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
     const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
+    
+    const remainingBalLkr = isFinalPayment ? 0 : Math.max(0, totalBookingAmountLkr - paidAmtLkr);
+    const remainingBalInBookingCurr = isFinalPayment ? 0 : (bCurr === 'LKR' ? remainingBalLkr : (remainingBalLkr / exRate));
+
     const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
     const isLkr = currencyCode === 'LKR';
     const paidAmtOrig = selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || paidAmtLkr;
 
     const amountPaidStr = isLkr
       ? `LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : `${(parseFloat(paidAmtOrig) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode} (LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+      : `${currencyCode} ${(parseFloat(paidAmtOrig) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
 
-    const balanceStr = bCurr === 'LKR'
-      ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+    const balanceStr = isFinalPayment
+      ? (bCurr === 'LKR' ? 'LKR 0.00 (Fully Settled)' : `${bCurr} 0.00 (LKR 0.00) (Fully Settled)`)
+      : (bCurr === 'LKR'
+        ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
 
     const text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴
 

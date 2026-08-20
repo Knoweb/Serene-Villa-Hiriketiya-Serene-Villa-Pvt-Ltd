@@ -2938,8 +2938,8 @@ const Reservations = () => {
             ? paymentsList.filter(p => p.id <= selectedPaymentForReceipt.id)
             : [selectedPaymentForReceipt];
           const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-          const remainingBalLkr = Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
-          const remainingBalInBookingCurr = bCurr === 'LKR' ? remainingBalLkr : (remainingBalLkr / exRate);
+          const remainingBalLkr = isFinalPayment ? 0 : Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
+          const remainingBalInBookingCurr = isFinalPayment ? 0 : (bCurr === 'LKR' ? remainingBalLkr : (remainingBalLkr / exRate));
 
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           const isLkr = currencyCode === 'LKR';
@@ -2948,11 +2948,13 @@ const Reservations = () => {
 
           const amountPaidStr = isLkr
             ? `LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            : `${(parseFloat(paidAmtOrig) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode} (LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+            : `${currencyCode} ${(parseFloat(paidAmtOrig) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
 
-          const balanceStr = bCurr === 'LKR'
-            ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+          const balanceStr = isFinalPayment
+            ? (bCurr === 'LKR' ? 'LKR 0.00 (Fully Settled)' : `${bCurr} 0.00 (LKR 0.00) (Fully Settled)`)
+            : (bCurr === 'LKR'
+              ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
 
           const nightsCount = selectedReg.numberOfNights || selectedReg.nights || 1;
 
