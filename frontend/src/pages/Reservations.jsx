@@ -1344,11 +1344,18 @@ const Reservations = () => {
   // Auto-populate remaining balance into paymentForm when associatedBooking or payments change
   useEffect(() => {
     if (associatedBooking) {
-      const totalAmt = associatedBooking.totalAmount || 0;
-      const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-      const remainingBal = Math.max(0, totalAmt - totalPaid);
       const bCurr = getBookingCurrency(associatedBooking);
-      const savedRate = parseFloat(associatedBooking.exchangeRate) || (bCurr === 'USD' ? 335 : 1);
+      const totalAmt = parseFloat(associatedBooking.totalAmount || 0);
+      const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
+        const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
+        const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+        if (pCurr === bCurr) return sum + pAmt;
+        const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+        const pExRate = parseFloat(p.exchangeRate) || 1;
+        return sum + (pExRate > 0 ? (pLkr / pExRate) : pAmt);
+      }, 0);
+      const remainingBal = Math.max(0, totalAmt - totalPaidInBCurr);
+      const savedRate = parseFloat(associatedBooking.exchangeRate) || (bCurr === 'USD' ? 335 : bCurr === 'EUR' ? 360 : bCurr === 'AUD' ? 220 : 1);
       setPaymentForm(prev => ({
         ...prev,
         amount: remainingBal > 0 ? remainingBal.toFixed(2) : '',
@@ -2098,22 +2105,31 @@ const Reservations = () => {
 
                   {/* Payment Summary Card */}
                   {(() => {
-                    const totalAmt = associatedBooking.totalAmount || 0;
-                    const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-                    const bal = totalAmt - totalPaid;
+                    const bCurr = getBookingCurrency(associatedBooking);
+                    const totalAmt = parseFloat(associatedBooking.totalAmount || 0);
+                    const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
+                      const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
+                      const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+                      if (pCurr === bCurr) return sum + pAmt;
+                      const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                      const pExRate = parseFloat(p.exchangeRate) || 1;
+                      return sum + (pExRate > 0 ? (pLkr / pExRate) : pAmt);
+                    }, 0);
+                    const bal = Math.max(0, totalAmt - totalPaidInBCurr);
+                    const isFullyPaid = totalAmt > 0 && bal <= 0.01;
                     let pStatus = 'Unpaid';
-                    if (totalPaid >= totalAmt && totalAmt > 0) pStatus = 'Paid';
-                    else if (totalPaid > 0) pStatus = 'Partially Paid';
+                    if (isFullyPaid) pStatus = 'Paid';
+                    else if (totalPaidInBCurr > 0) pStatus = 'Partially Paid';
                     return (
                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
                         <div className="flex justify-between font-semibold text-slate-500">
                           <span>Total Booking Amount:</span>
-                          <span className="font-mono text-slate-900">{getBookingCurrency(associatedBooking)} {totalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          <span className="font-mono text-slate-900">{bCurr} {totalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </div>
                         <div className="flex justify-between font-bold text-slate-800 border-t border-slate-200/60 pt-2">
                           <span>Remaining Balance:</span>
-                          <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                            {getBookingCurrency(associatedBooking)} {Math.max(0, bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          <span className={`font-mono ${bal > 0.01 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {bCurr} {bal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                         <div className="flex justify-between items-center border-t border-slate-200/60 pt-2">
@@ -2164,10 +2180,18 @@ const Reservations = () => {
 
                   {/* Single Unified Payment Form */}
                   {(() => {
-                    const totalAmt = associatedBooking.totalAmount || 0;
-                    const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-                    const remainingBal = Math.max(0, totalAmt - totalPaid);
-                    const isFullyPaid = remainingBal <= 0;
+                    const bCurr = getBookingCurrency(associatedBooking);
+                    const totalAmt = parseFloat(associatedBooking.totalAmount || 0);
+                    const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
+                      const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
+                      const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+                      if (pCurr === bCurr) return sum + pAmt;
+                      const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                      const pExRate = parseFloat(p.exchangeRate) || 1;
+                      return sum + (pExRate > 0 ? (pLkr / pExRate) : pAmt);
+                    }, 0);
+                    const remainingBal = Math.max(0, totalAmt - totalPaidInBCurr);
+                    const isFullyPaid = totalAmt > 0 && remainingBal <= 0.01;
 
                     if (isFullyPaid) return (
                       <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700 font-bold">
