@@ -4660,7 +4660,7 @@ Serene Villa Hiriketiya`;
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl bg-slate-50 p-6 flex justify-center no-print">
+            <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl bg-slate-50 p-6 flex justify-center">
               <div className="bg-white shadow-sm border border-slate-150 rounded-lg p-2 max-w-[760px] w-full">
                 <ReservationConfirmationPrint
                   confirmationData={confirmationData}
