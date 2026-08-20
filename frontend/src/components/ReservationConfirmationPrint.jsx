@@ -217,14 +217,14 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       {/* Payment Reference & Breakdown Box */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '16px', fontSize: '11px' }}>
         {/* Left Column: Reference */}
-        <div style={{ border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '10px', color: '#64748b', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ border: '1px solid #cbd5e1', borderRadius: '4px', padding: '12px', color: '#64748b', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ fontWeight: '800', fontSize: '8px', textTransform: 'uppercase', tracking: '0.05em', margin: '0 0 2px 0', color: '#94a3b8' }}>Payment Reference</p>
+            <p style={{ fontWeight: '800', fontSize: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 2px 0', color: '#94a3b8' }}>Payment Reference</p>
             <p style={{ fontFamily: 'monospace', color: '#334155', fontWeight: '700', margin: '0' }}>
               {payments.map(p => p.referenceNumber).filter(Boolean).join(', ') || 'N/A'}
             </p>
           </div>
-          <div style={{ fontSize: '9px', color: '#64748b', marginTop: '8px' }}>
+          <div style={{ fontSize: '9px', color: '#64748b', marginTop: '8px', fontStyle: 'italic' }}>
             {isFullyPaid 
               ? '* This reservation is fully settled.' 
               : isPartiallyPaid 
@@ -234,35 +234,35 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
         </div>
 
         {/* Right Column: Calculations */}
-        <div style={{ border: '1px solid rgba(6, 95, 70, 0.2)', borderRadius: '8px', padding: '12px', backgroundColor: 'rgba(6, 95, 70, 0.02)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
+        <div style={{ border: '1.5px solid #0f172a', borderRadius: '4px', padding: '12px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px' }}>
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Booking Amount:</span>
             <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           {displayCurrency === 'LKR' && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px' }}>
               <span style={{ color: '#64748b', fontWeight: '600' }}>Currency Rate:</span>
               <span style={{ fontWeight: '700', color: '#1e293b' }}>{exchangeRateVal}</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px' }}>
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Paid So Far:</span>
             <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {totalPaidConverted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px' }}>
-            <span style={{ color: '#64748b', fontWeight: '600' }}>Remaining Balance:</span>
-            <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1.5px solid #0f172a', paddingTop: '4px', paddingBottom: '2px' }}>
+            <span style={{ color: '#0f172a', fontWeight: '800' }}>Remaining Balance:</span>
+            <span style={{ fontWeight: '800', color: '#0f172a' }}>{displayCurrency} {remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           {(isFullyPaid || isPartiallyPaid) && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
               <span style={{
                 display: 'inline-block',
-                padding: '2px 8px',
+                padding: '2px 10px',
                 fontSize: '9px',
                 fontWeight: '800',
-                color: isFullyPaid ? '#1d4ed8' : '#b45309',
+                color: isFullyPaid ? '#1e40af' : '#92400e',
                 backgroundColor: isFullyPaid ? '#dbeafe' : '#fef3c7',
-                borderRadius: '4px',
+                borderRadius: '9999px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px'
               }}>
