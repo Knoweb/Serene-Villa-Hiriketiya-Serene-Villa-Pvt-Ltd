@@ -4,11 +4,13 @@ import logoImg from '../assets/logo.jpeg';
 const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking, payments = [], forceLkr = false }, ref) => {
   if (!receiptData || !selectedPaymentForReceipt || !selectedReg || !associatedBooking) return null;
 
-  const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
-  const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
-  const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
-  const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
-  const isLkr = currencyCode === 'LKR';
+  const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : 'USD';
+  const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
+  const displayCurrency = forceLkr ? 'LKR' : bCurr;
+  const convFactor = forceLkr ? exRate : 1;
+
+  const totalBookingAmount = associatedBooking.totalAmount || 0;
+  const totalBookingAmountLkr = bCurr === 'LKR' ? totalBookingAmount : (totalBookingAmount * exRate);
 
   // Calculate correct total paid up to this payment to find the correct balance
   const paymentsList = payments && payments.length > 0 ? payments : [];
@@ -16,12 +18,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
     ? paymentsList.filter(p => p.id <= selectedPaymentForReceipt.id)
     : [selectedPaymentForReceipt];
   const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-  const remainingBalance = Math.max(0, (associatedBooking.totalAmount || 0) - totalPaidUpToThis);
+  const remainingBalLkr = Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
 
-  const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : 'USD';
-  const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
-  const displayCurrency = forceLkr ? 'LKR' : bCurr;
-  const convFactor = forceLkr ? exRate : 1;
+  const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' && remainingBalLkr <= 10;
+  const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
+  const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
+  const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
+  const isLkr = currencyCode === 'LKR';
 
   // Split and map room-by-room itemized rows matching Draft Bill
   const roomTypes = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()) : [];
@@ -108,9 +111,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           <h1 className="text-lg font-black tracking-wide uppercase text-emerald-800">
             {receiptTitle}
           </h1>
-          {isFinalPayment && (
+          {isFinalPayment ? (
             <span className="inline-block bg-blue-100 text-blue-800 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
               ✓ Fully Settled
+            </span>
+          ) : (
+            <span className="inline-block bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+              ✓ Advance Payment Received
             </span>
           )}
           <div className="inline-block border border-slate-300 rounded p-2 text-[10px] text-left space-y-1">

@@ -1248,7 +1248,7 @@ const Reservations = () => {
 
       // Determine new payment status
       let newPaymentStatus = 'Unpaid';
-      if (isFull || newTotal >= totalBookingAmount) newPaymentStatus = 'Paid';
+      if (isFull) newPaymentStatus = 'Paid';
       else if (newTotal > 0) newPaymentStatus = 'Paid Advance';
 
       await fetch(`${API_BASE}/bookings/${booking.id}/payment-status?paymentStatus=${newPaymentStatus}`, {
