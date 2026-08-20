@@ -1802,14 +1802,26 @@ const Registrations = () => {
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
         const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
 
-        // Calculate total paid up to this payment
-        const paymentsUpToThis = getVisiblePayments(advancePayments)
-          .filter(p => p.id <= selectedPaymentForReceipt.id);
-        const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-        const remainingBalance = Math.max(0, (associatedBooking.totalAmount || 0) - totalPaidUpToThis);
-
         const handleWhatsAppShare = () => {
-          const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
+          const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
+          const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
+          const totalBookingAmountLkr = bCurr === 'LKR' ? (associatedBooking.totalAmount || 0) : ((associatedBooking.totalAmount || 0) * exRate);
+          
+          const paymentsUpToThis = getVisiblePayments(advancePayments)
+            .filter(p => p.id <= selectedPaymentForReceipt.id);
+          const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+          const remainingBalLkr = Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
+          const remainingBalInBookingCurr = bCurr === 'LKR' ? remainingBalLkr : (remainingBalLkr / exRate);
+
+          const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
+          const isLkr = currencyCode === 'LKR';
+          const paidAmtLkr = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
+          const paidAmtOrig = selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || paidAmtLkr;
+
+          const balanceDisplay = bCurr === 'LKR'
+            ? `${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`
+            : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR)`;
+
           const text = `*${receiptTitle.toUpperCase()}*
 Receipt No: ${receiptData.receiptNumber}
 Date: ${new Date(receiptData.generatedAt).toLocaleDateString()}
@@ -1820,13 +1832,11 @@ Check-in: ${selectedReg.checkInDate}
 Check-out: ${selectedReg.checkOutDate}
 Nights: ${selectedReg.numberOfNights || selectedReg.nights}
 Method: ${selectedPaymentForReceipt.paymentMethod}
-Amount: ${selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} ${selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency}
-Exchange Rate: ${selectedPaymentForReceipt.exchangeRate}
-Converted: ${paidAmt.toLocaleString()} LKR
-Balance: ${remainingBalance.toLocaleString()} LKR
-Staff: ${receiptData.generatedBy}`;
+Amount: ${paidAmtOrig} ${currencyCode}
+${!isLkr ? `Exchange Rate: ${exRate}\nConverted: ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR\n` : ''}Balance: ${balanceDisplay}
+Staff: ${receiptData.generatedBy || 'Serene Villa Staff'}`;
 
-          const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+          const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
           window.open(url, '_blank');
         };
 

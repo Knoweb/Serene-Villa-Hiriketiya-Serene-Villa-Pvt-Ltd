@@ -379,9 +379,24 @@ const GuestRegistration = () => {
 
   const handleWhatsAppShare = () => {
     if (!selectedPaymentForReceipt || !receiptData || !associatedBookingData) return;
-    const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
+    const bCurr = (associatedBookingData.currency && associatedBookingData.currency !== 'LKR') ? associatedBookingData.currency : 'USD';
+    const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBookingData.exchangeRate) || 335;
+    const totalBookingAmountLkr = bCurr === 'LKR' ? (associatedBookingData.totalAmount || 0) : ((associatedBookingData.totalAmount || 0) * exRate);
+    
+    const paidAmtLkr = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
+    const remainingBalLkr = Math.max(0, totalBookingAmountLkr - paidAmtLkr);
+    const remainingBalInBookingCurr = bCurr === 'LKR' ? remainingBalLkr : (remainingBalLkr / exRate);
+
     const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
     const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
+    const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
+    const isLkr = currencyCode === 'LKR';
+    const paidAmtOrig = selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || paidAmtLkr;
+
+    const balanceDisplay = bCurr === 'LKR'
+      ? `${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`
+      : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR)`;
+
     const text = `*${receiptTitle.toUpperCase()}*
 Receipt No: ${receiptData.receiptNumber}
 Date: ${new Date(receiptData.generatedAt).toLocaleDateString()}
@@ -392,11 +407,10 @@ Check-in: ${formData.checkInDate}
 Check-out: ${formData.checkOutDate}
 Nights: ${nights}
 Method: ${selectedPaymentForReceipt.paymentMethod}
-Amount: ${selectedPaymentForReceipt.amount} LKR
-Converted: ${paidAmt.toLocaleString()} LKR
-Balance: ${Math.max(0, associatedBookingData.totalAmount - paidAmt).toLocaleString()} LKR`;
+Amount: ${paidAmtOrig} ${currencyCode}
+${!isLkr ? `Exchange Rate: ${exRate}\nConverted: ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR\n` : ''}Balance: ${balanceDisplay}`;
 
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
 
