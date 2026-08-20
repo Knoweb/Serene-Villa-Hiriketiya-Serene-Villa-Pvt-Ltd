@@ -1951,7 +1951,7 @@ const Reservations = () => {
                     const checkIn = selectedReg.checkInDate || '';
                     const checkOut = selectedReg.checkOutDate || '';
                     
-                    const message = `Hello Mr / Mrs ${guestName},\n\nWe are pleased to confirm your reservation at Serene Villa Hiriketiya! 🌴\n\nHere are your reservation details:\n- Booking Ref: ${bookingNumber}\n- Check-in: ${checkIn}\n- Check-out: ${checkOut}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\nSerene Villa Hiriketiya`;
+                    const message = `Welcome to Serene Villa - Hiriketiya 🌴\n\nHello Mr / Mrs ${guestName},\n\nWe are pleased to confirm your reservation at Serene Villa Hiriketiya!\n\nHere are your reservation details:\n- Booking Ref: ${bookingNumber}\n- Check-in: ${checkIn}\n- Check-out: ${checkOut}\n\nHow are you? Could we know what time you are planning to check-in please?\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nThank you.\n\nBest regards,\nReservation department\nSerene Villa Hiriketiya`;
                     
                     window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`, '_blank');
                   }}
