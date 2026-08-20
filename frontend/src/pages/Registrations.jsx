@@ -822,13 +822,13 @@ const Registrations = () => {
                             </div>
                           </td>
                           <td className="p-4">
-                            <p className="font-mono text-slate-800">{reg.passportNumber}</p>
+                            <p className="font-mono text-slate-800">{(reg.passportNumber || '').replace(/^SV-?/i, '')}</p>
                             <p className="text-[10px] text-slate-400 mt-0.5">{reg.whatsappNumber || reg.whatsAppNumber}</p>
                           </td>
                           <td className="p-4">
                             <p>In: {reg.checkInDate}</p>
-                            <p className="text-slate-400 text-[10px] mt-0.5">
-                              {booking ? `${booking.roomNumber || 'No Room'} (${booking.roomType})` : 'Unallocated'}
+                            <p className="text-slate-500 font-bold text-[10px] mt-0.5">
+                              {booking ? (booking.roomNumber ? `Room ${booking.roomNumber}` : 'Unallocated') : 'Unallocated'}
                             </p>
                           </td>
                           <td className="p-4 space-y-1">

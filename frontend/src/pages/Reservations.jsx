@@ -1507,7 +1507,7 @@ const Reservations = () => {
                             </div>
                           </td>
                           <td className="p-4 font-mono text-slate-800 font-bold">
-                            {reg.passportNumber}
+                            {(reg.passportNumber || '').replace(/^SV-?/i, '')}
                           </td>
                           <td className="p-4 text-slate-700">
                             {reg.whatsappNumber || reg.whatsAppNumber}
@@ -1515,8 +1515,8 @@ const Reservations = () => {
                           <td className="p-4">
                             <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {reg.checkInDate}</div>
                             <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {reg.checkOutDate}</div>
-                            <p className="text-slate-400 text-[10px] mt-1">
-                              {booking ? `${booking.roomNumber || 'No Room'} (${booking.roomType})` : 'Unallocated'}
+                            <p className="text-slate-500 font-bold text-[11px] mt-1">
+                              {booking ? (booking.roomNumber ? `Room ${booking.roomNumber}` : 'Unallocated') : 'Unallocated'}
                             </p>
                           </td>
                           <td className="p-4 space-y-1">
@@ -1696,7 +1696,7 @@ const Reservations = () => {
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Reservation ID</p>
                     <p className="font-mono font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                      <FileText className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.passportNumber}
+                      <FileText className="h-3.5 w-3.5 text-slate-400" /> {(selectedReg.passportNumber || '').replace(/^SV-?/i, '')}
                     </p>
                   </div>
 
