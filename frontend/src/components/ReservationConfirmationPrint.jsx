@@ -239,11 +239,17 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Booking Amount:</span>
             <span style={{ fontWeight: '700', color: '#1e293b' }}>{displayCurrency} {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
-          {displayCurrency === 'LKR' && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px' }}>
-              <span style={{ color: '#64748b', fontWeight: '600' }}>Currency Rate:</span>
-              <span style={{ fontWeight: '700', color: '#1e293b' }}>{exchangeRateVal}</span>
-            </div>
+          {displayCurrency !== 'LKR' && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Exchange Rate:</span>
+                <span style={{ fontWeight: '700', color: '#1e293b' }}>{exchangeRateVal}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Converted Amount:</span>
+                <span style={{ fontWeight: '700', color: '#1e293b' }}>LKR {(totalAmount * exchangeRateVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px' }}>
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Paid So Far:</span>

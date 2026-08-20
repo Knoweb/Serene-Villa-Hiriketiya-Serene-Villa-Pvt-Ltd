@@ -172,6 +172,18 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Amount:</span>
             <span style={{ fontWeight: '700', color: '#1e293b' }}>{currency} {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
+          {currency !== 'LKR' && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px', fontSize: '11px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Exchange Rate:</span>
+                <span style={{ fontWeight: '700', color: '#1e293b' }}>{exchangeRate}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px', fontSize: '11px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Converted Amount:</span>
+                <span style={{ fontWeight: '700', color: '#1e293b' }}>LKR {(totalAmount * (parseFloat(exchangeRate) || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px', fontSize: '11px' }}>
             <span style={{ color: '#065f46', fontWeight: '700' }}>Advance Amount:</span>
             <span style={{ fontWeight: '800', color: '#065f46' }}>{currency} {advanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
