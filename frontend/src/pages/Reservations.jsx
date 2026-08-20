@@ -2933,7 +2933,7 @@ const Reservations = () => {
           const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
           const totalBookingAmountLkr = bCurr === 'LKR' ? (associatedBooking.totalAmount || 0) : ((associatedBooking.totalAmount || 0) * exRate);
           
-          const paymentsList = payments || [];
+          const paymentsList = advancePayments || [];
           const paymentsUpToThis = paymentsList.length > 0 
             ? paymentsList.filter(p => p.id <= selectedPaymentForReceipt.id)
             : [selectedPaymentForReceipt];
