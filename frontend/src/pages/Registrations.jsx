@@ -1849,7 +1849,16 @@ Best regards,
 *Reservation Department*
 Serene Villa Hiriketiya`;
 
-          const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+          let rawPhone = selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || selectedReg?.mobileNumber || selectedReg?.phone || associatedBooking?.contactNumber || associatedBooking?.phone || '';
+          const cleanedPhone = rawPhone.replace(/\D/g, '');
+          let formattedPhone = cleanedPhone;
+          if (formattedPhone.startsWith('0')) {
+            formattedPhone = '94' + formattedPhone.substring(1);
+          }
+
+          const url = formattedPhone 
+            ? `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(text)}`
+            : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
           window.open(url, '_blank');
         };
 
