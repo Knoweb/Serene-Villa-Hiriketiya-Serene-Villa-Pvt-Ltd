@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toPng } from 'html-to-image';
-import { Building, Upload, Calendar, Send, CheckCircle2, User, FileText, Phone, Globe, Users, ChevronLeft, Loader, MapPin, CreditCard, Receipt, Printer, Share2, X, Search, AlertCircle, Camera, RefreshCw } from 'lucide-react';
+import { Building, Upload, Calendar, Send, CheckCircle2, User, FileText, Phone, Globe, Users, ChevronLeft, ChevronDown, Loader, MapPin, CreditCard, Receipt, Printer, Share2, X, Search, AlertCircle, Camera, RefreshCw } from 'lucide-react';
 import logoImg from '../assets/logo.jpeg';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -1162,115 +1162,55 @@ Serene Villa Hiriketiya`;
 
             </div>
 
-            {/* Room Selection with Images */}
-            <div className="space-y-3 pt-4 border-t border-slate-100">
+            {/* Room Selection Dropdown */}
+            <div className="space-y-2 pt-4 border-t border-slate-100">
               <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 <Building size={12} className="text-slate-400" /> Select Your Room *
               </label>
 
-              {rooms.length === 0 ? (
-                <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-6 text-center">
-                  <Building className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-xs font-bold text-slate-400">No rooms configured yet</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Please ask staff to add rooms from the dashboard.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="relative">
+                <select
+                  name="selectedRoomNumber"
+                  value={formData.selectedRoomNumber ? `${formData.selectedRoomNumber}|${formData.roomType}` : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) {
+                      setFormData(prev => ({ ...prev, selectedRoomNumber: '', roomType: '' }));
+                    } else {
+                      const [rNum, rType] = val.split('|');
+                      setFormData(prev => ({
+                        ...prev,
+                        selectedRoomNumber: rNum,
+                        roomType: rType
+                      }));
+                    }
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 pr-10 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer appearance-none"
+                >
+                  <option value="">-- Select Room Number & Name --</option>
                   {rooms.map((room) => {
-                    const isSelected = formData.roomType === room.roomType && formData.selectedRoomNumber === room.roomNumber;
-                    const isAvailable = room.status === 'Available';
-                    const roomImage = (room.images && room.images.length > 0) ? room.images[0] : room.image;
-
+                    const roomLabel = `Room ${room.roomNumber} - ${room.roomType}`;
+                    const val = `${room.roomNumber}|${room.roomType}`;
                     return (
-                      <div
-                        key={room.id}
-                        onClick={() => {
-                          if (!isAvailable) return;
-                          setFormData(prev => ({
-                            ...prev,
-                            roomType: room.roomType,
-                            selectedRoomNumber: room.roomNumber
-                          }));
-                        }}
-                        className={`rounded-2xl overflow-hidden border-2 transition-all cursor-pointer shadow-sm hover:shadow-md ${
-                          isSelected
-                            ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-100'
-                            : isAvailable
-                              ? 'border-slate-200 hover:border-emerald-300'
-                              : 'border-slate-100 opacity-60 cursor-not-allowed'
-                        }`}
-                      >
-                        {/* Room Image */}
-                        <div className="aspect-[16/9] overflow-hidden relative bg-slate-100">
-                          {roomImage ? (
-                            <img
-                              src={roomImage}
-                              alt={room.roomType}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                              <Building className="h-10 w-10 text-slate-300" />
-                            </div>
-                          )}
-                          {/* Status Badge */}
-                          <span className={`absolute top-2 left-2 text-[8px] font-bold px-2 py-0.5 rounded-md shadow-sm ${
-                            room.status === 'Available' ? 'bg-emerald-500 text-white' :
-                            room.status === 'Occupied' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'
-                          }`}>
-                            {room.status}
-                          </span>
-                          {/* Selected Checkmark */}
-                          {isSelected && (
-                            <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full p-0.5 shadow-md">
-                              <CheckCircle2 size={14} />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Room Info */}
-                        <div className="p-3 space-y-1.5 bg-white">
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-800">
-                              {room.roomType}
-                            </h4>
-                            <p className="text-[10px] text-slate-400 font-semibold">
-                              Room No. {room.roomNumber}
-                            </p>
-                          </div>
-                          {room.facilities && room.facilities.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {room.facilities.slice(0, 3).map((fac, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-[7px] bg-slate-100 text-slate-500 font-semibold px-1.5 py-0.5 rounded"
-                                >
-                                  {fac}
-                                </span>
-                              ))}
-                              {room.facilities.length > 3 && (
-                                <span className="text-[7px] bg-slate-100 text-slate-400 font-semibold px-1.5 py-0.5 rounded">
-                                  +{room.facilities.length - 3} more
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <option key={room.id || room.roomNumber} value={val}>
+                        {roomLabel} {room.status && room.status !== 'Available' ? ` (${room.status})` : ''}
+                      </option>
                     );
                   })}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                  <ChevronDown className="h-4 w-4" />
                 </div>
-              )}
+              </div>
 
-              {/* Selected Room Summary */}
               {formData.roomType && (
-                <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+                <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3 flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Selected:</span>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Selected Room:</span>
                   </div>
                   <span className="text-xs font-extrabold text-emerald-700">
-                    {formData.roomType} {formData.selectedRoomNumber ? `— Room ${formData.selectedRoomNumber}` : ''}
+                    Room {formData.selectedRoomNumber} ({formData.roomType})
                   </span>
                 </div>
               )}
