@@ -80,7 +80,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
         backgroundColor: '#ffffff',
         padding: '24px 16px',
         width: '100%',
-        maxWidth: '100%',
+        maxWidth: '185mm',
         margin: '0 auto',
         boxSizing: 'border-box',
         lineHeight: '1.5'
