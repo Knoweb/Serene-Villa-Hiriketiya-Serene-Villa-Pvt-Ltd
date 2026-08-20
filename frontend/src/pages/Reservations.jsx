@@ -2007,7 +2007,7 @@ const Reservations = () => {
                         allocatedRooms: getRoomsForBooking(associatedBooking),
                         confirmedBy: associatedBooking.confirmedBy || 'Muthuni Weerasingha',
                         reservationStatus: 'Confirm Booking',
-                        senderName: associatedBooking.senderName || 'Muthuni Weerasingha',
+                        senderName: associatedBooking.senderName || confirmationData.senderName || localStorage.getItem('pms_sender_name') || user?.name || user?.username || '',
                         badgeText: '',
                         remarks: associatedBooking.remarks || '',
                         bookingType: associatedBooking.bookingType || 'Booking.com Booking'
@@ -4156,15 +4156,7 @@ Staff: ${receiptData.generatedBy}`;
                       </select>
                     </div>
 
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender Name (Sign off)</label>
-                      <input 
-                        type="text" 
-                        value={confirmationData.senderName}
-                        onChange={(e) => setConfirmationData({...confirmationData, senderName: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none"
-                      />
-                    </div>
+
 
                     <div className="space-y-1.5 col-span-2">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remarks / Special Notes</label>
