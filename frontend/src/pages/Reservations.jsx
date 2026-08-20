@@ -3914,14 +3914,14 @@ Serene Villa Hiriketiya`;
                        </div>
 
                        <div className="space-y-1.5 relative col-span-2">
-                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room No (Select Multiple)</label>
+                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Number(s)</label>
                          <div className="relative">
                            <button
                              type="button"
                              onClick={() => setIsModalRoomDropdownOpen(!isModalRoomDropdownOpen)}
                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer"
                            >
-                             <span className="truncate">{confirmationData.room || 'Select Rooms...'}</span>
+                             <span className="truncate">{confirmationData.room ? (confirmationData.room.startsWith('Room') ? confirmationData.room : `Room ${confirmationData.room}`) : 'Select Rooms...'}</span>
                              <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
                            </button>
 
@@ -4356,14 +4356,14 @@ Serene Villa Hiriketiya`;
 
                    {/* Room Name Dropdown (Multiple-Select) */}
                    <div className="space-y-1.5 relative col-span-2">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Name(s)</label>
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Number(s)</label>
                      <div className="relative">
                        <button
                          type="button"
                          onClick={() => setIsModalRoomNameDropdownOpen(!isModalRoomNameDropdownOpen)}
                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer"
                        >
-                         <span className="truncate">{confirmationData.roomType || 'Select Room Types...'}</span>
+                         <span className="truncate">{confirmationData.room ? (confirmationData.room.startsWith('Room') ? confirmationData.room : `Room ${confirmationData.room}`) : 'Select Rooms...'}</span>
                          <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
                        </button>
 
