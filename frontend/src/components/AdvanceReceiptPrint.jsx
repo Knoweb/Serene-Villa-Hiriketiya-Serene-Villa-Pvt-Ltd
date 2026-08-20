@@ -270,7 +270,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               </div>
               
               <div className="flex justify-between pb-1 border-b border-slate-200">
-                <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
+                <span className="text-slate-500 font-semibold">Amount Paid:</span>
                 <span className="font-bold text-slate-900">
                   {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
