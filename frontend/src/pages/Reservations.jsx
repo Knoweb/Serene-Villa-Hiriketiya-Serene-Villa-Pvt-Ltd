@@ -1192,7 +1192,9 @@ const Reservations = () => {
       alert('Please enter a valid exchange rate.'); return;
     }
 
-    const convertedLkr = actualAmount * actualExchangeRate;
+    const otherCharges = parseFloat(paymentForm.otherCharges) || 0;
+    const netAmount = Math.max(0, actualAmount - otherCharges);
+    const convertedLkr = netAmount * actualExchangeRate;
     const totalBookingAmount = booking.totalAmount || 0;
     const bookingExRate = parseFloat(booking.exchangeRate) || (actualCurrency === 'LKR' ? 1 : actualExchangeRate);
     const bookingCurrency = (booking.currency || 'USD').toUpperCase();
@@ -2304,9 +2306,12 @@ const Reservations = () => {
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted (LKR)</label>
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                    Converted (LKR)
+                                    {parseFloat(paymentForm.otherCharges) > 0 && <span className="text-amber-600 font-normal normal-case font-mono text-[9px]"> (Net of charges)</span>}
+                                  </label>
                                   <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700 font-mono">
-                                    {((parseFloat(paymentForm.amount) || 0) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR
+                                    {(Math.max(0, (parseFloat(paymentForm.amount) || 0) - (parseFloat(paymentForm.otherCharges) || 0)) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR
                                   </div>
                                 </div>
                               </>

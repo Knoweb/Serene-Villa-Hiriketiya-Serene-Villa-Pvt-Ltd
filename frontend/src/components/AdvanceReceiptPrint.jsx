@@ -309,13 +309,25 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                   const feeDisplay = forceLkr || displayCurrency === 'LKR'
                     ? `LKR ${(currencyCode === 'LKR' ? otherFee : (otherFee * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     : `${displayCurrency} ${otherFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  
+                  const grossAmt = paidDisplayAmt;
+                  const netPayable = Math.max(0, grossAmt - (forceLkr || displayCurrency === 'LKR' ? (currencyCode === 'LKR' ? otherFee : (otherFee * exRate)) : otherFee));
+                  
                   return (
-                    <div className="flex justify-between pb-1 border-b border-slate-200">
-                      <span className="text-slate-550 font-semibold">OTHER CHARGES:</span>
-                      <span className="font-bold text-slate-800">
-                        {feeDisplay}
-                      </span>
-                    </div>
+                    <>
+                      <div className="flex justify-between pb-1 border-b border-slate-200 text-amber-800">
+                        <span className="font-semibold">OTHER CHARGES (Deducted):</span>
+                        <span className="font-bold">
+                          - {feeDisplay}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pb-1 border-b border-slate-200 text-emerald-800">
+                        <span className="font-semibold">NET PAYABLE AMOUNT:</span>
+                        <span className="font-bold">
+                          {displayCurrency} {netPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </>
                   );
                 }
                 return null;
