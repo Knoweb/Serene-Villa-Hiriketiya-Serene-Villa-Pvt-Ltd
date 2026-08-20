@@ -240,7 +240,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             <p className="font-mono text-slate-800 font-semibold mb-2">Ref: {selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
             {selectedPaymentForReceipt.remarks && (
               <p className="text-[10px] leading-tight text-slate-750">
-                {selectedPaymentForReceipt.remarks.replace(/\[Bank Charges: [\d.]+\]/g, '').trim()}
+                {selectedPaymentForReceipt.remarks.replace(/\[(?:Bank )?Charges: [\d.]+\]/g, '').trim()}
               </p>
             )}
           </div>
@@ -284,7 +284,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               )}
 
               {(() => {
-                const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Bank Charges: ([\d.]+)\]/);
+                const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
                 const cardFee = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
                 if (cardFee > 0) {
                   const feeDisplay = forceLkr
@@ -292,7 +292,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                     : `${displayCurrency} ${(cardFee / exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   return (
                     <div className="flex justify-between pb-1 border-b border-slate-200">
-                      <span className="text-slate-550 font-semibold">BANK CHARGES:</span>
+                      <span className="text-slate-550 font-semibold">CHARGES:</span>
                       <span className="font-bold text-slate-800">
                         {feeDisplay}
                       </span>

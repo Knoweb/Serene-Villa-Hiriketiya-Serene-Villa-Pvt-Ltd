@@ -1225,7 +1225,7 @@ const Reservations = () => {
       remarks: (() => {
         let r = paymentForm.remarks || '';
         if (paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0) {
-          r += ` [Bank Charges: ${parseFloat(paymentForm.cardFee)}]`;
+          r += ` [Charges: ${parseFloat(paymentForm.cardFee)}]`;
         }
         if (parseFloat(paymentForm.otherCharges) > 0) {
           r += ` [Other Charges: ${parseFloat(paymentForm.otherCharges)}]`;
@@ -2364,7 +2364,7 @@ const Reservations = () => {
                             {paymentForm.paymentMethod === 'Card' && (
                                <div className="col-span-2 space-y-1">
                                  <div className="flex justify-between items-center">
-                                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bank Charges (LKR)</label>
+                                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Charges (LKR)</label>
                                    <button
                                      type="button"
                                      onClick={() => {
@@ -2376,7 +2376,7 @@ const Reservations = () => {
                                      }}
                                      className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition cursor-pointer"
                                    >
-                                     + Add 3% Bank Charges ({(((parseFloat(paymentForm.amount)||0) * (paymentForm.currencyCode === 'LKR' ? 1 : (parseFloat(paymentForm.exchangeRate)||1))) * 0.03).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} LKR)
+                                     + Add 3% Charges ({(((parseFloat(paymentForm.amount)||0) * (paymentForm.currencyCode === 'LKR' ? 1 : (parseFloat(paymentForm.exchangeRate)||1))) * 0.03).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} LKR)
                                    </button>
                                  </div>
                                  <div className="relative">
@@ -3014,7 +3014,7 @@ Staff: ${receiptData.generatedBy}`;
         const numRooms = roomsList.length || 1;
         const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
         const totalAmount = associatedBooking?.totalAmount || 0;
-        const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Bank Charges: ([\d.]+)\]/);
+        const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Charges: ([\d.]+)\]/);
         const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
         
         const bCurr = getBookingCurrency(associatedBooking);
@@ -3246,7 +3246,7 @@ Staff: ${receiptData.generatedBy}`;
                         <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
                         {selectedPaymentForReceipt.remarks && (
                           <p className="mt-1 text-[10px] leading-snug">
-                            <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks.replace(/\[Bank Charges: [\d.]+\]/g, '').trim()}
+                            <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks.replace(/\[Charges: [\d.]+\]/g, '').trim()}
                           </p>
                         )}
                       </div>
@@ -3300,7 +3300,7 @@ Staff: ${receiptData.generatedBy}`;
 
                           {cardFeeVal > 0 && (
                             <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                              <span className="text-slate-500 font-semibold">BANK CHARGES:</span>
+                              <span className="text-slate-500 font-semibold">CHARGES:</span>
                               <span className="font-bold text-slate-850">
                                 {forceReceiptLkr || dispCurr === 'LKR'
                                   ? `LKR ${cardFeeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
