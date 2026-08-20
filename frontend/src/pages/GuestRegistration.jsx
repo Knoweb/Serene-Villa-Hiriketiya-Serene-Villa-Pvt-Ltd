@@ -114,19 +114,19 @@ const GuestRegistration = () => {
         const booking = data.booking;
         const reg = data.registration;
 
-        if (booking && reg) {
+        if (booking) {
           setFormData(prev => ({
             ...prev,
-            guestName: reg.guestName || '',
-            checkInDate: reg.checkInDate || '',
-            checkOutDate: reg.checkOutDate || '',
-            passportNumber: reg.passportNumber || '',
-            whatsAppNumber: reg.whatsappNumber || '',
-            nationality: reg.nationality || '',
-            adults: reg.adults || 1,
-            children: reg.children || 0,
-            roomType: booking.roomType || '',
-            totalAmount: booking.totalAmount || '',
+            guestName: reg?.guestName || booking.guestName || prev.guestName || '',
+            checkInDate: reg?.checkInDate || booking.checkInDate || prev.checkInDate || '',
+            checkOutDate: reg?.checkOutDate || booking.checkOutDate || prev.checkOutDate || '',
+            passportNumber: reg?.passportNumber || booking.passportNumber || prev.passportNumber || '',
+            whatsAppNumber: reg?.whatsappNumber || reg?.whatsAppNumber || booking.whatsappNumber || booking.contactNumber || booking.phone || prev.whatsAppNumber || '',
+            nationality: reg?.nationality || booking.nationality || prev.nationality || '',
+            adults: reg?.adults || booking.adults || prev.adults || 1,
+            children: reg?.children || booking.children || prev.children || 0,
+            roomType: booking.roomType || prev.roomType || '',
+            totalAmount: booking.totalAmount || prev.totalAmount || '',
           }));
           setLookupSuccess(true);
         } else {

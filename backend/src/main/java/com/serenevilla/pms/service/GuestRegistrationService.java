@@ -283,29 +283,40 @@ public class GuestRegistrationService {
 
     public Optional<Map<String, Object>> findReservationForPublicCheckIn(String bookingNumber, String passportNumber) {
         if (bookingNumber != null && !bookingNumber.trim().isEmpty()) {
-            return bookingRepository.findByBookingNumber(bookingNumber.trim()).flatMap(booking -> {
-                return guestRegistrationRepository.findById(booking.getGuestRegistrationId()).map(reg -> {
-                    return Map.of(
-                        "booking", booking,
-                        "registration", reg
-                    );
-                });
-            });
+            String trimmedNum = bookingNumber.trim();
+            Optional<Booking> bookingOpt = bookingRepository.findByBookingNumber(trimmedNum);
+            if (bookingOpt.isEmpty()) {
+                bookingOpt = bookingRepository.findAll().stream()
+                    .filter(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(trimmedNum))
+                    .findFirst();
+            }
+
+            if (bookingOpt.isPresent()) {
+                Booking booking = bookingOpt.get();
+                GuestRegistration reg = null;
+                if (booking.getGuestRegistrationId() != null) {
+                    reg = guestRegistrationRepository.findById(booking.getGuestRegistrationId()).orElse(null);
+                }
+                Map<String, Object> result = new java.util.HashMap<>();
+                result.put("booking", booking);
+                if (reg != null) {
+                    result.put("registration", reg);
+                }
+                return Optional.of(result);
+            }
         } else if (passportNumber != null && !passportNumber.trim().isEmpty()) {
             List<GuestRegistration> registrations = guestRegistrationRepository.findAll().stream()
                 .filter(reg -> reg.getPassportNumber() != null && reg.getPassportNumber().equalsIgnoreCase(passportNumber.trim()))
                 .toList();
             if (!registrations.isEmpty()) {
                 GuestRegistration latestReg = registrations.get(registrations.size() - 1);
-                return bookingRepository.findAll().stream()
+                Optional<Booking> bookingOpt = bookingRepository.findAll().stream()
                     .filter(b -> b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(latestReg.getId()))
-                    .findFirst()
-                    .map(booking -> {
-                        return Map.of(
-                            "booking", booking,
-                            "registration", latestReg
-                        );
-                    });
+                    .findFirst();
+                Map<String, Object> result = new java.util.HashMap<>();
+                result.put("registration", latestReg);
+                bookingOpt.ifPresent(b -> result.put("booking", b));
+                return Optional.of(result);
             }
         }
         return Optional.empty();
