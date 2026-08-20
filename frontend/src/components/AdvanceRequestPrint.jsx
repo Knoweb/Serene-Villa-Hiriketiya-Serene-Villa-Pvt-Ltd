@@ -199,14 +199,14 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
 
       {/* Remarks Section */}
       {remarks && remarks !== 'N/A' && (
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', fontSize: '10px', marginBottom: '24px', backgroundColor: '#fafafa' }}>
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', fontSize: '10px', marginBottom: '12px', backgroundColor: '#fafafa' }}>
           <span style={{ fontWeight: '700', color: '#475569' }}>Remarks / Special Notes: </span>
           <span style={{ color: '#334155' }}>{remarks}</span>
         </div>
       )}
 
       {/* Signatures Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '36px', paddingTop: '12px', fontSize: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', paddingTop: '8px', fontSize: '10px' }}>
         <div style={{ textTransform: 'uppercase', fontWeight: '700', color: '#64748b', borderTop: '1px solid #cbd5e1', paddingTop: '4px', width: '200px', textAlign: 'center' }}>
           GUEST SIGNATURE
         </div>

@@ -365,7 +365,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       </div>
 
       {/* Signature Lines */}
-      <div className="flex justify-between items-end mt-16 pb-4">
+      <div className="flex justify-between items-end mt-6 pb-2">
         <div className="text-center w-52">
           <div className="border-b border-slate-400 w-full mb-1"></div>
           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Guest Signature</span>
@@ -378,7 +378,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       </div>
 
       {/* Metadata & Printed Date */}
-      <div className="flex justify-between text-[8px] text-slate-400 mt-10 pt-2 border-t border-slate-100 font-medium">
+      <div className="flex justify-between text-[8px] text-slate-400 mt-4 pt-2 border-t border-slate-100 font-medium">
         <span>Printed: {new Date().toLocaleString()}</span>
         <span>Staff: {receiptData.generatedBy || 'Front Office'}</span>
       </div>

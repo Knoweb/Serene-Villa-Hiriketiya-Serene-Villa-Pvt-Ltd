@@ -338,24 +338,24 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       </div>
 
       {/* Signature Lines (Solid matching receipt) */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '48px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', marginBottom: '12px' }}>
         <div style={{ width: '220px', textAlign: 'center' }}>
-          <div style={{ borderBottom: '1px solid #cbd5e1', marginBottom: '6px', width: '100%' }}></div>
+          <div style={{ borderBottom: '1px solid #cbd5e1', marginBottom: '4px', width: '100%' }}></div>
           <div style={{ fontSize: '10px', fontWeight: '850', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Guest Signature</div>
         </div>
         <div style={{ width: '220px', textAlign: 'center' }}>
-          <div style={{ borderBottom: '1px solid #cbd5e1', marginBottom: '6px', width: '100%' }}></div>
+          <div style={{ borderBottom: '1px solid #cbd5e1', marginBottom: '4px', width: '100%' }}></div>
           <div style={{ fontSize: '10px', fontWeight: '850', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Received By</div>
         </div>
       </div>
 
       {/* Slogan Bordered Box */}
-      <div style={{ border: '1px solid rgba(6, 95, 70, 0.15)', borderRadius: '8px', padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '700', color: '#065f46', backgroundColor: 'rgba(6, 95, 70, 0.02)', marginTop: '24px', marginBottom: '24px' }}>
+      <div style={{ border: '1px solid rgba(6, 95, 70, 0.15)', borderRadius: '8px', padding: '8px', textAlign: 'center', fontSize: '9.5px', fontWeight: '700', color: '#065f46', backgroundColor: 'rgba(6, 95, 70, 0.02)', marginTop: '12px', marginBottom: '12px' }}>
         #Welcome Serene Villa # Welcome to the Hiriketiya #Visit of Sri Lanka
       </div>
 
       {/* Footer Meta */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginTop: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '8px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '6px', marginTop: '12px' }}>
         <span>Printed: {new Date().toLocaleString()}</span>
         <span>ID: {bookingNumber}</span>
       </div>
