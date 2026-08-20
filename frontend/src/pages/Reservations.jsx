@@ -1045,6 +1045,8 @@ const Reservations = () => {
             ? JSON.stringify(confirmationData.allocatedRooms) 
             : '',
           guestName: confirmationData.guestName || '',
+          senderName: confirmationData.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
+          confirmedBy: confirmationData.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
           remarks: confirmationData.remarks || '',
           status: 'Confirmed',
           propertyId: 1
@@ -4157,6 +4159,21 @@ Staff: ${receiptData.generatedBy}`;
                     </div>
 
 
+
+                    <div className="space-y-1.5 col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender Name (Best Regards)</label>
+                      <input 
+                        type="text" 
+                        value={confirmationData.senderName || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setConfirmationData({ ...confirmationData, senderName: val });
+                          localStorage.setItem('pms_sender_name', val);
+                        }}
+                        placeholder="e.g. Muthuni Weerasingha"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-semibold"
+                      />
+                    </div>
 
                     <div className="space-y-1.5 col-span-2">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remarks / Special Notes</label>
