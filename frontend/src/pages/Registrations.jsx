@@ -1030,48 +1030,54 @@ const Registrations = () => {
                   <div className="col-span-2 flex justify-between items-start py-1.5 border-t border-slate-100/60">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room Type:</span>
                     <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-1 max-w-[70%]">
-                      {associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber || associatedBooking.roomPrices)
-                        ? (() => {
-                            const roomTypesList = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()) : [];
-                            const roomNumbersList = associatedBooking.roomNumber ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean) : [];
-
-                            let parsedPrices = [];
-                            if (associatedBooking.roomPrices) {
-                              try {
-                                parsedPrices = JSON.parse(associatedBooking.roomPrices);
-                              } catch (e) {}
-                            }
-
-                            if (roomNumbersList.length > 0) {
-                              return roomNumbersList.map((rNo, idx) => {
-                                const matched = parsedPrices.find(p => p.roomNumber === rNo);
-                                const priceVal = matched?.roomPrice ? parseFloat(matched.roomPrice) : null;
-                                const curr = associatedBooking.currency || 'LKR';
-
-                                return (
-                                  <div key={idx} className="flex items-center gap-1.5">
-                                    <span className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-[11px] font-bold">
-                                      Room {rNo}
-                                    </span>
-                                    {priceVal != null && (
-                                      <span className="text-emerald-700 font-mono text-[11px]">
-                                        - {curr} {priceVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                      </span>
-                                    )}
-                                  </div>
-                                );
+                      {(() => {
+                        let roomNums = [];
+                        if (associatedBooking?.roomNumber && associatedBooking.roomNumber !== 'Unallocated') {
+                          roomNums = associatedBooking.roomNumber.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                        }
+                        if (roomNums.length === 0 && (selectedReg?.roomNumber || selectedReg?.room)) {
+                          const r = selectedReg.roomNumber || selectedReg.room;
+                          if (r && r !== 'Unallocated') {
+                            roomNums = r.split(',').map(x => x.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                          }
+                        }
+                        if (roomNums.length === 0 && associatedBooking?.roomPrices) {
+                          try {
+                            const p = JSON.parse(associatedBooking.roomPrices);
+                            if (Array.isArray(p)) {
+                              p.forEach(item => {
+                                if (item.roomNumber) {
+                                  const clean = item.roomNumber.trim().replace(/^Room\s*/i, '');
+                                  if (clean) roomNums.push(clean);
+                                }
                               });
-                            } else if (roomTypesList.length > 0) {
-                              return roomTypesList.map((rType, idx) => (
-                                <span key={idx} className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-[11px] font-bold">
-                                  {rType}
-                                </span>
-                              ));
                             }
-                            return <span className="text-slate-400 italic">Unallocated</span>;
-                          })()
-                        : <span className="text-slate-400 italic">{bookingForm.room ? `Room ${bookingForm.room}` : (bookingForm.roomType || 'Unallocated')}</span>
-                      }
+                          } catch(e) {}
+                        }
+                        if (roomNums.length === 0 && associatedBooking?.roomType) {
+                          const extracted = associatedBooking.roomType.match(/\b(?:\d{3,4}|10\d|40\d|41\d)\b/g);
+                          if (extracted && extracted.length > 0) roomNums = extracted;
+                        }
+
+                        if (roomNums.length > 0) {
+                          return roomNums.map((rNo, idx) => (
+                            <span key={idx} className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold shadow-xs">
+                              Room {rNo}
+                            </span>
+                          ));
+                        }
+
+                        if (associatedBooking?.roomType) {
+                          const shortType = associatedBooking.roomType.split(',')[0].split('-')[0].trim();
+                          return (
+                            <span className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                              {shortType}
+                            </span>
+                          );
+                        }
+
+                        return <span className="text-slate-400 italic">Unallocated</span>;
+                      })()}
                     </div>
                   </div>
 

@@ -1843,59 +1843,55 @@ const Reservations = () => {
                         <option value="Budget Room">Budget Room</option>
                       </select>
                     ) : (
-                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-2.5 max-w-[70%]">
-                        {associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber || associatedBooking.roomPrices)
-                          ? (() => {
-                              const roomTypesList = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()) : [];
-                              const roomNumbersList = associatedBooking.roomNumber ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean) : [];
-
-                              let parsedPrices = [];
-                              if (associatedBooking.roomPrices) {
-                                try {
-                                  parsedPrices = JSON.parse(associatedBooking.roomPrices);
-                                } catch (e) {}
+                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-1 max-w-[70%]">
+                        {(() => {
+                          let roomNums = [];
+                          if (associatedBooking?.roomNumber && associatedBooking.roomNumber !== 'Unallocated') {
+                            roomNums = associatedBooking.roomNumber.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                          }
+                          if (roomNums.length === 0 && (selectedReg?.roomNumber || selectedReg?.room)) {
+                            const r = selectedReg.roomNumber || selectedReg.room;
+                            if (r && r !== 'Unallocated') {
+                              roomNums = r.split(',').map(x => x.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                            }
+                          }
+                          if (roomNums.length === 0 && associatedBooking?.roomPrices) {
+                            try {
+                              const p = JSON.parse(associatedBooking.roomPrices);
+                              if (Array.isArray(p)) {
+                                p.forEach(item => {
+                                  if (item.roomNumber) {
+                                    const clean = item.roomNumber.trim().replace(/^Room\s*/i, '');
+                                    if (clean) roomNums.push(clean);
+                                  }
+                                });
                               }
+                            } catch(e) {}
+                          }
+                          if (roomNums.length === 0 && associatedBooking?.roomType) {
+                            const extracted = associatedBooking.roomType.match(/\b(?:\d{3,4}|10\d|40\d|41\d)\b/g);
+                            if (extracted && extracted.length > 0) roomNums = extracted;
+                          }
 
-                              const curr = associatedBooking.currency || 'USD';
+                          if (roomNums.length > 0) {
+                            return roomNums.map((rNo, idx) => (
+                              <span key={idx} className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold shadow-xs">
+                                Room {rNo}
+                              </span>
+                            ));
+                          }
 
-                              let displayItems = [];
+                          if (associatedBooking?.roomType) {
+                            const shortType = associatedBooking.roomType.split(',')[0].split('-')[0].trim();
+                            return (
+                              <span className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                                {shortType}
+                              </span>
+                            );
+                          }
 
-                              if (parsedPrices && parsedPrices.length > 0) {
-                                displayItems = parsedPrices.map((p, idx) => ({
-                                  roomNum: p.roomNumber || roomNumbersList[idx] || '',
-                                  type: p.roomType || roomTypesList[idx] || roomTypesList[0] || 'Room',
-                                  priceVal: p.price
-                                }));
-                              } else if (roomNumbersList.length > 0) {
-                                displayItems = roomNumbersList.map((rNum, idx) => ({
-                                  roomNum: rNum,
-                                  type: roomTypesList[idx] || roomTypesList[0] || 'Room',
-                                  priceVal: roomNumbersList.length === 1 ? (associatedBooking.totalAmount || associatedBooking.totalPrice) : null
-                                }));
-                              } else if (roomTypesList.length > 0) {
-                                displayItems = roomTypesList.map((t, idx) => ({
-                                  roomNum: '',
-                                  type: t,
-                                  priceVal: roomTypesList.length === 1 ? (associatedBooking.totalAmount || associatedBooking.totalPrice) : null
-                                }));
-                              }
-
-                              return displayItems.map((item, index) => {
-                                const label = item.roomNum ? `Room ${item.roomNum}` : item.type;
-                                const priceVal = item.priceVal;
-
-                                const formattedPrice = priceVal !== null && priceVal !== undefined && priceVal !== '' && !isNaN(parseFloat(priceVal))
-                                  ? `${curr} ${parseFloat(priceVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                  : '';
-
-                                return (
-                                  <div key={index} className="leading-normal">
-                                    {label}{formattedPrice ? ` - ${formattedPrice}` : ''}
-                                  </div>
-                                );
-                              });
-                            })()
-                          : 'Deluxe Room'}
+                          return <span className="text-slate-400 italic">Unallocated</span>;
+                        })()}
                       </div>
                     )}
                   </div>
