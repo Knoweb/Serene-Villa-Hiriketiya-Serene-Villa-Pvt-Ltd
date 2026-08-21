@@ -118,11 +118,6 @@ const GuestRegistration = () => {
         const reg = data.registration;
 
         if (booking) {
-          let roomNum = '';
-          if (booking.roomNumber) {
-            roomNum = booking.roomNumber.split(',')[0].trim();
-          }
-
           setFormData(prev => ({
             ...prev,
             guestName: booking.guestName || reg?.guestName || prev.guestName || '',
@@ -131,13 +126,13 @@ const GuestRegistration = () => {
             adults: booking.adults || reg?.adults || prev.adults || 1,
             children: booking.children || reg?.children || prev.children || 0,
             roomType: booking.roomType || prev.roomType || '',
-            selectedRoomNumber: roomNum || prev.selectedRoomNumber || '',
+            selectedRoomNumber: booking.roomNumber || reg?.roomNumber || prev.selectedRoomNumber || '',
             passportNumber: reg?.passportNumber || prev.passportNumber || '',
             whatsAppNumber: reg?.whatsappNumber || reg?.whatsAppNumber || booking.contactNumber || booking.phone || prev.whatsAppNumber || '',
             nationality: reg?.nationality || booking.nationality || prev.nationality || '',
             country: reg?.country || booking.country || prev.country || '',
             address: reg?.address || booking.address || prev.address || '',
-            email: reg?.email || booking.email || prev.email || '',
+            email: reg?.email || booking.email || booking.clientEmail || prev.email || '',
             totalAmount: booking.totalAmount || prev.totalAmount || '',
           }));
           setLookupSuccess(true);
@@ -166,6 +161,27 @@ const GuestRegistration = () => {
       setNights(0);
     }
   }, [formData.checkInDate, formData.checkOutDate]);
+
+  // Function to format allocated rooms list
+  const getAllocatedRoomsList = () => {
+    if (!formData.roomType && !formData.selectedRoomNumber) return [];
+
+    const rNumbers = (formData.selectedRoomNumber || '').split(',').map(s => s.trim()).filter(Boolean);
+    const rTypes = (formData.roomType || '').split(',').map(s => s.trim()).filter(Boolean);
+
+    if (rNumbers.length > 0) {
+      return rNumbers.map((num, idx) => ({
+        roomNumber: num,
+        roomType: rTypes[idx] || rTypes[0] || 'Room'
+      }));
+    } else if (rTypes.length > 0) {
+      return rTypes.map((type) => ({
+        roomNumber: '',
+        roomType: type
+      }));
+    }
+    return [];
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -997,14 +1013,34 @@ Serene Villa Hiriketiya`;
                 <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   <Globe size={12} className="text-slate-400" /> Country
                 </label>
-                <input
-                  type="text"
+                <select
                   name="country"
-                  placeholder="e.g. United Kingdom"
                   value={formData.country || ''}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition"
-                />
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer text-slate-800"
+                >
+                  <option value="">Select Country</option>
+                  <option value="Sri Lanka">Sri Lanka</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="Germany">Germany</option>
+                  <option value="Russia">Russia</option>
+                  <option value="France">France</option>
+                  <option value="India">India</option>
+                  <option value="Australia">Australia</option>
+                  <option value="China">China</option>
+                  <option value="Maldives">Maldives</option>
+                  <option value="United States">United States</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Italy">Italy</option>
+                  <option value="Switzerland">Switzerland</option>
+                  <option value="Netherlands">Netherlands</option>
+                  <option value="Sweden">Sweden</option>
+                  <option value="Japan">Japan</option>
+                  <option value="Ukraine">Ukraine</option>
+                  <option value="Poland">Poland</option>
+                  <option value="Spain">Spain</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
               <div className="space-y-1.5">
@@ -1262,15 +1298,32 @@ Serene Villa Hiriketiya`;
                 </div>
               </div>
 
-              {formData.roomType && (
-                <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3 flex items-center justify-between mt-2">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Selected Room:</span>
+              {getAllocatedRoomsList().length > 0 && (
+                <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 space-y-2.5 mt-3">
+                  <div className="flex items-center gap-2 border-b border-emerald-100 pb-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">
+                      Selected Room(s) ({getAllocatedRoomsList().length}):
+                    </span>
                   </div>
-                  <span className="text-xs font-extrabold text-emerald-700">
-                    Room {formData.selectedRoomNumber} ({formData.roomType})
-                  </span>
+
+                  <div className="space-y-1.5">
+                    {getAllocatedRoomsList().map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-white border border-emerald-100 rounded-xl px-3.5 py-2 shadow-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="bg-emerald-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md font-mono shrink-0">
+                            {item.roomNumber ? (item.roomNumber.startsWith('Room') ? item.roomNumber : `Room ${item.roomNumber}`) : `Room ${idx + 1}`}
+                          </span>
+                          <span className="text-xs font-bold text-slate-800 truncate">
+                            {item.roomType}
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md uppercase shrink-0">
+                          Assigned
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

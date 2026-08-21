@@ -1002,6 +1002,8 @@ const Reservations = () => {
           children: parseInt(confirmationData.children) || 0,
           whatsappNumber: confirmationData.whatsappNumber,
           nationality: confirmationData.nationality,
+          country: confirmationData.nationality || confirmationData.country,
+          email: confirmationData.email,
           passportNumber: `SV-${confirmationData.bookingNumber}`,
           paymentStatus: 'Pending',
           registrationStatus: 'Pending',
