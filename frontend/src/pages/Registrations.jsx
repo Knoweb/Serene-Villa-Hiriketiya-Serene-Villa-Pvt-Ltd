@@ -392,54 +392,21 @@ const Registrations = () => {
       console.error('Error fetching full registration details:', err);
     }
     
-    let associatedBooking = bookings.find(b => b.guestRegistrationId === reg.id);
-    
-    if (!associatedBooking) {
-      try {
-        const defaultForm = {
-          roomType: defaultRoomType,
-          room: '',
-          bookingType: 'Direct',
-          bookingNumber: `D-${1000 + reg.id}`,
-          boardBasis: 'Room Only',
-          remarks: '',
-          amount: '0.00',
-          paymentStatus: reg.paymentStatus || 'Pending',
-          registrationStatus: reg.registrationStatus || 'Pending'
-        };
-        const response = await fetch(`${API_BASE}/guest-registrations/${reg.id}/booking-details`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(defaultForm)
-        });
-        if (response.ok) {
-          const bookingRes = await fetch(`${API_BASE}/bookings`);
-          if (bookingRes.ok) {
-            const bookingData = await bookingRes.json();
-            setBookings(bookingData);
-            associatedBooking = bookingData.find(b => b.guestRegistrationId === reg.id);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to auto-create booking details', err);
-      }
-    }
+    let associatedBooking = getBookingForReg(reg.id);
     
     if (associatedBooking) {
       setBookingForm({
-        roomType: associatedBooking.roomType || defaultRoomType,
-        room: associatedBooking.roomNumber || '',
+        roomType: associatedBooking.roomType || reg.roomType || defaultRoomType,
+        room: associatedBooking.roomNumber || reg.roomNumber || reg.room || '',
         bookingType: associatedBooking.bookingType || 'Direct',
         bookingNumber: associatedBooking.bookingNumber || '',
         boardBasis: associatedBooking.boardBasis || 'Room Only',
         remarks: associatedBooking.remarks || '',
-        amount: associatedBooking.totalAmount || '',
-        paymentStatus: reg.paymentStatus || 'Pending',
+        amount: associatedBooking.totalAmount || reg.totalAmount || '',
+        paymentStatus: reg.paymentStatus || associatedBooking.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: reg.checkInDate || '',
-        checkOutDate: reg.checkOutDate || '',
+        checkInDate: reg.checkInDate || associatedBooking.checkInDate || '',
+        checkOutDate: reg.checkOutDate || associatedBooking.checkOutDate || '',
         numberOfNights: reg.numberOfNights || reg.nights || 0
       });
       fetchAdvancePayments(associatedBooking.id);
@@ -1118,12 +1085,22 @@ const Registrations = () => {
                 )}
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
+                  {/* Auto-filled status badge */}
+                  {associatedBooking && (associatedBooking.bookingNumber || associatedBooking.checkInDate || associatedBooking.totalAmount > 0) && (
+                    <div className="col-span-2 bg-amber-50/90 border border-amber-200/80 rounded-lg p-2 flex items-center justify-between text-amber-800 text-[11px] font-bold">
+                      <span className="flex items-center gap-1.5">
+                        🔒 Reservation Details Auto-Filled (Locked)
+                      </span>
+                      <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded uppercase tracking-wider font-extrabold">Read-Only</span>
+                    </div>
+                  )}
+
                   {/* Room Type */}
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room Type</label>
                     <select
                       value={bookingForm.roomType}
-                      disabled={Boolean(associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber)) || (isFrontOfficer === false && isAdmin === false)}
+                      disabled={Boolean(associatedBooking) || (isFrontOfficer === false && isAdmin === false)}
                       onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                     >
@@ -1147,7 +1124,7 @@ const Registrations = () => {
                       <input
                         type="text"
                         placeholder="e.g. 101"
-                        disabled={Boolean(associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber)) || (isFrontOfficer === false && isAdmin === false)}
+                        disabled={Boolean(associatedBooking) || (isFrontOfficer === false && isAdmin === false)}
                         value={bookingForm.room}
                         onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
                         className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
@@ -1155,64 +1132,13 @@ const Registrations = () => {
                       <button
                         type="button"
                         onClick={() => setShowRoomSelector(true)}
-                        disabled={Boolean(associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber)) || (isFrontOfficer === false && isAdmin === false)}
+                        disabled={Boolean(associatedBooking) || (isFrontOfficer === false && isAdmin === false)}
                         className="px-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-lg font-bold transition flex items-center justify-center border border-slate-200 cursor-pointer text-xs disabled:cursor-not-allowed"
                       >
                         Browse
                       </button>
                     </div>
                   </div>
-
-                  {/* Room Preview Card */}
-                  {getRoomTypeDetails(bookingForm.roomType) && (() => {
-                    const details = getRoomTypeDetails(bookingForm.roomType);
-                    return (
-                      <div className="col-span-2 mt-1 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex flex-col sm:flex-row gap-3 p-3 select-none">
-                        <div className="w-full sm:w-[120px] h-[90px] rounded-lg overflow-hidden relative shrink-0">
-                          <img 
-                            src={details.image} 
-                            alt={bookingForm.roomType}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent flex items-end p-1.5">
-                            <span className="text-[8px] text-white font-bold bg-slate-900/30 backdrop-blur-xs px-1.5 py-0.5 rounded">
-                              Max: {details.occupancy}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex-1 flex flex-col justify-between py-0.5">
-                          <div>
-                            <h5 className="text-[11px] font-bold text-slate-800">{bookingForm.roomType} Preview</h5>
-                            <p className="text-[9px] text-slate-400 leading-normal">
-                              Premium room layout equipped with modern amenities for a serene guest experience.
-                            </p>
-                          </div>
-                          <div className="mt-1">
-                            <div className="flex flex-wrap gap-1">
-                              {details.features.map((feat, idx) => (
-                                <span 
-                                  key={idx} 
-                                  className="text-[8px] bg-white border border-slate-200/50 text-slate-500 font-bold px-1.5 py-0.5 rounded"
-                                >
-                                  {feat}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Auto-filled status badge */}
-                  {associatedBooking && (associatedBooking.bookingNumber || associatedBooking.checkInDate || associatedBooking.totalAmount > 0) && (
-                    <div className="col-span-2 bg-amber-50/90 border border-amber-200/80 rounded-lg p-2 flex items-center justify-between text-amber-800 text-[11px] font-bold">
-                      <span className="flex items-center gap-1.5">
-                        🔒 Reservation Details Auto-Filled (Locked)
-                      </span>
-                      <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded uppercase tracking-wider font-extrabold">Read-Only</span>
-                    </div>
-                  )}
 
                   {/* Booking Type */}
                   <div className="space-y-1.5">
