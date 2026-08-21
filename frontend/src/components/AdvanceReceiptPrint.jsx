@@ -285,11 +285,17 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
               {(() => {
                 const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
-                const cardFee = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
-                if (cardFee > 0) {
-                  const feeDisplay = forceLkr
-                    ? `LKR ${cardFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : `${displayCurrency} ${(cardFee / exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                const cardFeeRaw = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
+                if (cardFeeRaw > 0) {
+                  let feeDisplayVal = 0;
+                  if (forceLkr || displayCurrency === 'LKR') {
+                    const lkrPaid = paidDisplayAmt * (currencyCode === 'LKR' ? 1 : exRate);
+                    feeDisplayVal = cardFeeRaw < (lkrPaid * 0.01) ? (cardFeeRaw * exRate) : cardFeeRaw;
+                  } else {
+                    feeDisplayVal = cardFeeRaw > (paidDisplayAmt * 0.5) ? (cardFeeRaw / exRate) : cardFeeRaw;
+                  }
+                  
+                  const feeDisplay = `${displayCurrency} ${feeDisplayVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   return (
                     <div className="flex justify-between pb-1 border-b border-slate-200">
                       <span className="text-slate-550 font-semibold">CHARGES:</span>

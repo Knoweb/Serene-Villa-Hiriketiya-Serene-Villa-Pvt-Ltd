@@ -3347,16 +3347,28 @@ Serene Villa Hiriketiya`;
                             </>
                           )}
 
-                          {cardFeeVal > 0 && (
-                            <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                              <span className="text-slate-500 font-semibold">CHARGES:</span>
-                              <span className="font-bold text-slate-850">
-                                {forceReceiptLkr || dispCurr === 'LKR'
-                                  ? `LKR ${cardFeeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                  : `${dispCurr} ${(cardFeeVal / exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                              </span>
-                            </div>
-                          )}
+                          {(() => {
+                            if (cardFeeVal > 0) {
+                              const paidAmt = selectedPaymentForReceipt.amountLkr || selectedPaymentForReceipt.amount || 0;
+                              const isTargetLkr = forceReceiptLkr || dispCurr === 'LKR';
+                              let feeDisplayVal = 0;
+                              if (isTargetLkr) {
+                                feeDisplayVal = cardFeeVal < (paidAmt * 0.01) ? (cardFeeVal * exRate) : cardFeeVal;
+                              } else {
+                                const usdPaid = selectedPaymentForReceipt.convertedAmountLkr ? (selectedPaymentForReceipt.convertedAmountLkr / exRate) : paidAmt;
+                                feeDisplayVal = cardFeeVal > (usdPaid * 0.5) ? (cardFeeVal / exRate) : cardFeeVal;
+                              }
+                              return (
+                                <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                                  <span className="text-slate-500 font-semibold">CHARGES:</span>
+                                  <span className="font-bold text-slate-850">
+                                    {dispCurr} {feeDisplayVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
 
                           {(() => {
                             const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
