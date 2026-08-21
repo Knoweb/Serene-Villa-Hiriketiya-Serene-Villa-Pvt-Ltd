@@ -24,5 +24,7 @@ jobs:
             cd ~/Serene-Villa-Hiriketiya-Serene-Villa-Pvt-Ltd
             git reset --hard HEAD
             git pull origin main
-            docker compose up --build -d
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
             echo "Deployment Completed Successfully!"
