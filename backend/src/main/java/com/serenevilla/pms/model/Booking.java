@@ -60,6 +60,8 @@ public class Booking {
     @Column(columnDefinition = "TEXT")
     private String roomPrices;
 
+    private String title = "Mr.";
+
     private String guestName;
 
     private String email;

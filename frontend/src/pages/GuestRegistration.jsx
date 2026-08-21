@@ -11,6 +11,7 @@ const GuestRegistration = () => {
   const { user } = useAuth();
   const receiptRef = React.useRef(null);
   const [formData, setFormData] = useState({
+    title: 'Mr.',
     guestName: '',
     guestPhoto: null,
     checkInDate: '',
@@ -120,6 +121,7 @@ const GuestRegistration = () => {
         if (booking) {
           setFormData(prev => ({
             ...prev,
+            title: reg?.title || booking?.title || prev.title || 'Mr.',
             guestName: booking.guestName || reg?.guestName || prev.guestName || '',
             checkInDate: booking.checkInDate || reg?.checkInDate || prev.checkInDate || '',
             checkOutDate: booking.checkOutDate || reg?.checkOutDate || prev.checkOutDate || '',
@@ -961,19 +963,34 @@ Serene Villa Hiriketiya`;
           {/* Form Fields Section */}
           <div className="space-y-4">
             
-            {/* Full Name */}
+            {/* Title & Full Name */}
             <div className="space-y-1.5">
               <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                <User size={12} className="text-slate-400" /> Full Name *
+                <User size={12} className="text-slate-400" /> Title & Full Name *
               </label>
-              <input
-                type="text"
-                name="guestName"
-                placeholder="e.g. John Doe"
-                value={formData.guestName}
-                onChange={handleInputChange}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition"
-              />
+              <div className="flex gap-2">
+                <select
+                  name="title"
+                  value={formData.title || 'Mr.'}
+                  onChange={handleInputChange}
+                  className="w-24 bg-slate-50 border border-slate-200 rounded-xl py-3 px-3 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer text-slate-800 shrink-0"
+                >
+                  <option value="Mr.">Mr.</option>
+                  <option value="Mrs.">Mrs.</option>
+                  <option value="Ms.">Ms.</option>
+                  <option value="Dr.">Dr.</option>
+                  <option value="Prof.">Prof.</option>
+                  <option value="Rev.">Rev.</option>
+                </select>
+                <input
+                  type="text"
+                  name="guestName"
+                  placeholder="e.g. John Doe"
+                  value={formData.guestName}
+                  onChange={handleInputChange}
+                  className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition"
+                />
+              </div>
             </div>
 
             {/* Passport & WhatsApp Grid */}

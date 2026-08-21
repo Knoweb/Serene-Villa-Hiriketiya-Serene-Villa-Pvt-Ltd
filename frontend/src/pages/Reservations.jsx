@@ -3794,15 +3794,29 @@ Serene Villa Hiriketiya`;
             <form onSubmit={(e) => { e.preventDefault(); handlePrintConfirmation(); }} className="grid grid-cols-2 gap-4 text-xs font-semibold text-slate-600">
               <div className="space-y-1.5 col-span-2">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  {isCreatingNewReservation ? 'Client Name' : 'Client Name (Prefilled)'}
+                  Title & Client Name
                 </label>
-                <input 
-                  type="text" 
-                  disabled={!isCreatingNewReservation} 
-                  value={isCreatingNewReservation ? confirmationData.guestName : (selectedReg?.guestName || '')}
-                  onChange={(e) => isCreatingNewReservation && setConfirmationData({...confirmationData, guestName: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none disabled:text-slate-400"
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={confirmationData.title || 'Mr.'}
+                    onChange={(e) => setConfirmationData({...confirmationData, title: e.target.value})}
+                    className="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-slate-800 focus:outline-none cursor-pointer text-xs font-semibold shrink-0"
+                  >
+                    <option value="Mr.">Mr.</option>
+                    <option value="Mrs.">Mrs.</option>
+                    <option value="Ms.">Ms.</option>
+                    <option value="Dr.">Dr.</option>
+                    <option value="Prof.">Prof.</option>
+                    <option value="Rev.">Rev.</option>
+                  </select>
+                  <input 
+                    type="text" 
+                    disabled={!isCreatingNewReservation} 
+                    value={isCreatingNewReservation ? confirmationData.guestName : (selectedReg?.guestName || '')}
+                    onChange={(e) => isCreatingNewReservation && setConfirmationData({...confirmationData, guestName: e.target.value})}
+                    className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none disabled:text-slate-400 font-semibold"
+                  />
+                </div>
               </div>
 
                {confirmationData.bookingType?.toLowerCase().includes('direct') ? (

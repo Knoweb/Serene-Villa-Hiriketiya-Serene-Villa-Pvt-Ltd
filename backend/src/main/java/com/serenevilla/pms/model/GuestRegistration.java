@@ -29,6 +29,8 @@ public class GuestRegistration {
     private Long id;
 
     @Column(nullable = false)
+    private String title = "Mr.";
+
     private String guestName;
 
     @Lob

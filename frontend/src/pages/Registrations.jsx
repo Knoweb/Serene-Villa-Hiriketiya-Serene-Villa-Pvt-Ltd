@@ -935,36 +935,36 @@ const Registrations = () => {
           {selectedReg ? (
             <div className="space-y-6">
               
-              {/* Header Info */}
-              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-855 text-lg font-bold uppercase shadow-sm">
-                    {selectedReg.guestPhotoPath ? (
-                      <img 
-                        src={selectedReg.guestPhotoPath} 
-                        alt={selectedReg.guestName}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      selectedReg.guestName.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-base leading-tight">{selectedReg.guestName}</h3>
-                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                      <Globe className="h-3 w-3" /> {selectedReg.nationality}
-                    </p>
-                  </div>
-                </div>
+              {/* Header Info (Centered Avatar & Title) */}
+              <div className="relative border-b border-slate-100 pb-4 text-center flex flex-col items-center justify-center">
                 <button 
                   onClick={() => setSelectedReg(null)}
-                  className="text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition"
+                  className="absolute top-0 right-0 text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
+
+                <div className="h-16 w-16 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-800 text-xl font-black uppercase shadow-sm mx-auto mb-2.5 ring-4 ring-emerald-50">
+                  {selectedReg.guestPhotoPath ? (
+                    <img 
+                      src={selectedReg.guestPhotoPath} 
+                      alt={selectedReg.guestName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    selectedReg.guestName ? selectedReg.guestName.charAt(0).toUpperCase() : 'G'
+                  )}
+                </div>
+
+                <h3 className="font-extrabold text-slate-900 text-base leading-tight">
+                  {selectedReg.title ? `${selectedReg.title} ` : ''}${selectedReg.guestName}
+                </h3>
+                <p className="text-xs font-semibold text-slate-400 flex items-center justify-center gap-1 mt-1">
+                  <Globe className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.country || selectedReg.nationality || 'Not Specified'}
+                </p>
               </div>
 
               {/* Guest Core Details */}
