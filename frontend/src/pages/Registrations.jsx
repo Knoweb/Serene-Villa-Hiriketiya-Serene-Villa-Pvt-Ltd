@@ -650,9 +650,25 @@ const Registrations = () => {
     }
   };
 
-  // Cross-reference booking for row display
+  // Cross-reference booking for row display with smart numeric fallback
   const getBookingForReg = (regId) => {
-    return bookings.find(b => b.guestRegistrationId === regId);
+    if (!regId) return null;
+    const targetReg = registrations.find(r => r.id === regId) || (selectedReg?.id === regId ? selectedReg : null);
+    
+    let found = bookings.find(b => b.guestRegistrationId === regId);
+    if (found) return found;
+    
+    if (targetReg) {
+      const regBookingNum = (targetReg.bookingNumber || targetReg.passportNumber || '').replace(/\D/g, '');
+      if (regBookingNum) {
+        found = bookings.find(b => {
+          const bNum = (b.bookingNumber || '').replace(/\D/g, '');
+          return bNum && bNum === regBookingNum;
+        });
+        if (found) return found;
+      }
+    }
+    return null;
   };
 
   const qrPort = window.location.port ? `:${window.location.port}` : '';
@@ -828,7 +844,15 @@ const Registrations = () => {
                           <td className="p-4">
                             <p>In: {reg.checkInDate}</p>
                             <p className="text-slate-500 font-bold text-[10px] mt-0.5">
-                              {booking ? (booking.roomNumber ? `Room ${booking.roomNumber}` : 'Unallocated') : 'Unallocated'}
+                              {(() => {
+                                const rNo = booking?.roomNumber || reg.roomNumber || reg.room;
+                                const rType = booking?.roomType || reg.roomType;
+                                if (rNo && rNo !== 'Unallocated') {
+                                  return rNo.toLowerCase().startsWith('room') ? rNo : `Room ${rNo}`;
+                                }
+                                if (rType) return rType;
+                                return 'Unallocated';
+                              })()}
                             </p>
                           </td>
                           <td className="p-4 space-y-1">
