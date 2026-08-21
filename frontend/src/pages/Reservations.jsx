@@ -994,16 +994,17 @@ const Reservations = () => {
     if (isCreatingNewReservation) {
       try {
         const newGuest = {
-          guestName: confirmationData.guestName,
+          title: confirmationData.title || 'Mr.',
+          guestName: confirmationData.guestName || 'Guest',
           checkInDate: confirmationData.checkInDate,
           checkOutDate: confirmationData.checkOutDate,
           numberOfNights: parseInt(confirmationData.nights) || 1,
           adults: parseInt(confirmationData.adults) || 1,
           children: parseInt(confirmationData.children) || 0,
-          whatsappNumber: confirmationData.whatsappNumber,
-          nationality: confirmationData.nationality,
-          country: confirmationData.nationality || confirmationData.country,
-          email: confirmationData.email,
+          whatsappNumber: confirmationData.whatsappNumber || 'N/A',
+          nationality: confirmationData.country || confirmationData.nationality || 'Other',
+          country: confirmationData.country || confirmationData.nationality || 'Other',
+          email: confirmationData.email || '',
           passportNumber: `SV-${confirmationData.bookingNumber}`,
           paymentStatus: 'Pending',
           registrationStatus: 'Pending',
@@ -1018,7 +1019,8 @@ const Reservations = () => {
         });
 
         if (!guestRes.ok) {
-          throw new Error('Failed to create guest registration.');
+          const errData = await guestRes.json().catch(() => ({}));
+          throw new Error(errData.message || errData.error || 'Failed to create guest registration.');
         }
 
         const savedGuest = await guestRes.json();
