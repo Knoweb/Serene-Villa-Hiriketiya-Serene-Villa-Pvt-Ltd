@@ -1099,9 +1099,9 @@ const Registrations = () => {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room Type</label>
                     <select
                       value={bookingForm.roomType}
-                      disabled={isFrontOfficer === false && isAdmin === false} // Read-only for Accountant
+                      disabled={Boolean(associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber)) || (isFrontOfficer === false && isAdmin === false)}
                       onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                     >
                       {uniqueRoomTypes.length === 0 ? (
                         <option value="">No room types available</option>
@@ -1123,16 +1123,16 @@ const Registrations = () => {
                       <input
                         type="text"
                         placeholder="e.g. 101"
-                        disabled={isFrontOfficer === false && isAdmin === false}
+                        disabled={Boolean(associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber)) || (isFrontOfficer === false && isAdmin === false)}
                         value={bookingForm.room}
                         onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
-                        className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs"
+                        className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       />
                       <button
                         type="button"
                         onClick={() => setShowRoomSelector(true)}
-                        disabled={isFrontOfficer === false && isAdmin === false}
-                        className="px-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-lg font-bold transition flex items-center justify-center border border-slate-200 cursor-pointer text-xs"
+                        disabled={Boolean(associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber)) || (isFrontOfficer === false && isAdmin === false)}
+                        className="px-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-lg font-bold transition flex items-center justify-center border border-slate-200 cursor-pointer text-xs disabled:cursor-not-allowed"
                       >
                         Browse
                       </button>
