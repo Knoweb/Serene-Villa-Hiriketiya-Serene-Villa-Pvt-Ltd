@@ -62,6 +62,8 @@ public class Booking {
 
     private String guestName;
 
+    private String email;
+
     private String senderName;
 
     private String confirmedBy;

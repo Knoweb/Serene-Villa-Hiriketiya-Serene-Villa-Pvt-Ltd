@@ -1047,8 +1047,7 @@ const Reservations = () => {
             ? JSON.stringify(confirmationData.allocatedRooms) 
             : '',
           guestName: confirmationData.guestName || '',
-          senderName: confirmationData.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
-          confirmedBy: confirmationData.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
+          email: confirmationData.email || '',
           senderName: confirmationData.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
           confirmedBy: confirmationData.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
           remarks: confirmationData.remarks || '',
