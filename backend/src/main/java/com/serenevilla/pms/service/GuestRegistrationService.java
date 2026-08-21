@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.serenevilla.pms.handler.RegistrationWebSocketHandler;
 import java.time.LocalDate;
@@ -38,6 +39,20 @@ public class GuestRegistrationService {
     @Autowired
     private com.serenevilla.pms.repository.RoomRepository roomRepository;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @jakarta.annotation.PostConstruct
+    public void initTableColumns() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE guest_registrations MODIFY COLUMN passport_front_path LONGTEXT");
+            jdbcTemplate.execute("ALTER TABLE guest_registrations MODIFY COLUMN passport_back_path LONGTEXT");
+            jdbcTemplate.execute("ALTER TABLE guest_registrations MODIFY COLUMN guest_photo_path LONGTEXT");
+        } catch (Exception e) {
+            System.out.println("Column alter notice: " + e.getMessage());
+        }
+    }
+
 
 
     public GuestRegistration createPublicRegistration(GuestRegistration registration) {
@@ -62,8 +77,10 @@ public class GuestRegistrationService {
 
         // Calculate nights
         if (registration.getCheckInDate() != null && registration.getCheckOutDate() != null) {
-            long days = registration.getCheckInDate().datesUntil(registration.getCheckOutDate()).count();
-            registration.setNumberOfNights((int) days);
+            long days = java.time.temporal.ChronoUnit.DAYS.between(registration.getCheckInDate(), registration.getCheckOutDate());
+            registration.setNumberOfNights((int) Math.max(1, days));
+        } else {
+            registration.setNumberOfNights(1);
         }
         registration.setPaymentStatus("Confirm");
         registration.setRegistrationStatus("Pending");

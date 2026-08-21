@@ -339,7 +339,8 @@ const GuestRegistration = () => {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to submit guest registration to server');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || `Server responded with status ${res.status}`);
       }
 
       const savedReg = await res.json();
