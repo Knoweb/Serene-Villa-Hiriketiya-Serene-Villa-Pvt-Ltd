@@ -87,16 +87,18 @@ public class GuestRegistration {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if ((numberOfNights == null || numberOfNights == 0) && checkInDate != null && checkOutDate != null) {
-            numberOfNights = (int) checkInDate.datesUntil(checkOutDate).count();
+        if ((numberOfNights == null || numberOfNights <= 0) && checkInDate != null && checkOutDate != null) {
+            long days = java.time.temporal.ChronoUnit.DAYS.between(checkInDate, checkOutDate);
+            numberOfNights = (int) Math.max(1, days);
         }
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-        if ((numberOfNights == null || numberOfNights == 0) && checkInDate != null && checkOutDate != null) {
-            numberOfNights = (int) checkInDate.datesUntil(checkOutDate).count();
+        if ((numberOfNights == null || numberOfNights <= 0) && checkInDate != null && checkOutDate != null) {
+            long days = java.time.temporal.ChronoUnit.DAYS.between(checkInDate, checkOutDate);
+            numberOfNights = (int) Math.max(1, days);
         }
     }
 

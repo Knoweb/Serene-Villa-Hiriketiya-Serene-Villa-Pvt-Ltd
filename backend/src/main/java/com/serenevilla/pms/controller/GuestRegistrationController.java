@@ -23,7 +23,7 @@ public class GuestRegistrationController {
             return ResponseEntity.ok(guestRegistrationService.createPublicRegistration(registration));
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage(), "error", e.getClass().getName()));
+            return ResponseEntity.status(500).body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : "Error saving guest registration", "error", e.getClass().getName()));
         }
     }
 
