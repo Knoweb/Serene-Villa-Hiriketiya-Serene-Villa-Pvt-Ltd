@@ -960,7 +960,7 @@ const Registrations = () => {
                 </div>
 
                 <h3 className="font-extrabold text-slate-900 text-base leading-tight">
-                  {selectedReg.title ? `${selectedReg.title} ` : ''}${selectedReg.guestName}
+                  Mr / Mrs ${selectedReg.guestName}
                 </h3>
                 <p className="text-xs font-semibold text-slate-400 flex items-center justify-center gap-1 mt-1">
                   <Globe className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.country || selectedReg.nationality || 'Not Specified'}
