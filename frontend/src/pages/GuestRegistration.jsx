@@ -1017,26 +1017,26 @@ Serene Villa Hiriketiya`;
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer text-slate-800"
                 >
-                  <option value="">Select Nationality</option>
-                  <option value="Sri Lankan">Sri Lankan</option>
-                  <option value="British">British</option>
-                  <option value="German">German</option>
-                  <option value="Russian">Russian</option>
-                  <option value="French">French</option>
-                  <option value="Indian">Indian</option>
-                  <option value="Australian">Australian</option>
-                  <option value="Chinese">Chinese</option>
-                  <option value="Maldivian">Maldivian</option>
-                  <option value="American">American</option>
-                  <option value="Canadian">Canadian</option>
-                  <option value="Italian">Italian</option>
-                  <option value="Swiss">Swiss</option>
-                  <option value="Dutch">Dutch</option>
-                  <option value="Swedish">Swedish</option>
-                  <option value="Japanese">Japanese</option>
-                  <option value="Ukrainian">Ukrainian</option>
-                  <option value="Polish">Polish</option>
-                  <option value="Spanish">Spanish</option>
+                  <option value="">Select Country</option>
+                  <option value="Sri Lanka">Sri Lanka</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="Germany">Germany</option>
+                  <option value="Russia">Russia</option>
+                  <option value="France">France</option>
+                  <option value="India">India</option>
+                  <option value="Australia">Australia</option>
+                  <option value="China">China</option>
+                  <option value="Maldives">Maldives</option>
+                  <option value="United States">United States</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Italy">Italy</option>
+                  <option value="Switzerland">Switzerland</option>
+                  <option value="Netherlands">Netherlands</option>
+                  <option value="Sweden">Sweden</option>
+                  <option value="Japan">Japan</option>
+                  <option value="Ukraine">Ukraine</option>
+                  <option value="Poland">Poland</option>
+                  <option value="Spain">Spain</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
