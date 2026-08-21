@@ -62,6 +62,10 @@ public class GuestRegistration {
     @Column(nullable = false)
     private String nationality;
 
+    private String country;
+    private String address;
+    private String email;
+
     private Integer adults = 1;
     private Integer children = 0;
 

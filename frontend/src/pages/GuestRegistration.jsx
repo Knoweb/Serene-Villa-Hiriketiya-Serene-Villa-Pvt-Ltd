@@ -20,6 +20,9 @@ const GuestRegistration = () => {
     passportNumber: '',
     whatsAppNumber: '',
     nationality: '',
+    country: '',
+    address: '',
+    email: '',
     adults: 1,
     children: 0,
     roomType: '',
@@ -115,17 +118,26 @@ const GuestRegistration = () => {
         const reg = data.registration;
 
         if (booking) {
+          let roomNum = '';
+          if (booking.roomNumber) {
+            roomNum = booking.roomNumber.split(',')[0].trim();
+          }
+
           setFormData(prev => ({
             ...prev,
-            guestName: reg?.guestName || booking.guestName || prev.guestName || '',
-            checkInDate: reg?.checkInDate || booking.checkInDate || prev.checkInDate || '',
-            checkOutDate: reg?.checkOutDate || booking.checkOutDate || prev.checkOutDate || '',
-            passportNumber: reg?.passportNumber || booking.passportNumber || prev.passportNumber || '',
-            whatsAppNumber: reg?.whatsappNumber || reg?.whatsAppNumber || booking.whatsappNumber || booking.contactNumber || booking.phone || prev.whatsAppNumber || '',
-            nationality: reg?.nationality || booking.nationality || prev.nationality || '',
-            adults: reg?.adults || booking.adults || prev.adults || 1,
-            children: reg?.children || booking.children || prev.children || 0,
+            guestName: booking.guestName || reg?.guestName || prev.guestName || '',
+            checkInDate: booking.checkInDate || reg?.checkInDate || prev.checkInDate || '',
+            checkOutDate: booking.checkOutDate || reg?.checkOutDate || prev.checkOutDate || '',
+            adults: booking.adults || reg?.adults || prev.adults || 1,
+            children: booking.children || reg?.children || prev.children || 0,
             roomType: booking.roomType || prev.roomType || '',
+            selectedRoomNumber: roomNum || prev.selectedRoomNumber || '',
+            passportNumber: reg?.passportNumber || prev.passportNumber || '',
+            whatsAppNumber: reg?.whatsappNumber || reg?.whatsAppNumber || booking.contactNumber || booking.phone || prev.whatsAppNumber || '',
+            nationality: reg?.nationality || booking.nationality || prev.nationality || '',
+            country: reg?.country || booking.country || prev.country || '',
+            address: reg?.address || booking.address || prev.address || '',
+            email: reg?.email || booking.email || prev.email || '',
             totalAmount: booking.totalAmount || prev.totalAmount || '',
           }));
           setLookupSuccess(true);
@@ -979,39 +991,86 @@ Serene Villa Hiriketiya`;
               </div>
             </div>
 
-            {/* Nationality */}
-            <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                <Globe size={12} className="text-slate-400" /> Nationality *
-              </label>
-              <select
-                name="nationality"
-                value={formData.nationality}
-                onChange={handleInputChange}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer text-slate-800"
-              >
-                <option value="">Select Nationality</option>
-                <option value="Sri Lankan">Sri Lankan</option>
-                <option value="British">British</option>
-                <option value="German">German</option>
-                <option value="Russian">Russian</option>
-                <option value="French">French</option>
-                <option value="Indian">Indian</option>
-                <option value="Australian">Australian</option>
-                <option value="Chinese">Chinese</option>
-                <option value="Maldivian">Maldivian</option>
-                <option value="American">American</option>
-                <option value="Canadian">Canadian</option>
-                <option value="Italian">Italian</option>
-                <option value="Swiss">Swiss</option>
-                <option value="Dutch">Dutch</option>
-                <option value="Swedish">Swedish</option>
-                <option value="Japanese">Japanese</option>
-                <option value="Ukrainian">Ukrainian</option>
-                <option value="Polish">Polish</option>
-                <option value="Spanish">Spanish</option>
-                <option value="Other">Other</option>
-              </select>
+            {/* Country & Nationality Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <Globe size={12} className="text-slate-400" /> Country
+                </label>
+                <input
+                  type="text"
+                  name="country"
+                  placeholder="e.g. United Kingdom"
+                  value={formData.country || ''}
+                  onChange={handleInputChange}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <Globe size={12} className="text-slate-400" /> Nationality *
+                </label>
+                <select
+                  name="nationality"
+                  value={formData.nationality}
+                  onChange={handleInputChange}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer text-slate-800"
+                >
+                  <option value="">Select Nationality</option>
+                  <option value="Sri Lankan">Sri Lankan</option>
+                  <option value="British">British</option>
+                  <option value="German">German</option>
+                  <option value="Russian">Russian</option>
+                  <option value="French">French</option>
+                  <option value="Indian">Indian</option>
+                  <option value="Australian">Australian</option>
+                  <option value="Chinese">Chinese</option>
+                  <option value="Maldivian">Maldivian</option>
+                  <option value="American">American</option>
+                  <option value="Canadian">Canadian</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Swiss">Swiss</option>
+                  <option value="Dutch">Dutch</option>
+                  <option value="Swedish">Swedish</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Ukrainian">Ukrainian</option>
+                  <option value="Polish">Polish</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Address & Email Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <MapPin size={12} className="text-slate-400" /> Address
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  placeholder="e.g. 123 High Street, London"
+                  value={formData.address || ''}
+                  onChange={handleInputChange}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <Globe size={12} className="text-slate-400" /> Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="e.g. guest@example.com"
+                  value={formData.email || ''}
+                  onChange={handleInputChange}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition"
+                />
+              </div>
             </div>
 
             {/* Dates Grid */}
