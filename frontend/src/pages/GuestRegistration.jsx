@@ -228,7 +228,7 @@ const GuestRegistration = () => {
           let height = img.height;
 
           // Downscale large camera images (max width/height of 1600px)
-          const MAX_SIZE = 1600;
+          const MAX_SIZE = 1000;
           if (width > height) {
             if (width > MAX_SIZE) {
               height = Math.round((height * MAX_SIZE) / width);
@@ -248,7 +248,7 @@ const GuestRegistration = () => {
           ctx.drawImage(img, 0, 0, width, height);
 
           // Compress to JPEG with 0.70 quality
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.70);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.55);
           resolve(dataUrl);
         };
         img.onerror = (err) => reject(err);
