@@ -57,9 +57,6 @@ public class GuestRegistrationService {
         if (registration.getCountry() == null || registration.getCountry().trim().isEmpty()) {
             registration.setCountry(registration.getNationality());
         }
-        if (registration.getTitle() == null || registration.getTitle().trim().isEmpty()) {
-            registration.setTitle("Mr.");
-        }
 
         // Calculate nights
         if (registration.getCheckInDate() != null && registration.getCheckOutDate() != null) {

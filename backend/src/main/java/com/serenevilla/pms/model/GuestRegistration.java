@@ -136,6 +136,14 @@ public class GuestRegistration {
         this.whatsappNumber = whatsAppNumber;
     }
 
+    public String getWhatsappNumber() {
+        return whatsappNumber;
+    }
+
+    public void setWhatsappNumber(String whatsappNumber) {
+        this.whatsappNumber = whatsappNumber;
+    }
+
     public Integer getNights() {
         return numberOfNights;
     }
