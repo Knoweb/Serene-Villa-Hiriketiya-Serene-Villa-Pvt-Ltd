@@ -818,7 +818,7 @@ const Reservations = () => {
     const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);
     setConfirmationData({
       address: '',
-      email: reg.email || 'N/A',
+      email: reg?.email || booking?.email || '',
       vatNo: '',
       whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || 'N/A',
       nationality: reg?.nationality || 'N/A',
@@ -861,7 +861,7 @@ const Reservations = () => {
     const defaultUnitPrice = (booking.totalAmount / nightsCount).toFixed(2);
     setConfirmationData({
       address: '',
-      email: reg.email || 'N/A',
+      email: reg?.email || booking?.email || '',
       vatNo: '',
       whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || 'N/A',
       nationality: reg?.nationality || 'N/A',

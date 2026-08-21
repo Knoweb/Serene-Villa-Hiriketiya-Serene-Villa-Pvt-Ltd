@@ -316,6 +316,12 @@ public class GuestRegistrationService {
                 if (booking.getGuestRegistrationId() != null) {
                     reg = guestRegistrationRepository.findById(booking.getGuestRegistrationId()).orElse(null);
                 }
+                
+                // Ensure email & country are synced if available on booking
+                if (reg != null && (reg.getEmail() == null || reg.getEmail().trim().isEmpty()) && booking.getEmail() != null && !booking.getEmail().trim().isEmpty()) {
+                    reg.setEmail(booking.getEmail());
+                }
+
                 Map<String, Object> result = new java.util.HashMap<>();
                 result.put("booking", booking);
                 if (reg != null) {

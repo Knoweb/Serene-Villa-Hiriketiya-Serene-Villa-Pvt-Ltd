@@ -132,7 +132,7 @@ const GuestRegistration = () => {
             nationality: reg?.nationality || booking.nationality || prev.nationality || '',
             country: reg?.country || booking.country || prev.country || '',
             address: reg?.address || booking.address || prev.address || '',
-            email: reg?.email || booking.email || booking.clientEmail || prev.email || '',
+            email: reg?.email || booking?.email || booking?.clientEmail || prev.email || '',
             totalAmount: booking.totalAmount || prev.totalAmount || '',
           }));
           setLookupSuccess(true);
