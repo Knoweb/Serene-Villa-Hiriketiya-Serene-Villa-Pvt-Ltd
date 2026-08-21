@@ -813,11 +813,9 @@ const Registrations = () => {
                             <p className="text-slate-500 font-bold text-[10px] mt-0.5">
                               {(() => {
                                 const rNo = booking?.roomNumber || reg.roomNumber || reg.room;
-                                const rType = booking?.roomType || reg.roomType;
                                 if (rNo && rNo !== 'Unallocated') {
                                   return rNo.toLowerCase().startsWith('room') ? rNo : `Room ${rNo}`;
                                 }
-                                if (rType) return rType;
                                 return 'Unallocated';
                               })()}
                             </p>
