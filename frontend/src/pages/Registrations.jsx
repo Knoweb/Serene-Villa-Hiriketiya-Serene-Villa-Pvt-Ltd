@@ -960,38 +960,126 @@ const Registrations = () => {
               <div className="space-y-3 text-xs bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Guest Information</h4>
                 <div className="grid grid-cols-2 gap-3">
+                  
+                  {/* Reservation ID */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Passport Number</p>
-                    <p className="font-mono font-bold text-slate-805 flex items-center gap-1">
-                      <FileText className="h-3 w-3 text-slate-400" /> {selectedReg.passportNumber}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Reservation ID</p>
+                    <p className="font-mono font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                      <FileText className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`}
                     </p>
                   </div>
+
+                  {/* WhatsApp Number */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">WhatsApp Number</p>
-                    <p className="font-bold text-slate-805 flex items-center gap-1">
-                      <Phone className="h-3 w-3 text-slate-400" /> {selectedReg.whatsappNumber || selectedReg.whatsAppNumber}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">WhatsApp Number</p>
+                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                      <Phone className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.whatsappNumber || selectedReg.whatsAppNumber || 'N/A'}
                     </p>
                   </div>
+
+                  {/* Check-In */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Check-In</p>
-                    <p className="font-bold text-slate-805 flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-slate-400" /> {selectedReg.checkInDate}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-In</p>
+                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkInDate || associatedBooking?.checkInDate || 'N/A'}
                     </p>
                   </div>
+
+                  {/* Check-Out */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Check-Out</p>
-                    <p className="font-bold text-slate-850 flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-slate-400" /> {selectedReg.checkOutDate}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-Out</p>
+                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkOutDate || associatedBooking?.checkOutDate || 'N/A'}
                     </p>
                   </div>
-                  <div className="space-y-1 col-span-2 flex justify-between border-t border-slate-100 pt-2 mt-1">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Total Stay Nights:</span>
-                    <span className="font-extrabold text-emerald-700">{selectedReg.numberOfNights || selectedReg.nights} Nights</span>
+
+                  {/* Total Nights */}
+                  <div className="space-y-1 border-t border-slate-100/80 pt-2 mt-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Nights:</span>
+                    <span className="font-extrabold text-emerald-700 text-xs">
+                      {selectedReg.numberOfNights || selectedReg.nights || 1} Nights
+                    </span>
                   </div>
-                  <div className="space-y-1 col-span-2 flex justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Pax (Adults / Kids):</span>
-                    <span className="font-extrabold text-slate-800">{selectedReg.adults} Adults / {selectedReg.children} Children</span>
+
+                  {/* Pax */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Pax:</span>
+                    <span className="font-extrabold text-slate-800">{selectedReg.adults || 1} Adults / {selectedReg.children || 0} Children</span>
                   </div>
+
+                  {/* Booking Channel */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Booking Channel:</span>
+                    <span className="font-extrabold text-slate-800">
+                      {associatedBooking?.bookingType || 'Direct Booking'}
+                    </span>
+                  </div>
+
+                  {/* Room Type */}
+                  <div className="col-span-2 flex justify-between items-start py-1.5 border-t border-slate-100/60">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room Type:</span>
+                    <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-1 max-w-[70%]">
+                      {associatedBooking && (associatedBooking.roomType || associatedBooking.roomNumber || associatedBooking.roomPrices)
+                        ? (() => {
+                            const roomTypesList = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()) : [];
+                            const roomNumbersList = associatedBooking.roomNumber ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean) : [];
+
+                            let parsedPrices = [];
+                            if (associatedBooking.roomPrices) {
+                              try {
+                                parsedPrices = JSON.parse(associatedBooking.roomPrices);
+                              } catch (e) {}
+                            }
+
+                            if (roomNumbersList.length > 0) {
+                              return roomNumbersList.map((rNo, idx) => {
+                                const matched = parsedPrices.find(p => p.roomNumber === rNo);
+                                const priceVal = matched?.roomPrice ? parseFloat(matched.roomPrice) : null;
+                                const curr = associatedBooking.currency || 'LKR';
+
+                                return (
+                                  <div key={idx} className="flex items-center gap-1.5">
+                                    <span className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-[11px] font-bold">
+                                      Room {rNo}
+                                    </span>
+                                    {priceVal != null && (
+                                      <span className="text-emerald-700 font-mono text-[11px]">
+                                        - {curr} {priceVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              });
+                            } else if (roomTypesList.length > 0) {
+                              return roomTypesList.map((rType, idx) => (
+                                <span key={idx} className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-[11px] font-bold">
+                                  {rType}
+                                </span>
+                              ));
+                            }
+                            return <span className="text-slate-400 italic">Unallocated</span>;
+                          })()
+                        : <span className="text-slate-400 italic">{bookingForm.room ? `Room ${bookingForm.room}` : (bookingForm.roomType || 'Unallocated')}</span>
+                      }
+                    </div>
+                  </div>
+
+                  {/* Board Basis */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/60 pt-1.5">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Board Basis:</span>
+                    <span className="font-extrabold text-slate-800">
+                      {associatedBooking?.boardBasis || 'Room Only'}
+                    </span>
+                  </div>
+
+                  {/* Total Price */}
+                  <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/80 pt-2">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
+                    <span className="font-extrabold text-slate-900 font-mono text-xs">
+                      {associatedBooking?.currency || 'LKR'} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
                 </div>
               </div>
 
