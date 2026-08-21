@@ -41,6 +41,25 @@ public class GuestRegistrationService {
 
 
     public GuestRegistration createPublicRegistration(GuestRegistration registration) {
+        if (registration.getGuestName() == null || registration.getGuestName().trim().isEmpty()) {
+            registration.setGuestName("Guest");
+        }
+        if (registration.getPassportNumber() == null || registration.getPassportNumber().trim().isEmpty()) {
+            registration.setPassportNumber("SV-" + System.currentTimeMillis());
+        }
+        if (registration.getWhatsappNumber() == null || registration.getWhatsappNumber().trim().isEmpty()) {
+            registration.setWhatsappNumber("N/A");
+        }
+        if (registration.getNationality() == null || registration.getNationality().trim().isEmpty()) {
+            registration.setNationality(registration.getCountry() != null && !registration.getCountry().isEmpty() ? registration.getCountry() : "Other");
+        }
+        if (registration.getCountry() == null || registration.getCountry().trim().isEmpty()) {
+            registration.setCountry(registration.getNationality());
+        }
+        if (registration.getTitle() == null || registration.getTitle().trim().isEmpty()) {
+            registration.setTitle("Mr.");
+        }
+
         // Calculate nights
         if (registration.getCheckInDate() != null && registration.getCheckOutDate() != null) {
             long days = registration.getCheckInDate().datesUntil(registration.getCheckOutDate()).count();

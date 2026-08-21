@@ -270,6 +270,26 @@ const GuestRegistration = () => {
       }
     }
 
+    if (!formData.guestName || !formData.guestName.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+
+    if (!formData.passportNumber || !formData.passportNumber.trim()) {
+      setError('Please enter your passport number.');
+      return;
+    }
+
+    if (!formData.whatsAppNumber || !formData.whatsAppNumber.trim()) {
+      setError('Please enter your WhatsApp number.');
+      return;
+    }
+
+    if (!formData.checkInDate || !formData.checkOutDate) {
+      setError('Please select check-in and check-out dates.');
+      return;
+    }
+
     if (!formData.passportFront) {
       setError('Please upload the passport front page.');
       return;
@@ -293,14 +313,18 @@ const GuestRegistration = () => {
       const passportFrontBase64 = await compressImage(formData.passportFront);
 
       const payload = {
-        guestName: formData.guestName,
+        title: 'Mr.',
+        guestName: formData.guestName ? formData.guestName.trim() : 'Guest',
         checkInDate: formData.checkInDate,
         checkOutDate: formData.checkOutDate,
-        passportNumber: formData.passportNumber,
-        whatsappNumber: formData.whatsAppNumber,
-        nationality: formData.nationality,
-        adults: parseInt(formData.adults),
-        children: parseInt(formData.children),
+        passportNumber: formData.passportNumber ? formData.passportNumber.trim() : `SV-${Date.now()}`,
+        whatsappNumber: formData.whatsAppNumber ? formData.whatsAppNumber.trim() : 'N/A',
+        nationality: formData.nationality || formData.country || 'Other',
+        country: formData.country || formData.nationality || 'Other',
+        address: formData.address || '',
+        email: formData.email || '',
+        adults: parseInt(formData.adults) || 1,
+        children: parseInt(formData.children) || 0,
         guestPhotoPath: null,
         passportFrontPath: passportFrontBase64,
         passportBackPath: null
