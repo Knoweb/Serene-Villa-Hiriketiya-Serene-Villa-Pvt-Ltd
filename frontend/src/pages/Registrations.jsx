@@ -266,7 +266,7 @@ const Registrations = () => {
     try {
       // Fetch registrations
       const regRes = await fetch(
-        `${API_BASE}/guest-registrations?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&source=QR&page=${page}&size=${pageSize}`
+        `${API_BASE}/guest-registrations?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&source=&page=${page}&size=${pageSize}`
       );
       if (!regRes.ok) throw new Error('Failed to fetch registrations');
       const regData = await regRes.json();
@@ -771,7 +771,18 @@ const Registrations = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
-                    {registrations.map((reg) => {
+                    {(() => {
+                      const displayRegistrations = [];
+                      const seenKeys = new Set();
+                      registrations.forEach(reg => {
+                        const key = (reg.passportNumber || reg.bookingNumber || reg.guestName || '').toLowerCase().trim();
+                        if (!key || !seenKeys.has(key)) {
+                          if (key) seenKeys.add(key);
+                          displayRegistrations.push(reg);
+                        }
+                      });
+                      return displayRegistrations;
+                    })().map((reg) => {
                       const booking = getBookingForReg(reg.id);
                       const isSelected = selectedReg && selectedReg.id === reg.id;
                       

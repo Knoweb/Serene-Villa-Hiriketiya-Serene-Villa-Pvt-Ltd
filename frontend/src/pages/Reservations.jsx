@@ -1477,7 +1477,29 @@ const Reservations = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
-                    {registrations.map((reg) => {
+                    {(() => {
+                      const map = new Map();
+                      registrations.forEach(reg => {
+                        const key = (reg.passportNumber || reg.bookingNumber || reg.guestName || '').toLowerCase().trim();
+                        if (!key) {
+                          map.set(`id-${reg.id}`, reg);
+                          return;
+                        }
+                        if (!map.has(key)) {
+                          map.set(key, reg);
+                        } else {
+                          const existing = map.get(key);
+                          const existingBooking = getBookingForReg(existing.id);
+                          const currentBooking = getBookingForReg(reg.id);
+                          const existingHasRoom = existingBooking?.roomNumber && existingBooking.roomNumber !== 'Unallocated';
+                          const currentHasRoom = currentBooking?.roomNumber && currentBooking.roomNumber !== 'Unallocated';
+                          if (!existingHasRoom && currentHasRoom) {
+                            map.set(key, reg);
+                          }
+                        }
+                      });
+                      return Array.from(map.values());
+                    })().map((reg) => {
                       const booking = getBookingForReg(reg.id);
                       const isSelected = selectedReg && selectedReg.id === reg.id;
                       
