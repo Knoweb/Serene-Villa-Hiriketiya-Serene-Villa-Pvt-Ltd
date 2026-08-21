@@ -39,20 +39,6 @@ public class GuestRegistrationService {
     @Autowired
     private com.serenevilla.pms.repository.RoomRepository roomRepository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @jakarta.annotation.PostConstruct
-    public void initTableColumns() {
-        try {
-            jdbcTemplate.execute("ALTER TABLE guest_registrations MODIFY COLUMN passport_front_path LONGTEXT");
-            jdbcTemplate.execute("ALTER TABLE guest_registrations MODIFY COLUMN passport_back_path LONGTEXT");
-            jdbcTemplate.execute("ALTER TABLE guest_registrations MODIFY COLUMN guest_photo_path LONGTEXT");
-        } catch (Exception e) {
-            System.out.println("Column alter notice: " + e.getMessage());
-        }
-    }
-
 
 
     public GuestRegistration createPublicRegistration(GuestRegistration registration) {
