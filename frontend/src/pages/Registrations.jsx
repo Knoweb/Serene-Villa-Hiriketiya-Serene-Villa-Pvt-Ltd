@@ -1180,14 +1180,24 @@ const Registrations = () => {
                     );
                   })()}
 
+                  {/* Auto-filled status badge */}
+                  {associatedBooking && (associatedBooking.bookingNumber || associatedBooking.checkInDate || associatedBooking.totalAmount > 0) && (
+                    <div className="col-span-2 bg-amber-50/90 border border-amber-200/80 rounded-lg p-2 flex items-center justify-between text-amber-800 text-[11px] font-bold">
+                      <span className="flex items-center gap-1.5">
+                        🔒 Reservation Details Auto-Filled (Locked)
+                      </span>
+                      <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded uppercase tracking-wider font-extrabold">Read-Only</span>
+                    </div>
+                  )}
+
                   {/* Booking Type */}
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Booking Channel</label>
                     <select
                       value={bookingForm.bookingType}
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={Boolean(associatedBooking && (associatedBooking.bookingNumber || associatedBooking.bookingType)) || (isFrontOfficer === false && isAdmin === false)}
                       onChange={(e) => handleBookingChannelChange(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                     >
                       <option value="Direct">Direct</option>
                       <option value="Booking.com">Booking.com</option>
@@ -1200,10 +1210,10 @@ const Registrations = () => {
                     <input
                       type="text"
                       placeholder="e.g. B-1002"
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={Boolean(associatedBooking && associatedBooking.bookingNumber) || (isFrontOfficer === false && isAdmin === false)}
                       value={bookingForm.bookingNumber}
                       onChange={(e) => setBookingForm({...bookingForm, bookingNumber: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 font-mono"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 font-mono disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -1227,10 +1237,10 @@ const Registrations = () => {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Check-In Date</label>
                     <input
                       type="date"
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={Boolean(selectedReg?.checkInDate || associatedBooking?.checkInDate) || (isFrontOfficer === false && isAdmin === false)}
                       value={bookingForm.checkInDate || ''}
                       onChange={(e) => handleDateChange('checkInDate', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -1239,10 +1249,10 @@ const Registrations = () => {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Check-Out Date</label>
                     <input
                       type="date"
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={Boolean(selectedReg?.checkOutDate || associatedBooking?.checkOutDate) || (isFrontOfficer === false && isAdmin === false)}
                       value={bookingForm.checkOutDate || ''}
                       onChange={(e) => handleDateChange('checkOutDate', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -1258,10 +1268,10 @@ const Registrations = () => {
                     <input
                       type="number"
                       placeholder="e.g. 75000"
-                      disabled={isFrontOfficer === false && isAdmin === false}
+                      disabled={Boolean(associatedBooking && associatedBooking.totalAmount > 0) || (isFrontOfficer === false && isAdmin === false)}
                       value={bookingForm.amount}
                       onChange={(e) => setBookingForm({...bookingForm, amount: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-750 font-mono"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-750 font-mono disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -1336,24 +1346,34 @@ const Registrations = () => {
                   {/* Payment Summary Card */}
                   {(() => {
                     const totalAmt = associatedBooking.totalAmount || 0;
-                    const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+                    const visiblePays = getVisiblePayments(advancePayments);
+                    const totalPaid = visiblePays.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+                    const advancePaid = visiblePays.filter(p => p.paymentType === 'ADVANCE' || p.isAdvancePayment).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
                     let pStatus = associatedBooking.paymentStatus || 'Unpaid';
                     if (totalPaid >= totalAmt && totalAmt > 0) pStatus = 'Paid';
                     else if (totalPaid > 0 && pStatus !== 'Paid') pStatus = 'Partially Paid';
-                    const bal = pStatus === 'Paid' ? 0 : (totalAmt - totalPaid);
+                    const bal = pStatus === 'Paid' ? 0 : Math.max(0, totalAmt - totalPaid);
                     return (
                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
                         <div className="flex justify-between font-semibold text-slate-500">
                           <span>Total Booking Amount:</span>
-                          <span className="font-mono text-slate-900">{totalAmt.toLocaleString()} LKR</span>
+                          <span className="font-mono font-bold text-slate-900">{totalAmt.toLocaleString()} LKR</span>
                         </div>
+                        {advancePaid > 0 && (
+                          <div className="flex justify-between font-semibold text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200/50">
+                            <span className="flex items-center gap-1 font-bold">
+                              <ShieldCheck size={13} className="text-emerald-600" /> Advance Paid by Guest:
+                            </span>
+                            <span className="font-mono font-extrabold text-emerald-700">-{advancePaid.toLocaleString()} LKR</span>
+                          </div>
+                        )}
                         <div className="flex justify-between font-semibold text-slate-500">
-                          <span>Total Paid:</span>
-                          <span className="font-mono text-emerald-600">+{totalPaid.toLocaleString()} LKR</span>
+                          <span>Total Paid So Far:</span>
+                          <span className="font-mono font-bold text-emerald-600">+{totalPaid.toLocaleString()} LKR</span>
                         </div>
-                        <div className="flex justify-between font-bold text-slate-800 border-t border-slate-200/60 pt-2">
-                          <span>Remaining Balance:</span>
-                          <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        <div className="flex justify-between font-extrabold text-slate-900 border-t border-slate-200/60 pt-2 text-sm">
+                          <span>Remaining Balance to Pay:</span>
+                          <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600 font-black' : 'text-emerald-600'}`}>
                             {Math.max(0, bal).toLocaleString()} LKR
                           </span>
                         </div>
