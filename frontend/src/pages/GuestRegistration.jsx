@@ -129,10 +129,10 @@ const GuestRegistration = () => {
             children: booking.children || reg?.children || prev.children || 0,
             roomType: booking.roomType || prev.roomType || '',
             selectedRoomNumber: booking.roomNumber || reg?.roomNumber || prev.selectedRoomNumber || '',
-            passportNumber: reg?.passportNumber || prev.passportNumber || '',
-            whatsAppNumber: reg?.whatsappNumber || reg?.whatsAppNumber || booking.contactNumber || booking.phone || prev.whatsAppNumber || '',
-            nationality: reg?.nationality || booking.nationality || prev.nationality || '',
-            country: reg?.country || booking.country || prev.country || '',
+            passportNumber: reg?.passportNumber || booking?.passportNumber || fullBookingNumber || prev.passportNumber || '',
+            whatsAppNumber: reg?.whatsappNumber || reg?.whatsAppNumber || booking?.contactNumber || booking?.phone || prev.whatsAppNumber || '',
+            nationality: reg?.nationality || booking?.nationality || '',
+            country: reg?.country || booking?.country || prev.country || '',
             address: reg?.address || booking.address || prev.address || '',
             email: reg?.email || booking?.email || booking?.clientEmail || prev.email || '',
             totalAmount: booking.totalAmount || prev.totalAmount || '',
@@ -280,6 +280,16 @@ const GuestRegistration = () => {
       return;
     }
 
+    if (!formData.nationality || !formData.nationality.trim()) {
+      setError('Please select your nationality.');
+      return;
+    }
+
+    if (!formData.address || !formData.address.trim()) {
+      setError('Please enter your address.');
+      return;
+    }
+
     if (!formData.whatsAppNumber || !formData.whatsAppNumber.trim()) {
       setError('Please enter your WhatsApp number.');
       return;
@@ -291,7 +301,7 @@ const GuestRegistration = () => {
     }
 
     if (!formData.passportFront) {
-      setError('Please upload the passport front page.');
+      setError('Please upload or scan your passport front page.');
       return;
     }
 
@@ -1114,7 +1124,7 @@ Serene Villa Hiriketiya`;
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  <MapPin size={12} className="text-slate-400" /> Address
+                  <MapPin size={12} className="text-slate-400" /> Address *
                 </label>
                 <input
                   type="text"
@@ -1289,53 +1299,23 @@ Serene Villa Hiriketiya`;
 
             </div>
 
-            {/* Room Selection Dropdown */}
-            <div className="space-y-2 pt-4 border-t border-slate-100">
-              <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                <Building size={12} className="text-slate-400" /> Select Your Room *
-              </label>
+            {/* Room Details (Read-Only / Auto-Filled from Reservation) */}
+            {getAllocatedRoomsList().length > 0 && (
+              <div className="space-y-2 pt-4 border-t border-slate-100 select-none">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <Building size={12} className="text-slate-400" /> Assigned Room(s)
+                </label>
 
-              <div className="relative">
-                <select
-                  name="selectedRoomNumber"
-                  value={formData.selectedRoomNumber ? `${formData.selectedRoomNumber}|${formData.roomType}` : ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!val) {
-                      setFormData(prev => ({ ...prev, selectedRoomNumber: '', roomType: '' }));
-                    } else {
-                      const [rNum, rType] = val.split('|');
-                      setFormData(prev => ({
-                        ...prev,
-                        selectedRoomNumber: rNum,
-                        roomType: rType
-                      }));
-                    }
-                  }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 pr-10 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer appearance-none"
-                >
-                  <option value="">-- Select Room Number & Name --</option>
-                  {rooms.map((room) => {
-                    const roomLabel = `Room ${room.roomNumber} - ${room.roomType}`;
-                    const val = `${room.roomNumber}|${room.roomType}`;
-                    return (
-                      <option key={room.id || room.roomNumber} value={val}>
-                        {roomLabel} {room.status && room.status !== 'Available' ? ` (${room.status})` : ''}
-                      </option>
-                    );
-                  })}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-              </div>
-
-              {getAllocatedRoomsList().length > 0 && (
-                <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 space-y-2.5 mt-3">
-                  <div className="flex items-center gap-2 border-b border-emerald-100 pb-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">
-                      Selected Room(s) ({getAllocatedRoomsList().length}):
+                <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">
+                        Selected Room(s) ({getAllocatedRoomsList().length}):
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded uppercase tracking-wider">
+                      Assigned
                     </span>
                   </div>
 
@@ -1357,8 +1337,8 @@ Serene Villa Hiriketiya`;
                     ))}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
 
           </div>
