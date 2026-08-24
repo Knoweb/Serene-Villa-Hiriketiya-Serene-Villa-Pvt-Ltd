@@ -1100,7 +1100,12 @@ const Registrations = () => {
                         }
 
                         if (roomItems.length === 0) {
-                          return <div className="text-slate-400 italic text-xs pt-0.5">Unallocated</div>;
+                          const displayType = associatedBooking?.roomType || bookingForm.roomType || 'Unallocated';
+                          const totalAmt = associatedBooking?.totalAmount || bookingForm.amount || 0;
+                          roomItems = [{
+                            roomNumber: displayType,
+                            price: totalAmt
+                          }];
                         }
 
                         return (
