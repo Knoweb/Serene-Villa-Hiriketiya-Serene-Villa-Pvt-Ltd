@@ -638,7 +638,7 @@ const Registrations = () => {
     }
   };
 
-  // Cross-reference booking for row display with smart matching
+  // Cross-reference booking for row display with smart multi-strategy matching
   const getBookingForReg = (regId) => {
     if (!regId) return null;
     const targetReg = registrations.find(r => r.id === regId) || (selectedReg?.id === regId ? selectedReg : null);
@@ -648,21 +648,50 @@ const Registrations = () => {
     if (found) return found;
     
     if (targetReg) {
-      // 2. Match by exact or partial bookingNumber
+      const cleanRegName = (targetReg.guestName || '')
+        .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+        .replace(/^mr\s*\/\s*mrs\s*/i, '')
+        .trim().toLowerCase();
+
+      const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
+      const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
+
+      // 2. Match by email
+      if (cleanRegEmail) {
+        found = bookings.find(b => b.email && b.email.trim().toLowerCase() === cleanRegEmail);
+        if (found) return found;
+      }
+
+      // 3. Match by cleaned guestName
+      if (cleanRegName) {
+        found = bookings.find(b => {
+          if (!b.guestName) return false;
+          const cleanBName = b.guestName
+            .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+            .replace(/^mr\s*\/\s*mrs\s*/i, '')
+            .trim().toLowerCase();
+          return cleanBName === cleanRegName || cleanBName.includes(cleanRegName) || cleanRegName.includes(cleanBName);
+        });
+        if (found) return found;
+      }
+
+      // 4. Match by phone number
+      if (cleanRegPhone && cleanRegPhone.length >= 7) {
+        found = bookings.find(b => {
+          const bPhone = (b.contactNumber || b.phone || b.whatsappNumber || '').replace(/\D/g, '');
+          return bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone));
+        });
+        if (found) return found;
+      }
+
+      // 5. Match by exact or partial bookingNumber
       if (targetReg.bookingNumber) {
         const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
         found = bookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
         if (found) return found;
       }
 
-      // 3. Match by guestName
-      if (targetReg.guestName) {
-        const cleanName = targetReg.guestName.trim().toLowerCase();
-        found = bookings.find(b => b.guestName && b.guestName.trim().toLowerCase() === cleanName);
-        if (found) return found;
-      }
-
-      // 4. Smart numeric fallback
+      // 6. Smart numeric fallback
       const regBookingNum = (targetReg.bookingNumber || targetReg.passportNumber || '').replace(/\D/g, '');
       if (regBookingNum && regBookingNum.length >= 3) {
         found = bookings.find(b => {
@@ -1086,8 +1115,9 @@ const Registrations = () => {
                     {/* Room Details Table (Room Number & Price ONLY) */}
                     <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2.5 mt-1">
                       {(() => {
-                        let parsedItems = [];
-                        const currency = associatedBooking?.currency || bookingForm.currencyCode || selectedReg?.currency || 'LKR';
+                        const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+                        const defaultCurrency = isForeignGuest ? 'USD' : 'LKR';
+                        const currency = associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : defaultCurrency));
                         const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
 
                         // 1. Try parsing roomPrices JSON if present
@@ -1176,7 +1206,10 @@ const Registrations = () => {
                     <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/80 pt-2">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
                       <span className="font-extrabold text-emerald-700 font-mono text-xs">
-                        {(associatedBooking?.currency || bookingForm.currencyCode || selectedReg?.currency || 'LKR')} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {(() => {
+                          const isForeign = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+                          return associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : (isForeign ? 'USD' : 'LKR')));
+                        })()} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
 
