@@ -42,6 +42,16 @@ import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
+const getPhotoUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('data:') || path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  const baseUrl = API_BASE.replace(/\/api\/?$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${cleanPath}`;
+};
+
 const ROOM_TEMPLATES = {
   'Deluxe Room': {
     image: deluxeRoomImg,
@@ -803,7 +813,7 @@ const Registrations = () => {
                             <div className="h-9 w-9 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100/60 shrink-0 flex items-center justify-center font-bold text-emerald-800 text-sm">
                               {reg.passportFrontPath || reg.guestPhotoPath ? (
                                 <img 
-                                  src={reg.passportFrontPath || reg.guestPhotoPath} 
+                                  src={getPhotoUrl(reg.passportFrontPath || reg.guestPhotoPath)} 
                                   alt={reg.guestName}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
@@ -812,7 +822,7 @@ const Registrations = () => {
                                   }}
                                 />
                               ) : (
-                                reg.guestName.charAt(0).toUpperCase()
+                                reg.guestName ? reg.guestName.charAt(0).toUpperCase() : 'G'
                               )}
                             </div>
                             <div>
@@ -952,7 +962,7 @@ const Registrations = () => {
                 <div className="h-16 w-16 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-800 text-xl font-black uppercase shadow-sm mx-auto mb-2.5 ring-4 ring-emerald-50">
                   {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
                     <img 
-                      src={selectedReg.passportFrontPath || selectedReg.guestPhotoPath} 
+                      src={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
                       alt={selectedReg.guestName}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -1051,81 +1061,93 @@ const Registrations = () => {
                       </span>
                     </div>
 
-                    {/* Allocated Rooms Table */}
-                    <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Rooms:</span>
+                    {/* Room Details Clean Table */}
+                    <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2.5 mt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Room Details:</span>
+                        <span className="text-[10px] text-emerald-700 font-extrabold uppercase">
+                          {associatedBooking?.currency || bookingForm.currencyCode || 'LKR'}
+                        </span>
+                      </div>
+
                       {(() => {
-                        const curr = associatedBooking?.currency || selectedReg?.currency || 'LKR';
-                        let roomItems = [];
+                        let parsedItems = [];
+                        const currency = associatedBooking?.currency || bookingForm.currencyCode || 'LKR';
 
                         if (associatedBooking?.roomPrices) {
                           try {
-                            const parsed = JSON.parse(associatedBooking.roomPrices);
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                              roomItems = parsed.map(p => ({
-                                roomNumber: p.roomNumber ? p.roomNumber.replace(/^Room\s*/i, '') : '',
-                                price: p.price || p.roomPrice || 0
-                              })).filter(item => item.roomNumber);
+                            const p = JSON.parse(associatedBooking.roomPrices);
+                            if (Array.isArray(p) && p.length > 0) {
+                              parsedItems = p.map((item) => ({
+                                roomNumber: item.roomNumber || item.roomNum || '',
+                                roomType: item.roomType || associatedBooking.roomType || 'Standard Room',
+                                price: item.price || item.roomPrice || null
+                              }));
                             }
                           } catch(e) {}
                         }
 
-                        if (roomItems.length === 0) {
-                          let rNums = [];
-                          if (associatedBooking?.roomNumber && associatedBooking.roomNumber !== 'Unallocated') {
-                            rNums = associatedBooking.roomNumber.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
-                          }
-                          if (rNums.length === 0 && bookingForm.room) {
-                            rNums = bookingForm.room.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
-                          }
-                          if (rNums.length === 0 && (selectedReg?.roomNumber || selectedReg?.room)) {
-                            const r = selectedReg.roomNumber || selectedReg.room;
-                            if (r && r !== 'Unallocated') {
-                              rNums = r.split(',').map(x => x.trim().replace(/^Room\s*/i, '')).filter(Boolean);
-                            }
-                          }
-                          if (rNums.length === 0 && associatedBooking?.roomType) {
-                            const extracted = associatedBooking.roomType.match(/\b(?:\d{3,4}|10\d|40\d|41\d)\b/g);
-                            if (extracted && extracted.length > 0) rNums = extracted;
-                          }
+                        if (parsedItems.length === 0) {
+                          const roomNums = (associatedBooking?.roomNumber || bookingForm.room || selectedReg?.roomNumber || selectedReg?.room || '')
+                            .split(',')
+                            .map(r => r.trim().replace(/^Room\s*/i, ''))
+                            .filter(Boolean);
 
-                          if (rNums.length > 0) {
-                            const totalAmt = associatedBooking?.totalAmount || bookingForm.amount || 0;
-                            const splitPrice = rNums.length === 1 ? totalAmt : 0;
-                            roomItems = rNums.map(rNo => ({
+                          const roomTypes = (associatedBooking?.roomType || bookingForm.roomType || '')
+                            .split(',')
+                            .map(t => t.trim())
+                            .filter(Boolean);
+
+                          if (roomNums.length > 0) {
+                            parsedItems = roomNums.map((rNo, idx) => ({
                               roomNumber: rNo,
-                              price: splitPrice
+                              roomType: roomTypes[idx] || roomTypes[0] || 'Standard Room',
+                              price: roomNums.length === 1 ? (associatedBooking?.totalAmount || bookingForm.amount) : null
+                            }));
+                          } else if (roomTypes.length > 0) {
+                            parsedItems = roomTypes.map((t) => ({
+                              roomNumber: 'Unallocated',
+                              roomType: t,
+                              price: (associatedBooking?.totalAmount || bookingForm.amount)
                             }));
                           }
                         }
 
-                        if (roomItems.length === 0) {
-                          const displayType = associatedBooking?.roomType || bookingForm.roomType || 'Unallocated';
-                          const totalAmt = associatedBooking?.totalAmount || bookingForm.amount || 0;
-                          roomItems = [{
-                            roomNumber: displayType,
-                            price: totalAmt
-                          }];
+                        if (parsedItems.length === 0) {
+                          return (
+                            <div className="p-2 bg-slate-50 border border-slate-200/60 rounded-lg text-slate-400 italic text-[11px] text-center">
+                              No rooms allocated yet
+                            </div>
+                          );
                         }
 
                         return (
-                          <div className="w-full border border-slate-200/80 rounded-xl overflow-hidden shadow-2xs bg-white mt-1">
-                            <table className="w-full text-left border-collapse text-[11px]">
+                          <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+                            <table className="w-full text-left text-xs border-collapse">
                               <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200/60 text-[9px] uppercase font-extrabold text-slate-500 tracking-wider">
-                                  <th className="py-2 px-3">Room Number</th>
-                                  <th className="py-2 px-3 text-right">Price ({curr})</th>
+                                <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
+                                  <th className="py-2 px-2.5 font-extrabold">Room Number</th>
+                                  <th className="py-2 px-2.5 font-extrabold">Room Type</th>
+                                  <th className="py-2 px-2.5 font-extrabold text-right">Price ({currency})</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
-                                {roomItems.map((item, idx) => (
-                                  <tr key={idx} className="hover:bg-slate-50/50">
-                                    <td className="py-2 px-3 font-extrabold text-slate-900">
-                                      {item.roomNumber}
+                              <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
+                                {parsedItems.map((item, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-50/50 transition">
+                                    <td className="py-2 px-2.5 font-mono font-black text-slate-900">
+                                      <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                                        {item.roomNumber ? (item.roomNumber.startsWith('Room') ? item.roomNumber : `Room ${item.roomNumber}`) : `Room ${idx + 1}`}
+                                      </span>
                                     </td>
-                                    <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
-                                      <span className="text-slate-400 text-[10px] mr-1">{curr}</span>
-                                      {parseFloat(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    <td className="py-2 px-2.5 font-bold text-slate-800">
+                                      {item.roomType}
+                                    </td>
+                                    <td className="py-2 px-2.5 text-right font-mono font-bold text-emerald-700">
+                                      {item.price != null && item.price !== '' && !isNaN(parseFloat(item.price)) ? (
+                                        `${currency} ${parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                                      ) : (
+                                        <span className="text-slate-400 font-normal italic">-</span>
+                                      )}
                                     </td>
                                   </tr>
                                 ))}
@@ -1321,13 +1343,13 @@ const Registrations = () => {
                     <p className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Passport / NIC Photo</p>
                     {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
                       <a 
-                        href={selectedReg.passportFrontPath || selectedReg.guestPhotoPath} 
+                        href={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
                         target="_blank" 
                         rel="noreferrer" 
                         className="block aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition cursor-pointer"
                       >
                         <img 
-                          src={selectedReg.passportFrontPath || selectedReg.guestPhotoPath} 
+                          src={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
                           alt="Passport Photo" 
                           className="w-full h-full object-cover"
                         />

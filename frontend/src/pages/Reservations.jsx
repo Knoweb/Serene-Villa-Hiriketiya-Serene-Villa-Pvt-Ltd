@@ -45,6 +45,16 @@ import AdvanceRequestPrint from '../components/AdvanceRequestPrint';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
+const getPhotoUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('data:') || path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  const baseUrl = API_BASE.replace(/\/api\/?$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${cleanPath}`;
+};
+
 const BANK_ACCOUNTS = {
   USD_PB: {
     key: 'USD_PB',
@@ -1515,7 +1525,7 @@ const Reservations = () => {
                             <div className="h-9 w-9 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100/60 shrink-0 flex items-center justify-center font-bold text-emerald-800 text-sm">
                               {reg.passportFrontPath || reg.guestPhotoPath ? (
                                 <img 
-                                  src={reg.passportFrontPath || reg.guestPhotoPath} 
+                                  src={getPhotoUrl(reg.passportFrontPath || reg.guestPhotoPath)} 
                                   alt={reg.guestName}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
@@ -1523,7 +1533,7 @@ const Reservations = () => {
                                   }}
                                 />
                               ) : (
-                                reg.guestName.charAt(0).toUpperCase()
+                                reg.guestName ? reg.guestName.charAt(0).toUpperCase() : 'G'
                               )}
                             </div>
                             <div>
@@ -1694,7 +1704,7 @@ const Reservations = () => {
                   <div className="h-20 w-20 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-855 text-3xl font-extrabold uppercase shadow-sm border-2 border-white ring-4 ring-emerald-50">
                     {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
                       <img 
-                        src={selectedReg.passportFrontPath || selectedReg.guestPhotoPath} 
+                        src={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
                         alt={selectedReg.guestName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -1702,7 +1712,7 @@ const Reservations = () => {
                         }}
                       />
                     ) : (
-                      selectedReg.guestName.charAt(0).toUpperCase()
+                      selectedReg.guestName ? selectedReg.guestName.charAt(0).toUpperCase() : 'G'
                     )}
                   </div>
                 </div>
