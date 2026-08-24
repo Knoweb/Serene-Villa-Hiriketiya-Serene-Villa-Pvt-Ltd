@@ -129,7 +129,7 @@ const GuestRegistration = () => {
             children: booking.children || reg?.children || prev.children || 0,
             roomType: booking.roomType || prev.roomType || '',
             selectedRoomNumber: booking.roomNumber || reg?.roomNumber || prev.selectedRoomNumber || '',
-            passportNumber: reg?.passportNumber || booking?.passportNumber || fullBookingNumber || prev.passportNumber || '',
+            passportNumber: (reg?.passportNumber && !reg.passportNumber.startsWith('SV-') ? reg.passportNumber : (booking?.passportNumber && !booking.passportNumber.startsWith('SV-') ? booking.passportNumber : '')),
             whatsAppNumber: reg?.whatsappNumber || reg?.whatsAppNumber || booking?.contactNumber || booking?.phone || prev.whatsAppNumber || '',
             nationality: reg?.nationality || booking?.nationality || '',
             country: reg?.country || booking?.country || prev.country || '',
