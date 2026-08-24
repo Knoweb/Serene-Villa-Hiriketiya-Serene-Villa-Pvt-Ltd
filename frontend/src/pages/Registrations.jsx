@@ -1061,81 +1061,82 @@ const Registrations = () => {
                       </span>
                     </div>
 
-                    {/* Room Details Clean Table (Room Number & Price ONLY) */}
+                    {/* Room Details Table (Room Number & Price ONLY) */}
                     <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2.5 mt-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Room Details:</span>
-                        <span className="text-[10px] text-emerald-700 font-extrabold uppercase">
-                          {associatedBooking?.currency || bookingForm.currencyCode || 'LKR'}
-                        </span>
-                      </div>
-
                       {(() => {
                         let parsedItems = [];
-                        const currency = associatedBooking?.currency || bookingForm.currencyCode || 'LKR';
+                        const currency = associatedBooking?.currency || bookingForm.currencyCode || selectedReg?.currency || 'LKR';
+                        const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
 
+                        // 1. Try parsing roomPrices JSON if present
                         if (associatedBooking?.roomPrices) {
                           try {
                             const p = JSON.parse(associatedBooking.roomPrices);
                             if (Array.isArray(p) && p.length > 0) {
-                              parsedItems = p.map((item) => ({
-                                roomNumber: item.roomNumber || item.roomNum || '',
-                                price: item.price || item.roomPrice || null
+                              parsedItems = p.map((item, idx) => ({
+                                roomNumber: item.roomNumber || item.roomNum || `Room ${idx + 1}`,
+                                price: item.price != null && item.price !== '' ? parseFloat(item.price) : null
                               }));
                             }
                           } catch(e) {}
                         }
 
+                        // 2. Parse from roomNumber / roomType strings if roomPrices was empty
                         if (parsedItems.length === 0) {
-                          const roomNums = (associatedBooking?.roomNumber || bookingForm.room || selectedReg?.roomNumber || selectedReg?.room || '')
+                          const rawRoomNums = (associatedBooking?.roomNumber || bookingForm.room || selectedReg?.roomNumber || selectedReg?.room || '')
                             .split(',')
-                            .map(r => r.trim().replace(/^Room\s*/i, ''))
+                            .map(r => r.trim())
                             .filter(Boolean);
 
-                          if (roomNums.length > 0) {
-                            parsedItems = roomNums.map((rNo) => ({
-                              roomNumber: rNo,
-                              price: roomNums.length === 1 ? (associatedBooking?.totalAmount || bookingForm.amount) : null
-                            }));
+                          const rawRoomTypes = (associatedBooking?.roomType || bookingForm.roomType || selectedReg?.roomType || '')
+                            .split(',')
+                            .map(t => t.trim())
+                            .filter(Boolean);
+
+                          const count = Math.max(rawRoomNums.length, rawRoomTypes.length, 1);
+
+                          for (let i = 0; i < count; i++) {
+                            let num = rawRoomNums[i] || (count > 1 ? `Room ${i + 1}` : (rawRoomNums[0] || 'Unallocated'));
+                            if (num !== 'Unallocated' && !num.startsWith('Room')) {
+                              num = `Room ${num}`;
+                            }
+                            parsedItems.push({
+                              roomNumber: num,
+                              price: totalAmt > 0 ? (totalAmt / count) : null
+                            });
                           }
                         }
 
-                        if (parsedItems.length === 0) {
-                          return (
-                            <div className="p-2 bg-slate-50 border border-slate-200/60 rounded-lg text-slate-400 italic text-[11px] text-center">
-                              No rooms allocated yet
-                            </div>
-                          );
-                        }
-
                         return (
-                          <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
-                            <table className="w-full text-left text-xs border-collapse">
-                              <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
-                                  <th className="py-2 px-3 font-extrabold">Room Number</th>
-                                  <th className="py-2 px-3 font-extrabold text-right">Price ({currency})</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
-                                {parsedItems.map((item, idx) => (
-                                  <tr key={idx} className="hover:bg-slate-50/50 transition">
-                                    <td className="py-2.5 px-3 font-mono font-black text-slate-900">
-                                      <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2.5 py-0.5 rounded text-[11px] font-extrabold">
-                                        {item.roomNumber ? (item.roomNumber.startsWith('Room') ? item.roomNumber : `Room ${item.roomNumber}`) : `Room ${idx + 1}`}
-                                      </span>
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs">
-                                      {item.price != null && item.price !== '' && !isNaN(parseFloat(item.price)) ? (
-                                        `${currency} ${parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-                                      ) : (
-                                        <span className="text-slate-400 font-normal italic">-</span>
-                                      )}
-                                    </td>
+                          <div className="space-y-2">
+                            <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+                              <table className="w-full text-left text-xs border-collapse">
+                                <thead>
+                                  <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
+                                    <th className="py-2 px-3 font-extrabold">Room Number</th>
+                                    <th className="py-2 px-3 font-extrabold text-right">Price ({currency})</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
+                                  {parsedItems.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50/50 transition">
+                                      <td className="py-2.5 px-3 font-mono font-black text-slate-900">
+                                        <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2.5 py-0.5 rounded text-[11px] font-extrabold">
+                                          {item.roomNumber}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs">
+                                        {item.price != null && !isNaN(item.price) ? (
+                                          `${currency} ${item.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                                        ) : (
+                                          <span className="text-slate-400 font-normal italic">-</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         );
                       })()}
@@ -1152,8 +1153,8 @@ const Registrations = () => {
                     {/* Total Price */}
                     <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/80 pt-2">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
-                      <span className="font-extrabold text-slate-900 font-mono text-xs">
-                        {associatedBooking?.currency || 'LKR'} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <span className="font-extrabold text-emerald-700 font-mono text-xs">
+                        {(associatedBooking?.currency || bookingForm.currencyCode || selectedReg?.currency || 'LKR')} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
 
