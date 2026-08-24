@@ -1463,10 +1463,10 @@ const Registrations = () => {
               </div>
 
               {/* Uploaded Documents */}
-              <div className="space-y-3 text-xs bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl">
+              <div className="space-y-2 text-xs bg-slate-50/50 border border-slate-100/50 p-3.5 rounded-xl">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Uploaded Documents</h4>
-                <div className="space-y-3.5">
-                  {/* Passport Photo */}
+                <div className="space-y-2">
+                  {/* Passport Photo Bar */}
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Passport / NIC Photo</p>
                     {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
@@ -1474,16 +1474,33 @@ const Registrations = () => {
                         href={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
                         target="_blank" 
                         rel="noreferrer" 
-                        className="block aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition cursor-pointer"
+                        className="flex items-center justify-between p-2 bg-white border border-slate-200 hover:border-emerald-500/60 rounded-xl transition cursor-pointer shadow-2xs group"
                       >
-                        <img 
-                          src={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
-                          alt="Passport Photo" 
-                          className="w-full h-full object-cover"
-                        />
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-10 w-14 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                            <img 
+                              src={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
+                              alt="Passport Document"
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-800 text-xs truncate">Passport / NIC Document</p>
+                            <p className="text-[10px] text-slate-400 font-medium">Click to view full image</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 group-hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-200/60 transition shrink-0">
+                          <Eye size={12} /> View Photo
+                        </div>
                       </a>
                     ) : (
-                      <p className="text-slate-450 italic text-[10px]">Not uploaded</p>
+                      <div className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 text-xs italic flex items-center gap-2">
+                        <FileText size={14} className="text-slate-300" /> No document uploaded
+                      </div>
                     )}
                   </div>
                 </div>
