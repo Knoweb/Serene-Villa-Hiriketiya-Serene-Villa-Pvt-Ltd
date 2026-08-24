@@ -122,6 +122,10 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           )}
           <div className="inline-block border border-slate-300 rounded p-2 text-[10px] text-left space-y-1">
             <div className="flex gap-4 justify-between">
+              <span className="text-slate-500 font-semibold">Booking No:</span>
+              <span className="font-mono font-bold text-emerald-800">{associatedBooking.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`}</span>
+            </div>
+            <div className="flex gap-4 justify-between">
               <span className="text-slate-500 font-semibold">Receipt No:</span>
               <span className="font-mono font-bold text-slate-800">{receiptData.receiptNumber}</span>
             </div>

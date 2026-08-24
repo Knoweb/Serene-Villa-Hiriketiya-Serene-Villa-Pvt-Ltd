@@ -2282,13 +2282,72 @@ Serene Villa Hiriketiya`;
           }
         };
 
-        // Calculate these in render scope so JSX can access them (were previously only inside handleWhatsAppShare)
         const bCurrRender = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
         const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
-        const totalBookingAmountLkrRender = bCurrRender === 'LKR' ? (associatedBooking.totalAmount || 0) : ((associatedBooking.totalAmount || 0) * exRateRender);
         const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
-        const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-        const remainingBalance = isFinalPayment ? 0 : Math.max(0, totalBookingAmountLkrRender - totalPaidUpToThis);
+        
+        const roomsList = associatedBooking?.roomNumber 
+          ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean)
+          : [];
+        const roomTypesList = associatedBooking?.roomType
+          ? associatedBooking.roomType.split(',').map(t => t.trim())
+          : [];
+        const numRooms = roomsList.length || 1;
+        const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+        const totalAmount = associatedBooking?.totalAmount || 0;
+        
+        const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
+        const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
+
+        let parsedRoomPrices = null;
+        if (associatedBooking.roomPrices) {
+          try {
+            const p = JSON.parse(associatedBooking.roomPrices);
+            if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
+          } catch(e) {}
+        }
+
+        const dispTotalAmount = totalAmount * convFactor;
+        const totalCents = Math.round(dispTotalAmount * 100);
+        
+        const itemizedRows = roomsList.map((roomNumber, idx) => {
+          let rowAmount = 0;
+          if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
+            rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
+          } else {
+            const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
+            const prevCentsSum = Math.round((totalCents / numRooms) * idx);
+            const rowCents = currentCentsSum - prevCentsSum;
+            rowAmount = rowCents / 100;
+          }
+          
+          const rateAmount = rowAmount / nightsVal;
+          const amountVal = Math.floor(rowAmount);
+          const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
+          const currentRoomType = roomTypesList[idx] || roomTypesList[0] || 'Room';
+          
+          return {
+            roomNumber,
+            description: `Night - ${currentRoomType} (Room ${roomNumber})`,
+            rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            amountVal: amountVal.toLocaleString(),
+            amountCts: amountCts
+          };
+        });
+
+        const defaultRowAmount = dispTotalAmount;
+        const defaultRateAmount = defaultRowAmount / nightsVal;
+        const defaultAmountVal = Math.floor(defaultRowAmount);
+        const defaultAmountCts = Math.round((defaultRowAmount - defaultAmountVal) * 100).toString().padStart(2, '0');
+        
+        const fallbackRow = {
+          description: `Night - ${associatedBooking?.roomType || 'Room'}`,
+          rate: defaultRateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          amountVal: defaultAmountVal.toLocaleString(),
+          amountCts: defaultAmountCts
+        };
+
+        const bookingNoDisplay = associatedBooking?.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`;
 
         return (
           <div id="printable-receipt-modal-wrapper" className="no-print fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:py-8 print:p-0 print:bg-transparent print:static overflow-y-auto">
@@ -2309,7 +2368,6 @@ Serene Villa Hiriketiya`;
 
               {/* Header Section */}
               <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-3 mb-4">
-                {/* Left Column: Logo & Details */}
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain" />
@@ -2318,37 +2376,24 @@ Serene Villa Hiriketiya`;
                       <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">(Pvt) Ltd - Hiriketiya</p>
                     </div>
                   </div>
-                  
                   <div className="text-[10px] text-slate-650 leading-normal font-medium space-y-0.5 mt-1.5">
-                    <p className="flex items-center gap-1">
-                      <MapPin size={9} className="text-emerald-800 shrink-0" /> Pehembiya Road, Hiriketiya, Dickwella.
-                    </p>
-                    <p className="flex items-center gap-1">
-                      <Globe size={9} className="text-emerald-800 shrink-0" /> Serenehiriketiya@gmail.com
-                    </p>
-                    <p className="flex items-center gap-1">
-                      <Phone size={9} className="text-emerald-800 shrink-0" /> 
-                      <span>Hot line : +94 41 225 5204 / +94 70 499 8787</span>
-                    </p>
+                    <p className="flex items-center gap-1"><MapPin size={9} className="text-emerald-800 shrink-0" /> Pehembiya Road, Hiriketiya, Dickwella.</p>
+                    <p className="flex items-center gap-1"><Globe size={9} className="text-emerald-800 shrink-0" /> Serenehiriketiya@gmail.com</p>
+                    <p className="flex items-center gap-1"><Phone size={9} className="text-emerald-800 shrink-0" /> <span>Hot line : +94 41 225 5204 / +94 70 499 8787</span></p>
                   </div>
                 </div>
 
-                {/* Right Column: Title & Receipt Meta */}
                 <div className="text-right space-y-1">
-                  <h1 className={`text-base font-black tracking-wide uppercase ${
-                    isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
-                  }`}>
-                    {receiptTitle}
-                  </h1>
-                  {isFinalPayment && (
-                    <span className="inline-block bg-blue-100 text-blue-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      ✓ Fully Settled
-                    </span>
-                  )}
+                  <h1 className={`text-base font-black tracking-wide uppercase ${isFinalPayment ? 'text-blue-700' : 'text-emerald-800'}`}>{receiptTitle}</h1>
+                  {isFinalPayment && <span className="inline-block bg-blue-100 text-blue-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">✓ Fully Settled</span>}
                   <div className="inline-block border border-emerald-800/30 rounded-lg px-2.5 py-1.5 bg-emerald-50/20 text-[10px] text-left space-y-0.5 mt-1 print:bg-transparent">
                     <div className="flex gap-3 justify-between">
+                      <span className="text-slate-500 font-semibold">Booking No:</span>
+                      <span className="font-mono font-bold text-emerald-800">{bookingNoDisplay}</span>
+                    </div>
+                    <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Receipt No:</span>
-                      <span className="font-mono font-bold text-emerald-800">{receiptData.receiptNumber}</span>
+                      <span className="font-mono font-bold text-slate-800">{receiptData.receiptNumber}</span>
                     </div>
                     <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Date:</span>
@@ -2358,197 +2403,122 @@ Serene Villa Hiriketiya`;
                 </div>
               </div>
 
-              {/* Reservation Details Section (Matching Draft Bill / Print layout) */}
-              <div className="text-[9px] font-extrabold text-emerald-800 uppercase mb-2 tracking-wider">
-                RESERVATION DETAILS
-              </div>
+              <div className="text-[9px] font-extrabold text-emerald-800 uppercase mb-2 tracking-wider">RESERVATION DETAILS</div>
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 p-3 border border-slate-200 rounded-lg text-[11px] mb-4 bg-white">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-500 font-semibold w-24 shrink-0">Guest Name</span>
-                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{selectedReg?.guestName || associatedBooking?.guestName || ''}</span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-500 font-semibold w-24 shrink-0">Channel</span>
-                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.bookingType || 'Direct Booking'}</span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-500 font-semibold w-24 shrink-0">Check - in</span>
-                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkInDate || associatedBooking?.checkInDate || '').replace(/-/g, '.')}</span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-500 font-semibold w-24 shrink-0">Check - out</span>
-                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '').replace(/-/g, '.')}</span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-500 font-semibold w-24 shrink-0">Nights</span>
-                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.nights || 1).padStart(2, '0')} nights</span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-500 font-semibold w-24 shrink-0">Basis</span>
-                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.boardBasis || 'Bed & Breakfast'}</span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-500 font-semibold w-24 shrink-0">Adults</span>
-                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.adults || associatedBooking?.adults || 1).padStart(2, '0')}</span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-500 font-semibold w-24 shrink-0">Children</span>
-                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.children || associatedBooking?.children || 0).padStart(2, '0')}</span>
-                </div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Guest Name</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{selectedReg?.guestName || associatedBooking?.guestName || ''}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Channel</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.bookingType || 'Direct Booking'}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - in</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkInDate || associatedBooking?.checkInDate || '').replace(/-/g, '.')}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - out</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '').replace(/-/g, '.')}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Nights</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(nightsVal).padStart(2, '0')} nights</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Basis</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.boardBasis || 'Bed & Breakfast'}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Adults</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.adults || associatedBooking?.adults || 1).padStart(2, '0')}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Children</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.children || associatedBooking?.children || 0).padStart(2, '0')}</span></div>
               </div>
 
-              {/* Receipt Body: Table */}
               <div className="mb-4">
                 <table className="w-full border-collapse border border-emerald-800/30 text-[11px] print:border-slate-400">
                   <thead>
-                    <tr className="bg-emerald-800 text-white uppercase text-[8px] tracking-wider print:bg-slate-100 print:text-slate-900">
-                      <th className="border border-emerald-800/30 px-2 py-1 text-center w-12 print:border-slate-400">Qty</th>
-                      <th className="border border-emerald-800/30 px-3 py-1 text-left print:border-slate-400">Description</th>
-                      <th className="border border-emerald-800/30 px-3 py-1 text-right w-24 print:border-slate-400">Rate (LKR)</th>
-                      <th className="border border-emerald-800/30 px-3 py-1 text-right w-28 print:border-slate-400">Amount (LKR)</th>
+                    <tr style={{ backgroundColor: '#065f46', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                      <th className="px-3 py-1.5 text-left uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '70%' }}>DESCRIPTION</th>
+                      <th colSpan={2} className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', width: '30%' }}>AMOUNT</th>
+                    </tr>
+                    <tr style={{ backgroundColor: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                      <th style={{ backgroundColor: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none' }}></th>
+                      <th className="px-3 py-1 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>{dispCurr === 'LKR' ? 'RS.' : dispCurr}</th>
+                      <th className="px-2 py-1 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>CTS.</th>
                     </tr>
                   </thead>
-                  <tbody className="font-medium text-slate-700">
-                    {/* Main Accommodation Row */}
-                    <tr className="border-b border-emerald-800/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1.5 text-center print:border-slate-400">
-                        {selectedReg.numberOfNights || selectedReg.nights}
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1.5 print:border-slate-400">
-                        Accommodation ({selectedReg.checkInDate} - {selectedReg.checkOutDate})
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right print:border-slate-400">
-                        {((associatedBooking.totalAmount || 0) / (selectedReg.numberOfNights || selectedReg.nights || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-3 py-1.5 text-right">
-                        {(associatedBooking.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-
-                    {/* Additional Detail Rows */}
-                    <tr className="border-b border-emerald-800/10 bg-slate-50/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1 text-center text-slate-400 print:border-slate-400">-</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-slate-500 print:border-slate-400">
-                        <span className="font-bold text-[8px] uppercase tracking-wider mr-1.5 text-slate-400">Room Type:</span>
-                        <span className="font-bold text-slate-700">{associatedBooking.roomType}</span>
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-right text-slate-400 print:border-slate-400">-</td>
-                      <td className="px-3 py-1 text-right text-slate-400">-</td>
-                    </tr>
-                    <tr className="border-b border-emerald-800/10 bg-slate-50/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1 text-center text-slate-400 print:border-slate-400">-</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-slate-500 print:border-slate-400">
-                        <span className="font-bold text-[8px] uppercase tracking-wider mr-1.5 text-slate-400">Room Number:</span>
-                        <span className="font-bold text-slate-700">{associatedBooking.roomNumber || 'TBD'}</span>
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-right text-slate-400 print:border-slate-400">-</td>
-                      <td className="px-3 py-1 text-right text-slate-400">-</td>
-                    </tr>
-                    <tr className="border-b border-emerald-800/10 bg-slate-50/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1 text-center text-slate-400 print:border-slate-400">-</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-slate-500 print:border-slate-400">
-                        <span className="font-bold text-[8px] uppercase tracking-wider mr-1.5 text-slate-400">Board Basis:</span>
-                        <span className="font-bold text-slate-700">{associatedBooking.boardBasis || 'Room Only'}</span>
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-right text-slate-400 print:border-slate-400">-</td>
-                      <td className="px-3 py-1 text-right text-slate-400">-</td>
-                    </tr>
-                    <tr className="border-b border-emerald-800/20 bg-slate-50/20 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1 text-center text-slate-400 print:border-slate-400">-</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-slate-500 print:border-slate-400">
-                        <span className="font-bold text-[8px] uppercase tracking-wider mr-1.5 text-slate-400">Booking Type:</span>
-                        <span className="font-bold text-slate-700">{associatedBooking.bookingType || 'Direct'}</span>
-                      </td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1 text-right text-slate-400 print:border-slate-400">-</td>
-                      <td className="px-3 py-1 text-right text-slate-400">-</td>
-                    </tr>
-
-                    {/* Total Row */}
-                    <tr className="bg-emerald-50/30 font-bold text-slate-800 border-t border-emerald-800/30 print:border-slate-400">
-                      <td className="border-r border-emerald-800/20 px-2 py-1.5 text-center print:border-slate-400"></td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right uppercase text-[8px] tracking-wider print:border-slate-400">Total Value</td>
-                      <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right print:border-slate-400"></td>
-                      <td className="px-3 py-1.5 text-right text-emerald-800 print:text-slate-900">
-                        {(associatedBooking.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
+                  <tbody className="font-semibold text-slate-800">
+                    {itemizedRows.length > 0 ? (
+                      itemizedRows.map((row, idx) => (
+                        <tr key={idx} className="border-b border-emerald-800/20 print:border-slate-400">
+                          <td className="border-r border-emerald-800/20 px-3 py-1.5 text-left print:border-slate-400">{row.description}</td>
+                          <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400">{row.amountVal}</td>
+                          <td className="px-2 py-1.5 text-center font-mono border-emerald-800/20">{row.amountCts}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className="border-b border-emerald-800/20 print:border-slate-400">
+                        <td className="border-r border-emerald-800/20 px-3 py-1.5 text-left print:border-slate-400">{fallbackRow.description}</td>
+                        <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400">{fallbackRow.amountVal}</td>
+                        <td className="px-2 py-1.5 text-center font-mono">{fallbackRow.amountCts}</td>
+                      </tr>
+                    )}
+                    <tr className="bg-emerald-50/10 font-bold text-slate-900 border-t-2 border-emerald-800/30 print:border-slate-400">
+                      <td className="border-r border-emerald-800/20 px-3 py-2 text-right uppercase text-[8px] tracking-wider print:border-slate-400 font-extrabold" colSpan={1}>TOTAL VALUE</td>
+                      <td className="border-r border-emerald-800/20 px-3 py-2 text-right font-mono font-bold print:border-slate-400 text-emerald-800">{Math.floor(dispTotalAmount).toLocaleString()}</td>
+                      <td className="px-2 py-2 text-center font-mono font-bold text-emerald-800">{Math.round((dispTotalAmount - Math.floor(dispTotalAmount)) * 100).toString().padStart(2, '0')}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-                  {/* Advance Payment Calculations Section */}
-                  <div className="grid grid-cols-2 gap-4 mb-4 text-[11px]">
-                    {/* Left Column: Extra notes / details if any */}
-                    <div className="border border-dashed border-slate-200 rounded-lg p-2.5 text-slate-500 flex flex-col justify-between print:border-slate-300">
-                      <div>
-                        <p className="font-bold text-[8px] uppercase tracking-wider mb-0.5 text-slate-400">Payment Reference</p>
-                        <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
-                        {selectedPaymentForReceipt.remarks && (
-                          <p className="mt-1 text-[10px] leading-snug">
-                            <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-[9px] text-slate-400 mt-2">
-                        {isFinalPayment
-                          ? '* This is the final payment receipt. Account fully settled.'
-                          : '* Please preserve this receipt for final checkout subtraction.'}
-                      </div>
-                    </div>
+              <div className="grid grid-cols-2 gap-4 mb-4 text-[11px]">
+                <div className="border border-dashed border-slate-200 rounded-lg p-2.5 text-slate-500 flex flex-col justify-between print:border-slate-300">
+                  <div>
+                    <p className="font-bold text-[8px] uppercase tracking-wider mb-0.5 text-slate-400">Payment Reference</p>
+                    <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
+                    {selectedPaymentForReceipt.remarks && (
+                      <p className="mt-1 text-[10px] leading-snug">
+                        <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks.replace(/\[(?:Bank )?Charges: [\d.]+\]/g, '').trim()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-[9px] text-slate-400 mt-2">
+                    {isFinalPayment ? '* This is the final payment receipt. Account fully settled.' : '* Please preserve this receipt for final checkout subtraction.'}
+                  </div>
+                </div>
 
-                    {/* Right Column: Numeric breakdown */}
+                {(() => {
+                  const bCurr = bCurrRender;
+                  const exRate = exRateRender;
+                  const dispCurr = forceReceiptLkr ? 'LKR' : bCurr;
+                  const totAmt = forceReceiptLkr && bCurr !== 'LKR' ? (associatedBooking.totalAmount || 0) * exRate : (associatedBooking.totalAmount || 0);
+                  const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+                  const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
+                    ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
+                    : rawPaid;
+                  const remBal = Math.max(0, totAmt - paidAmt);
+                  const convertedLkrPaid = (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate));
+
+                  return (
                     <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
                       <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
                         <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-                        <span className="font-bold text-slate-800">LKR {(associatedBooking.totalAmount || 0).toLocaleString()}</span>
+                        <span className="font-bold text-slate-800">{dispCurr} {totAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      
                       <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                        <span className="text-slate-500 font-semibold">This Payment:</span>
-                        <span className="font-bold text-emerald-850 print:text-slate-900">
-                          {selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency} {selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency}
-                        </span>
+                        <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment Paid:' : 'Advance Paid:'}</span>
+                        <span className="font-bold text-emerald-850 print:text-slate-900">{dispCurr} {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-
                       {paymentsUpToThis.length > 1 && (
                         <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-slate-500">
                           <span>Total Paid So Far:</span>
-                          <span className="font-bold">LKR {totalPaidUpToThis.toLocaleString()}</span>
+                          <span className="font-bold">{dispCurr} {(totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
-
-                      {(selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (
+                      {dispCurr !== 'LKR' && (
                         <>
                           <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
                             <span className="text-slate-500">Exchange Rate:</span>
-                            <span className="font-medium text-slate-700">{selectedPaymentForReceipt.exchangeRate}</span>
+                            <span className="font-medium text-slate-700">{exRate}</span>
                           </div>
                           <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
                             <span className="text-slate-500 font-semibold">Converted Amount:</span>
-                            <span className="font-bold text-emerald-850 print:text-slate-900">
-                              LKR {(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0).toLocaleString()}
-                            </span>
+                            <span className="font-bold text-emerald-850 print:text-slate-900">LKR {convertedLkrPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                         </>
                       )}
-
-                      <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">
+                      <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-800/30 print:border-slate-300">
                         <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>
-                        <span className={`font-mono text-xs ${
-                          isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
-                        } print:text-slate-900`}>
-                          LKR {remainingBalance.toLocaleString()}
-                        </span>
+                        <span className={`font-mono text-xs ${isFinalPayment ? 'text-blue-700' : 'text-emerald-800'} print:text-slate-900`}>{dispCurr} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      {isFinalPayment && (
-                        <div className="text-center mt-1">
-                          <span className="text-[9px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">✓ FULLY PAID</span>
-                        </div>
-                      )}
+                      {isFinalPayment && <div className="text-center mt-1"><span className="text-[9px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">✓ FULLY PAID</span></div>}
                     </div>
-                  </div>
+                  );
+                })()}
+              </div>
 
-              {/* Footer Signatures */}
               <div className="flex justify-between items-end mt-8 pt-4 border-t border-slate-100 print:mt-16">
                 <div className="text-center w-48">
                   <div className="border-b border-slate-300 w-full mb-2 h-4"></div>
