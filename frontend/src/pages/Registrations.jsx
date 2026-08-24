@@ -206,6 +206,7 @@ const Registrations = () => {
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [isEditingBooking, setIsEditingBooking] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -445,6 +446,41 @@ const Registrations = () => {
     }
     setBookingSuccess(false);
     setIsEditingBooking(false);
+  };
+
+  // Upload or replace Passport/NIC photo
+  const handlePassportPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedReg) return;
+
+    setUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = reader.result;
+        const res = await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            passportFrontPath: base64Data,
+            guestPhotoPath: base64Data
+          })
+        });
+
+        if (res.ok) {
+          const updated = await res.json();
+          setSelectedReg(updated);
+          fetchRegistrations();
+        } else {
+          alert('Failed to upload photo');
+        }
+        setUploadingPhoto(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error uploading photo:', err);
+      setUploadingPhoto(false);
+    }
   };
 
 
@@ -1464,24 +1500,33 @@ const Registrations = () => {
 
               {/* Uploaded Documents */}
               <div className="space-y-2 text-xs bg-slate-50/50 border border-slate-100/50 p-3.5 rounded-xl">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Uploaded Documents</h4>
-                <div className="space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Uploaded Documents</h4>
+                  <label className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs">
+                    {uploadingPhoto ? <Loader size={11} className="animate-spin text-emerald-600" /> : <FileDown size={11} />}
+                    {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? 'Upload New Photo' : 'Upload Photo'}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handlePassportPhotoUpload} 
+                      className="hidden" 
+                      disabled={uploadingPhoto}
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-2 pt-1">
                   {/* Passport Photo Bar */}
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Passport / NIC Photo</p>
                     {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
-                      <a 
-                        href={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center justify-between p-2 bg-white border border-slate-200 hover:border-emerald-500/60 rounded-xl transition cursor-pointer shadow-2xs group"
-                      >
+                      <div className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-xl shadow-2xs">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="h-10 w-14 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
                             <img 
                               src={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
                               alt="Passport Document"
-                              className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+                              className="w-full h-full object-cover"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                               }}
@@ -1489,14 +1534,12 @@ const Registrations = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-slate-800 text-xs truncate">Passport / NIC Document</p>
-                            <p className="text-[10px] text-slate-400 font-medium">Click to view full image</p>
+                            <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                              <CheckCircle size={10} /> Photo Attached
+                            </p>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 group-hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-200/60 transition shrink-0">
-                          <Eye size={12} /> View Photo
-                        </div>
-                      </a>
+                      </div>
                     ) : (
                       <div className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 text-xs italic flex items-center gap-2">
                         <FileText size={14} className="text-slate-300" /> No document uploaded

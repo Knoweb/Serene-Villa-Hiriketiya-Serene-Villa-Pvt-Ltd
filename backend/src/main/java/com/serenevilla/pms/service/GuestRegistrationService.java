@@ -189,6 +189,11 @@ public class GuestRegistrationService {
                 } else if (childrenVal instanceof String) {
                     reg.setChildren(Integer.parseInt((String) childrenVal));
                 }
+            if (details.containsKey("passportFrontPath") && details.get("passportFrontPath") != null) {
+                reg.setPassportFrontPath((String) details.get("passportFrontPath"));
+            }
+            if (details.containsKey("guestPhotoPath") && details.get("guestPhotoPath") != null) {
+                reg.setGuestPhotoPath((String) details.get("guestPhotoPath"));
             }
 
             GuestRegistration savedReg = guestRegistrationRepository.save(reg);
