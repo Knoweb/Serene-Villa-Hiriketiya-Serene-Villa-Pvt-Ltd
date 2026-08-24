@@ -1309,19 +1309,39 @@ const Reservations = () => {
 
   const handleGenerateReceipt = async (paymentId, fallbackPaymentList = null) => {
     try {
-      const res = await fetch(`${API_BASE}/receipts/advance/${paymentId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setReceiptData(data);
-        const list = fallbackPaymentList || advancePayments;
-        const p = list.find(pay => pay.id === paymentId);
-        setSelectedPaymentForReceipt(p);
-        setShowReceiptModal(true);
-      } else {
-        alert('Failed to generate receipt');
+      const list = fallbackPaymentList || advancePayments;
+      const p = list.find(pay => pay.id === paymentId) || { id: paymentId };
+      setSelectedPaymentForReceipt(p);
+
+      try {
+        const res = await fetch(`${API_BASE}/receipts/advance/${paymentId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setReceiptData(data);
+        } else {
+          setReceiptData({
+            id: paymentId,
+            receiptNumber: p.referenceNumber || p.receiptNumber || `REC-${String(paymentId).padStart(4, '0')}`,
+            paymentId: paymentId,
+            generatedAt: p.createdAt || p.paymentDate || new Date().toISOString(),
+            generatedBy: p.createdBy || 'Front Office'
+          });
+        }
+      } catch (fetchErr) {
+        console.warn('Backend receipt fetch failed, using local receipt fallback:', fetchErr);
+        setReceiptData({
+          id: paymentId,
+          receiptNumber: p.referenceNumber || p.receiptNumber || `REC-${String(paymentId).padStart(4, '0')}`,
+          paymentId: paymentId,
+          generatedAt: p.createdAt || p.paymentDate || new Date().toISOString(),
+          generatedBy: p.createdBy || 'Front Office'
+        });
       }
+
+      setShowReceiptModal(true);
     } catch (err) {
-      alert('Error: ' + err.message);
+      console.error('Error in handleGenerateReceipt:', err);
+      setShowReceiptModal(true);
     }
   };
 
