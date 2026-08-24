@@ -444,6 +444,20 @@ const Registrations = () => {
       });
       setAdvancePayments([]);
     }
+
+    const isForeign = (reg?.country && reg.country.toLowerCase() !== 'sri lanka') || (reg?.nationality && reg.nationality.toLowerCase() !== 'sri lankan');
+    const guestCurrency = associatedBooking?.currency || reg.currency || (isForeign ? 'USD' : 'LKR');
+    let guestExRate = 1;
+    if (guestCurrency === 'USD') guestExRate = 300;
+    else if (guestCurrency === 'EUR') guestExRate = 325;
+    else if (guestCurrency === 'AUD') guestExRate = 220;
+
+    setPaymentForm(prev => ({
+      ...prev,
+      currencyCode: guestCurrency,
+      exchangeRate: guestExRate,
+      amount: ''
+    }));
     setBookingSuccess(false);
     setIsEditingBooking(false);
   };
@@ -565,7 +579,7 @@ const Registrations = () => {
     setPaymentForm(prev => ({ ...prev, currencyCode: curr, exchangeRate: rate }));
   };
 
-  const handleSavePayment = async (e, tab, remainingBalance) => {
+  const handleSavePayment = async (e, tab, remainingBalanceInBookingCurrency) => {
     e.preventDefault();
     if (!selectedReg) return;
     const booking = getBookingForReg(selectedReg.id);
@@ -577,23 +591,52 @@ const Registrations = () => {
       alert('Please enter a valid exchange rate.'); return;
     }
 
-    const convertedLkr = parseFloat(paymentForm.amount) * parseFloat(paymentForm.exchangeRate);
+    const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+    const bookingCurrency = booking.currency || selectedReg?.currency || (isForeignGuest ? 'USD' : 'LKR');
+
+    const enteredAmount = parseFloat(paymentForm.amount);
+    const enteredCurrency = paymentForm.currencyCode || bookingCurrency;
+    const exRate = parseFloat(paymentForm.exchangeRate);
+    const convertedLkr = enteredCurrency === 'LKR' ? enteredAmount : enteredAmount * exRate;
+
+    // Convert entered amount to booking currency
+    let amountInBookingCurrency = enteredAmount;
+    if (enteredCurrency.toUpperCase() !== bookingCurrency.toUpperCase()) {
+      if (enteredCurrency === 'LKR' && exRate > 0) {
+        amountInBookingCurrency = enteredAmount / exRate;
+      }
+    }
+
+    // Calculate total paid in booking currency
+    let currentPaidInBookingCurrency = 0;
+    getVisiblePayments(advancePayments).forEach(p => {
+      const pCurr = p.currencyCode || p.currency || bookingCurrency;
+      let pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) ? parseFloat(p.amountInCurrency) : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
+      if (pCurr.toUpperCase() === bookingCurrency.toUpperCase()) {
+        currentPaidInBookingCurrency += pAmt;
+      } else if (pCurr.toUpperCase() === 'LKR' && bookingCurrency !== 'LKR') {
+        const rate = parseFloat(p.exchangeRate || exRate || 1);
+        if (rate > 0) currentPaidInBookingCurrency += (p.convertedAmountLkr || p.amountLkr || pAmt) / rate;
+      } else {
+        currentPaidInBookingCurrency += pAmt;
+      }
+    });
+
+    const newTotalInBookingCurrency = currentPaidInBookingCurrency + amountInBookingCurrency;
     const totalBookingAmount = booking.totalAmount || 0;
-    const totalPaidSoFar = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-    const newTotal = totalPaidSoFar + convertedLkr;
-    const isFull = tab === 'FULL' || newTotal >= totalBookingAmount;
+    const isFull = tab === 'FULL' || newTotalInBookingCurrency >= (totalBookingAmount - 0.01);
 
     const payload = {
       bookingId: booking.id,
       guestRegistrationId: selectedReg.id,
       paymentType: isFull ? 'FINAL' : 'ADVANCE',
-      amount: parseFloat(paymentForm.amount),
-      currencyCode: paymentForm.currencyCode,
-      currency: paymentForm.currencyCode,
-      exchangeRate: parseFloat(paymentForm.exchangeRate),
+      amount: enteredAmount,
+      currencyCode: enteredCurrency,
+      currency: enteredCurrency,
+      exchangeRate: exRate,
       convertedAmountLkr: convertedLkr,
       amountLkr: convertedLkr,
-      amountInCurrency: parseFloat(paymentForm.amount),
+      amountInCurrency: enteredAmount,
       paymentMethod: paymentForm.paymentMethod,
       referenceNumber: paymentForm.referenceNumber,
       receiptNumber: paymentForm.referenceNumber,
@@ -616,32 +659,40 @@ const Registrations = () => {
 
       // Determine new payment status
       let newPaymentStatus = 'Unpaid';
-      if (isFull || newTotal >= totalBookingAmount) newPaymentStatus = 'Paid';
-      else if (newTotal > 0) newPaymentStatus = 'Partially Paid';
+      if (isFull || newTotalInBookingCurrency >= totalBookingAmount) newPaymentStatus = 'Paid';
+      else if (newTotalInBookingCurrency > 0) newPaymentStatus = 'Partially Paid';
 
-      await fetch(`${API_BASE}/bookings/${booking.id}/payment-status?paymentStatus=${newPaymentStatus}`, {
-        method: 'PUT'
+      await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentStatus: newPaymentStatus })
       });
 
-      await fetchRegistrations();
-      await fetchAdvancePayments(booking.id);
+      setSelectedReg(prev => ({ ...prev, paymentStatus: newPaymentStatus }));
+      fetchRegistrations();
+      fetchAdvancePayments(booking.id);
 
-      // Reset form
+      setSelectedPaymentForReceipt(savedPayment);
+      setReceiptData({
+        ...savedPayment,
+        guestName: selectedReg.guestName,
+        bookingRef: booking.bookingNumber,
+        roomNumber: booking.roomNumber,
+        totalAmount: totalBookingAmount,
+        bookingCurrency: bookingCurrency
+      });
+      setShowReceiptModal(true);
+
       setPaymentForm({
         amount: '',
-        currencyCode: 'LKR',
-        exchangeRate: 1,
+        currencyCode: bookingCurrency,
+        exchangeRate: exRate,
         paymentMethod: 'Cash',
         referenceNumber: '',
         remarks: '',
         paymentDate: new Date().toISOString().split('T')[0],
         slipPath: ''
       });
-
-      // Auto-open receipt and print
-      if (savedPayment && savedPayment.id) {
-        // Refresh advancePayments list first so receipt lookup works
-        const refreshRes = await fetch(`${API_BASE}/payments/booking/${booking.id}`);
         if (refreshRes.ok) {
           const freshPayments = await refreshRes.json();
           setAdvancePayments(freshPayments);
@@ -1562,36 +1613,59 @@ const Registrations = () => {
 
                   {/* Payment Summary Card */}
                   {(() => {
-                    const totalAmt = associatedBooking.totalAmount || 0;
+                    const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+                    const bookingCurrency = associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : (isForeignGuest ? 'USD' : 'LKR')));
+                    const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
+
                     const visiblePays = getVisiblePayments(advancePayments);
-                    const totalPaid = visiblePays.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-                    const advancePaid = visiblePays.filter(p => p.paymentType === 'ADVANCE' || p.isAdvancePayment).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-                    let pStatus = associatedBooking.paymentStatus || 'Unpaid';
-                    if (totalPaid >= totalAmt && totalAmt > 0) pStatus = 'Paid';
-                    else if (totalPaid > 0 && pStatus !== 'Paid') pStatus = 'Partially Paid';
-                    const bal = pStatus === 'Paid' ? 0 : Math.max(0, totalAmt - totalPaid);
+                    let totalPaidInBookingCurrency = 0;
+                    let advancePaidInBookingCurrency = 0;
+
+                    visiblePays.forEach(p => {
+                      const pCurr = p.currencyCode || p.currency || bookingCurrency;
+                      let pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) ? parseFloat(p.amountInCurrency) : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
+                      
+                      if (pCurr.toUpperCase() === bookingCurrency.toUpperCase()) {
+                        // Direct match
+                      } else if (pCurr.toUpperCase() === 'LKR' && bookingCurrency !== 'LKR') {
+                        const exRate = parseFloat(p.exchangeRate || associatedBooking?.exchangeRate || 1);
+                        if (exRate > 0) pAmt = (p.convertedAmountLkr || p.amountLkr || pAmt) / exRate;
+                      }
+
+                      totalPaidInBookingCurrency += pAmt;
+                      if (p.paymentType === 'ADVANCE' || p.isAdvancePayment) {
+                        advancePaidInBookingCurrency += pAmt;
+                      }
+                    });
+
+                    let pStatus = associatedBooking?.paymentStatus || selectedReg?.paymentStatus || 'Unpaid';
+                    if (totalPaidInBookingCurrency >= (totalAmt - 0.01) && totalAmt > 0) pStatus = 'Paid';
+                    else if (totalPaidInBookingCurrency > 0 && pStatus !== 'Paid') pStatus = 'Partially Paid';
+
+                    const bal = pStatus === 'Paid' ? 0 : Math.max(0, totalAmt - totalPaidInBookingCurrency);
+
                     return (
                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
                         <div className="flex justify-between font-semibold text-slate-500">
                           <span>Total Booking Amount:</span>
-                          <span className="font-mono font-bold text-slate-900">{totalAmt.toLocaleString()} LKR</span>
+                          <span className="font-mono font-bold text-slate-900">{totalAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}</span>
                         </div>
-                        {advancePaid > 0 && (
+                        {advancePaidInBookingCurrency > 0 && (
                           <div className="flex justify-between font-semibold text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200/50">
                             <span className="flex items-center gap-1 font-bold">
                               <ShieldCheck size={13} className="text-emerald-600" /> Advance Paid by Guest:
                             </span>
-                            <span className="font-mono font-extrabold text-emerald-700">-{advancePaid.toLocaleString()} LKR</span>
+                            <span className="font-mono font-extrabold text-emerald-700">-{advancePaidInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}</span>
                           </div>
                         )}
                         <div className="flex justify-between font-semibold text-slate-500">
                           <span>Total Paid So Far:</span>
-                          <span className="font-mono font-bold text-emerald-600">+{totalPaid.toLocaleString()} LKR</span>
+                          <span className="font-mono font-bold text-emerald-600">+{totalPaidInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}</span>
                         </div>
                         <div className="flex justify-between font-extrabold text-slate-900 border-t border-slate-200/60 pt-2 text-sm">
                           <span>Remaining Balance to Pay:</span>
                           <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600 font-black' : 'text-emerald-600'}`}>
-                            {Math.max(0, bal).toLocaleString()} LKR
+                            {Math.max(0, bal).toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                           </span>
                         </div>
                         <div className="flex justify-between items-center border-t border-slate-200/60 pt-2">
@@ -1616,7 +1690,7 @@ const Registrations = () => {
                             <div>
                               <div className="flex items-center gap-1.5 mb-0.5">
                                 <p className="font-bold text-slate-800">
-                                  {payment.amount || payment.amountInCurrency} {payment.currencyCode || payment.currency}
+                                  {(payment.amountInCurrency || payment.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {payment.currencyCode || payment.currency}
                                   <span className="text-slate-400 font-normal"> (@ {payment.exchangeRate})</span>
                                 </p>
                                 <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
@@ -1642,10 +1716,29 @@ const Registrations = () => {
 
                   {/* Single Unified Payment Form */}
                   {(() => {
-                    const totalAmt = associatedBooking.totalAmount || 0;
-                    const totalPaid = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-                    const remainingBal = associatedBooking.paymentStatus === 'Paid' ? 0 : Math.max(0, totalAmt - totalPaid);
-                    const isFullyPaid = remainingBal <= 0 || associatedBooking.paymentStatus === 'Paid';
+                    const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+                    const bookingCurrency = associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : (isForeignGuest ? 'USD' : 'LKR')));
+                    const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
+
+                    const visiblePays = getVisiblePayments(advancePayments);
+                    let totalPaidInBookingCurrency = 0;
+
+                    visiblePays.forEach(p => {
+                      const pCurr = p.currencyCode || p.currency || bookingCurrency;
+                      let pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) ? parseFloat(p.amountInCurrency) : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
+                      
+                      if (pCurr.toUpperCase() === bookingCurrency.toUpperCase()) {
+                        // Direct match
+                      } else if (pCurr.toUpperCase() === 'LKR' && bookingCurrency !== 'LKR') {
+                        const exRate = parseFloat(p.exchangeRate || associatedBooking?.exchangeRate || 1);
+                        if (exRate > 0) pAmt = (p.convertedAmountLkr || p.amountLkr || pAmt) / exRate;
+                      }
+
+                      totalPaidInBookingCurrency += pAmt;
+                    });
+
+                    const remainingBal = (associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid') ? 0 : Math.max(0, totalAmt - totalPaidInBookingCurrency);
+                    const isFullyPaid = remainingBal <= 0 || associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid';
 
                     if (isFullyPaid) return (
                       <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700 font-bold">
@@ -1656,15 +1749,18 @@ const Registrations = () => {
                     // Auto-fill amount when switching to FULL tab
                     const handleTabChange = (tab) => {
                       setPaymentTab(tab);
+                      let rate = 1;
+                      if (bookingCurrency === 'USD') rate = 300;
+                      else if (bookingCurrency === 'EUR') rate = 325;
+                      else if (bookingCurrency === 'AUD') rate = 220;
                       if (tab === 'FULL') {
-                        setPaymentForm(prev => ({ ...prev, amount: remainingBal.toFixed(2), currencyCode: 'LKR', exchangeRate: 1 }));
+                        setPaymentForm(prev => ({ ...prev, amount: remainingBal.toFixed(2), currencyCode: bookingCurrency, exchangeRate: rate }));
                       } else {
-                        setPaymentForm(prev => ({ ...prev, amount: '' }));
+                        setPaymentForm(prev => ({ ...prev, amount: '', currencyCode: bookingCurrency, exchangeRate: rate }));
                       }
                     };
 
                     const isFull = paymentTab === 'FULL';
-                    const accentColor = isFull ? 'blue' : 'emerald';
 
                     return (
                       <form onSubmit={(e) => handleSavePayment(e, paymentTab, remainingBal)} className="space-y-3 text-xs">
@@ -1695,7 +1791,7 @@ const Registrations = () => {
                               <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full ${
                                 isFull ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'
                               }`}>
-                                {remainingBal.toLocaleString()} LKR
+                                {remainingBal.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                               </span>
                             )}
                           </button>
@@ -1709,14 +1805,13 @@ const Registrations = () => {
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Currency</label>
                               <select
-                                value={paymentForm.currencyCode}
+                                value={paymentForm.currencyCode || bookingCurrency}
                                 onChange={handlePaymentCurrencyChange}
-                                disabled={isFull}
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
                               >
-                                <option value="LKR">LKR</option>
-                                <option value="USD">USD</option>
                                 <option value="EUR">EUR</option>
+                                <option value="USD">USD</option>
+                                <option value="LKR">LKR</option>
                                 <option value="AUD">AUD</option>
                               </select>
                             </div>
