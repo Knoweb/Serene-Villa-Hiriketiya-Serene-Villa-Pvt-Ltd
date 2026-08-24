@@ -1563,9 +1563,9 @@ const Registrations = () => {
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Passport / NIC Photo</p>
                     {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
-                      <div className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                      <div className="flex items-center justify-between p-2.5 bg-emerald-50/40 border border-emerald-200/60 rounded-xl shadow-2xs">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="h-10 w-14 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                          <div className="h-10 w-14 rounded-lg overflow-hidden border border-emerald-200 shrink-0 bg-white shadow-2xs">
                             <img 
                               src={getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath)} 
                               alt="Passport Document"
@@ -1577,9 +1577,9 @@ const Registrations = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-slate-800 text-xs truncate">Passport / NIC Document</p>
-                            <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                              <CheckCircle size={10} /> Photo Attached
-                            </p>
+                            <span className="inline-flex items-center gap-1 mt-0.5 text-[9px] font-extrabold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300/50">
+                              <CheckCircle size={10} className="text-emerald-600" /> Photo Uploaded & Attached
+                            </span>
                           </div>
                         </div>
                       </div>
