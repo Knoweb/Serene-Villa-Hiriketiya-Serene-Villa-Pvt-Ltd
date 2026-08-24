@@ -2260,6 +2260,14 @@ Serene Villa Hiriketiya`;
           }
         };
 
+        // Calculate these in render scope so JSX can access them (were previously only inside handleWhatsAppShare)
+        const bCurrRender = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
+        const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
+        const totalBookingAmountLkrRender = bCurrRender === 'LKR' ? (associatedBooking.totalAmount || 0) : ((associatedBooking.totalAmount || 0) * exRateRender);
+        const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
+        const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+        const remainingBalance = isFinalPayment ? 0 : Math.max(0, totalBookingAmountLkrRender - totalPaidUpToThis);
+
         return (
           <div id="printable-receipt-modal-wrapper" className="no-print fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:py-8 print:p-0 print:bg-transparent print:static overflow-y-auto">
             <div 
