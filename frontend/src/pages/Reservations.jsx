@@ -1325,18 +1325,11 @@ const Reservations = () => {
     }
   };
 
-  // Cross-reference booking for row display with smart multi-strategy matching
+  // Cross-reference booking for row display with candidate ranking (prioritizes real manual reservations over auto-drafts)
   const getBookingForReg = (regId) => {
     if (!regId) return null;
     const targetReg = registrations.find(r => r.id === regId) || (selectedReg?.id === regId ? selectedReg : null);
     if (!targetReg) return null;
-
-    // Sort bookings descending by ID to match latest bookings first!
-    const sortedBookings = [...bookings].sort((a, b) => (b.id || 0) - (a.id || 0));
-
-    // 1. Direct match by guestRegistrationId
-    let found = sortedBookings.find(b => b.guestRegistrationId === regId);
-    if (found) return found;
 
     const cleanRegName = (targetReg.guestName || '')
       .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
@@ -1346,42 +1339,42 @@ const Reservations = () => {
     const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
     const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
 
-    // 2. Match by exact cleaned guestName
-    if (cleanRegName && cleanRegName.length >= 3) {
-      found = sortedBookings.find(b => {
-        if (!b.guestName) return false;
-        const cleanBName = b.guestName
-          .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
-          .replace(/^mr\s*\/\s*mrs\s*/i, '')
-          .trim().toLowerCase();
-        return cleanBName === cleanRegName;
-      });
-      if (found) return found;
-    }
+    // Find all matching candidate bookings
+    const candidates = bookings.filter(b => {
+      if (b.guestRegistrationId === regId) return true;
 
-    // 3. Match by email
-    if (cleanRegEmail) {
-      found = sortedBookings.find(b => b.email && b.email.trim().toLowerCase() === cleanRegEmail);
-      if (found) return found;
-    }
+      const cleanBName = (b.guestName || '')
+        .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+        .replace(/^mr\s*\/\s*mrs\s*/i, '')
+        .trim().toLowerCase();
 
-    // 4. Match by phone
-    if (cleanRegPhone && cleanRegPhone.length >= 7) {
-      found = sortedBookings.find(b => {
+      if (cleanRegName && cleanRegName.length >= 3 && cleanBName === cleanRegName) return true;
+      if (cleanRegEmail && b.email && b.email.trim().toLowerCase() === cleanRegEmail) return true;
+      if (cleanRegPhone && cleanRegPhone.length >= 7) {
         const bPhone = (b.contactNumber || b.phone || b.whatsappNumber || '').replace(/\D/g, '');
-        return bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone));
-      });
-      if (found) return found;
-    }
+        if (bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone))) return true;
+      }
 
-    // 5. Match by exact Booking Number string
-    if (targetReg.bookingNumber && !targetReg.bookingNumber.startsWith('D-10') && !targetReg.bookingNumber.startsWith('D-11')) {
-      const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
-      found = sortedBookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
-      if (found) return found;
-    }
+      if (targetReg.bookingNumber) {
+        const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
+        if (b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum) return true;
+      }
 
-    return null;
+      return false;
+    });
+
+    if (candidates.length === 0) return null;
+
+    // Rank candidates: REAL manual reservations (e.g. D-7892017) come FIRST over auto-drafts (D-10xx, D-11xx)!
+    candidates.sort((a, b) => {
+      const aIsReal = a.bookingNumber && !a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11');
+      const bIsReal = b.bookingNumber && !b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11');
+      if (aIsReal && !bIsReal) return -1;
+      if (!aIsReal && bIsReal) return 1;
+      return (b.id || 0) - (a.id || 0);
+    });
+
+    return candidates[0];
   };
 
   const qrPort = window.location.port ? `:${window.location.port}` : '';
