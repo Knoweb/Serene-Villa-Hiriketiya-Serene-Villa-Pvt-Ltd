@@ -1051,63 +1051,84 @@ const Registrations = () => {
                       </span>
                     </div>
 
-                    {/* Room Type */}
-                    <div className="col-span-2 flex justify-between items-start py-1.5 border-t border-slate-100/60">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room Type:</span>
-                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-1 max-w-[70%]">
-                        {(() => {
-                          let roomNums = [];
+                    {/* Allocated Rooms Table */}
+                    <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Rooms:</span>
+                      {(() => {
+                        const curr = associatedBooking?.currency || selectedReg?.currency || 'LKR';
+                        let roomItems = [];
+
+                        if (associatedBooking?.roomPrices) {
+                          try {
+                            const parsed = JSON.parse(associatedBooking.roomPrices);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                              roomItems = parsed.map(p => ({
+                                roomNumber: p.roomNumber ? p.roomNumber.replace(/^Room\s*/i, '') : '',
+                                price: p.price || p.roomPrice || 0
+                              })).filter(item => item.roomNumber);
+                            }
+                          } catch(e) {}
+                        }
+
+                        if (roomItems.length === 0) {
+                          let rNums = [];
                           if (associatedBooking?.roomNumber && associatedBooking.roomNumber !== 'Unallocated') {
-                            roomNums = associatedBooking.roomNumber.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                            rNums = associatedBooking.roomNumber.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
                           }
-                          if (roomNums.length === 0 && bookingForm.room) {
-                            roomNums = bookingForm.room.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                          if (rNums.length === 0 && bookingForm.room) {
+                            rNums = bookingForm.room.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
                           }
-                          if (roomNums.length === 0 && (selectedReg?.roomNumber || selectedReg?.room)) {
+                          if (rNums.length === 0 && (selectedReg?.roomNumber || selectedReg?.room)) {
                             const r = selectedReg.roomNumber || selectedReg.room;
                             if (r && r !== 'Unallocated') {
-                              roomNums = r.split(',').map(x => x.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                              rNums = r.split(',').map(x => x.trim().replace(/^Room\s*/i, '')).filter(Boolean);
                             }
                           }
-                          if (roomNums.length === 0 && associatedBooking?.roomPrices) {
-                            try {
-                              const p = JSON.parse(associatedBooking.roomPrices);
-                              if (Array.isArray(p)) {
-                                p.forEach(item => {
-                                  if (item.roomNumber) {
-                                    const clean = item.roomNumber.trim().replace(/^Room\s*/i, '');
-                                    if (clean) roomNums.push(clean);
-                                  }
-                                });
-                              }
-                            } catch(e) {}
-                          }
-                          if (roomNums.length === 0 && associatedBooking?.roomType) {
+                          if (rNums.length === 0 && associatedBooking?.roomType) {
                             const extracted = associatedBooking.roomType.match(/\b(?:\d{3,4}|10\d|40\d|41\d)\b/g);
-                            if (extracted && extracted.length > 0) roomNums = extracted;
+                            if (extracted && extracted.length > 0) rNums = extracted;
                           }
 
-                          if (roomNums.length > 0) {
-                            return roomNums.map((rNo, idx) => (
-                              <span key={idx} className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold shadow-xs">
-                                Room {rNo}
-                              </span>
-                            ));
+                          if (rNums.length > 0) {
+                            const totalAmt = associatedBooking?.totalAmount || bookingForm.amount || 0;
+                            const splitPrice = rNums.length === 1 ? totalAmt : 0;
+                            roomItems = rNums.map(rNo => ({
+                              roomNumber: rNo,
+                              price: splitPrice
+                            }));
                           }
+                        }
 
-                          if (associatedBooking?.roomType || bookingForm.roomType) {
-                            const typeStr = associatedBooking?.roomType || bookingForm.roomType;
-                            const shortType = typeStr.split(',')[0].split('-')[0].trim();
-                            return (
-                              <span className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold">
-                                {shortType}
-                              </span>
-                            );
-                          }
+                        if (roomItems.length === 0) {
+                          return <div className="text-slate-400 italic text-xs pt-0.5">Unallocated</div>;
+                        }
 
-                          return <span className="text-slate-400 italic">Unallocated</span>;
-                        })()}
-                      </div>
+                        return (
+                          <div className="w-full border border-slate-200/80 rounded-xl overflow-hidden shadow-2xs bg-white mt-1">
+                            <table className="w-full text-left border-collapse text-[11px]">
+                              <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200/60 text-[9px] uppercase font-extrabold text-slate-500 tracking-wider">
+                                  <th className="py-2 px-3">Room Number</th>
+                                  <th className="py-2 px-3 text-right">Price ({curr})</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
+                                {roomItems.map((item, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="py-2 px-3 font-extrabold text-slate-900">
+                                      {item.roomNumber}
+                                    </td>
+                                    <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                                      <span className="text-slate-400 text-[10px] mr-1">{curr}</span>
+                                      {parseFloat(item.price || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Board Basis */}

@@ -91,22 +91,16 @@ public class GuestRegistrationService {
             result = result.map(reg -> {
                 try {
                     List<Booking> bookings = bookingRepository.findByGuestRegistrationId(reg.getId());
-                    if (bookings != null && !bookings.isEmpty()) {
-                        Booking booking = bookings.get(bookings.size() - 1);
-                        List<Payment> allPayments = paymentRepository.findByBookingId(booking.getId());
-                        if (allPayments != null) {
-                            // Filter out hidden payments
-                            List<Payment> visiblePayments = allPayments.stream()
-                                    .filter(p -> p != null && (p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice()))
-                                    .toList();
-                            
-                            double totalPaid = visiblePayments.stream()
-                                    .mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : p.getAmountLkr())
-                                    .sum();
-                            
-                            double totalAmt = booking.getTotalAmount();
-                            String computedStatus = "Unpaid";
-                            if (totalPaid >= totalAmt && totalAmt > 0) {
+                    // Populate computed payment status
+                    List<Booking> regBookings = bookingRepository.findByGuestRegistrationId(reg.getId());
+                    if (regBookings != null && !regBookings.isEmpty()) {
+                        Booking mainBooking = regBookings.get(0);
+                        List<Payment> payments = paymentRepository.findByBookingId(mainBooking.getId());
+                        if (payments != null && !payments.isEmpty()) {
+                            double totalPaid = payments.stream().mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : (p.getAmountLkr() != null ? p.getAmountLkr() : 0)).sum();
+                            double totalAmt = mainBooking.getTotalAmount() != null ? mainBooking.getTotalAmount() : 0;
+                            String computedStatus = "Pending";
+                            if (totalAmt > 0 && totalPaid >= totalAmt) {
                                 computedStatus = "Paid";
                             } else if (totalPaid > 0) {
                                 computedStatus = "Paid Advance";
@@ -117,16 +111,13 @@ public class GuestRegistrationService {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                return reg;
+                if (reg.getGuestPhotoPath() == null && reg.getPassportFrontPath() != null) {
+                    reg.setGuestPhotoPath(reg.getPassportFrontPath());
+                }
             });
         }
 
-        // Return lightweight entities for listing, stripping heavy passport Base64 image payloads
-        return result.map(reg -> {
-            reg.setPassportFrontPath(null);
-            reg.setPassportBackPath(null);
-            return reg;
-        });
+        return result;
     }
 
     public Optional<GuestRegistration> getRegistrationById(Long id) {
