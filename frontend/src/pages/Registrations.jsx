@@ -193,6 +193,7 @@ const Registrations = () => {
   });
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [isEditingBooking, setIsEditingBooking] = useState(false);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -429,6 +430,7 @@ const Registrations = () => {
       setAdvancePayments([]);
     }
     setBookingSuccess(false);
+    setIsEditingBooking(false);
   };
 
 
@@ -485,6 +487,7 @@ const Registrations = () => {
       const updatedReg = await response.json();
       setSelectedReg(updatedReg);
       setBookingSuccess(true);
+      setIsEditingBooking(false);
       
       // Refresh list and sync payments history
       const latestBookings = await fetchRegistrations();
@@ -969,135 +972,289 @@ const Registrations = () => {
 
               {/* Guest Core Details */}
               <div className="space-y-3 text-xs bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Guest Information</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  
-                  {/* Reservation ID */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Reservation ID</p>
-                    <p className="font-mono font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                      <FileText className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`}
-                    </p>
-                  </div>
-
-                  {/* WhatsApp Number */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">WhatsApp Number</p>
-                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                      <Phone className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.whatsappNumber || selectedReg.whatsAppNumber || 'N/A'}
-                    </p>
-                  </div>
-
-                  {/* Check-In */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-In</p>
-                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkInDate || associatedBooking?.checkInDate || 'N/A'}
-                    </p>
-                  </div>
-
-                  {/* Check-Out */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-Out</p>
-                    <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkOutDate || associatedBooking?.checkOutDate || 'N/A'}
-                    </p>
-                  </div>
-
-                  {/* Total Nights */}
-                  <div className="space-y-1 border-t border-slate-100/80 pt-2 mt-1 col-span-2 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Nights:</span>
-                    <span className="font-extrabold text-emerald-700 text-xs">
-                      {selectedReg.numberOfNights || selectedReg.nights || 1} Nights
-                    </span>
-                  </div>
-
-                  {/* Pax */}
-                  <div className="space-y-1 col-span-2 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Pax:</span>
-                    <span className="font-extrabold text-slate-800">{selectedReg.adults || 1} Adults / {selectedReg.children || 0} Children</span>
-                  </div>
-
-                  {/* Booking Channel */}
-                  <div className="space-y-1 col-span-2 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Booking Channel:</span>
-                    <span className="font-extrabold text-slate-800">
-                      {associatedBooking?.bookingType || 'Direct Booking'}
-                    </span>
-                  </div>
-
-                  {/* Room Type */}
-                  <div className="col-span-2 flex justify-between items-start py-1.5 border-t border-slate-100/60">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room Type:</span>
-                    <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-1 max-w-[70%]">
-                      {(() => {
-                        let roomNums = [];
-                        if (associatedBooking?.roomNumber && associatedBooking.roomNumber !== 'Unallocated') {
-                          roomNums = associatedBooking.roomNumber.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
-                        }
-                        if (roomNums.length === 0 && (selectedReg?.roomNumber || selectedReg?.room)) {
-                          const r = selectedReg.roomNumber || selectedReg.room;
-                          if (r && r !== 'Unallocated') {
-                            roomNums = r.split(',').map(x => x.trim().replace(/^Room\s*/i, '')).filter(Boolean);
-                          }
-                        }
-                        if (roomNums.length === 0 && associatedBooking?.roomPrices) {
-                          try {
-                            const p = JSON.parse(associatedBooking.roomPrices);
-                            if (Array.isArray(p)) {
-                              p.forEach(item => {
-                                if (item.roomNumber) {
-                                  const clean = item.roomNumber.trim().replace(/^Room\s*/i, '');
-                                  if (clean) roomNums.push(clean);
-                                }
-                              });
-                            }
-                          } catch(e) {}
-                        }
-                        if (roomNums.length === 0 && associatedBooking?.roomType) {
-                          const extracted = associatedBooking.roomType.match(/\b(?:\d{3,4}|10\d|40\d|41\d)\b/g);
-                          if (extracted && extracted.length > 0) roomNums = extracted;
-                        }
-
-                        if (roomNums.length > 0) {
-                          return roomNums.map((rNo, idx) => (
-                            <span key={idx} className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold shadow-xs">
-                              Room {rNo}
-                            </span>
-                          ));
-                        }
-
-                        if (associatedBooking?.roomType) {
-                          const shortType = associatedBooking.roomType.split(',')[0].split('-')[0].trim();
-                          return (
-                            <span className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold">
-                              {shortType}
-                            </span>
-                          );
-                        }
-
-                        return <span className="text-slate-400 italic">Unallocated</span>;
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Board Basis */}
-                  <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/60 pt-1.5">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Board Basis:</span>
-                    <span className="font-extrabold text-slate-800">
-                      {associatedBooking?.boardBasis || 'Room Only'}
-                    </span>
-                  </div>
-
-                  {/* Total Price */}
-                  <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/80 pt-2">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
-                    <span className="font-extrabold text-slate-900 font-mono text-xs">
-                      {associatedBooking?.currency || 'LKR'} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
+                <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Guest Information</h4>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsEditingBooking(!isEditingBooking);
+                      setBookingSuccess(false);
+                    }}
+                    className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs"
+                  >
+                    <Pencil size={11} /> {isEditingBooking ? 'Cancel Edit' : 'Edit Details'}
+                  </button>
                 </div>
+
+                {bookingSuccess && (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl flex items-center gap-1.5">
+                    <Check className="h-4 w-4" /> Booking details updated successfully!
+                  </div>
+                )}
+
+                {!isEditingBooking ? (
+                  /* READ-ONLY SUMMARY CARD */
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Reservation ID */}
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Reservation ID</p>
+                      <p className="font-mono font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                        <FileText className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.bookingNumber || bookingForm.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`}
+                      </p>
+                    </div>
+
+                    {/* WhatsApp Number */}
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">WhatsApp Number</p>
+                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                        <Phone className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.whatsappNumber || selectedReg.whatsAppNumber || 'N/A'}
+                      </p>
+                    </div>
+
+                    {/* Check-In */}
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-In</p>
+                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.checkInDate || selectedReg.checkInDate || bookingForm.checkInDate || 'N/A'}
+                      </p>
+                    </div>
+
+                    {/* Check-Out */}
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Check-Out</p>
+                      <p className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.checkOutDate || selectedReg.checkOutDate || bookingForm.checkOutDate || 'N/A'}
+                      </p>
+                    </div>
+
+                    {/* Total Nights */}
+                    <div className="space-y-1 border-t border-slate-100/80 pt-2 mt-1 col-span-2 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Nights:</span>
+                      <span className="font-extrabold text-emerald-700 text-xs">
+                        {bookingForm.numberOfNights || selectedReg.numberOfNights || selectedReg.nights || 1} Nights
+                      </span>
+                    </div>
+
+                    {/* Pax */}
+                    <div className="space-y-1 col-span-2 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Pax:</span>
+                      <span className="font-extrabold text-slate-800">{selectedReg.adults || 1} Adults / {selectedReg.children || 0} Children</span>
+                    </div>
+
+                    {/* Booking Channel */}
+                    <div className="space-y-1 col-span-2 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Booking Channel:</span>
+                      <span className="font-extrabold text-slate-800">
+                        {associatedBooking?.bookingType || bookingForm.bookingType || 'Direct Booking'}
+                      </span>
+                    </div>
+
+                    {/* Room Type */}
+                    <div className="col-span-2 flex justify-between items-start py-1.5 border-t border-slate-100/60">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room Type:</span>
+                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-1 max-w-[70%]">
+                        {(() => {
+                          let roomNums = [];
+                          if (associatedBooking?.roomNumber && associatedBooking.roomNumber !== 'Unallocated') {
+                            roomNums = associatedBooking.roomNumber.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                          }
+                          if (roomNums.length === 0 && bookingForm.room) {
+                            roomNums = bookingForm.room.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                          }
+                          if (roomNums.length === 0 && (selectedReg?.roomNumber || selectedReg?.room)) {
+                            const r = selectedReg.roomNumber || selectedReg.room;
+                            if (r && r !== 'Unallocated') {
+                              roomNums = r.split(',').map(x => x.trim().replace(/^Room\s*/i, '')).filter(Boolean);
+                            }
+                          }
+                          if (roomNums.length === 0 && associatedBooking?.roomPrices) {
+                            try {
+                              const p = JSON.parse(associatedBooking.roomPrices);
+                              if (Array.isArray(p)) {
+                                p.forEach(item => {
+                                  if (item.roomNumber) {
+                                    const clean = item.roomNumber.trim().replace(/^Room\s*/i, '');
+                                    if (clean) roomNums.push(clean);
+                                  }
+                                });
+                              }
+                            } catch(e) {}
+                          }
+                          if (roomNums.length === 0 && associatedBooking?.roomType) {
+                            const extracted = associatedBooking.roomType.match(/\b(?:\d{3,4}|10\d|40\d|41\d)\b/g);
+                            if (extracted && extracted.length > 0) roomNums = extracted;
+                          }
+
+                          if (roomNums.length > 0) {
+                            return roomNums.map((rNo, idx) => (
+                              <span key={idx} className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold shadow-xs">
+                                Room {rNo}
+                              </span>
+                            ));
+                          }
+
+                          if (associatedBooking?.roomType || bookingForm.roomType) {
+                            const typeStr = associatedBooking?.roomType || bookingForm.roomType;
+                            const shortType = typeStr.split(',')[0].split('-')[0].trim();
+                            return (
+                              <span className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                                {shortType}
+                              </span>
+                            );
+                          }
+
+                          return <span className="text-slate-400 italic">Unallocated</span>;
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Board Basis */}
+                    <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/60 pt-1.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Board Basis:</span>
+                      <span className="font-extrabold text-slate-800">
+                        {associatedBooking?.boardBasis || bookingForm.boardBasis || 'Room Only'}
+                      </span>
+                    </div>
+
+                    {/* Total Price */}
+                    <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/80 pt-2">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
+                      <span className="font-extrabold text-slate-900 font-mono text-xs">
+                        {associatedBooking?.currency || 'LKR'} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                  </div>
+                ) : (
+                  /* EDIT MODE INLINE FORM */
+                  <form onSubmit={handleBookingSubmit} className="space-y-3 pt-1">
+                    <div className="grid grid-cols-2 gap-2.5 text-xs">
+                      {/* Room Type */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room Type</label>
+                        <select
+                          value={bookingForm.roomType}
+                          onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 focus:outline-none focus:border-emerald-500 text-xs"
+                        >
+                          {uniqueRoomTypes.map((type) => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Room No */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No</label>
+                        <div className="flex gap-1">
+                          <input
+                            type="text"
+                            placeholder="e.g. 101"
+                            value={bookingForm.room}
+                            onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
+                            className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowRoomSelector(true)}
+                            className="px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition flex items-center justify-center border border-slate-200 text-xs cursor-pointer"
+                          >
+                            Browse
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Booking Channel */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Booking Channel</label>
+                        <select
+                          value={bookingForm.bookingType}
+                          onChange={(e) => handleBookingChannelChange(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs"
+                        >
+                          <option value="Direct">Direct</option>
+                          <option value="Booking.com">Booking.com</option>
+                          <option value="Agoda">Agoda</option>
+                          <option value="Web">Web</option>
+                        </select>
+                      </div>
+
+                      {/* Booking Number */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Booking Number</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. D-1002"
+                          value={bookingForm.bookingNumber}
+                          onChange={(e) => setBookingForm({...bookingForm, bookingNumber: e.target.value})}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 font-mono text-xs"
+                        />
+                      </div>
+
+                      {/* Board Basis */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Board Basis</label>
+                        <select
+                          value={bookingForm.boardBasis}
+                          onChange={(e) => setBookingForm({...bookingForm, boardBasis: e.target.value})}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs"
+                        >
+                          <option value="Room Only">Room Only</option>
+                          <option value="Bed & Breakfast">Bed & Breakfast</option>
+                          <option value="Half Board">Half Board</option>
+                          <option value="Full Board">Full Board</option>
+                        </select>
+                      </div>
+
+                      {/* Total Amount */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Amount</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="e.g. 950"
+                          value={bookingForm.amount}
+                          onChange={(e) => setBookingForm({...bookingForm, amount: e.target.value})}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 font-mono text-xs"
+                        />
+                      </div>
+
+                      {/* Check-In Date */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Check-In Date</label>
+                        <input
+                          type="date"
+                          value={bookingForm.checkInDate || ''}
+                          onChange={(e) => handleDateChange('checkInDate', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs"
+                        />
+                      </div>
+
+                      {/* Check-Out Date */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Check-Out Date</label>
+                        <input
+                          type="date"
+                          value={bookingForm.checkOutDate || ''}
+                          onChange={(e) => handleDateChange('checkOutDate', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs"
+                        />
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="col-span-2 pt-1.5">
+                        <button
+                          type="submit"
+                          disabled={updatingBooking}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          {updatingBooking ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                          Save Booking Details
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
               </div>
 
               {/* Quick Actions (WhatsApp Chat) */}
@@ -1156,217 +1313,7 @@ const Registrations = () => {
 
 
 
-              {/* Complete Booking Form (Front Office Update) */}
-              <form onSubmit={handleBookingSubmit} className="space-y-4 pt-2 border-t border-slate-100">
-                <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Allocate & Complete Booking</h4>
-                
-                {bookingSuccess && (
-                  <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl flex items-center gap-1.5 animate-pulse">
-                    <Check className="h-4 w-4" /> Booking details updated successfully!
-                  </div>
-                )}
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  {/* Auto-filled status badge */}
-                  {associatedBooking && (associatedBooking.bookingNumber || associatedBooking.checkInDate || associatedBooking.totalAmount > 0) && (
-                    <div className="col-span-2 bg-amber-50/90 border border-amber-200/80 rounded-lg p-2 flex items-center justify-between text-amber-800 text-[11px] font-bold">
-                      <span className="flex items-center gap-1.5">
-                        🔒 Reservation Details Auto-Filled (Locked)
-                      </span>
-                      <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded uppercase tracking-wider font-extrabold">Read-Only</span>
-                    </div>
-                  )}
-
-                  {/* Room Type */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room Type</label>
-                    <select
-                      value={bookingForm.roomType}
-                      disabled={Boolean(associatedBooking) || (isFrontOfficer === false && isAdmin === false)}
-                      onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                    >
-                      {uniqueRoomTypes.length === 0 ? (
-                        <option value="">No room types available</option>
-                      ) : (
-                        <>
-                          <option value="">Select Room Type</option>
-                          {uniqueRoomTypes.map((type) => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </>
-                      )}
-                    </select>
-                  </div>
-
-                  {/* Room */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No</label>
-                    <div className="flex gap-1.5">
-                      <input
-                        type="text"
-                        placeholder="e.g. 101"
-                        disabled={Boolean(associatedBooking) || (isFrontOfficer === false && isAdmin === false)}
-                        value={bookingForm.room}
-                        onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
-                        className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRoomSelector(true)}
-                        disabled={Boolean(associatedBooking) || (isFrontOfficer === false && isAdmin === false)}
-                        className="px-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 rounded-lg font-bold transition flex items-center justify-center border border-slate-200 cursor-pointer text-xs disabled:cursor-not-allowed"
-                      >
-                        Browse
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Booking Type */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Booking Channel</label>
-                    <select
-                      value={bookingForm.bookingType}
-                      disabled={Boolean(associatedBooking && (associatedBooking.bookingNumber || associatedBooking.bookingType)) || (isFrontOfficer === false && isAdmin === false)}
-                      onChange={(e) => handleBookingChannelChange(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                    >
-                      <option value="Direct">Direct</option>
-                      <option value="Booking.com">Booking.com</option>
-                    </select>
-                  </div>
-
-                  {/* Booking Number */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Booking Number</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. B-1002"
-                      disabled={Boolean(associatedBooking && associatedBooking.bookingNumber) || (isFrontOfficer === false && isAdmin === false)}
-                      value={bookingForm.bookingNumber}
-                      onChange={(e) => setBookingForm({...bookingForm, bookingNumber: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 font-mono disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Board Basis */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Board Basis</label>
-                    <select
-                      value={bookingForm.boardBasis}
-                      disabled={isFrontOfficer === false && isAdmin === false}
-                      onChange={(e) => setBookingForm({...bookingForm, boardBasis: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700"
-                    >
-                      <option value="Room Only">Room Only</option>
-                      <option value="Half Board">Half Board</option>
-                      <option value="Full Board">Full Board</option>
-                    </select>
-                  </div>
-
-                  {/* Check-In Date */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Check-In Date</label>
-                    <input
-                      type="date"
-                      disabled={Boolean(selectedReg?.checkInDate || associatedBooking?.checkInDate) || (isFrontOfficer === false && isAdmin === false)}
-                      value={bookingForm.checkInDate || ''}
-                      onChange={(e) => handleDateChange('checkInDate', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Check-Out Date */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Check-Out Date</label>
-                    <input
-                      type="date"
-                      disabled={Boolean(selectedReg?.checkOutDate || associatedBooking?.checkOutDate) || (isFrontOfficer === false && isAdmin === false)}
-                      value={bookingForm.checkOutDate || ''}
-                      onChange={(e) => handleDateChange('checkOutDate', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 text-xs disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Nights */}
-                  <div className="space-y-1.5 col-span-2 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50 flex items-center justify-between text-xs font-semibold">
-                    <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider">Stay Duration:</span>
-                    <span className="font-extrabold text-emerald-800">{bookingForm.numberOfNights || 0} Nights</span>
-                  </div>
-
-                  {/* Amount */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Amount (LKR)</label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 75000"
-                      disabled={Boolean(associatedBooking && associatedBooking.totalAmount > 0) || (isFrontOfficer === false && isAdmin === false)}
-                      value={bookingForm.amount}
-                      onChange={(e) => setBookingForm({...bookingForm, amount: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-750 font-mono disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Payment Status */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Payment Status</label>
-                    <select
-                      value={bookingForm.paymentStatus}
-                      disabled={isFrontOfficer === false && isAdmin === false}
-                      onChange={(e) => setBookingForm({...bookingForm, paymentStatus: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Unpaid">Unpaid</option>
-                    </select>
-                  </div>
-
-                  {/* Booking / Registration Status */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stay Status</label>
-                    <select
-                      value={bookingForm.registrationStatus}
-                      disabled={isFrontOfficer === false && isAdmin === false}
-                      onChange={(e) => setBookingForm({...bookingForm, registrationStatus: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="CheckedIn">Checked In</option>
-                      <option value="CheckedOut">Checked Out</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  </div>
-
-                  {/* Remarks */}
-                  <div className="space-y-1.5 col-span-2">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Remarks / Special Notes</label>
-                    <textarea
-                      placeholder="e.g. Needs early check-in, extra bedding."
-                      disabled={isFrontOfficer === false && isAdmin === false}
-                      value={bookingForm.remarks}
-                      onChange={(e) => setBookingForm({...bookingForm, remarks: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 min-h-[50px] focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Save Buttons */}
-                {(isFrontOfficer || isAdmin) && (
-                  <button
-                    type="submit"
-                    disabled={updatingBooking}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10"
-                  >
-                    {updatingBooking ? (
-                      <Loader className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4" />
-                    )}
-                    Save Booking Details
-                  </button>
-                )}
-              </form>
 
               {/* Unified Payment Form */}
               {associatedBooking ? (
