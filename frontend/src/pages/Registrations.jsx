@@ -725,63 +725,62 @@ const Registrations = () => {
     }
   };
 
-  // Cross-reference booking for row display with Booking Number Priority #1
+  // Cross-reference booking for row display with smart multi-strategy matching
   const getBookingForReg = (regId) => {
     if (!regId) return null;
     const targetReg = registrations.find(r => r.id === regId) || (selectedReg?.id === regId ? selectedReg : null);
-    
+    if (!targetReg) return null;
+
     // Sort bookings descending by ID to match latest bookings first!
     const sortedBookings = [...bookings].sort((a, b) => (b.id || 0) - (a.id || 0));
 
-    if (targetReg) {
-      // 1. Match by exact Booking Number (PRIORITY #1!)
-      if (targetReg.bookingNumber) {
-        const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
-        let found = sortedBookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
-        if (found) return found;
-
-        // Also match numeric portion of booking number
-        const numericTarget = cleanTargetNum.replace(/\D/g, '');
-        if (numericTarget && numericTarget.length >= 3) {
-          found = sortedBookings.find(b => {
-            const bNum = (b.bookingNumber || '').replace(/\D/g, '');
-            return bNum && bNum === numericTarget;
-          });
-          if (found) return found;
-        }
-      }
-    }
-
-    // 2. Direct match by guestRegistrationId
+    // 1. Direct match by guestRegistrationId
     let found = sortedBookings.find(b => b.guestRegistrationId === regId);
     if (found) return found;
-    
-    if (targetReg) {
-      const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
-      const cleanRegName = (targetReg.guestName || '')
-        .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
-        .replace(/^mr\s*\/\s*mrs\s*/i, '')
-        .trim().toLowerCase();
 
-      // 3. Match by email
-      if (cleanRegEmail) {
-        found = sortedBookings.find(b => b.email && b.email.trim().toLowerCase() === cleanRegEmail);
-        if (found) return found;
-      }
+    const cleanRegName = (targetReg.guestName || '')
+      .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+      .replace(/^mr\s*\/\s*mrs\s*/i, '')
+      .trim().toLowerCase();
 
-      // 4. Match by exact cleaned guestName
-      if (cleanRegName && cleanRegName.length >= 3) {
-        found = sortedBookings.find(b => {
-          if (!b.guestName) return false;
-          const cleanBName = b.guestName
-            .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
-            .replace(/^mr\s*\/\s*mrs\s*/i, '')
-            .trim().toLowerCase();
-          return cleanBName === cleanRegName;
-        });
-        if (found) return found;
-      }
+    const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
+    const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
+
+    // 2. Match by exact cleaned guestName (e.g. "samanali" matches "samanali" / "D-7892017")
+    if (cleanRegName && cleanRegName.length >= 3) {
+      found = sortedBookings.find(b => {
+        if (!b.guestName) return false;
+        const cleanBName = b.guestName
+          .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+          .replace(/^mr\s*\/\s*mrs\s*/i, '')
+          .trim().toLowerCase();
+        return cleanBName === cleanRegName;
+      });
+      if (found) return found;
     }
+
+    // 3. Match by email
+    if (cleanRegEmail) {
+      found = sortedBookings.find(b => b.email && b.email.trim().toLowerCase() === cleanRegEmail);
+      if (found) return found;
+    }
+
+    // 4. Match by phone
+    if (cleanRegPhone && cleanRegPhone.length >= 7) {
+      found = sortedBookings.find(b => {
+        const bPhone = (b.contactNumber || b.phone || b.whatsappNumber || '').replace(/\D/g, '');
+        return bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone));
+      });
+      if (found) return found;
+    }
+
+    // 5. Match by exact Booking Number string (if user/guest explicitly specified a real booking number)
+    if (targetReg.bookingNumber && !targetReg.bookingNumber.startsWith('D-10') && !targetReg.bookingNumber.startsWith('D-11')) {
+      const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
+      found = sortedBookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
+      if (found) return found;
+    }
+
     return null;
   };
 

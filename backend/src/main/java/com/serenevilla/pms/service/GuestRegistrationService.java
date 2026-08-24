@@ -91,6 +91,21 @@ public class GuestRegistrationService {
             result = result.map(reg -> {
                 try {
                     List<Booking> bookings = bookingRepository.findByGuestRegistrationId(reg.getId());
+                    if (bookings == null || bookings.isEmpty()) {
+                        if (reg.getGuestName() != null && !reg.getGuestName().trim().isEmpty()) {
+                            String gName = reg.getGuestName().replaceAll("^(?i)(mr|mrs|ms|dr|prof)\\.?\\s*", "").trim();
+                            List<Booking> nameMatches = bookingRepository.findAll().stream()
+                                    .filter(b -> b.getGuestName() != null && b.getGuestName().replaceAll("^(?i)(mr|mrs|ms|dr|prof)\\.?\\s*", "").trim().equalsIgnoreCase(gName))
+                                    .toList();
+                            if (!nameMatches.isEmpty()) {
+                                Booking bToLink = nameMatches.get(nameMatches.size() - 1);
+                                bToLink.setGuestRegistrationId(reg.getId());
+                                bookingRepository.save(bToLink);
+                                bookings = java.util.List.of(bToLink);
+                            }
+                        }
+                    }
+
                     if (bookings != null && !bookings.isEmpty()) {
                         Booking booking = bookings.get(bookings.size() - 1);
                         List<Payment> allPayments = paymentRepository.findByBookingId(booking.getId());
