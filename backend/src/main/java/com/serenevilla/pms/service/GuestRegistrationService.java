@@ -193,17 +193,20 @@ public class GuestRegistrationService {
 
             GuestRegistration savedReg = guestRegistrationRepository.save(reg);
 
-            // Find or create associated booking
+            // Find or create associated booking with smart matching
             Booking booking = bookingRepository.findAll().stream()
-                    .filter(b -> b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
+                    .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
+                              || (details.containsKey("bookingNumber") && details.get("bookingNumber") != null && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(String.valueOf(details.get("bookingNumber")).trim()))
+                              || (savedReg.getGuestName() != null && b.getGuestName() != null && b.getGuestName().equalsIgnoreCase(savedReg.getGuestName().trim())))
                     .findFirst()
                     .orElseGet(() -> {
                         Booking newBooking = new Booking();
-                        newBooking.setGuestRegistrationId(id);
                         newBooking.setStatus("Confirmed");
                         newBooking.setPropertyId(1L);
                         return newBooking;
                     });
+
+            booking.setGuestRegistrationId(id);
 
             if (details.containsKey("roomType")) {
                 booking.setRoomType((String) details.get("roomType"));

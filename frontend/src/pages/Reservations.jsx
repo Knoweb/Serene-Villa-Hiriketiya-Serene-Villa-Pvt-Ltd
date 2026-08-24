@@ -1325,9 +1325,41 @@ const Reservations = () => {
     }
   };
 
-  // Cross-reference booking for row display
+  // Cross-reference booking for row display with smart matching
   const getBookingForReg = (regId) => {
-    return bookings.find(b => b.guestRegistrationId === regId);
+    if (!regId) return null;
+    const targetReg = registrations.find(r => r.id === regId) || (selectedReg?.id === regId ? selectedReg : null);
+    
+    // 1. Direct match by guestRegistrationId
+    let found = bookings.find(b => b.guestRegistrationId === regId);
+    if (found) return found;
+    
+    if (targetReg) {
+      // 2. Match by exact or partial bookingNumber
+      if (targetReg.bookingNumber) {
+        const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
+        found = bookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
+        if (found) return found;
+      }
+
+      // 3. Match by guestName
+      if (targetReg.guestName) {
+        const cleanName = targetReg.guestName.trim().toLowerCase();
+        found = bookings.find(b => b.guestName && b.guestName.trim().toLowerCase() === cleanName);
+        if (found) return found;
+      }
+
+      // 4. Smart numeric fallback
+      const regBookingNum = (targetReg.bookingNumber || targetReg.passportNumber || '').replace(/\D/g, '');
+      if (regBookingNum && regBookingNum.length >= 3) {
+        found = bookings.find(b => {
+          const bNum = (b.bookingNumber || '').replace(/\D/g, '');
+          return bNum && (bNum === regBookingNum || bNum.endsWith(regBookingNum) || regBookingNum.endsWith(bNum));
+        });
+        if (found) return found;
+      }
+    }
+    return null;
   };
 
   const qrPort = window.location.port ? `:${window.location.port}` : '';
