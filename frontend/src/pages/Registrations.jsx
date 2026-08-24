@@ -1061,7 +1061,7 @@ const Registrations = () => {
                       </span>
                     </div>
 
-                    {/* Room Details Clean Table */}
+                    {/* Room Details Clean Table (Room Number & Price ONLY) */}
                     <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2.5 mt-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Room Details:</span>
@@ -1080,7 +1080,6 @@ const Registrations = () => {
                             if (Array.isArray(p) && p.length > 0) {
                               parsedItems = p.map((item) => ({
                                 roomNumber: item.roomNumber || item.roomNum || '',
-                                roomType: item.roomType || associatedBooking.roomType || 'Standard Room',
                                 price: item.price || item.roomPrice || null
                               }));
                             }
@@ -1093,22 +1092,10 @@ const Registrations = () => {
                             .map(r => r.trim().replace(/^Room\s*/i, ''))
                             .filter(Boolean);
 
-                          const roomTypes = (associatedBooking?.roomType || bookingForm.roomType || '')
-                            .split(',')
-                            .map(t => t.trim())
-                            .filter(Boolean);
-
                           if (roomNums.length > 0) {
-                            parsedItems = roomNums.map((rNo, idx) => ({
+                            parsedItems = roomNums.map((rNo) => ({
                               roomNumber: rNo,
-                              roomType: roomTypes[idx] || roomTypes[0] || 'Standard Room',
                               price: roomNums.length === 1 ? (associatedBooking?.totalAmount || bookingForm.amount) : null
-                            }));
-                          } else if (roomTypes.length > 0) {
-                            parsedItems = roomTypes.map((t) => ({
-                              roomNumber: 'Unallocated',
-                              roomType: t,
-                              price: (associatedBooking?.totalAmount || bookingForm.amount)
                             }));
                           }
                         }
@@ -1126,23 +1113,19 @@ const Registrations = () => {
                             <table className="w-full text-left text-xs border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
-                                  <th className="py-2 px-2.5 font-extrabold">Room Number</th>
-                                  <th className="py-2 px-2.5 font-extrabold">Room Type</th>
-                                  <th className="py-2 px-2.5 font-extrabold text-right">Price ({currency})</th>
+                                  <th className="py-2 px-3 font-extrabold">Room Number</th>
+                                  <th className="py-2 px-3 font-extrabold text-right">Price ({currency})</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
                                 {parsedItems.map((item, idx) => (
                                   <tr key={idx} className="hover:bg-slate-50/50 transition">
-                                    <td className="py-2 px-2.5 font-mono font-black text-slate-900">
-                                      <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                                    <td className="py-2.5 px-3 font-mono font-black text-slate-900">
+                                      <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2.5 py-0.5 rounded text-[11px] font-extrabold">
                                         {item.roomNumber ? (item.roomNumber.startsWith('Room') ? item.roomNumber : `Room ${item.roomNumber}`) : `Room ${idx + 1}`}
                                       </span>
                                     </td>
-                                    <td className="py-2 px-2.5 font-bold text-slate-800">
-                                      {item.roomType}
-                                    </td>
-                                    <td className="py-2 px-2.5 text-right font-mono font-bold text-emerald-700">
+                                    <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs">
                                       {item.price != null && item.price !== '' && !isNaN(parseFloat(item.price)) ? (
                                         `${currency} ${parseFloat(item.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
                                       ) : (
@@ -1196,22 +1179,26 @@ const Registrations = () => {
                       {/* Room No */}
                       <div className="space-y-1">
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No</label>
-                        <div className="flex gap-1">
-                          <input
-                            type="text"
-                            placeholder="e.g. 101"
-                            value={bookingForm.room}
-                            onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
-                            className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowRoomSelector(true)}
-                            className="px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition flex items-center justify-center border border-slate-200 text-xs cursor-pointer"
-                          >
-                            Browse
-                          </button>
-                        </div>
+                        <select
+                          value={bookingForm.room}
+                          onChange={(e) => {
+                            const selectedNo = e.target.value;
+                            const matchedRoom = rooms.find(r => String(r.roomNumber) === String(selectedNo));
+                            setBookingForm(prev => ({
+                              ...prev,
+                              room: selectedNo,
+                              roomType: matchedRoom ? matchedRoom.roomType : prev.roomType
+                            }));
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs cursor-pointer"
+                        >
+                          <option value="">-- Select Room --</option>
+                          {rooms.map((r) => (
+                            <option key={r.id || r.roomNumber} value={r.roomNumber}>
+                              Room {r.roomNumber} ({r.roomType})
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
                       {/* Booking Channel */}
@@ -1256,17 +1243,29 @@ const Registrations = () => {
                         </select>
                       </div>
 
-                      {/* Total Amount */}
+                      {/* Total Amount & Currency */}
                       <div className="space-y-1">
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Amount</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g. 950"
-                          value={bookingForm.amount}
-                          onChange={(e) => setBookingForm({...bookingForm, amount: e.target.value})}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 font-mono text-xs"
-                        />
+                        <div className="flex gap-1">
+                          <select
+                            value={bookingForm.currencyCode || 'LKR'}
+                            onChange={(e) => setBookingForm({ ...bookingForm, currencyCode: e.target.value })}
+                            className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
+                          >
+                            <option value="LKR">LKR</option>
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="AUD">AUD</option>
+                          </select>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="e.g. 2250"
+                            value={bookingForm.amount}
+                            onChange={(e) => setBookingForm({ ...bookingForm, amount: e.target.value })}
+                            className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 font-mono text-xs"
+                          />
+                        </div>
                       </div>
 
                       {/* Check-In Date */}
