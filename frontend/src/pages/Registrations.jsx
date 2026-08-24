@@ -1606,27 +1606,46 @@ const Registrations = () => {
                   {/* Payment Summary Card */}
                   {(() => {
                     const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-                    const bookingCurrency = associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : (isForeignGuest ? 'USD' : 'LKR')));
                     const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
 
+                    // Smartly detect booking currency (less than 10,000 is foreign currency USD/EUR/AUD/GBP)
+                    let bookingCurrency = associatedBooking?.currency;
+                    if (!bookingCurrency || bookingCurrency === 'LKR') {
+                      if (selectedReg?.currency && selectedReg.currency !== 'LKR') bookingCurrency = selectedReg.currency;
+                      else if (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR') bookingCurrency = bookingForm.currencyCode;
+                      else if (totalAmt > 0 && totalAmt < 10000) bookingCurrency = 'USD';
+                      else bookingCurrency = isForeignGuest ? 'USD' : 'LKR';
+                    }
+
                     const visiblePays = getVisiblePayments(advancePayments);
+                    const bookingExRate = parseFloat(associatedBooking?.exchangeRate || bookingForm.exchangeRate || 1);
+
                     let totalPaidInBookingCurrency = 0;
                     let advancePaidInBookingCurrency = 0;
 
                     visiblePays.forEach(p => {
-                      const pCurr = p.currencyCode || p.currency || bookingCurrency;
-                      let pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) ? parseFloat(p.amountInCurrency) : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
-                      
-                      if (pCurr.toUpperCase() === bookingCurrency.toUpperCase()) {
-                        // Direct match
-                      } else if (pCurr.toUpperCase() === 'LKR' && bookingCurrency !== 'LKR') {
-                        const exRate = parseFloat(p.exchangeRate || associatedBooking?.exchangeRate || 1);
-                        if (exRate > 0) pAmt = (p.convertedAmountLkr || p.amountLkr || pAmt) / exRate;
+                      const pCurr = (p.currencyCode || p.currency || bookingCurrency).toUpperCase();
+                      const pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) && parseFloat(p.amountInCurrency) > 0
+                        ? parseFloat(p.amountInCurrency)
+                        : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
+                      const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                      const pExRate = parseFloat(p.exchangeRate) || bookingExRate || 1;
+
+                      let convertedAmt = pAmt;
+                      if (pCurr === bookingCurrency.toUpperCase()) {
+                        convertedAmt = pAmt;
+                      } else if (bookingCurrency.toUpperCase() === 'LKR') {
+                        convertedAmt = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                      } else {
+                        // Converting to foreign currency
+                        if (pLkr > 0 && pExRate > 1) {
+                          convertedAmt = pLkr / pExRate;
+                        }
                       }
 
-                      totalPaidInBookingCurrency += pAmt;
+                      totalPaidInBookingCurrency += convertedAmt;
                       if (p.paymentType === 'ADVANCE' || p.isAdvancePayment) {
-                        advancePaidInBookingCurrency += pAmt;
+                        advancePaidInBookingCurrency += convertedAmt;
                       }
                     });
 

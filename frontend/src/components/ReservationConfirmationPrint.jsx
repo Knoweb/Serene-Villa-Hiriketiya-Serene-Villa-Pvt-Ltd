@@ -22,34 +22,32 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
   const isConfirmed = confirmationData.badgeText?.toLowerCase() === 'confirmed';
   const isDirect = !confirmationData.bookingType || confirmationData.bookingType.toLowerCase().includes('direct');
 
-  // Table computations
-  const baseCurrency = (confirmationData.currency && confirmationData.currency !== 'LKR') ? confirmationData.currency : (confirmationData.tableCurrency || 'USD');
+  const safePayments = Array.isArray(payments) ? payments : [];
+  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || associatedBooking?.exchangeRate || 1) || 1;
+  const baseCurrency = (confirmationData.currency && confirmationData.currency !== 'LKR') ? confirmationData.currency : (confirmationData.tableCurrency || associatedBooking?.currency || 'USD');
   const displayCurrency = forceLkr ? 'LKR' : baseCurrency;
-  const exchangeRateVal = parseFloat(confirmationData.exchangeRate || 1) || 1;
   const convFactor = (forceLkr && baseCurrency !== 'LKR') ? exchangeRateVal : 1;
 
   let totalAmount = 0;
   let itemizedRows = [];
 
-  if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
-    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * convFactor, 0);
+  if (Array.isArray(confirmationData.allocatedRooms) && confirmationData.allocatedRooms.length > 0) {
+    totalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item?.price) || 0) * convFactor, 0);
     
     itemizedRows = confirmationData.allocatedRooms.map((item) => {
-      const roomTotalAmount = (parseFloat(item.price || 0)) * convFactor;
-
-      
+      const roomTotalAmount = (parseFloat(item?.price || 0)) * convFactor;
       const amountVal = Math.floor(roomTotalAmount);
       const amountCts = Math.round((roomTotalAmount - amountVal) * 100).toString().padStart(2, '0');
 
       return {
-        description: `Night - ${item.roomType} (Room ${item.roomNumber})`,
+        description: `Night - ${item?.roomType || 'Room'} (Room ${item?.roomNumber || ''})`,
         rate: roomTotalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         amountVal: amountVal.toLocaleString(),
-        amountCts: amountCts
+        amountCts: isNaN(amountCts) ? '00' : amountCts
       };
     });
   } else {
-    totalAmount = parseFloat(confirmationData.totalPrice || 0) * convFactor;
+    totalAmount = (parseFloat(confirmationData.totalPrice || associatedBooking?.totalAmount || 0)) * convFactor;
     const defaultRowAmount = totalAmount;
     const defaultAmountVal = Math.floor(defaultRowAmount);
     const defaultAmountCts = Math.round((defaultRowAmount - defaultAmountVal) * 100).toString().padStart(2, '0');
@@ -58,17 +56,33 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       description: `Night - ${associatedBooking?.roomType || confirmationData.roomType || 'Room'}`,
       rate: defaultRowAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       amountVal: defaultAmountVal.toLocaleString(),
-      amountCts: defaultAmountCts
+      amountCts: isNaN(defaultAmountCts) ? '00' : defaultAmountCts
     }];
   }
+
   const isSelectedLkr = displayCurrency === 'LKR';
 
-  const totalCents = Math.round(totalAmount * 100);
-  const totalPaidLkr = payments.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-  const totalPaidConverted = isSelectedLkr ? totalPaidLkr : (totalPaidLkr / exchangeRateVal);
+  // Calculate total paid in displayCurrency
+  const totalPaidConverted = safePayments.reduce((sum, p) => {
+    if (!p) return sum;
+    const pCurr = (p.currencyCode || p.currency || baseCurrency).toUpperCase();
+    const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
+    const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+    const pRate = parseFloat(p.exchangeRate) || exchangeRateVal;
+
+    if (isSelectedLkr) {
+      return sum + (pLkr > 0 ? pLkr : (pAmt * pRate));
+    } else {
+      if (pCurr === displayCurrency.toUpperCase()) {
+        return sum + pAmt;
+      }
+      return sum + (pLkr > 0 && pRate > 0 ? (pLkr / pRate) : pAmt);
+    }
+  }, 0);
+
   const remainingBalance = Math.max(0, totalAmount - totalPaidConverted);
-  const isFullyPaid = totalPaidConverted >= totalAmount && totalAmount > 0;
-  const isPartiallyPaid = totalPaidConverted > 0 && totalPaidConverted < totalAmount;
+  const isFullyPaid = totalPaidConverted >= (totalAmount - 0.01) && totalAmount > 0;
+  const isPartiallyPaid = totalPaidConverted > 0 && !isFullyPaid;
 
   return (
     <div 
