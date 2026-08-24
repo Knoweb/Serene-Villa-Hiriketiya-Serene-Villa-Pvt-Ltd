@@ -796,9 +796,9 @@ const Registrations = () => {
                         >
                           <td className="p-4 flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100/60 shrink-0 flex items-center justify-center font-bold text-emerald-800 text-sm">
-                              {reg.guestPhotoPath ? (
+                              {reg.passportFrontPath || reg.guestPhotoPath ? (
                                 <img 
-                                  src={reg.guestPhotoPath} 
+                                  src={reg.passportFrontPath || reg.guestPhotoPath} 
                                   alt={reg.guestName}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
@@ -945,9 +945,9 @@ const Registrations = () => {
                 </button>
 
                 <div className="h-16 w-16 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-800 text-xl font-black uppercase shadow-sm mx-auto mb-2.5 ring-4 ring-emerald-50">
-                  {selectedReg.guestPhotoPath ? (
+                  {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
                     <img 
-                      src={selectedReg.guestPhotoPath} 
+                      src={selectedReg.passportFrontPath || selectedReg.guestPhotoPath} 
                       alt={selectedReg.guestName}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -1127,43 +1127,22 @@ const Registrations = () => {
                 </button>
               </div>
 
-              {/* Guest Uploaded Documents */}
+              {/* Uploaded Documents */}
               <div className="space-y-3 text-xs bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1">
-                  <ImageIcon className="h-3.5 w-3.5 text-slate-400" /> Uploaded Documents
-                </h4>
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Uploaded Documents</h4>
                 <div className="space-y-3.5">
-                  {/* Guest Photo */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Guest Photo</p>
-                    {selectedReg.guestPhotoPath ? (
-                      <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 bg-white">
-                        <img 
-                          src={selectedReg.guestPhotoPath} 
-                          alt="Guest Profile" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <p className="text-slate-450 italic text-[10px]">No photo uploaded</p>
-                    )}
-                  </div>
-
                   {/* Passport Photo */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Passport / NIC Photo</p>
-                    {selectedReg.passportFrontPath ? (
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Passport / NIC Photo</p>
+                    {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
                       <a 
-                        href={selectedReg.passportFrontPath} 
+                        href={selectedReg.passportFrontPath || selectedReg.guestPhotoPath} 
                         target="_blank" 
                         rel="noreferrer" 
                         className="block aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition cursor-pointer"
                       >
                         <img 
-                          src={selectedReg.passportFrontPath} 
+                          src={selectedReg.passportFrontPath || selectedReg.guestPhotoPath} 
                           alt="Passport Photo" 
                           className="w-full h-full object-cover"
                         />

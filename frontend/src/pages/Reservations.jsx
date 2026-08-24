@@ -1513,9 +1513,9 @@ const Reservations = () => {
                         >
                           <td className="p-4 flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full overflow-hidden bg-emerald-50 border border-emerald-100/60 shrink-0 flex items-center justify-center font-bold text-emerald-800 text-sm">
-                              {reg.guestPhotoPath ? (
+                              {reg.passportFrontPath || reg.guestPhotoPath ? (
                                 <img 
-                                  src={reg.guestPhotoPath} 
+                                  src={reg.passportFrontPath || reg.guestPhotoPath} 
                                   alt={reg.guestName}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
@@ -1692,9 +1692,9 @@ const Reservations = () => {
                 </button>
                 <div className="relative">
                   <div className="h-20 w-20 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-855 text-3xl font-extrabold uppercase shadow-sm border-2 border-white ring-4 ring-emerald-50">
-                    {selectedReg.guestPhotoPath ? (
+                    {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
                       <img 
-                        src={selectedReg.guestPhotoPath} 
+                        src={selectedReg.passportFrontPath || selectedReg.guestPhotoPath} 
                         alt={selectedReg.guestName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
