@@ -1119,6 +1119,7 @@ const Registrations = () => {
                         const defaultCurrency = isForeignGuest ? 'USD' : 'LKR';
                         const currency = associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : defaultCurrency));
                         const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
+                        let parsedItems = [];
 
                         // 1. Try parsing roomPrices JSON if present
                         if (associatedBooking?.roomPrices) {
