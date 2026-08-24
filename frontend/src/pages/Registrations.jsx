@@ -33,7 +33,9 @@ import {
   Receipt,
   Image as ImageIcon,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  Pencil,
+  Save
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
