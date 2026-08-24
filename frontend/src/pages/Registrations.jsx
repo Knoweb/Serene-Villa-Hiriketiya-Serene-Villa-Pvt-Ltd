@@ -416,6 +416,7 @@ const Registrations = () => {
         boardBasis: associatedBooking.boardBasis || 'Room Only',
         remarks: associatedBooking.remarks || '',
         amount: associatedBooking.totalAmount || reg.totalAmount || '',
+        currencyCode: associatedBooking.currency || reg.currency || reg.currencyCode || 'USD',
         paymentStatus: reg.paymentStatus || associatedBooking.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
         checkInDate: reg.checkInDate || associatedBooking.checkInDate || '',
@@ -432,7 +433,8 @@ const Registrations = () => {
         bookingNumber: `D-${1000 + reg.id}`,
         boardBasis: 'Room Only',
         remarks: '',
-        amount: '',
+        amount: reg.totalAmount || '',
+        currencyCode: reg.currency || reg.currencyCode || 'USD',
         paymentStatus: reg.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
         checkInDate: reg.checkInDate || '',
@@ -491,7 +493,11 @@ const Registrations = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(bookingForm)
+        body: JSON.stringify({
+          ...bookingForm,
+          currency: bookingForm.currencyCode || 'USD',
+          currencyCode: bookingForm.currencyCode || 'USD'
+        })
       });
 
       if (!response.ok) throw new Error('Failed to update booking details');
@@ -1246,15 +1252,15 @@ const Registrations = () => {
 
                       {/* Total Amount & Currency */}
                       <div className="space-y-1">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Amount</label>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Amount ({bookingForm.currencyCode || associatedBooking?.currency || 'USD'})</label>
                         <div className="flex gap-1">
                           <select
-                            value={bookingForm.currencyCode || 'LKR'}
+                            value={bookingForm.currencyCode || associatedBooking?.currency || 'USD'}
                             onChange={(e) => setBookingForm({ ...bookingForm, currencyCode: e.target.value })}
                             className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
                           >
-                            <option value="LKR">LKR</option>
                             <option value="USD">USD</option>
+                            <option value="LKR">LKR</option>
                             <option value="EUR">EUR</option>
                             <option value="AUD">AUD</option>
                           </select>
@@ -1289,6 +1295,84 @@ const Registrations = () => {
                           onChange={(e) => handleDateChange('checkOutDate', e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs"
                         />
+                      </div>
+
+                      {/* Room Details Table in Edit Mode */}
+                      <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2.5 mt-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Room Details:</span>
+                        {(() => {
+                          let parsedItems = [];
+                          const currency = bookingForm.currencyCode || associatedBooking?.currency || selectedReg?.currency || 'USD';
+                          const totalAmt = parseFloat(bookingForm.amount || associatedBooking?.totalAmount || selectedReg?.totalAmount || 0);
+
+                          if (associatedBooking?.roomPrices) {
+                            try {
+                              const p = JSON.parse(associatedBooking.roomPrices);
+                              if (Array.isArray(p) && p.length > 0) {
+                                parsedItems = p.map((item, idx) => ({
+                                  roomNumber: item.roomNumber || item.roomNum || `Room ${idx + 1}`,
+                                  price: item.price != null && item.price !== '' ? parseFloat(item.price) : null
+                                }));
+                              }
+                            } catch(e) {}
+                          }
+
+                          if (parsedItems.length === 0) {
+                            const rawRoomNums = (bookingForm.room || associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
+                              .split(',')
+                              .map(r => r.trim())
+                              .filter(Boolean);
+
+                            const rawRoomTypes = (bookingForm.roomType || associatedBooking?.roomType || selectedReg?.roomType || '')
+                              .split(',')
+                              .map(t => t.trim())
+                              .filter(Boolean);
+
+                            const count = Math.max(rawRoomNums.length, rawRoomTypes.length, 1);
+
+                            for (let i = 0; i < count; i++) {
+                              let num = rawRoomNums[i] || (count > 1 ? `Room ${i + 1}` : (rawRoomNums[0] || 'Unallocated'));
+                              if (num !== 'Unallocated' && !num.startsWith('Room')) {
+                                num = `Room ${num}`;
+                              }
+                              parsedItems.push({
+                                roomNumber: num,
+                                price: totalAmt > 0 ? (totalAmt / count) : null
+                              });
+                            }
+                          }
+
+                          return (
+                            <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+                              <table className="w-full text-left text-xs border-collapse">
+                                <thead>
+                                  <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
+                                    <th className="py-2 px-3 font-extrabold">Room Number</th>
+                                    <th className="py-2 px-3 font-extrabold text-right">Price ({currency})</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
+                                  {parsedItems.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50/50 transition">
+                                      <td className="py-2.5 px-3 font-mono font-black text-slate-900">
+                                        <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2.5 py-0.5 rounded text-[11px] font-extrabold">
+                                          {item.roomNumber}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs">
+                                        {item.price != null && !isNaN(item.price) ? (
+                                          `${currency} ${item.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                                        ) : (
+                                          <span className="text-slate-400 font-normal italic">-</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Submit Button */}
