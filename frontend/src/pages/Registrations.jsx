@@ -1133,7 +1133,7 @@ const Registrations = () => {
                   <div className="grid grid-cols-2 gap-3">
                     {/* Reservation ID */}
                     <div className="space-y-1">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Reservation ID</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Booking Number</p>
                       <p className="font-mono font-bold text-slate-800 flex items-center gap-1.5 text-xs">
                         <FileText className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.bookingNumber || bookingForm.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`}
                       </p>
@@ -1728,24 +1728,39 @@ const Registrations = () => {
                   {/* Single Unified Payment Form */}
                   {(() => {
                     const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-                    const bookingCurrency = associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : (isForeignGuest ? 'USD' : 'LKR')));
                     const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
+
+                    // Smart currency detection: if associatedBooking has no explicit non-LKR currency, infer from amount
+                    let bookingCurrency = associatedBooking?.currency;
+                    if (!bookingCurrency || bookingCurrency === 'LKR') {
+                      if (selectedReg?.currency && selectedReg.currency !== 'LKR') bookingCurrency = selectedReg.currency;
+                      else if (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR') bookingCurrency = bookingForm.currencyCode;
+                      else if (totalAmt > 0 && totalAmt < 10000) bookingCurrency = 'USD';
+                      else bookingCurrency = isForeignGuest ? 'USD' : 'LKR';
+                    }
+                    const bookingExRate = parseFloat(associatedBooking?.exchangeRate || bookingForm.exchangeRate || 1);
 
                     const visiblePays = getVisiblePayments(advancePayments);
                     let totalPaidInBookingCurrency = 0;
 
                     visiblePays.forEach(p => {
-                      const pCurr = p.currencyCode || p.currency || bookingCurrency;
-                      let pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) ? parseFloat(p.amountInCurrency) : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
-                      
-                      if (pCurr.toUpperCase() === bookingCurrency.toUpperCase()) {
-                        // Direct match
-                      } else if (pCurr.toUpperCase() === 'LKR' && bookingCurrency !== 'LKR') {
-                        const exRate = parseFloat(p.exchangeRate || associatedBooking?.exchangeRate || 1);
-                        if (exRate > 0) pAmt = (p.convertedAmountLkr || p.amountLkr || pAmt) / exRate;
+                      const pCurr = (p.currencyCode || p.currency || bookingCurrency).toUpperCase();
+                      const pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) && parseFloat(p.amountInCurrency) > 0
+                        ? parseFloat(p.amountInCurrency)
+                        : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
+                      const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                      const pExRate = parseFloat(p.exchangeRate) || bookingExRate || 1;
+
+                      let convertedAmt = pAmt;
+                      if (pCurr === bookingCurrency.toUpperCase()) {
+                        convertedAmt = pAmt;
+                      } else if (bookingCurrency.toUpperCase() === 'LKR') {
+                        convertedAmt = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                      } else {
+                        if (pLkr > 0 && pExRate > 1) convertedAmt = pLkr / pExRate;
                       }
 
-                      totalPaidInBookingCurrency += pAmt;
+                      totalPaidInBookingCurrency += convertedAmt;
                     });
 
                     const remainingBal = (associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid') ? 0 : Math.max(0, totalAmt - totalPaidInBookingCurrency);
