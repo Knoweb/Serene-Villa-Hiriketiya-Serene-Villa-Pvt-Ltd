@@ -20,12 +20,12 @@ jobs:
           timeout: 60s
           command_timeout: 30m
           script: |
-            echo "Starting Deployment..."
+            echo "Starting Clean Deployment..."
             cd ~/Serene-Villa-Hiriketiya-Serene-Villa-Pvt-Ltd
             git reset --hard HEAD
             git pull origin main
             docker compose down --remove-orphans
-            docker compose build --no-cache
-            docker compose up -d
-            docker image prune -f
-            echo "Deployment Completed Successfully!"
+            docker compose build --no-cache --pull
+            docker compose up -d --force-recreate
+            docker image prune -af
+            echo "Clean Deployment Completed Successfully!"
