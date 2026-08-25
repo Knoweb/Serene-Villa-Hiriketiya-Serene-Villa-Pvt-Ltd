@@ -1314,22 +1314,8 @@ const Registrations = () => {
                   /* EDIT MODE INLINE FORM */
                   <form onSubmit={handleBookingSubmit} className="space-y-3 pt-1">
                     <div className="grid grid-cols-2 gap-2.5 text-xs">
-                      {/* Room Type */}
-                      <div className="space-y-1">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room Type</label>
-                        <select
-                          value={bookingForm.roomType}
-                          onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 focus:outline-none focus:border-emerald-500 text-xs"
-                        >
-                          {uniqueRoomTypes.map((type) => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </select>
-                      </div>
-
                       {/* Room No */}
-                      <div className="space-y-1">
+                      <div className="space-y-1 col-span-2">
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No</label>
                         <select
                           value={bookingForm.room}
