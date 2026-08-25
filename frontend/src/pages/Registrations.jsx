@@ -673,11 +673,12 @@ const Registrations = () => {
       fetchAdvancePayments(booking.id);
 
       setSelectedPaymentForReceipt(savedPayment);
+      const realBooking = getBookingForReg(selectedReg.id) || booking;
       setReceiptData({
         ...savedPayment,
         guestName: selectedReg.guestName,
-        bookingRef: booking.bookingNumber,
-        roomNumber: booking.roomNumber,
+        bookingRef: realBooking?.bookingNumber || bookingForm.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, ''),
+        roomNumber: realBooking?.roomNumber || bookingForm.room,
         totalAmount: totalBookingAmount,
         bookingCurrency: bookingCurrency
       });
@@ -754,6 +755,13 @@ const Registrations = () => {
     const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
     const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
 
+    // 1. If registration already has a specific bookingNumber, prioritize exact match
+    if (targetReg.bookingNumber) {
+      const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
+      const directMatch = bookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
+      if (directMatch) return directMatch;
+    }
+
     // Find all matching candidate bookings
     const candidates = bookings.filter(b => {
       if (b.guestRegistrationId === regId) return true;
@@ -763,16 +771,11 @@ const Registrations = () => {
         .replace(/^mr\s*\/\s*mrs\s*/i, '')
         .trim().toLowerCase();
 
-      if (cleanRegName && cleanRegName.length >= 3 && cleanBName === cleanRegName) return true;
+      if (cleanRegName && cleanRegName.length >= 2 && (cleanBName === cleanRegName || cleanBName.includes(cleanRegName) || cleanRegName.includes(cleanBName))) return true;
       if (cleanRegEmail && b.email && b.email.trim().toLowerCase() === cleanRegEmail) return true;
       if (cleanRegPhone && cleanRegPhone.length >= 7) {
         const bPhone = (b.contactNumber || b.phone || b.whatsappNumber || '').replace(/\D/g, '');
         if (bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone))) return true;
-      }
-
-      if (targetReg.bookingNumber) {
-        const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
-        if (b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum) return true;
       }
 
       return false;
@@ -780,10 +783,10 @@ const Registrations = () => {
 
     if (candidates.length === 0) return null;
 
-    // Rank candidates: REAL manual reservations (e.g. D-7892017) come FIRST over auto-drafts (D-10xx, D-11xx)!
+    // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
     candidates.sort((a, b) => {
-      const aIsReal = a.bookingNumber && !a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11');
-      const bIsReal = b.bookingNumber && !b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11');
+      const aIsReal = a.bookingNumber && (a.bookingNumber.startsWith('D-789') || (!a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11')));
+      const bIsReal = b.bookingNumber && (b.bookingNumber.startsWith('D-789') || (!b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11')));
       if (aIsReal && !bIsReal) return -1;
       if (!aIsReal && bIsReal) return 1;
       return (b.id || 0) - (a.id || 0);
