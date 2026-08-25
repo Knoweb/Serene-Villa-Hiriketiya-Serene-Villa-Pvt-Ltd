@@ -917,7 +917,7 @@ const Reservations = () => {
         });
 
         const opt = {
-          margin:       0.3,
+          margin:       [0.2, 0.2, 0.2, 0.2],
           filename:     `Confirmation_Slip_${booking.bookingNumber || reg.id}.pdf`,
           image:        { type: 'jpeg', quality: 0.98 },
           html2canvas:  { 
@@ -929,7 +929,8 @@ const Reservations = () => {
               clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
             }
           },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+          jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
         };
         window.html2pdf().set(opt).from(element).save().then(() => {
           // Restore original document.styleSheets descriptor
@@ -4945,9 +4946,9 @@ Serene Villa Hiriketiya`;
           <div 
             id="direct-pdf-download-container" 
             style={{ 
-              width: '800px', 
+              width: '760px', 
               background: 'white',
-              padding: '24px',
+              padding: '16px',
               color: '#0f172a'
             }}
           >
@@ -4956,6 +4957,7 @@ Serene Villa Hiriketiya`;
               selectedReg={isCreatingNewReservation ? null : selectedReg}
               associatedBooking={isCreatingNewReservation ? null : associatedBooking}
               payments={isCreatingNewReservation ? [] : advancePayments}
+              hideExchangeRate={true}
             />
           </div>
         </div>
