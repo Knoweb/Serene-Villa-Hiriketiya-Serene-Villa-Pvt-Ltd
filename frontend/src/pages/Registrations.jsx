@@ -1709,8 +1709,11 @@ const Registrations = () => {
 
                   {/* Bank Payment Slips Section */}
                   {(() => {
-                    const bId = associatedBooking?.id || selectedReg.id;
-                    const bookingSlips = allBankSlips[bId] || allBankSlips[selectedReg.id] || [];
+                    const bNum = (associatedBooking?.bookingNumber || selectedReg?.bookingNumber || selectedReg?.passportNumber || '').toLowerCase().trim();
+                    const bId = associatedBooking?.id;
+                    const rId = selectedReg?.id;
+
+                    const bookingSlips = allBankSlips[bId] || allBankSlips[rId] || (bNum ? allBankSlips[bNum] : null) || [];
 
                     if (bookingSlips.length === 0) return null;
 

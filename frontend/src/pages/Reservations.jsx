@@ -244,7 +244,7 @@ const Reservations = () => {
 
   const handleSaveBankSlip = (e, bookingId) => {
     e.preventDefault();
-    if (!bookingId) {
+    if (!bookingId && !selectedReg?.id) {
       alert('Please select a booking to upload slip.');
       return;
     }
@@ -253,7 +253,11 @@ const Reservations = () => {
       return;
     }
 
-    const currentSlips = allBankSlips[bookingId] || [];
+    const bNum = associatedBooking?.bookingNumber || selectedReg?.bookingNumber || selectedReg?.passportNumber || '';
+    const regId = selectedReg?.id;
+    const keyToUse = bookingId || regId;
+
+    const currentSlips = allBankSlips[keyToUse] || (regId ? allBankSlips[regId] : []) || [];
     const newSlip = {
       id: Date.now(),
       bankKey: bankSlipForm.bankKey,
@@ -266,8 +270,15 @@ const Reservations = () => {
 
     const updated = {
       ...allBankSlips,
-      [bookingId]: [newSlip, ...currentSlips]
+      [keyToUse]: [newSlip, ...currentSlips]
     };
+    if (regId && regId !== keyToUse) {
+      updated[regId] = [newSlip, ...(allBankSlips[regId] || [])];
+    }
+    if (bNum) {
+      const cleanBNum = bNum.toLowerCase().trim();
+      updated[cleanBNum] = [newSlip, ...(allBankSlips[cleanBNum] || [])];
+    }
 
     setAllBankSlips(updated);
     try {
