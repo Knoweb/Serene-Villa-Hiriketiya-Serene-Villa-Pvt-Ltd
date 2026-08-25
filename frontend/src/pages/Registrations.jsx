@@ -693,13 +693,6 @@ const Registrations = () => {
         paymentDate: new Date().toISOString().split('T')[0],
         slipPath: ''
       });
-        if (refreshRes.ok) {
-          const freshPayments = await refreshRes.json();
-          setAdvancePayments(freshPayments);
-          autoPrintRef.current = true;
-          await handleGenerateReceipt(savedPayment.id, freshPayments);
-        }
-      }
     } catch (err) {
       alert(err.message || 'Error saving payment');
     } finally {
