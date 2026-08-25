@@ -2265,31 +2265,37 @@ Serene Villa Hiriketiya`;
         const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
         const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
         
-        const roomsList = associatedBooking?.roomNumber 
-          ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean)
-          : [];
-        const roomTypesList = associatedBooking?.roomType
-          ? associatedBooking.roomType.split(',').map(t => t.trim())
-          : [];
-        const numRooms = roomsList.length || 1;
-        const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
-        const totalAmount = associatedBooking?.totalAmount || 0;
+        const roomsList = (associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
+          .split(',').map(r => r.trim()).filter(Boolean);
+        const roomTypesList = (associatedBooking?.roomType || selectedReg?.roomType || '')
+          .split(',').map(t => t.trim()).filter(Boolean);
         
-        const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
-        const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
-
         let parsedRoomPrices = null;
-        if (associatedBooking.roomPrices) {
+        if (associatedBooking?.roomPrices) {
           try {
             const p = JSON.parse(associatedBooking.roomPrices);
             if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
           } catch(e) {}
         }
 
+        const countRooms = Math.max(
+          roomsList.length, 
+          roomTypesList.length, 
+          parsedRoomPrices ? parsedRoomPrices.length : 0, 
+          1
+        );
+        const numRooms = countRooms;
+        const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+        const totalAmount = associatedBooking?.totalAmount || selectedReg?.totalAmount || 0;
+        
+        const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
+        const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
+
         const dispTotalAmount = totalAmount * convFactor;
         const totalCents = Math.round(dispTotalAmount * 100);
         
-        const itemizedRows = roomsList.map((roomNumber, idx) => {
+        let itemizedRows = [];
+        for (let idx = 0; idx < countRooms; idx++) {
           let rowAmount = 0;
           if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
             rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
@@ -2303,16 +2309,21 @@ Serene Villa Hiriketiya`;
           const rateAmount = rowAmount / nightsVal;
           const amountVal = Math.floor(rowAmount);
           const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
-          const currentRoomType = roomTypesList[idx] || roomTypesList[0] || 'Room';
+          const currentRoomType = roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (roomTypesList[0] || 'Room'));
+          const rNum = roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
+
+          const desc = rNum 
+            ? `Night - ${currentRoomType} (Room ${rNum})`
+            : `Night - ${currentRoomType}`;
           
-          return {
-            roomNumber,
-            description: `Night - ${currentRoomType} (Room ${roomNumber})`,
+          itemizedRows.push({
+            roomNumber: rNum,
+            description: desc,
             rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             amountVal: amountVal.toLocaleString(),
             amountCts: amountCts
-          };
-        });
+          });
+        }
 
         const defaultRowAmount = dispTotalAmount;
         const defaultRateAmount = defaultRowAmount / nightsVal;
