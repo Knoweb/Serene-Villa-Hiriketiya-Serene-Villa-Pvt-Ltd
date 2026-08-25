@@ -35,7 +35,8 @@ import {
   ArrowRight,
   MessageSquare,
   Pencil,
-  Save
+  Save,
+  Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
@@ -374,6 +375,29 @@ const Registrations = () => {
       }
     } catch (err) {
       console.error('Failed to change visibility', err);
+    }
+  };
+
+  // Delete Guest Registration (Admin & Front Office)
+  const handleDeleteRegistration = async (id) => {
+    if (window.confirm("Are you sure you want to delete this guest registration and all associated bookings/payments?")) {
+      try {
+        const response = await fetch(`${API_BASE}/guest-registrations/${id}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) {
+          fetchRegistrations();
+          if (selectedReg && selectedReg.id === id) {
+            setSelectedReg(null);
+          }
+        } else {
+          const errData = await response.json();
+          alert(errData.message || "Failed to delete registration");
+        }
+      } catch (err) {
+        console.error('Failed to delete registration', err);
+        alert("An error occurred while deleting the registration");
+      }
     }
   };
 
@@ -918,13 +942,13 @@ const Registrations = () => {
                 className="overflow-x-auto"
               >
                 <table ref={tableRef} className="w-full text-left border-collapse text-xs whitespace-nowrap">
-                  <thead>
-                    <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-450 font-bold uppercase tracking-wider">
+                  <thead>                    <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-450 font-bold uppercase tracking-wider">
                       <th className="p-4">Guest</th>
                       <th className="p-4">Passport / WhatsApp</th>
                       <th className="p-4">Dates & Room</th>
                       <th className="p-4">Status</th>
                       <th className="p-4 text-right">Actions</th>
+                      <th className="p-4 text-center w-12">Delete</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
@@ -969,23 +993,18 @@ const Registrations = () => {
                             </div>
                             <div>
                               <p className="font-extrabold text-slate-900 text-sm">{reg.guestName}</p>
-                              <p className="text-[10px] text-slate-400 mt-0.5">{reg.nationality}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{reg.country || reg.nationality || 'Other'}</p>
                             </div>
                           </td>
                           <td className="p-4">
-                            <p className="font-mono text-slate-800">{(reg.passportNumber || '').replace(/^SV-?/i, '')}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{reg.whatsappNumber || reg.whatsAppNumber}</p>
+                            <p className="font-mono text-slate-800 font-bold">{(reg.passportNumber || '').replace(/^SV-?/i, '')}</p>
+                            <p className="text-slate-400 font-semibold text-[11px] mt-0.5">{reg.whatsappNumber || reg.whatsAppNumber || 'N/A'}</p>
                           </td>
                           <td className="p-4">
-                            <p>In: {reg.checkInDate}</p>
-                            <p className="text-slate-500 font-bold text-[10px] mt-0.5">
-                              {(() => {
-                                const rNo = booking?.roomNumber || reg.roomNumber || reg.room;
-                                if (rNo && rNo !== 'Unallocated') {
-                                  return rNo.toLowerCase().startsWith('room') ? rNo : `Room ${rNo}`;
-                                }
-                                return 'Unallocated';
-                              })()}
+                            <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {reg.checkInDate}</div>
+                            <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {reg.checkOutDate}</div>
+                            <p className="text-slate-500 font-bold text-[11px] mt-1">
+                              {booking ? (booking.roomNumber ? `Room ${booking.roomNumber}` : 'Unallocated') : (reg.roomNumber ? `Room ${reg.roomNumber}` : 'Unallocated')}
                             </p>
                           </td>
                           <td className="p-4 space-y-1">
@@ -1030,13 +1049,22 @@ const Registrations = () => {
                               </button>
                             </div>
                           </td>
+                          <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => handleDeleteRegistration(reg.id)}
+                              title="Delete Registration"
+                              className="p-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 transition shadow-sm cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
 
                     {registrations.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="p-8 text-center text-slate-400 font-bold">
+                        <td colSpan="6" className="p-8 text-center text-slate-400 font-bold">
                           No guest registrations match your search filter.
                         </td>
                       </tr>
