@@ -115,15 +115,26 @@ public class GuestRegistrationService {
                                     .filter(p -> p != null && (p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice()))
                                     .toList();
                             
-                            double totalPaid = visiblePayments.stream()
+                            double totalPaidLkr = visiblePayments.stream()
                                     .mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : p.getAmountLkr())
                                     .sum();
                             
                             double totalAmt = booking.getTotalAmount();
+                            String bCurr = booking.getCurrency() != null ? booking.getCurrency().toUpperCase() : "USD";
+                            double exRate = 1.0;
+                            try {
+                                if (booking.getExchangeRate() != null && !booking.getExchangeRate().trim().isEmpty()) {
+                                    exRate = Double.parseDouble(booking.getExchangeRate().trim());
+                                }
+                            } catch (Exception ignored) {}
+                            if (exRate <= 0) exRate = 335.0;
+
+                            double totalBookingAmtLkr = "LKR".equals(bCurr) ? totalAmt : (totalAmt * exRate);
+
                             String computedStatus = "Unpaid";
-                            if (totalPaid >= totalAmt && totalAmt > 0) {
+                            if (totalBookingAmtLkr > 0 && totalPaidLkr >= (totalBookingAmtLkr - 10.0)) {
                                 computedStatus = "Paid";
-                            } else if (totalPaid > 0) {
+                            } else if (totalPaidLkr > 0) {
                                 computedStatus = "Paid Advance";
                             }
                             reg.setPaymentStatus(computedStatus);

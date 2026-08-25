@@ -2141,6 +2141,10 @@ const Registrations = () => {
         if (!associatedBooking) return null;
         
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
+        const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
+        const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
+        const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+        const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
         const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
@@ -2471,7 +2475,8 @@ Serene Villa Hiriketiya`;
                   const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
                     ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
                     : rawPaid;
-                  const remBal = Math.max(0, totAmt - paidAmt);
+                  const totalPaidBCurr = (totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate)));
+                  const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidBCurr);
                   const convertedLkrPaid = (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate));
 
                   return (
@@ -2487,7 +2492,23 @@ Serene Villa Hiriketiya`;
                       {paymentsUpToThis.length > 1 && (
                         <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-slate-500">
                           <span>Total Paid So Far:</span>
-                          <span className="font-bold">{dispCurr} {(totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="font-bold">{dispCurr} {totalPaidBCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      {cardFeeVal > 0 && (
+                        <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                          <span className="text-slate-500 font-semibold">CHARGES:</span>
+                          <span className="font-bold text-slate-850">
+                            {dispCurr} {(dispCurr === 'LKR' ? (cardFeeVal < (rawPaid * 0.01) ? cardFeeVal * exRate : cardFeeVal) : (cardFeeVal > (rawPaid * 0.5) ? cardFeeVal / exRate : cardFeeVal)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+                      {otherVal > 0 && (
+                        <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                          <span className="text-slate-500 font-semibold">OTHER CHARGES:</span>
+                          <span className="font-bold text-amber-700">
+                            {dispCurr} {(dispCurr === 'LKR' ? (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : otherVal * exRate) : otherVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                         </div>
                       )}
                       {dispCurr !== 'LKR' && (
