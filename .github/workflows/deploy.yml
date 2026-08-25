@@ -6,7 +6,29 @@ on:
       - main
 
 jobs:
+  test-build:
+    name: Test Build (Frontend Verification)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Test Frontend Build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
   deploy:
+    name: Deploy to DigitalOcean
+    needs: test-build
     runs-on: ubuntu-latest
 
     steps:
@@ -27,5 +49,5 @@ jobs:
             docker compose down --remove-orphans
             docker compose build --no-cache --pull
             docker compose up -d --force-recreate
-            docker image prune -af
+            docker system prune -af --volumes=false
             echo "Clean Deployment Completed Successfully!"
