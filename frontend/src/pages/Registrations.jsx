@@ -267,9 +267,6 @@ const Registrations = () => {
     paymentStatus: 'Pending',
     registrationStatus: 'Pending'
   });
-  const [updatingBooking, setUpdatingBooking] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [isEditingBooking, setIsEditingBooking] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedSlipPreview, setSelectedSlipPreview] = useState(null);
   const [allBankSlips, setAllBankSlips] = useState(() => {
@@ -1712,11 +1709,8 @@ const Registrations = () => {
 
                   {/* Bank Payment Slips Section */}
                   {(() => {
-                    const bNum = (associatedBooking?.bookingNumber || selectedReg?.bookingNumber || selectedReg?.passportNumber || '').toLowerCase().trim();
-                    const bId = associatedBooking?.id;
-                    const rId = selectedReg?.id;
-
-                    const bookingSlips = allBankSlips[bId] || allBankSlips[rId] || (bNum ? allBankSlips[bNum] : null) || [];
+                    const bId = associatedBooking?.id || selectedReg.id;
+                    const bookingSlips = allBankSlips[bId] || allBankSlips[selectedReg.id] || [];
 
                     if (bookingSlips.length === 0) return null;
 

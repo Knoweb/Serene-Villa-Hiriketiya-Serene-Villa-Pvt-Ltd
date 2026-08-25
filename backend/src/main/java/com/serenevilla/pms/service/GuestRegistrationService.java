@@ -115,6 +115,10 @@ public class GuestRegistrationService {
                                     .filter(p -> p != null && (p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice()))
                                     .toList();
                             
+                            double totalPaidLkr = visiblePayments.stream()
+                                    .mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : p.getAmountLkr())
+                                    .sum();
+                            
                             double totalAmt = booking.getTotalAmount();
                             String bCurr = booking.getCurrency() != null ? booking.getCurrency().toUpperCase() : "USD";
                             double exRate = 1.0;
@@ -123,43 +127,14 @@ public class GuestRegistrationService {
                                     exRate = Double.parseDouble(booking.getExchangeRate().trim());
                                 }
                             } catch (Exception ignored) {}
-                            if (exRate <= 0) {
-                                exRate = "EUR".equals(bCurr) ? 360.0 : "AUD".equals(bCurr) ? 220.0 : "USD".equals(bCurr) ? 335.0 : 1.0;
-                            }
+                            if (exRate <= 0) exRate = 335.0;
 
-                            // Calculate total paid directly converted into booking's currency
-                            double totalPaidInBookingCurrency = visiblePayments.stream()
-                                    .mapToDouble(p -> {
-                                        if (p == null) return 0.0;
-                                        String pCurr = (p.getCurrencyCode() != null ? p.getCurrencyCode() : (p.getCurrency() != null ? p.getCurrency() : "LKR")).toUpperCase();
-                                        double pAmt = p.getAmountInCurrency() != null ? p.getAmountInCurrency() : (p.getAmount() != null ? p.getAmount() : 0.0);
-                                        double pLkr = p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : (p.getAmountLkr() != null ? p.getAmountLkr() : 0.0);
-                                        double pRate = p.getExchangeRate() != null ? p.getExchangeRate() : 1.0;
-
-                                        if (pCurr.equals(bCurr)) {
-                                            return pAmt;
-                                        } else if ("LKR".equals(bCurr)) {
-                                            return pLkr > 0 ? pLkr : (pAmt * pRate);
-                                        } else {
-                                            // Foreign currency booking paid in another currency or LKR
-                                            if (pRate > 0) return pLkr > 0 ? (pLkr / pRate) : pAmt;
-                                            return pAmt;
-                                        }
-                                    })
-                                    .sum();
-
-                            double totalPaidLkr = visiblePayments.stream()
-                                    .mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : p.getAmountLkr())
-                                    .sum();
                             double totalBookingAmtLkr = "LKR".equals(bCurr) ? totalAmt : (totalAmt * exRate);
 
-                            boolean isFullySettled = (totalAmt > 0 && totalPaidInBookingCurrency >= (totalAmt - 0.5))
-                                    || (totalBookingAmtLkr > 0 && totalPaidLkr >= (totalBookingAmtLkr - 100.0));
-
                             String computedStatus = "Unpaid";
-                            if (isFullySettled) {
+                            if (totalBookingAmtLkr > 0 && totalPaidLkr >= (totalBookingAmtLkr - 10.0)) {
                                 computedStatus = "Paid";
-                            } else if (totalPaidInBookingCurrency > 0 || totalPaidLkr > 0) {
+                            } else if (totalPaidLkr > 0) {
                                 computedStatus = "Paid Advance";
                             }
                             reg.setPaymentStatus(computedStatus);
