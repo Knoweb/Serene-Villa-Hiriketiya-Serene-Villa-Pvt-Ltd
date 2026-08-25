@@ -1359,6 +1359,13 @@ const Reservations = () => {
     const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
     const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
 
+    // 1. If registration already has a specific bookingNumber, prioritize exact match
+    if (targetReg.bookingNumber) {
+      const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
+      const directMatch = bookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
+      if (directMatch) return directMatch;
+    }
+
     // Find all matching candidate bookings
     const candidates = bookings.filter(b => {
       if (b.guestRegistrationId === regId) return true;
@@ -1368,16 +1375,11 @@ const Reservations = () => {
         .replace(/^mr\s*\/\s*mrs\s*/i, '')
         .trim().toLowerCase();
 
-      if (cleanRegName && cleanRegName.length >= 3 && cleanBName === cleanRegName) return true;
+      if (cleanRegName && cleanRegName.length >= 2 && (cleanBName === cleanRegName || cleanBName.includes(cleanRegName) || cleanRegName.includes(cleanBName))) return true;
       if (cleanRegEmail && b.email && b.email.trim().toLowerCase() === cleanRegEmail) return true;
       if (cleanRegPhone && cleanRegPhone.length >= 7) {
         const bPhone = (b.contactNumber || b.phone || b.whatsappNumber || '').replace(/\D/g, '');
         if (bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone))) return true;
-      }
-
-      if (targetReg.bookingNumber) {
-        const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
-        if (b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum) return true;
       }
 
       return false;
@@ -1385,10 +1387,10 @@ const Reservations = () => {
 
     if (candidates.length === 0) return null;
 
-    // Rank candidates: REAL manual reservations (e.g. D-7892017) come FIRST over auto-drafts (D-10xx, D-11xx)!
+    // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
     candidates.sort((a, b) => {
-      const aIsReal = a.bookingNumber && !a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11');
-      const bIsReal = b.bookingNumber && !b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11');
+      const aIsReal = a.bookingNumber && (a.bookingNumber.startsWith('D-789') || (!a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11')));
+      const bIsReal = b.bookingNumber && (b.bookingNumber.startsWith('D-789') || (!b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11')));
       if (aIsReal && !bIsReal) return -1;
       if (!aIsReal && bIsReal) return 1;
       return (b.id || 0) - (a.id || 0);
@@ -3149,15 +3151,28 @@ Serene Villa Hiriketiya`;
           }
         };
 
-        const roomsList = associatedBooking?.roomNumber 
-          ? associatedBooking.roomNumber.split(',').map(r => r.trim()).filter(Boolean)
-          : [];
-        const roomTypesList = associatedBooking?.roomType
-          ? associatedBooking.roomType.split(',').map(t => t.trim())
-          : [];
-        const numRooms = roomsList.length || 1;
+        const roomsList = (associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
+          .split(',').map(r => r.trim()).filter(Boolean);
+        const roomTypesList = (associatedBooking?.roomType || selectedReg?.roomType || '')
+          .split(',').map(t => t.trim()).filter(Boolean);
+        
+        let parsedRoomPrices = null;
+        if (associatedBooking?.roomPrices) {
+          try {
+            const p = JSON.parse(associatedBooking.roomPrices);
+            if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
+          } catch(e) {}
+        }
+
+        const countRooms = Math.max(
+          roomsList.length,
+          roomTypesList.length,
+          parsedRoomPrices ? parsedRoomPrices.length : 0,
+          1
+        );
+        const numRooms = countRooms;
         const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
-        const totalAmount = associatedBooking?.totalAmount || 0;
+        const totalAmount = associatedBooking?.totalAmount || selectedReg?.totalAmount || 0;
         const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Charges: ([\d.]+)\]/);
         const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
         
@@ -3166,19 +3181,11 @@ Serene Villa Hiriketiya`;
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurr;
         const convFactor = (forceReceiptLkr && bCurr !== 'LKR') ? exRate : 1;
 
-        // Parse roomPrices if available
-        let parsedRoomPrices = null;
-        if (associatedBooking.roomPrices) {
-          try {
-            const p = JSON.parse(associatedBooking.roomPrices);
-            if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
-          } catch(e) {}
-        }
-
         const dispTotalAmount = totalAmount * convFactor;
         const totalCents = Math.round(dispTotalAmount * 100);
         
-        const itemizedRows = roomsList.map((roomNumber, idx) => {
+        let itemizedRows = [];
+        for (let idx = 0; idx < countRooms; idx++) {
           let rowAmount = 0;
           if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
             rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
@@ -3192,16 +3199,21 @@ Serene Villa Hiriketiya`;
           const rateAmount = rowAmount / nightsVal;
           const amountVal = Math.floor(rowAmount);
           const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
-          const currentRoomType = roomTypesList[idx] || roomTypesList[0] || 'Room';
+          const currentRoomType = roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (roomTypesList[0] || 'Room'));
+          const rNum = roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
+
+          const desc = rNum 
+            ? `Night - ${currentRoomType} (Room ${rNum})`
+            : `Night - ${currentRoomType}`;
           
-          return {
-            roomNumber,
-            description: `Night - ${currentRoomType} (Room ${roomNumber})`,
+          itemizedRows.push({
+            roomNumber: rNum,
+            description: desc,
             rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             amountVal: amountVal.toLocaleString(),
             amountCts: amountCts
-          };
-        });
+          });
+        }
 
         const defaultRowAmount = dispTotalAmount;
         const defaultRateAmount = defaultRowAmount / nightsVal;
@@ -3214,6 +3226,8 @@ Serene Villa Hiriketiya`;
           amountVal: defaultAmountVal.toLocaleString(),
           amountCts: defaultAmountCts
         };
+
+        const bookingNoDisplay = associatedBooking?.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`;
 
         return (
           <div id="printable-receipt-modal-wrapper" className="no-print fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:py-8 print:p-0 print:bg-transparent print:static overflow-y-auto">
@@ -3272,8 +3286,12 @@ Serene Villa Hiriketiya`;
                   )}
                   <div className="inline-block border border-emerald-800/30 rounded-lg px-2.5 py-1.5 bg-emerald-50/20 text-[10px] text-left space-y-0.5 mt-1 print:bg-transparent">
                     <div className="flex gap-3 justify-between">
+                      <span className="text-slate-500 font-semibold">Booking No:</span>
+                      <span className="font-mono font-bold text-emerald-800">{bookingNoDisplay}</span>
+                    </div>
+                    <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Receipt No:</span>
-                      <span className="font-mono font-bold text-emerald-800">{receiptData.receiptNumber}</span>
+                      <span className="font-mono font-bold text-slate-800">{receiptData.receiptNumber}</span>
                     </div>
                     <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Date:</span>
