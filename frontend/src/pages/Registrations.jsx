@@ -2554,7 +2554,7 @@ Serene Villa Hiriketiya`;
                 >
                   <Printer size={11} /> Print in LKR
                 </button>
-                {bCurr !== 'LKR' && (
+                {bCurrRender !== 'LKR' && (
                   <button
                     type="button"
                     onClick={() => {
@@ -2565,7 +2565,7 @@ Serene Villa Hiriketiya`;
                     }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3.5 rounded-lg flex items-center justify-center gap-1 transition text-[11px] cursor-pointer shadow-sm"
                   >
-                    <Printer size={11} /> Print in {bCurr}
+                    <Printer size={11} /> Print in {bCurrRender}
                   </button>
                 )}
                 {isFinalPayment && (
