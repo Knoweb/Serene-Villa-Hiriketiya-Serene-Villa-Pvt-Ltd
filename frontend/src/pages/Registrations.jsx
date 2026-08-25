@@ -2271,6 +2271,7 @@ Serene Villa Hiriketiya`;
         const bCurrRender = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
         const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
         const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
+        const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
         
         const roomsList = (associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
           .split(',').map(r => r.trim()).filter(Boolean);
