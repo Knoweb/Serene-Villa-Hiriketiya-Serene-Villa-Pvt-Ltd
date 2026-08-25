@@ -1907,14 +1907,19 @@ const Reservations = () => {
                       {associatedBooking?.bookingType || 'Direct Booking'}
                     </span>
                   </div>
-                  {/* Room Type */}
-                  <div className="col-span-2 flex justify-between items-start py-2 border-b border-slate-100/40">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide pt-0.5">Room Type:</span>
+                  {/* Allocated Rooms & Price Breakdown */}
+                  <div className="col-span-2 space-y-1.5 py-2 border-b border-slate-100/40">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
+                        {isEditingBooking ? 'Room Type:' : 'Allocated Rooms & Prices:'}
+                      </span>
+                    </div>
+
                     {isEditingBooking ? (
                       <select 
                         value={bookingForm.roomType}
                         onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
-                        className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500"
                       >
                         <option value="Standard Room">Standard Room</option>
                         <option value="Deluxe Room">Deluxe Room</option>
@@ -1922,54 +1927,79 @@ const Reservations = () => {
                         <option value="Budget Room">Budget Room</option>
                       </select>
                     ) : (
-                      <div className="flex flex-col items-end text-right font-extrabold text-slate-800 text-xs gap-1 max-w-[70%]">
+                      <div>
                         {(() => {
-                          let roomNums = [];
-                          if (associatedBooking?.roomNumber && associatedBooking.roomNumber !== 'Unallocated') {
-                            roomNums = associatedBooking.roomNumber.split(',').map(r => r.trim().replace(/^Room\s*/i, '')).filter(Boolean);
-                          }
-                          if (roomNums.length === 0 && (selectedReg?.roomNumber || selectedReg?.room)) {
-                            const r = selectedReg.roomNumber || selectedReg.room;
-                            if (r && r !== 'Unallocated') {
-                              roomNums = r.split(',').map(x => x.trim().replace(/^Room\s*/i, '')).filter(Boolean);
-                            }
-                          }
-                          if (roomNums.length === 0 && associatedBooking?.roomPrices) {
+                          let parsedItems = [];
+                          const currency = bookingForm.currencyCode || associatedBooking?.currency || selectedReg?.currency || 'USD';
+                          const totalAmt = parseFloat(bookingForm.amount || associatedBooking?.totalAmount || selectedReg?.totalAmount || 0);
+
+                          if (associatedBooking?.roomPrices) {
                             try {
                               const p = JSON.parse(associatedBooking.roomPrices);
-                              if (Array.isArray(p)) {
-                                p.forEach(item => {
-                                  if (item.roomNumber) {
-                                    const clean = item.roomNumber.trim().replace(/^Room\s*/i, '');
-                                    if (clean) roomNums.push(clean);
-                                  }
-                                });
+                              if (Array.isArray(p) && p.length > 0) {
+                                parsedItems = p.map((item, idx) => ({
+                                  roomNumber: item.roomNumber || item.roomNum || `Room ${idx + 1}`,
+                                  price: item.price != null && item.price !== '' ? parseFloat(item.price) : null
+                                }));
                               }
                             } catch(e) {}
                           }
-                          if (roomNums.length === 0 && associatedBooking?.roomType) {
-                            const extracted = associatedBooking.roomType.match(/\b(?:\d{3,4}|10\d|40\d|41\d)\b/g);
-                            if (extracted && extracted.length > 0) roomNums = extracted;
+
+                          if (parsedItems.length === 0) {
+                            const rawRoomNums = (bookingForm.room || associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
+                              .split(',')
+                              .map(r => r.trim())
+                              .filter(Boolean);
+
+                            const rawRoomTypes = (bookingForm.roomType || associatedBooking?.roomType || selectedReg?.roomType || '')
+                              .split(',')
+                              .map(t => t.trim())
+                              .filter(Boolean);
+
+                            const count = Math.max(rawRoomNums.length, rawRoomTypes.length, 1);
+
+                            for (let i = 0; i < count; i++) {
+                              let num = rawRoomNums[i] || (count > 1 ? `Room ${i + 1}` : (rawRoomNums[0] || 'Unallocated'));
+                              if (num !== 'Unallocated' && !num.startsWith('Room')) {
+                                num = `Room ${num}`;
+                              }
+                              parsedItems.push({
+                                roomNumber: num,
+                                price: totalAmt > 0 ? (totalAmt / count) : null
+                              });
+                            }
                           }
 
-                          if (roomNums.length > 0) {
-                            return roomNums.map((rNo, idx) => (
-                              <span key={idx} className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold shadow-xs">
-                                Room {rNo}
-                              </span>
-                            ));
-                          }
-
-                          if (associatedBooking?.roomType) {
-                            const shortType = associatedBooking.roomType.split(',')[0].split('-')[0].trim();
-                            return (
-                              <span className="inline-block bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-extrabold">
-                                {shortType}
-                              </span>
-                            );
-                          }
-
-                          return <span className="text-slate-400 italic">Unallocated</span>;
+                          return (
+                            <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+                              <table className="w-full text-left text-xs border-collapse">
+                                <thead>
+                                  <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
+                                    <th className="py-2 px-3 font-extrabold">Room Number</th>
+                                    <th className="py-2 px-3 font-extrabold text-right">Price ({currency})</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
+                                  {parsedItems.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50/50 transition">
+                                      <td className="py-2.5 px-3 font-mono font-black text-slate-900">
+                                        <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2.5 py-0.5 rounded text-[11px] font-extrabold">
+                                          {item.roomNumber}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs">
+                                        {item.price != null && !isNaN(item.price) ? (
+                                          `${currency} ${item.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                                        ) : (
+                                          <span className="text-slate-400 font-normal italic">-</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          );
                         })()}
                       </div>
                     )}
