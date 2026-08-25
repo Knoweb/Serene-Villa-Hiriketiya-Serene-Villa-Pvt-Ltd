@@ -92,6 +92,8 @@ const GuestRegistration = () => {
   const [lookupSuccess, setLookupSuccess] = useState(false);
   const [showLookup, setShowLookup] = useState(false);
 
+  const [lookedUpBooking, setLookedUpBooking] = useState(null);
+
   const handleLookupReservation = async () => {
     const prefix = bookingPrefixes[selectedBookingType] || 'D-';
     let cleanNum = searchBookingNumber.trim();
@@ -119,6 +121,7 @@ const GuestRegistration = () => {
         const reg = data.registration;
 
         if (booking) {
+          setLookedUpBooking(booking);
           setFormData(prev => ({
             ...prev,
             title: reg?.title || booking?.title || prev.title || 'Mr.',
@@ -328,6 +331,7 @@ const GuestRegistration = () => {
         checkInDate: formData.checkInDate,
         checkOutDate: formData.checkOutDate,
         passportNumber: formData.passportNumber ? formData.passportNumber.trim() : `SV-${Date.now()}`,
+        bookingNumber: lookedUpBooking?.bookingNumber || '',
         whatsappNumber: formData.whatsAppNumber ? formData.whatsAppNumber.trim() : 'N/A',
         nationality: formData.nationality || formData.country || 'Other',
         country: formData.country || formData.nationality || 'Other',
@@ -355,16 +359,32 @@ const GuestRegistration = () => {
 
       const savedReg = await res.json();
 
-      // Silently create the associated booking record in backend
+      // Silently create or update the associated booking record in backend
+      const finalBookingNumber = lookedUpBooking?.bookingNumber || `D-${1000 + savedReg.id}`;
+      const finalRoomNumber = lookedUpBooking?.roomNumber || formData.selectedRoomNumber || '';
+      const finalRoomType = lookedUpBooking?.roomType || formData.roomType || 'Deluxe Room';
+      const finalBookingType = lookedUpBooking?.bookingType || 'Direct';
+      const finalBoardBasis = lookedUpBooking?.boardBasis || 'Room Only';
+      const finalCurrency = lookedUpBooking?.currency || 'USD';
+      const finalExchangeRate = lookedUpBooking?.exchangeRate || 1;
+      const finalRoomPrices = lookedUpBooking?.roomPrices || null;
+      const finalUnitPrice = lookedUpBooking?.unitPrice || null;
+
       const defaultForm = {
-        roomType: formData.roomType || 'Deluxe Room',
-        room: '',
-        bookingType: 'Direct',
-        bookingNumber: `D-${1000 + savedReg.id}`,
-        boardBasis: 'Room Only',
-        remarks: formData.remarks || '',
-        amount: formData.totalAmount ? parseFloat(formData.totalAmount) : 0,
-        paymentStatus: formData.paymentType !== 'NONE' ? (formData.paymentType === 'FULL' ? 'Paid' : 'Paid Advance') : 'Confirm',
+        roomType: finalRoomType,
+        room: finalRoomNumber,
+        bookingType: finalBookingType,
+        bookingNumber: finalBookingNumber,
+        boardBasis: finalBoardBasis,
+        remarks: formData.remarks || lookedUpBooking?.remarks || '',
+        amount: formData.totalAmount ? parseFloat(formData.totalAmount) : (lookedUpBooking?.totalAmount || 0),
+        currency: finalCurrency,
+        exchangeRate: finalExchangeRate,
+        roomPrices: finalRoomPrices,
+        unitPrice: finalUnitPrice,
+        paymentStatus: formData.paymentType !== 'NONE' 
+          ? (formData.paymentType === 'FULL' ? 'Paid' : 'Paid Advance') 
+          : (lookedUpBooking?.paymentStatus || 'Confirm'),
         registrationStatus: 'Pending'
       };
 

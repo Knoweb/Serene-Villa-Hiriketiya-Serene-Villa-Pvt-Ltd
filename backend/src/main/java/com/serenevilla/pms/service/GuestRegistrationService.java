@@ -215,31 +215,53 @@ public class GuestRegistrationService {
             GuestRegistration savedReg = guestRegistrationRepository.save(reg);
 
             // Find or create associated booking with smart matching
-            Booking booking = bookingRepository.findAll().stream()
+            List<Booking> candidates = bookingRepository.findAll().stream()
                     .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
                               || (details.containsKey("bookingNumber") && details.get("bookingNumber") != null && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(String.valueOf(details.get("bookingNumber")).trim()))
-                              || (savedReg.getGuestName() != null && b.getGuestName() != null && b.getGuestName().equalsIgnoreCase(savedReg.getGuestName().trim())))
-                    .findFirst()
-                    .orElseGet(() -> {
-                        Booking newBooking = new Booking();
-                        newBooking.setStatus("Confirmed");
-                        newBooking.setPropertyId(1L);
-                        return newBooking;
-                    });
+                              || (savedReg.getGuestName() != null && b.getGuestName() != null && b.getGuestName().trim().equalsIgnoreCase(savedReg.getGuestName().trim())))
+                    .sorted((a, b) -> {
+                        boolean aIsReal = a.getBookingNumber() != null && (a.getBookingNumber().startsWith("D-789") || (!a.getBookingNumber().startsWith("D-10") && !a.getBookingNumber().startsWith("D-11")));
+                        boolean bIsReal = b.getBookingNumber() != null && (b.getBookingNumber().startsWith("D-789") || (!b.getBookingNumber().startsWith("D-10") && !b.getBookingNumber().startsWith("D-11")));
+                        if (aIsReal && !bIsReal) return -1;
+                        if (!aIsReal && bIsReal) return 1;
+                        return (int) (b.getId() - a.getId());
+                    })
+                    .toList();
+
+            Booking booking = candidates.isEmpty() ? null : candidates.get(0);
+            if (booking == null) {
+                booking = new Booking();
+                booking.setStatus("Confirmed");
+                booking.setPropertyId(1L);
+            }
 
             booking.setGuestRegistrationId(id);
 
             if (details.containsKey("roomType")) {
-                booking.setRoomType((String) details.get("roomType"));
+                String rt = (String) details.get("roomType");
+                if (rt != null && !rt.trim().isEmpty()) {
+                    booking.setRoomType(rt);
+                }
             }
             if (details.containsKey("room")) {
-                booking.setRoomNumber((String) details.get("room"));
+                String rm = (String) details.get("room");
+                if (rm != null && !rm.trim().isEmpty()) {
+                    booking.setRoomNumber(rm);
+                }
             }
             if (details.containsKey("bookingType")) {
                 booking.setBookingType((String) details.get("bookingType"));
             }
             if (details.containsKey("bookingNumber")) {
-                booking.setBookingNumber((String) details.get("bookingNumber"));
+                String newBNum = (String) details.get("bookingNumber");
+                // Do not overwrite real reservation numbers (e.g. D-78920xx) with synthetic D-1xxx draft numbers
+                if (newBNum != null && !newBNum.trim().isEmpty()) {
+                    boolean existingIsReal = booking.getBookingNumber() != null && !booking.getBookingNumber().startsWith("D-10") && !booking.getBookingNumber().startsWith("D-11");
+                    boolean incomingIsSynthetic = newBNum.startsWith("D-10") || newBNum.startsWith("D-11");
+                    if (!existingIsReal || !incomingIsSynthetic) {
+                        booking.setBookingNumber(newBNum);
+                    }
+                }
             }
             if (details.containsKey("boardBasis")) {
                 booking.setBoardBasis((String) details.get("boardBasis"));

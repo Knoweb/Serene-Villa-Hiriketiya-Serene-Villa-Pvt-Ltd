@@ -1641,9 +1641,9 @@ const Registrations = () => {
                       } else if (bookingCurrency.toUpperCase() === 'LKR') {
                         convertedAmt = pLkr > 0 ? pLkr : (pAmt * pExRate);
                       } else {
-                        // Converting to foreign currency
-                        if (pLkr > 0 && pExRate > 1) {
-                          convertedAmt = pLkr / pExRate;
+                        // Converting from LKR to foreign currency (e.g. USD)
+                        if (pExRate > 0) {
+                          convertedAmt = (pLkr > 0 ? pLkr : pAmt) / pExRate;
                         }
                       }
 
