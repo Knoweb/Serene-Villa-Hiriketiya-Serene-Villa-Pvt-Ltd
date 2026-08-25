@@ -2496,19 +2496,6 @@ const Reservations = () => {
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
                               />
                             </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Slip</label>
-                              <input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files[0]) {
-                                    setPaymentForm({ ...paymentForm, slipPath: `/uploads/${e.target.files[0].name}` });
-                                  }
-                                }}
-                                className="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-slate-100 file:text-slate-600 hover:file:bg-slate-200"
-                              />
-                            </div>
                             {paymentForm.paymentMethod === 'Card' && (
                                <div className="col-span-2 space-y-1">
                                  <div className="flex justify-between items-center">
