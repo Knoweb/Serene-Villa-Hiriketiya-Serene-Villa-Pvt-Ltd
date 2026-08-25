@@ -16,6 +16,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import logoImg from '../assets/logo.jpeg';
+import resortBgImg from '../assets/resort_bg.png';
 
 const Layout = ({ children }) => {
   const { user, logout, currentProperty } = useAuth();
@@ -25,7 +26,7 @@ const Layout = ({ children }) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   
   // Custom personalization settings
-  const [bgImage, setBgImage] = useState(() => localStorage.getItem('pms_custom_bg') || '/src/assets/resort_bg.png');
+  const [bgImage, setBgImage] = useState(() => localStorage.getItem('pms_custom_bg') || resortBgImg);
   const [bgOpacity, setBgOpacity] = useState(() => {
     const saved = localStorage.getItem('pms_bg_opacity');
     return saved !== null ? parseFloat(saved) : 0.58;
