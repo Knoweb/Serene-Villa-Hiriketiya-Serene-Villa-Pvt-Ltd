@@ -46,8 +46,9 @@ jobs:
             cd ~/Serene-Villa-Hiriketiya-Serene-Villa-Pvt-Ltd
             git reset --hard HEAD
             git pull origin main
-            docker compose down --remove-orphans
-            docker compose build --no-cache --pull
-            docker compose up -d --force-recreate
-            docker system prune -af --volumes=false
+            echo "Building containers..."
+            docker compose build frontend backend
+            echo "Deploying new containers..."
+            docker compose up -d --force-recreate frontend backend
+            docker system prune -f
             echo "Clean Deployment Completed Successfully!"
