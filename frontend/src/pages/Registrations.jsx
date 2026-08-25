@@ -53,6 +53,69 @@ const getPhotoUrl = (path) => {
   return `${baseUrl}${cleanPath}`;
 };
 
+const BANK_ACCOUNTS = {
+  USD_PB: {
+    key: 'USD_PB',
+    label: "USD ($) - People's Bank (Acc: 288402130016448)",
+    currency: 'USD',
+    bankName: "People's Bank",
+    companyName: "Serene Villa",
+    accountHolder: "Serene Villa Hiriketiya",
+    accountNumber: "288402130016448",
+    branch: "Kudawella",
+    swiftCode: "PSBKLKLX",
+    hotline: "+94 70 499 8787"
+  },
+  LKR_PB_COMPANY: {
+    key: 'LKR_PB_COMPANY',
+    label: "LKR 1 - Serene Villa (pvt)LTD (People's Bank - Acc: 288100190017275)",
+    currency: 'LKR',
+    bankName: "People's Bank",
+    companyName: "Serene Villa (pvt)LTD",
+    accountHolder: "Serene Villa (pvt)LTD",
+    accountNumber: "288100190017275",
+    branch: "Kudawella",
+    swiftCode: "PSBKLKLX",
+    hotline: "+94 70 499 8787"
+  },
+  LKR_PB_PERSONAL: {
+    key: 'LKR_PB_PERSONAL',
+    label: "LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)",
+    currency: 'LKR',
+    bankName: "People's Bank",
+    companyName: "Serene Villa",
+    accountHolder: "D.W.C Prasad",
+    accountNumber: "288100186167023",
+    branch: "Kudawella",
+    swiftCode: "PSBKLKLX",
+    hotline: "+94 70 499 8787"
+  },
+  EUR_SB: {
+    key: 'EUR_SB',
+    label: "EUR (€) - Sampath Bank (Acc: 521630000114)",
+    currency: 'EUR',
+    bankName: "Sampath Bank (EURO)",
+    companyName: "Thasara Architectural Design and Construction",
+    accountHolder: "Thasara Architectural Design and Construction",
+    accountNumber: "521630000114",
+    branch: "Dickwella",
+    swiftCode: "BSAMLKLX",
+    hotline: "+94 70 499 8787"
+  },
+  AUD_SB: {
+    key: 'AUD_SB',
+    label: "AUD ($) - Sampath Bank (Acc: 521630000092)",
+    currency: 'AUD',
+    bankName: "Sampath Bank (AUD)",
+    companyName: "Thasara Architectural Design and Construction",
+    accountHolder: "Thasara Architectural Design and Construction",
+    accountNumber: "521630000092",
+    branch: "Dickwella",
+    swiftCode: "BSAMLKLX",
+    hotline: "+94 70 499 8787"
+  }
+};
+
 const ROOM_TEMPLATES = {
   'Deluxe Room': {
     image: deluxeRoomImg,
@@ -204,10 +267,32 @@ const Registrations = () => {
     paymentStatus: 'Pending',
     registrationStatus: 'Pending'
   });
-  const [updatingBooking, setUpdatingBooking] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [isEditingBooking, setIsEditingBooking] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [selectedSlipPreview, setSelectedSlipPreview] = useState(null);
+  const [allBankSlips, setAllBankSlips] = useState(() => {
+    try {
+      const saved = localStorage.getItem('serene_bank_slips');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  // Reload bank slips whenever window gains focus or storage event
+  useEffect(() => {
+    const loadSlips = () => {
+      try {
+        const saved = localStorage.getItem('serene_bank_slips');
+        if (saved) setAllBankSlips(JSON.parse(saved));
+      } catch (e) {}
+    };
+    window.addEventListener('focus', loadSlips);
+    window.addEventListener('storage', loadSlips);
+    return () => {
+      window.removeEventListener('focus', loadSlips);
+      window.removeEventListener('storage', loadSlips);
+    };
+  }, []);
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -1621,6 +1706,62 @@ const Registrations = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Bank Payment Slips Section */}
+                  {(() => {
+                    const bId = associatedBooking?.id || selectedReg.id;
+                    const bookingSlips = allBankSlips[bId] || allBankSlips[selectedReg.id] || [];
+
+                    if (bookingSlips.length === 0) return null;
+
+                    return (
+                      <div className="space-y-1.5 pt-1.5 border-t border-slate-100/80">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">
+                          Bank Payment Slip / Receipt ({bookingSlips.length})
+                        </p>
+                        <div className="space-y-1.5">
+                          {bookingSlips.map((slip) => {
+                            const bd = BANK_ACCOUNTS[slip.bankKey] || BANK_ACCOUNTS.USD_PB;
+                            const isPdf = slip.slipUrl?.startsWith('data:application/pdf');
+
+                            return (
+                              <div 
+                                key={slip.id}
+                                onClick={() => setSelectedSlipPreview(slip)}
+                                className="flex items-center justify-between p-2 bg-emerald-50/40 hover:bg-emerald-50/70 border border-emerald-200/60 rounded-xl shadow-2xs cursor-pointer transition"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="h-10 w-14 rounded-lg overflow-hidden border border-emerald-200 shrink-0 bg-white shadow-2xs flex items-center justify-center">
+                                    {isPdf ? (
+                                      <FileText size={18} className="text-emerald-700" />
+                                    ) : (
+                                      <img 
+                                        src={slip.slipUrl} 
+                                        alt="Bank Slip"
+                                        className="w-full h-full object-cover"
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded text-[8.5px] font-extrabold">{slip.paymentType}</span>
+                                      <p className="font-bold text-slate-800 text-xs truncate">{bd.bankName}</p>
+                                    </div>
+                                    <span className="inline-flex items-center gap-1 mt-0.5 text-[9px] font-bold text-slate-500">
+                                      Paid: {slip.paidDate} • Click to View
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-lg shrink-0">
+                                  View
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -2649,6 +2790,55 @@ Serene Villa Hiriketiya`;
           </div>
         );
       })()}
+
+      {/* Bank Slip Modal Image Preview */}
+      {selectedSlipPreview && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 flex flex-col space-y-3.5">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <FileText className="text-emerald-600" size={16} />
+                  Bank Payment Slip - {selectedSlipPreview.paymentType}
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  Paid Date: {selectedSlipPreview.paidDate} | {BANK_ACCOUNTS[selectedSlipPreview.bankKey]?.bankName || ''} (Acc: {BANK_ACCOUNTS[selectedSlipPreview.bankKey]?.accountNumber || ''})
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedSlipPreview(null)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto max-h-[70vh] border border-slate-200 rounded-xl bg-slate-50 p-3 flex justify-center items-center">
+              {selectedSlipPreview.slipUrl?.startsWith('data:application/pdf') ? (
+                <iframe src={selectedSlipPreview.slipUrl} className="w-full h-[500px] rounded-lg" title="PDF Slip" />
+              ) : (
+                <img src={selectedSlipPreview.slipUrl} alt="Bank Slip" className="max-w-full max-h-[65vh] object-contain rounded-lg shadow-sm" />
+              )}
+            </div>
+
+            <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
+              <a
+                href={selectedSlipPreview.slipUrl}
+                download={selectedSlipPreview.fileName || 'bank_slip.png'}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+              >
+                <Download size={13} /> Download Slip
+              </a>
+              <button
+                onClick={() => setSelectedSlipPreview(null)}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-2 rounded-xl transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Print-only layout */}
       <div className="print-only">
