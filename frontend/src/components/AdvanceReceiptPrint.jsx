@@ -300,6 +300,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               )}
 
               {(() => {
+                const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
                 const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
                 const cardFeeRaw = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
                 if (cardFeeRaw > 0) {
