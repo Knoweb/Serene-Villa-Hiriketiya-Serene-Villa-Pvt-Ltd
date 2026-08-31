@@ -2972,6 +2972,7 @@ Serene Villa Hiriketiya`;
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
                   remarks: extraNightForm.remarks || 'Extra Night addition',
                   amount: parseFloat(extraNightForm.amount || 0),
+                  totalAmount: parseFloat(extraNightForm.amount || 0),
                   currency: extraNightForm.currencyCode,
                   currencyCode: extraNightForm.currencyCode,
                   checkInDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date().toISOString().split('T')[0],
@@ -3136,6 +3137,7 @@ Serene Villa Hiriketiya`;
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
                   remarks: extraPersonForm.remarks || 'Extra Person addition',
                   amount: parseFloat(extraPersonForm.amount || 0),
+                  totalAmount: parseFloat(extraPersonForm.amount || 0),
                   currency: extraPersonForm.currencyCode,
                   currencyCode: extraPersonForm.currencyCode,
                   checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
@@ -3299,6 +3301,7 @@ Serene Villa Hiriketiya`;
                   boardBasis: 'Room Only',
                   remarks: discountForm.remarks || 'Discount adjustment',
                   amount: -discountVal, // negative entry for discount deduction
+                  totalAmount: -discountVal,
                   currency: discountForm.currencyCode,
                   currencyCode: discountForm.currencyCode,
                   checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
