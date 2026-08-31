@@ -922,7 +922,11 @@ const Registrations = () => {
     if (candidates.length === 0) return null;
 
     // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
-    candidates.sort((a, b) => {
+    // Also ignore sub-bookings (bookings with "/" in bookingNumber) as the primary associatedBooking
+    const primaryCandidates = candidates.filter(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    const finalCandidates = primaryCandidates.length > 0 ? primaryCandidates : candidates;
+
+    finalCandidates.sort((a, b) => {
       const aIsReal = a.bookingNumber && (a.bookingNumber.startsWith('D-789') || (!a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11')));
       const bIsReal = b.bookingNumber && (b.bookingNumber.startsWith('D-789') || (!b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11')));
       if (aIsReal && !bIsReal) return -1;
@@ -930,7 +934,7 @@ const Registrations = () => {
       return (b.id || 0) - (a.id || 0);
     });
 
-    return candidates[0];
+    return finalCandidates[0];
   };
 
   const qrPort = window.location.port ? `:${window.location.port}` : '';
