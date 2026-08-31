@@ -1683,7 +1683,17 @@ const Registrations = () => {
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Passport / NIC Photo</p>
                     {selectedReg.passportFrontPath || selectedReg.guestPhotoPath ? (
-                      <div className="flex items-center justify-between p-2.5 bg-emerald-50/40 border border-emerald-200/60 rounded-xl shadow-2xs">
+                      <div 
+                        onClick={() => setSelectedSlipPreview({
+                          id: 'passport-nic',
+                          paymentType: 'Passport / NIC Document',
+                          paidDate: 'Guest Profile Attachment',
+                          slipUrl: getPhotoUrl(selectedReg.passportFrontPath || selectedReg.guestPhotoPath),
+                          fileName: 'passport_document.png',
+                          bankKey: 'USD_PB' // default fallback so preview details don't crash
+                        })}
+                        className="flex items-center justify-between p-2.5 bg-emerald-50/40 hover:bg-emerald-50/70 border border-emerald-200/60 rounded-xl shadow-2xs cursor-pointer transition"
+                      >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="h-10 w-14 rounded-lg overflow-hidden border border-emerald-200 shrink-0 bg-white shadow-2xs">
                             <img 
@@ -1698,10 +1708,13 @@ const Registrations = () => {
                           <div className="min-w-0">
                             <p className="font-bold text-slate-800 text-xs truncate">Passport / NIC Document</p>
                             <span className="inline-flex items-center gap-1 mt-0.5 text-[9px] font-extrabold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300/50">
-                              <CheckCircle size={10} className="text-emerald-600" /> Photo Uploaded & Attached
+                              <CheckCircle size={10} className="text-emerald-600" /> Click to View Document
                             </span>
                           </div>
                         </div>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-lg shrink-0">
+                          View
+                        </span>
                       </div>
                     ) : (
                       <div className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 text-xs italic flex items-center gap-2">
