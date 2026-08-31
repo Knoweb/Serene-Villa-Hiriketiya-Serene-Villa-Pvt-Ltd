@@ -305,6 +305,15 @@ public class GuestRegistrationService {
             if (details.containsKey("guestName") && details.get("guestName") != null) {
                 booking.setGuestName((String) details.get("guestName"));
             }
+            if (details.containsKey("checkInDate") && details.get("checkInDate") != null) {
+                booking.setCheckInDate(LocalDate.parse((String) details.get("checkInDate")));
+            }
+            if (details.containsKey("checkOutDate") && details.get("checkOutDate") != null) {
+                booking.setCheckOutDate(LocalDate.parse((String) details.get("checkOutDate")));
+            }
+            if (details.containsKey("numberOfNights") && details.get("numberOfNights") != null) {
+                booking.setNumberOfNights(Integer.parseInt(String.valueOf(details.get("numberOfNights"))));
+            }
 
             bookingRepository.save(booking);
 

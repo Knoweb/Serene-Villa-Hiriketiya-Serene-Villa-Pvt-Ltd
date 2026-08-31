@@ -2974,8 +2974,14 @@ Serene Villa Hiriketiya`;
                   amount: parseFloat(extraNightForm.amount || 0),
                   currency: extraNightForm.currencyCode,
                   currencyCode: extraNightForm.currencyCode,
-                  checkInDate: associatedBooking.checkOutDate,
-                  checkOutDate: new Date(new Date(associatedBooking.checkOutDate).getTime() + 86400000).toISOString().split('T')[0],
+                  checkInDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date().toISOString().split('T')[0],
+                  checkOutDate: (() => {
+                    const baseDate = associatedBooking?.checkOutDate || selectedReg?.checkOutDate;
+                    if (!baseDate) return new Date(Date.now() + 86400000).toISOString().split('T')[0];
+                    const dateObj = new Date(baseDate);
+                    dateObj.setDate(dateObj.getDate() + 1);
+                    return dateObj.toISOString().split('T')[0];
+                  })(),
                   numberOfNights: 1,
                   status: 'Confirmed'
                 };
@@ -3132,9 +3138,9 @@ Serene Villa Hiriketiya`;
                   amount: parseFloat(extraPersonForm.amount || 0),
                   currency: extraPersonForm.currencyCode,
                   currencyCode: extraPersonForm.currencyCode,
-                  checkInDate: associatedBooking.checkInDate,
-                  checkOutDate: associatedBooking.checkOutDate,
-                  numberOfNights: associatedBooking.numberOfNights || 1,
+                  checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
+                  checkOutDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
+                  numberOfNights: associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1,
                   status: 'Confirmed'
                 };
                 

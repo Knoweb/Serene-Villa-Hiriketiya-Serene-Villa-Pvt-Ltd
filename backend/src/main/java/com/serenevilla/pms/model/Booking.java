@@ -61,7 +61,7 @@ public class Booking {
     private String roomPrices;
 
     private String title = "Mr.";
-
+    
     private String guestName;
 
     private String email;
@@ -69,4 +69,12 @@ public class Booking {
     private String senderName;
 
     private String confirmedBy;
+
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate checkInDate;
+
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate checkOutDate;
+
+    private Integer numberOfNights;
 }
