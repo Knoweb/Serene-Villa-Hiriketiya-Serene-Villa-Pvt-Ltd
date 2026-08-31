@@ -2532,81 +2532,100 @@ Serene Villa Hiriketiya`;
           }
         };
 
+        // Fetch all related bookings for this guest registration (including base, /1N, /1P, /DISC sub-bookings)
+        const siblingBookings = bookings.filter(b => b.guestRegistrationId === selectedReg.id);
+        
+        // Find if user is looking at a sub-booking payment or want a consolidated view
+        const subBookingsList = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/'));
+
         const bCurrRender = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
         const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
         const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
         const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
         
-        const roomsList = (associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
-          .split(',').map(r => r.trim()).filter(Boolean);
-        const roomTypesList = (associatedBooking?.roomType || selectedReg?.roomType || '')
-          .split(',').map(t => t.trim()).filter(Boolean);
-        
-        let parsedRoomPrices = null;
-        if (associatedBooking?.roomPrices) {
-          try {
-            const p = JSON.parse(associatedBooking.roomPrices);
-            if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
-          } catch(e) {}
-        }
-
-        const countRooms = Math.max(
-          roomsList.length, 
-          roomTypesList.length, 
-          parsedRoomPrices ? parsedRoomPrices.length : 0, 
-          1
-        );
-        const numRooms = countRooms;
-        const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
-        const totalAmount = associatedBooking?.totalAmount || selectedReg?.totalAmount || 0;
-        
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
         const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
 
-        const dispTotalAmount = totalAmount * convFactor;
-        const totalCents = Math.round(dispTotalAmount * 100);
-        
+        // Build itemized rows dynamically from ALL sibling bookings to allow a consolidated, separate item breakdown under same invoice structure
         let itemizedRows = [];
-        for (let idx = 0; idx < countRooms; idx++) {
-          let rowAmount = 0;
-          if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
-            rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
-          } else {
-            const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
-            const prevCentsSum = Math.round((totalCents / numRooms) * idx);
-            const rowCents = currentCentsSum - prevCentsSum;
-            rowAmount = rowCents / 100;
+        let grandTotalAmount = 0;
+
+        siblingBookings.forEach((book) => {
+          const roomsList = (book.roomNumber || '')
+            .split(',').map(r => r.trim()).filter(Boolean);
+          const roomTypesList = (book.roomType || '')
+            .split(',').map(t => t.trim()).filter(Boolean);
+          
+          let parsedRoomPrices = null;
+          if (book.roomPrices) {
+            try {
+              const p = JSON.parse(book.roomPrices);
+              if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
+            } catch(e) {}
           }
-          
-          const rateAmount = rowAmount / nightsVal;
-          const amountVal = Math.floor(rowAmount);
-          const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
-          const currentRoomType = roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (roomTypesList[0] || 'Room'));
-          const rNum = roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
 
-          const desc = rNum 
-            ? `Night - ${currentRoomType} (Room ${rNum})`
-            : `Night - ${currentRoomType}`;
+          const countRooms = Math.max(
+            roomsList.length, 
+            roomTypesList.length, 
+            parsedRoomPrices ? parsedRoomPrices.length : 0, 
+            1
+          );
           
-          itemizedRows.push({
-            roomNumber: rNum,
-            description: desc,
-            rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-            amountVal: amountVal.toLocaleString(),
-            amountCts: amountCts
-          });
-        }
+          const bookTotalAmount = book.totalAmount || 0;
+          const bookDispTotal = bookTotalAmount * convFactor;
+          const bookTotalCents = Math.round(bookDispTotal * 100);
+          const nightsVal = book.numberOfNights || 1;
 
-        const defaultRowAmount = dispTotalAmount;
-        const defaultRateAmount = defaultRowAmount / nightsVal;
-        const defaultAmountVal = Math.floor(defaultRowAmount);
-        const defaultAmountCts = Math.round((defaultRowAmount - defaultAmountVal) * 100).toString().padStart(2, '0');
+          // Determine label suffix prefix (e.g. Extra Night or Person)
+          let suffixLabel = "";
+          if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
+          else if (book.bookingNumber?.includes('/1P')) suffixLabel = " (Extra Person)";
+          else if (book.bookingNumber?.includes('/DISC')) suffixLabel = " (Discount)";
+
+          for (let idx = 0; idx < countRooms; idx++) {
+            let rowAmount = 0;
+            if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
+              rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
+            } else {
+              const currentCentsSum = Math.round((bookTotalCents / countRooms) * (idx + 1));
+              const prevCentsSum = Math.round((bookTotalCents / countRooms) * idx);
+              const rowCents = currentCentsSum - prevCentsSum;
+              rowAmount = rowCents / 100;
+            }
+            
+            const rateAmount = rowAmount / nightsVal;
+            const amountVal = Math.floor(rowAmount);
+            const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
+            const currentRoomType = roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (roomTypesList[0] || 'Room'));
+            const rNum = roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
+
+            let desc = rNum 
+              ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
+              : `Night - ${currentRoomType}${suffixLabel}`;
+            
+            if (book.bookingNumber?.includes('/DISC')) {
+              desc = `Discount: ${book.remarks || 'Adjustment'}`;
+            }
+
+            itemizedRows.push({
+              roomNumber: rNum,
+              description: desc,
+              rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+              amountVal: amountVal.toLocaleString(),
+              amountCts: amountCts,
+              rawAmount: rowAmount
+            });
+            grandTotalAmount += rowAmount;
+          }
+        });
+
+        const dispTotalAmount = grandTotalAmount;
         
         const fallbackRow = {
           description: `Night - ${associatedBooking?.roomType || 'Room'}`,
-          rate: defaultRateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          amountVal: defaultAmountVal.toLocaleString(),
-          amountCts: defaultAmountCts
+          rate: (dispTotalAmount / (selectedReg.numberOfNights || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          amountVal: Math.floor(dispTotalAmount).toLocaleString(),
+          amountCts: Math.round((dispTotalAmount - Math.floor(dispTotalAmount)) * 100).toString().padStart(2, '0')
         };
 
         const bookingNoDisplay = associatedBooking?.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`;
@@ -3389,6 +3408,7 @@ Serene Villa Hiriketiya`;
             selectedReg={selectedReg}
             associatedBooking={associatedBooking}
             payments={advancePayments}
+            bookings={bookings}
             forceLkr={forceReceiptLkr}
           />
         )}

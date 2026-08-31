@@ -1,7 +1,7 @@
 import React from 'react';
 import logoImg from '../assets/logo.jpeg';
 
-const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking, payments = [], forceLkr = false }, ref) => {
+const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking, payments = [], bookings = [], forceLkr = false }, ref) => {
   if (!receiptData || !selectedPaymentForReceipt || !selectedReg || !associatedBooking) return null;
 
   const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : 'USD';
@@ -9,7 +9,11 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const displayCurrency = forceLkr ? 'LKR' : bCurr;
   const convFactor = forceLkr ? exRate : 1;
 
-  const totalBookingAmount = associatedBooking.totalAmount || 0;
+  const siblingBookings = bookings.length > 0 
+    ? bookings.filter(b => b.guestRegistrationId === selectedReg.id)
+    : [associatedBooking];
+
+  const totalBookingAmount = siblingBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
   const totalBookingAmountLkr = bCurr === 'LKR' ? totalBookingAmount : (totalBookingAmount * exRate);
 
   // Calculate correct total paid up to this payment to find the correct balance
@@ -22,62 +26,70 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
   const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' && remainingBalLkr <= 10;
   const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
-  const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
-  const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
-  const isLkr = currencyCode === 'LKR';
-
-  // Split and map room-by-room itemized rows matching Draft Bill
-  const roomTypes = associatedBooking.roomType ? associatedBooking.roomType.split(',').map(t => t.trim()).filter(Boolean) : [];
-  const roomNumbers = associatedBooking.roomNumber ? associatedBooking.roomNumber.split(',').map(n => n.trim()).filter(Boolean) : [];
-
-  // If stored roomPrices JSON exists, parse exact room prices
-  let parsedRoomPrices = null;
-  if (associatedBooking.roomPrices) {
-    try {
-      const p = JSON.parse(associatedBooking.roomPrices);
-      if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
-    } catch(e) {}
-  }
-
-  const countRooms = Math.max(
-    roomNumbers.length,
-    roomTypes.length,
-    parsedRoomPrices ? parsedRoomPrices.length : 0,
-    1
-  );
-  const numRooms = countRooms;
-
-  const baseTotalAmount = associatedBooking.totalAmount || 0;
-  const displayTotalAmount = baseTotalAmount * convFactor;
-  const totalCents = Math.round(displayTotalAmount * 100);
 
   let itemizedRows = [];
-  for (let idx = 0; idx < countRooms; idx++) {
-    let rowAmount = 0;
-    if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
-      rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
-    } else {
-      const currentCentsSum = Math.round((totalCents / numRooms) * (idx + 1));
-      const prevCentsSum = Math.round((totalCents / numRooms) * idx);
-      const rowCents = currentCentsSum - prevCentsSum;
-      rowAmount = rowCents / 100;
+  siblingBookings.forEach((book) => {
+    const roomTypes = book.roomType ? book.roomType.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const roomNumbers = book.roomNumber ? book.roomNumber.split(',').map(n => n.trim()).filter(Boolean) : [];
+
+    let parsedRoomPrices = null;
+    if (book.roomPrices) {
+      try {
+        const p = JSON.parse(book.roomPrices);
+        if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
+      } catch(e) {}
     }
-    
-    const rType = roomTypes[idx] || (roomTypes.length === 1 ? roomTypes[0] : (roomTypes[0] || 'Room'));
-    const rNum = roomNumbers[idx] || (roomNumbers.length === 1 ? roomNumbers[0] : '');
-    const amountVal = Math.floor(rowAmount);
-    const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
 
-    const desc = rNum 
-      ? `Night - ${rType} (Room ${rNum})`
-      : `Night - ${rType}`;
+    const countRooms = Math.max(
+      roomNumbers.length,
+      roomTypes.length,
+      parsedRoomPrices ? parsedRoomPrices.length : 0,
+      1
+    );
 
-    itemizedRows.push({
-      description: desc,
-      amountVal: amountVal.toLocaleString(),
-      amountCts: amountCts
-    });
-  }
+    const bookTotalAmount = book.totalAmount || 0;
+    const bookDispTotal = bookTotalAmount * convFactor;
+    const bookTotalCents = Math.round(bookDispTotal * 100);
+    const nightsVal = book.numberOfNights || 1;
+
+    let suffixLabel = "";
+    if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
+    else if (book.bookingNumber?.includes('/1P')) suffixLabel = " (Extra Person)";
+    else if (book.bookingNumber?.includes('/DISC')) suffixLabel = " (Discount)";
+
+    for (let idx = 0; idx < countRooms; idx++) {
+      let rowAmount = 0;
+      if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
+        rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
+      } else {
+        const currentCentsSum = Math.round((bookTotalCents / countRooms) * (idx + 1));
+        const prevCentsSum = Math.round((bookTotalCents / countRooms) * idx);
+        const rowCents = currentCentsSum - prevCentsSum;
+        rowAmount = rowCents / 100;
+      }
+      
+      const rType = roomTypes[idx] || (roomTypes.length === 1 ? roomTypes[0] : (roomTypes[0] || 'Room'));
+      const rNum = roomNumbers[idx] || (roomNumbers.length === 1 ? roomNumbers[0] : '');
+      const amountVal = Math.floor(rowAmount);
+      const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
+
+      let desc = rNum 
+        ? `Night - ${rType} (Room ${rNum})${suffixLabel}`
+        : `Night - ${rType}${suffixLabel}`;
+
+      if (book.bookingNumber?.includes('/DISC')) {
+        desc = `Discount: ${book.remarks || 'Adjustment'}`;
+      }
+
+      itemizedRows.push({
+        description: desc,
+        amountVal: amountVal.toLocaleString(),
+        amountCts: amountCts
+      });
+    }
+  });
+
+  const displayTotalAmount = itemizedRows.reduce((sum, row) => sum + (parseFloat(row.amountVal.replace(/,/g, '')) || 0) + (parseFloat(row.amountCts)/100), 0);
 
   // Format Dates
   const formatDate = (dateStr) => {
