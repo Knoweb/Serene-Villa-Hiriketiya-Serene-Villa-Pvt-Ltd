@@ -38,7 +38,7 @@ public class Booking {
 
     private String boardBasis; // Room Only, Half Board, Full Board
 
-    private double totalAmount;
+    private Double totalAmount = 0.0;
 
     private String remarks;
 
