@@ -307,6 +307,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             ? totalPaidUpToThis
             : (totalPaidUpToThis / exRate);
           const remBal = Math.max(0, totAmt - totalPaidUpToThisDisplay);
+          const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
 
           return (
             <div className="border border-slate-350 rounded p-3 space-y-2 bg-slate-50/20">
@@ -330,7 +331,6 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               )}
 
               {(() => {
-                const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
                 const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
                 const cardFeeRaw = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
                 if (cardFeeRaw > 0) {
