@@ -36,7 +36,8 @@ import {
   MessageSquare,
   Pencil,
   Save,
-  Trash2
+  Trash2,
+  Tag
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
@@ -318,6 +319,7 @@ const Registrations = () => {
   const [showOtherOptions, setShowOtherOptions] = useState(false);
   const [showExtraNightModal, setShowExtraNightModal] = useState(false);
   const [showExtraPersonModal, setShowExtraPersonModal] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
   
   const [extraNightForm, setExtraNightForm] = useState({
     amount: '',
@@ -331,6 +333,12 @@ const Registrations = () => {
     currencyCode: 'USD',
     remarks: '',
     room: ''
+  });
+
+  const [discountForm, setDiscountForm] = useState({
+    amount: '',
+    currencyCode: 'USD',
+    remarks: ''
   });
 
   const pageSize = 8;
@@ -1824,7 +1832,7 @@ const Registrations = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          alert('Discount selected');
+                          setShowDiscountModal(true);
                           setShowOtherOptions(false);
                         }}
                         className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 transition font-medium"
@@ -2940,7 +2948,7 @@ Serene Villa Hiriketiya`;
       {/* Extra Night Modal */}
       {showExtraNightModal && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 flex flex-col space-y-3.5">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-5 flex flex-col space-y-3.5">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 <Calendar className="text-emerald-600" size={16} /> Add Extra Night Booking
@@ -2963,11 +2971,11 @@ Serene Villa Hiriketiya`;
                   bookingType: 'Direct',
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
                   remarks: extraNightForm.remarks || 'Extra Night addition',
-                  amount: parseFloat(extraNightForm.amount),
+                  amount: parseFloat(extraNightForm.amount || 0),
                   currency: extraNightForm.currencyCode,
                   currencyCode: extraNightForm.currencyCode,
-                  checkInDate: associatedBooking.checkOutDate, // starts after original checkout
-                  checkOutDate: new Date(new Date(associatedBooking.checkOutDate).getTime() + 86400000).toISOString().split('T')[0], // 1 day later
+                  checkInDate: associatedBooking.checkOutDate,
+                  checkOutDate: new Date(new Date(associatedBooking.checkOutDate).getTime() + 86400000).toISOString().split('T')[0],
                   numberOfNights: 1,
                   status: 'Confirmed'
                 };
@@ -2991,45 +2999,85 @@ Serene Villa Hiriketiya`;
                 alert(err.message);
               }
             }} className="space-y-3.5 text-xs">
+              
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Room Allocation</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Room Number(s)</label>
                 <select
                   value={extraNightForm.room}
-                  onChange={(e) => setExtraNightForm({...extraNightForm, room: e.target.value})}
+                  onChange={(e) => {
+                    const roomNo = e.target.value;
+                    setExtraNightForm(prev => ({ ...prev, room: roomNo }));
+                  }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
                   required
                 >
                   <option value="">-- Choose Room --</option>
                   {rooms.map(r => (
-                    <option key={r.roomNumber} value={r.roomNumber}>Room {r.roomNumber} ({r.roomType})</option>
+                    <option key={r.roomNumber} value={r.roomNumber}>Room {r.roomNumber}</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
-                <div className="flex gap-1">
-                  <select
-                    value={extraNightForm.currencyCode}
-                    onChange={(e) => setExtraNightForm({ ...extraNightForm, currencyCode: e.target.value })}
-                    className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="LKR">LKR</option>
-                    <option value="EUR">EUR</option>
-                    <option value="AUD">AUD</option>
-                  </select>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={extraNightForm.amount}
-                    onChange={(e) => setExtraNightForm({...extraNightForm, amount: e.target.value})}
-                    className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
-                    required
-                  />
-                </div>
-              </div>
+              {extraNightForm.room && (() => {
+                const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraNightForm.room));
+                const roomTypeStr = matchedRoom ? matchedRoom.roomType : 'Deluxe Room';
+                return (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                    <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">Room Allocations & Prices</label>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Table Currency:</span>
+                        <select
+                          value={extraNightForm.currencyCode}
+                          onChange={(e) => setExtraNightForm(prev => ({ ...prev, currencyCode: e.target.value }))}
+                          className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                        >
+                          <option value="USD">USD</option>
+                          <option value="LKR">LKR</option>
+                          <option value="EUR">EUR</option>
+                          <option value="AUD">AUD</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                            <th className="pb-1.5 font-semibold">Room Name</th>
+                            <th className="pb-1.5 font-semibold">Room Number</th>
+                            <th className="pb-1.5 font-semibold w-36 text-right">Price ({extraNightForm.currencyCode})</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          <tr className="text-slate-700">
+                            <td className="py-2 pr-2 font-medium">{roomTypeStr}</td>
+                            <td className="py-2 pr-2 font-mono font-bold text-slate-900">{extraNightForm.room}</td>
+                            <td className="py-1 text-right">
+                              <div className="inline-flex items-center gap-1.5 justify-end">
+                                <span className="text-[10px] text-slate-400 font-bold font-mono">{extraNightForm.currencyCode}</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={extraNightForm.amount}
+                                  onChange={(e) => setExtraNightForm(prev => ({ ...prev, amount: e.target.value }))}
+                                  className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
+                                  required
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                          <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
+                            <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
+                            <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
+                              {extraNightForm.currencyCode} {(parseFloat(extraNightForm.amount) || 0).toFixed(2)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
@@ -3058,7 +3106,7 @@ Serene Villa Hiriketiya`;
       {/* Extra Person Modal */}
       {showExtraPersonModal && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 flex flex-col space-y-3.5">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-5 flex flex-col space-y-3.5">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 <User className="text-emerald-600" size={16} /> Add Extra Person Booking
@@ -3081,7 +3129,7 @@ Serene Villa Hiriketiya`;
                   bookingType: 'Direct',
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
                   remarks: extraPersonForm.remarks || 'Extra Person addition',
-                  amount: parseFloat(extraPersonForm.amount),
+                  amount: parseFloat(extraPersonForm.amount || 0),
                   currency: extraPersonForm.currencyCode,
                   currencyCode: extraPersonForm.currencyCode,
                   checkInDate: associatedBooking.checkInDate,
@@ -3109,45 +3157,85 @@ Serene Villa Hiriketiya`;
                 alert(err.message);
               }
             }} className="space-y-3.5 text-xs">
+              
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Room Allocation</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Room Number(s)</label>
                 <select
                   value={extraPersonForm.room}
-                  onChange={(e) => setExtraPersonForm({...extraPersonForm, room: e.target.value})}
+                  onChange={(e) => {
+                    const roomNo = e.target.value;
+                    setExtraPersonForm(prev => ({ ...prev, room: roomNo }));
+                  }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
                   required
                 >
                   <option value="">-- Choose Room --</option>
                   {rooms.map(r => (
-                    <option key={r.roomNumber} value={r.roomNumber}>Room {r.roomNumber} ({r.roomType})</option>
+                    <option key={r.roomNumber} value={r.roomNumber}>Room {r.roomNumber}</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
-                <div className="flex gap-1">
-                  <select
-                    value={extraPersonForm.currencyCode}
-                    onChange={(e) => setExtraPersonForm({ ...extraPersonForm, currencyCode: e.target.value })}
-                    className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="LKR">LKR</option>
-                    <option value="EUR">EUR</option>
-                    <option value="AUD">AUD</option>
-                  </select>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={extraPersonForm.amount}
-                    onChange={(e) => setExtraPersonForm({...extraPersonForm, amount: e.target.value})}
-                    className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
-                    required
-                  />
-                </div>
-              </div>
+              {extraPersonForm.room && (() => {
+                const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraPersonForm.room));
+                const roomTypeStr = matchedRoom ? matchedRoom.roomType : 'Deluxe Room';
+                return (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                    <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">Room Allocations & Prices</label>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Table Currency:</span>
+                        <select
+                          value={extraPersonForm.currencyCode}
+                          onChange={(e) => setExtraPersonForm(prev => ({ ...prev, currencyCode: e.target.value }))}
+                          className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                        >
+                          <option value="USD">USD</option>
+                          <option value="LKR">LKR</option>
+                          <option value="EUR">EUR</option>
+                          <option value="AUD">AUD</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                            <th className="pb-1.5 font-semibold">Room Name</th>
+                            <th className="pb-1.5 font-semibold">Room Number</th>
+                            <th className="pb-1.5 font-semibold w-36 text-right">Price ({extraPersonForm.currencyCode})</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          <tr className="text-slate-700">
+                            <td className="py-2 pr-2 font-medium">{roomTypeStr}</td>
+                            <td className="py-2 pr-2 font-mono font-bold text-slate-900">{extraPersonForm.room}</td>
+                            <td className="py-1 text-right">
+                              <div className="inline-flex items-center gap-1.5 justify-end">
+                                <span className="text-[10px] text-slate-400 font-bold font-mono">{extraPersonForm.currencyCode}</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={extraPersonForm.amount}
+                                  onChange={(e) => setExtraPersonForm(prev => ({ ...prev, amount: e.target.value }))}
+                                  className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
+                                  required
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                          <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
+                            <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
+                            <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
+                              {extraPersonForm.currencyCode} {(parseFloat(extraPersonForm.amount) || 0).toFixed(2)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
@@ -3166,6 +3254,115 @@ Serene Villa Hiriketiya`;
                 </button>
                 <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer shadow-sm">
                   Add Extra Person
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Discount Modal */}
+      {showDiscountModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 flex flex-col space-y-3.5">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <Tag className="text-emerald-600" size={16} /> Add Discount to Booking
+              </h3>
+              <button onClick={() => setShowDiscountModal(false)} className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedReg || !associatedBooking) return;
+              try {
+                const discountVal = parseFloat(discountForm.amount || 0);
+                if (discountVal <= 0) {
+                  alert('Please enter a positive value to deduct.');
+                  return;
+                }
+                const newBNum = `${associatedBooking.bookingNumber}/DISC`;
+                const payload = {
+                  guestRegistrationId: selectedReg.id,
+                  bookingNumber: newBNum,
+                  roomNumber: associatedBooking.roomNumber || 'Discount',
+                  roomType: associatedBooking.roomType || 'Discount',
+                  bookingType: 'Direct',
+                  boardBasis: 'Room Only',
+                  remarks: discountForm.remarks || 'Discount adjustment',
+                  amount: -discountVal, // negative entry for discount deduction
+                  currency: discountForm.currencyCode,
+                  currencyCode: discountForm.currencyCode,
+                  checkInDate: associatedBooking.checkInDate,
+                  checkOutDate: associatedBooking.checkOutDate,
+                  numberOfNights: 1,
+                  status: 'Confirmed'
+                };
+                
+                const response = await fetch(`${API_BASE}/bookings/create-extra`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  throw new Error(errorText || 'Failed to apply discount');
+                }
+                
+                alert('Discount applied successfully!');
+                setShowDiscountModal(false);
+                setDiscountForm({ amount: '', currencyCode: 'USD', remarks: '' });
+                fetchRegistrations();
+              } catch(err) {
+                alert(err.message);
+              }
+            }} className="space-y-3.5 text-xs">
+              
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Discount Amount</label>
+                <div className="flex gap-1">
+                  <select
+                    value={discountForm.currencyCode}
+                    onChange={(e) => setDiscountForm(prev => ({ ...prev, currencyCode: e.target.value }))}
+                    className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="LKR">LKR</option>
+                    <option value="EUR">EUR</option>
+                    <option value="AUD">AUD</option>
+                  </select>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={discountForm.amount}
+                    onChange={(e) => setDiscountForm(prev => ({ ...prev, amount: e.target.value }))}
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 10% Early Bird Discount"
+                  value={discountForm.remarks}
+                  onChange={(e) => setDiscountForm(prev => ({ ...prev, remarks: e.target.value }))}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onClick={() => setShowDiscountModal(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl transition cursor-pointer">
+                  Cancel
+                </button>
+                <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer shadow-sm">
+                  Apply Discount
                 </button>
               </div>
             </form>
