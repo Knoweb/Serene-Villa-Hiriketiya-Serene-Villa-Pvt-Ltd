@@ -308,6 +308,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             : (totalPaidUpToThis / exRate);
           const remBal = Math.max(0, totAmt - totalPaidUpToThisDisplay);
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
+          const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate);
 
           return (
             <div className="border border-slate-350 rounded p-3 space-y-2 bg-slate-50/20">
