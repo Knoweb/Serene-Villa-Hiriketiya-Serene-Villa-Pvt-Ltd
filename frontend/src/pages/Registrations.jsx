@@ -316,6 +316,23 @@ const Registrations = () => {
   const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
 
   const [showOtherOptions, setShowOtherOptions] = useState(false);
+  const [showExtraNightModal, setShowExtraNightModal] = useState(false);
+  const [showExtraPersonModal, setShowExtraPersonModal] = useState(false);
+  
+  const [extraNightForm, setExtraNightForm] = useState({
+    amount: '',
+    currencyCode: 'USD',
+    remarks: '',
+    room: ''
+  });
+
+  const [extraPersonForm, setExtraPersonForm] = useState({
+    amount: '',
+    currencyCode: 'USD',
+    remarks: '',
+    room: ''
+  });
+
   const pageSize = 8;
 
   // Auto-print ref — set to true to trigger print when receipt modal opens
@@ -1817,7 +1834,7 @@ const Registrations = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          alert('Extra Night selected');
+                          setShowExtraNightModal(true);
                           setShowOtherOptions(false);
                         }}
                         className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 transition border-t border-slate-100 font-medium"
@@ -1827,7 +1844,7 @@ const Registrations = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          alert('One Person selected');
+                          setShowExtraPersonModal(true);
                           setShowOtherOptions(false);
                         }}
                         className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 transition border-t border-slate-100 font-medium"
@@ -2919,6 +2936,242 @@ Serene Villa Hiriketiya`;
           </div>
         );
       })()}
+
+      {/* Extra Night Modal */}
+      {showExtraNightModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 flex flex-col space-y-3.5">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <Calendar className="text-emerald-600" size={16} /> Add Extra Night Booking
+              </h3>
+              <button onClick={() => setShowExtraNightModal(false)} className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedReg || !associatedBooking) return;
+              try {
+                const newBNum = `${associatedBooking.bookingNumber}/1N`;
+                const payload = {
+                  guestRegistrationId: selectedReg.id,
+                  bookingNumber: newBNum,
+                  roomNumber: extraNightForm.room || associatedBooking.roomNumber,
+                  roomType: associatedBooking.roomType,
+                  bookingType: 'Direct',
+                  boardBasis: associatedBooking.boardBasis || 'Room Only',
+                  remarks: extraNightForm.remarks || 'Extra Night addition',
+                  amount: parseFloat(extraNightForm.amount),
+                  currency: extraNightForm.currencyCode,
+                  currencyCode: extraNightForm.currencyCode,
+                  checkInDate: associatedBooking.checkOutDate, // starts after original checkout
+                  checkOutDate: new Date(new Date(associatedBooking.checkOutDate).getTime() + 86400000).toISOString().split('T')[0], // 1 day later
+                  numberOfNights: 1,
+                  status: 'Confirmed'
+                };
+                
+                const response = await fetch(`${API_BASE}/bookings/create-extra`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  throw new Error(errorText || 'Failed to create extra night booking');
+                }
+                
+                alert('Extra Night booking added successfully!');
+                setShowExtraNightModal(false);
+                setExtraNightForm({ amount: '', currencyCode: 'USD', remarks: '', room: '' });
+                fetchRegistrations();
+              } catch(err) {
+                alert(err.message);
+              }
+            }} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Room Allocation</label>
+                <select
+                  value={extraNightForm.room}
+                  onChange={(e) => setExtraNightForm({...extraNightForm, room: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  required
+                >
+                  <option value="">-- Choose Room --</option>
+                  {rooms.map(r => (
+                    <option key={r.roomNumber} value={r.roomNumber}>Room {r.roomNumber} ({r.roomType})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
+                <div className="flex gap-1">
+                  <select
+                    value={extraNightForm.currencyCode}
+                    onChange={(e) => setExtraNightForm({ ...extraNightForm, currencyCode: e.target.value })}
+                    className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="LKR">LKR</option>
+                    <option value="EUR">EUR</option>
+                    <option value="AUD">AUD</option>
+                  </select>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={extraNightForm.amount}
+                    onChange={(e) => setExtraNightForm({...extraNightForm, amount: e.target.value})}
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Extra night at checkout"
+                  value={extraNightForm.remarks}
+                  onChange={(e) => setExtraNightForm({...extraNightForm, remarks: e.target.value})}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onClick={() => setShowExtraNightModal(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl transition cursor-pointer">
+                  Cancel
+                </button>
+                <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer shadow-sm">
+                  Add Extra Night
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Extra Person Modal */}
+      {showExtraPersonModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 flex flex-col space-y-3.5">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <User className="text-emerald-600" size={16} /> Add Extra Person Booking
+              </h3>
+              <button onClick={() => setShowExtraPersonModal(false)} className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedReg || !associatedBooking) return;
+              try {
+                const newBNum = `${associatedBooking.bookingNumber}/1P`;
+                const payload = {
+                  guestRegistrationId: selectedReg.id,
+                  bookingNumber: newBNum,
+                  roomNumber: extraPersonForm.room || associatedBooking.roomNumber,
+                  roomType: associatedBooking.roomType,
+                  bookingType: 'Direct',
+                  boardBasis: associatedBooking.boardBasis || 'Room Only',
+                  remarks: extraPersonForm.remarks || 'Extra Person addition',
+                  amount: parseFloat(extraPersonForm.amount),
+                  currency: extraPersonForm.currencyCode,
+                  currencyCode: extraPersonForm.currencyCode,
+                  checkInDate: associatedBooking.checkInDate,
+                  checkOutDate: associatedBooking.checkOutDate,
+                  numberOfNights: associatedBooking.numberOfNights || 1,
+                  status: 'Confirmed'
+                };
+                
+                const response = await fetch(`${API_BASE}/bookings/create-extra`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  throw new Error(errorText || 'Failed to create extra person booking');
+                }
+                
+                alert('Extra Person booking added successfully!');
+                setShowExtraPersonModal(false);
+                setExtraPersonForm({ amount: '', currencyCode: 'USD', remarks: '', room: '' });
+                fetchRegistrations();
+              } catch(err) {
+                alert(err.message);
+              }
+            }} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Room Allocation</label>
+                <select
+                  value={extraPersonForm.room}
+                  onChange={(e) => setExtraPersonForm({...extraPersonForm, room: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  required
+                >
+                  <option value="">-- Choose Room --</option>
+                  {rooms.map(r => (
+                    <option key={r.roomNumber} value={r.roomNumber}>Room {r.roomNumber} ({r.roomType})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
+                <div className="flex gap-1">
+                  <select
+                    value={extraPersonForm.currencyCode}
+                    onChange={(e) => setExtraPersonForm({ ...extraPersonForm, currencyCode: e.target.value })}
+                    className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="LKR">LKR</option>
+                    <option value="EUR">EUR</option>
+                    <option value="AUD">AUD</option>
+                  </select>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={extraPersonForm.amount}
+                    onChange={(e) => setExtraPersonForm({...extraPersonForm, amount: e.target.value})}
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Extra person bed charge"
+                  value={extraPersonForm.remarks}
+                  onChange={(e) => setExtraPersonForm({...extraPersonForm, remarks: e.target.value})}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onClick={() => setShowExtraPersonModal(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl transition cursor-pointer">
+                  Cancel
+                </button>
+                <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer shadow-sm">
+                  Add Extra Person
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Print-only layout */}
       <div className="print-only">

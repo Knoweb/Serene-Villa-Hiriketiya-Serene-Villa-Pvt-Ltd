@@ -64,4 +64,18 @@ public class BookingController {
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/create-extra")
+    public ResponseEntity<?> createExtraBooking(@RequestBody Booking booking) {
+        try {
+            // Check if booking Number already exists to prevent duplicate entries
+            if (bookingRepository.findAll().stream().anyMatch(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(booking.getBookingNumber()))) {
+                return ResponseEntity.badRequest().body("Booking with number " + booking.getBookingNumber() + " already exists!");
+            }
+            Booking saved = bookingRepository.save(booking);
+            return ResponseEntity.ok(saved);
+        } catch(Exception e) {
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
 }
