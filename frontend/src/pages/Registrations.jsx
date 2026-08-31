@@ -3301,8 +3301,8 @@ Serene Villa Hiriketiya`;
                   amount: -discountVal, // negative entry for discount deduction
                   currency: discountForm.currencyCode,
                   currencyCode: discountForm.currencyCode,
-                  checkInDate: associatedBooking.checkInDate,
-                  checkOutDate: associatedBooking.checkOutDate,
+                  checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
+                  checkOutDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
                   numberOfNights: 1,
                   status: 'Confirmed'
                 };
