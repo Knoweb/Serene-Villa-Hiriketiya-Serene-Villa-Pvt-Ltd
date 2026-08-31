@@ -2807,54 +2807,64 @@ Serene Villa Hiriketiya`;
         );
       })()}
 
-      {/* Bank Slip Modal Image Preview */}
-      {selectedSlipPreview && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 flex flex-col space-y-3.5">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                  <FileText className="text-emerald-600" size={16} />
-                  Bank Payment Slip - {selectedSlipPreview.paymentType}
-                </h3>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Paid Date: {selectedSlipPreview.paidDate} | {BANK_ACCOUNTS[selectedSlipPreview.bankKey]?.bankName || ''} (Acc: {BANK_ACCOUNTS[selectedSlipPreview.bankKey]?.accountNumber || ''})
-                </p>
+      {/* Bank Slip & Passport Modal Image Preview */}
+      {selectedSlipPreview && (() => {
+        const isPassport = selectedSlipPreview.id === 'passport-nic';
+        return (
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 flex flex-col space-y-3.5">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <FileText className="text-emerald-600" size={16} />
+                    {isPassport ? 'Passport / NIC Document Preview' : `Bank Payment Slip - ${selectedSlipPreview.paymentType}`}
+                  </h3>
+                  {!isPassport && (
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      Paid Date: {selectedSlipPreview.paidDate} | {BANK_ACCOUNTS[selectedSlipPreview.bankKey]?.bankName || ''} (Acc: {BANK_ACCOUNTS[selectedSlipPreview.bankKey]?.accountNumber || ''})
+                    </p>
+                  )}
+                  {isPassport && (
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      Uploaded Guest Identity Document / Card
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedSlipPreview(null)}
+                  className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <button
-                onClick={() => setSelectedSlipPreview(null)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-auto max-h-[70vh] border border-slate-200 rounded-xl bg-slate-50 p-3 flex justify-center items-center">
-              {selectedSlipPreview.slipUrl?.startsWith('data:application/pdf') ? (
-                <iframe src={selectedSlipPreview.slipUrl} className="w-full h-[500px] rounded-lg" title="PDF Slip" />
-              ) : (
-                <img src={selectedSlipPreview.slipUrl} alt="Bank Slip" className="max-w-full max-h-[65vh] object-contain rounded-lg shadow-sm" />
-              )}
-            </div>
+              
+              <div className="flex-1 overflow-auto max-h-[70vh] border border-slate-200 rounded-xl bg-slate-50 p-3 flex justify-center items-center">
+                {selectedSlipPreview.slipUrl?.startsWith('data:application/pdf') ? (
+                  <iframe src={selectedSlipPreview.slipUrl} className="w-full h-[500px] rounded-lg" title="PDF Slip" />
+                ) : (
+                  <img src={selectedSlipPreview.slipUrl} alt={isPassport ? "Passport / NIC" : "Bank Slip"} className="max-w-full max-h-[65vh] object-contain rounded-lg shadow-sm" />
+                )}
+              </div>
 
-            <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
-              <a
-                href={selectedSlipPreview.slipUrl}
-                download={selectedSlipPreview.fileName || 'bank_slip.png'}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
-              >
-                <Download size={13} /> Download Slip
-              </a>
-              <button
-                onClick={() => setSelectedSlipPreview(null)}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-2 rounded-xl transition cursor-pointer"
-              >
-                Close
-              </button>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
+                <a
+                  href={selectedSlipPreview.slipUrl}
+                  download={selectedSlipPreview.fileName || (isPassport ? 'passport_document.png' : 'bank_slip.png')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                >
+                  <Download size={13} /> {isPassport ? 'Download Document' : 'Download Slip'}
+                </a>
+                <button
+                  onClick={() => setSelectedSlipPreview(null)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-2 rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Print-only layout */}
       <div className="print-only">
