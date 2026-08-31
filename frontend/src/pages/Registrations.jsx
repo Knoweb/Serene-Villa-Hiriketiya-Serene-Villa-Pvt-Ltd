@@ -2405,7 +2405,7 @@ const Registrations = () => {
 
       {/* Receipt Modal */}
       {showReceiptModal && receiptData && selectedPaymentForReceipt && (() => {
-        const associatedBooking = getBookingForReg(selectedReg.id);
+        const associatedBooking = bookings.find(b => b.id === selectedPaymentForReceipt.bookingId) || getBookingForReg(selectedReg.id);
         if (!associatedBooking) return null;
         
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
@@ -2552,11 +2552,15 @@ Serene Villa Hiriketiya`;
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
         const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
 
-        // Build itemized rows dynamically from ALL sibling bookings to allow a consolidated, separate item breakdown under same invoice structure
+        // Build itemized rows dynamically from either the single target booking (if printing sub-payment) or all sibling bookings (if final settlement)
+        const targetBookings = isFinalPayment 
+          ? siblingBookings 
+          : [associatedBooking];
+
         let itemizedRows = [];
         let grandTotalAmount = 0;
 
-        siblingBookings.forEach((book) => {
+        targetBookings.forEach((book) => {
           const roomsList = (book.roomNumber || '')
             .split(',').map(r => r.trim()).filter(Boolean);
           const roomTypesList = (book.roomType || '')
@@ -3437,7 +3441,7 @@ Serene Villa Hiriketiya`;
             receiptData={receiptData}
             selectedPaymentForReceipt={selectedPaymentForReceipt}
             selectedReg={selectedReg}
-            associatedBooking={associatedBooking}
+            associatedBooking={bookings.find(b => b.id === selectedPaymentForReceipt.bookingId) || associatedBooking}
             payments={advancePayments}
             bookings={bookings}
             forceLkr={forceReceiptLkr}

@@ -1,9 +1,10 @@
 import React from 'react';
 import logoImg from '../assets/logo.jpeg';
 
-const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking, payments = [], bookings = [], forceLkr = false }, ref) => {
-  if (!receiptData || !selectedPaymentForReceipt || !selectedReg || !associatedBooking) return null;
+const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking: passedAssociatedBooking, payments = [], bookings = [], forceLkr = false }, ref) => {
+  if (!receiptData || !selectedPaymentForReceipt || !selectedReg || !passedAssociatedBooking) return null;
 
+  const associatedBooking = bookings.find(b => b.id === selectedPaymentForReceipt.bookingId) || passedAssociatedBooking;
   const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : 'USD';
   const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
   const displayCurrency = forceLkr ? 'LKR' : bCurr;
@@ -27,8 +28,12 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' && remainingBalLkr <= 10;
   const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
 
+  const targetBookings = isFinalPayment 
+    ? siblingBookings 
+    : [associatedBooking];
+
   let itemizedRows = [];
-  siblingBookings.forEach((book) => {
+  targetBookings.forEach((book) => {
     const roomTypes = book.roomType ? book.roomType.split(',').map(t => t.trim()).filter(Boolean) : [];
     const roomNumbers = book.roomNumber ? book.roomNumber.split(',').map(n => n.trim()).filter(Boolean) : [];
 
