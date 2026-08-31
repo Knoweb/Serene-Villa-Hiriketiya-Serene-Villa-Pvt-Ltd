@@ -2797,7 +2797,7 @@ Serene Villa Hiriketiya`;
                         <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
                           <span className="text-slate-500 font-semibold">OTHER CHARGES:</span>
                           <span className="font-bold text-amber-700">
-                            {dispCurr} {(dispCurr === 'LKR' ? (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : otherVal * exRate) : otherVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {dispCurr} {(dispCurr === 'LKR' ? ((selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR') === 'LKR' ? otherVal : otherVal * exRate) : otherVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       )}
