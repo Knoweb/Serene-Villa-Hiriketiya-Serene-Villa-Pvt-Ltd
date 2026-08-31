@@ -253,7 +253,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               let elements = [];
 
               // 1. Render Base Room details
-              if (baseRows.length > 0) {
+              if (baseRows.length > 0 && isFinalPayment) {
                 elements.push(
                   <tr key="print-base-header" style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid rgba(6, 95, 70, 0.15)' }}>
                     <td colSpan={3} className="px-3 py-1 text-[8px] font-black text-slate-500 uppercase tracking-wider">Base Room Allocation</td>
@@ -263,13 +263,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               }
 
               // 2. Render Extra Options details
-              if (extraRows.length > 0) {
+              const printExtrasToRender = isFinalPayment ? extraRows : itemizedRows;
+              if (printExtrasToRender.length > 0) {
                 elements.push(
                   <tr key="print-extra-header" style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid rgba(6, 95, 70, 0.15)', borderTop: '1px solid rgba(6, 95, 70, 0.15)' }}>
                     <td colSpan={3} className="px-3 py-1 text-[8px] font-black text-slate-500 uppercase tracking-wider">Other Options / Extra Additions</td>
                   </tr>
                 );
-                extraRows.forEach((row, i) => elements.push(renderPrintRow(row, `pextra-${i}`)));
+                printExtrasToRender.forEach((row, i) => elements.push(renderPrintRow(row, `pextra-${i}`)));
               }
 
               return elements;

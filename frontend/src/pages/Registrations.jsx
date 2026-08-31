@@ -2738,7 +2738,7 @@ Serene Villa Hiriketiya`;
                       let elements = [];
                       
                       // 1. Render Base Room details
-                      if (baseRows.length > 0) {
+                      if (baseRows.length > 0 && isFinalPayment) {
                         elements.push(
                           <tr key="base-header" className="bg-slate-50 border-b border-emerald-800/20">
                             <td colSpan={3} className="px-3 py-1 text-[8px] font-black text-slate-500 uppercase tracking-wider">Base Room Allocation</td>
@@ -2748,13 +2748,14 @@ Serene Villa Hiriketiya`;
                       }
 
                       // 2. Render Extra Options details
-                      if (extraRows.length > 0) {
+                      const extrasToRender = isFinalPayment ? extraRows : itemizedRows;
+                      if (extrasToRender.length > 0) {
                         elements.push(
                           <tr key="extra-header" className="bg-slate-50 border-b border-emerald-800/20 border-t border-emerald-800/20">
                             <td colSpan={3} className="px-3 py-1 text-[8px] font-black text-slate-500 uppercase tracking-wider">Other Options / Extra Additions</td>
                           </tr>
                         );
-                        extraRows.forEach((row, i) => elements.push(renderRow(row, `extra-${i}`)));
+                        extrasToRender.forEach((row, i) => elements.push(renderRow(row, `extra-${i}`)));
                       }
 
                       if (elements.length > 0) return elements;
