@@ -84,7 +84,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       itemizedRows.push({
         description: desc,
         amountVal: amountVal.toLocaleString(),
-        amountCts: amountCts
+        amountCts: amountCts,
+        isExtra: !!(book.bookingNumber && book.bookingNumber.includes('/'))
       });
     }
   });
@@ -220,19 +221,48 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             </tr>
           </thead>
           <tbody className="font-medium text-slate-700" style={{ fontWeight: '600', color: '#1e293b' }}>
-            {itemizedRows.map((row, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                <td className="px-3 py-1.5" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                  {row.description}
-                </td>
-                <td className="px-3 py-1.5 text-right font-mono font-bold" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                  {row.amountVal}
-                </td>
-                <td className="px-3 py-1.5 text-center font-mono font-bold">
-                  {row.amountCts}
-                </td>
-              </tr>
-            ))}
+            {(() => {
+              const baseRows = itemizedRows.filter(r => !r.isExtra);
+              const extraRows = itemizedRows.filter(r => r.isExtra);
+
+              const renderPrintRow = (row, idx) => (
+                <tr key={idx} style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                  <td className="px-3 py-1.5" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                    {row.description}
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-mono font-bold" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                    {row.amountVal}
+                  </td>
+                  <td className="px-3 py-1.5 text-center font-mono font-bold">
+                    {row.amountCts}
+                  </td>
+                </tr>
+              );
+
+              let elements = [];
+
+              // 1. Render Base Room details
+              if (baseRows.length > 0) {
+                elements.push(
+                  <tr key="print-base-header" style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                    <td colSpan={3} className="px-3 py-1 text-[8px] font-black text-slate-500 uppercase tracking-wider">Base Room Allocation</td>
+                  </tr>
+                );
+                baseRows.forEach((row, i) => elements.push(renderPrintRow(row, `pbase-${i}`)));
+              }
+
+              // 2. Render Extra Options details
+              if (extraRows.length > 0) {
+                elements.push(
+                  <tr key="print-extra-header" style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid rgba(6, 95, 70, 0.15)', borderTop: '1px solid rgba(6, 95, 70, 0.15)' }}>
+                    <td colSpan={3} className="px-3 py-1 text-[8px] font-black text-slate-500 uppercase tracking-wider">Other Options / Extra Additions</td>
+                  </tr>
+                );
+                extraRows.forEach((row, i) => elements.push(renderPrintRow(row, `pextra-${i}`)));
+              }
+
+              return elements;
+            })()}
 
             <tr style={{ backgroundColor: 'rgba(6, 95, 70, 0.03)', fontWeight: '800', borderTop: '2px solid #065f46', color: '#065f46' }}>
               <td className="px-3 py-2 text-right uppercase text-[8px] tracking-wider font-black" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>Total Value</td>
