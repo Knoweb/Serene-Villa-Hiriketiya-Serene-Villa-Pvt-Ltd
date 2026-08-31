@@ -315,6 +315,7 @@ const Registrations = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
 
+  const [showOtherOptions, setShowOtherOptions] = useState(false);
   const pageSize = 8;
 
   // Auto-print ref — set to true to trigger print when receipt modal opens
@@ -1784,6 +1785,59 @@ const Registrations = () => {
 
 
 
+
+              {/* Other Options Dropdown directly above payments area */}
+              {associatedBooking && (
+                <div className="relative pt-4 border-t border-slate-100/80">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wide font-black flex items-center gap-1">
+                      OTHER OPTIONS
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowOtherOptions(!showOtherOptions)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs"
+                    >
+                      <span className="text-[11px] font-bold">{showOtherOptions ? '−' : '+'}</span> Options
+                    </button>
+                  </div>
+
+                  {showOtherOptions && (
+                    <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-30 animate-in fade-in slide-in-from-top-1 duration-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          alert('Discount selected');
+                          setShowOtherOptions(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 transition font-medium"
+                      >
+                        Discount
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          alert('Extra Night selected');
+                          setShowOtherOptions(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 transition border-t border-slate-100 font-medium"
+                      >
+                        Extra Night
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          alert('One Person selected');
+                          setShowOtherOptions(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 transition border-t border-slate-100 font-medium"
+                      >
+                        One Person
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Unified Payment Form */}
               {associatedBooking ? (
