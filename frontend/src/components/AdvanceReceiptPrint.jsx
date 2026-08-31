@@ -159,9 +159,15 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       {(() => {
         const guestName = selectedReg?.guestName || associatedBooking?.guestName || '';
         const bookingChannel = associatedBooking?.bookingType || 'Direct Booking';
-        const checkInDate = selectedReg?.checkInDate || associatedBooking?.checkInDate || '';
-        const checkOutDate = selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '';
-        const nights = selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.nights || 1;
+        const checkInDate = isFinalPayment 
+          ? (selectedReg?.checkInDate || associatedBooking?.checkInDate || '')
+          : (associatedBooking?.checkInDate || selectedReg?.checkInDate || '');
+        const checkOutDate = isFinalPayment 
+          ? (selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '')
+          : (associatedBooking?.checkOutDate || selectedReg?.checkOutDate || '');
+        const nights = isFinalPayment 
+          ? (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.nights || 1)
+          : (associatedBooking?.numberOfNights || associatedBooking?.nights || 1);
         const boardBasis = associatedBooking?.boardBasis || 'Bed & Breakfast';
         const adults = selectedReg?.adults || associatedBooking?.adults || 1;
         const children = selectedReg?.children || associatedBooking?.children || 0;

@@ -2542,7 +2542,9 @@ Serene Villa Hiriketiya`;
         // Find if user is looking at a sub-booking payment or want a consolidated view
         const subBookingsList = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/'));
 
-        const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+        const nightsVal = isFinalPayment 
+          ? (selectedReg.numberOfNights || selectedReg.nights || 1)
+          : (associatedBooking.numberOfNights || associatedBooking.nights || 1);
 
         const bCurrRender = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
         const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
