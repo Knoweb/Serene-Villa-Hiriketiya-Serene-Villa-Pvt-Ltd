@@ -1948,7 +1948,12 @@ const Registrations = () => {
                   {/* Payment Summary Card */}
                   {(() => {
                     const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-                    const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
+                    
+                    // Aggregate all related sub-bookings (such as /1N, /1P, and /DISC discounts)
+                    const relatedBookings = bookings.filter(b => b.guestRegistrationId === selectedReg.id);
+                    const totalAmt = relatedBookings.length > 0
+                      ? relatedBookings.reduce((sum, b) => sum + (parseFloat(b.totalAmount || b.amount || 0)), 0)
+                      : parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
 
                     // Smartly detect booking currency (less than 10,000 is foreign currency USD/EUR/AUD/GBP)
                     let bookingCurrency = associatedBooking?.currency;
@@ -2636,8 +2641,11 @@ Serene Villa Hiriketiya`;
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
         const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
 
-        // Always isolate the bill to the specific booking being paid/viewed (Base or sub-booking /1N, /1P)
-        const targetBookings = [associatedBooking];
+        // For Final Payment / Checkout Invoice, include all sibling bookings (base, extra nights, and discount deductions).
+        // For isolated sub-booking clicks, only show that specific target sub-booking.
+        const targetBookings = (isFinalPayment && siblingBookings.length > 0)
+          ? siblingBookings
+          : [associatedBooking];
 
         let itemizedRows = [];
         let grandTotalAmount = 0;
@@ -2698,17 +2706,23 @@ Serene Villa Hiriketiya`;
               ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
               : `Night - ${currentRoomType}${suffixLabel}`;
             
-            if (book.bookingNumber?.includes('/DISC')) {
-              desc = `Discount: ${book.remarks || 'Adjustment'}`;
+            const isDiscBooking = book.bookingNumber?.includes('/DISC') || rowAmount < 0;
+            if (isDiscBooking) {
+              desc = `Discount: ${book.remarks?.replace(/^Discount:\s*/i, '') || 'Admin Approved Discount'}`;
             }
+
+            const absAmount = Math.abs(rowAmount);
+            const absVal = Math.floor(absAmount);
+            const absCts = Math.round((absAmount - absVal) * 100).toString().padStart(2, '0');
 
             itemizedRows.push({
               roomNumber: rNum,
               description: desc,
-              rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-              amountVal: amountVal.toLocaleString(),
-              amountCts: amountCts,
+              rate: isDiscBooking ? `-${(Math.abs(rowAmount) / nightsVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+              amountVal: isDiscBooking ? `-${absVal.toLocaleString()}` : amountVal.toLocaleString(),
+              amountCts: absCts,
               rawAmount: rowAmount,
+              isDiscount: isDiscBooking,
               isExtra: !!(book.bookingNumber && book.bookingNumber.includes('/'))
             });
             grandTotalAmount += rowAmount;
@@ -2865,44 +2879,16 @@ Serene Villa Hiriketiya`;
                   const bCurr = bCurrRender;
                   const exRate = exRateRender;
                   const dispCurr = forceReceiptLkr ? 'LKR' : bCurr;
-                  const totAmt = forceReceiptLkr && bCurr !== 'LKR' ? (associatedBooking.totalAmount || 0) * exRate : (associatedBooking.totalAmount || 0);
+                  
+                  const activeBookings = (isFinalPayment && siblingBookings.length > 0) ? siblingBookings : [associatedBooking];
+                  const rawTotAmt = activeBookings.reduce((sum, b) => sum + (parseFloat(b.totalAmount || b.amount || 0)), 0);
+                  const totAmt = forceReceiptLkr && bCurr !== 'LKR' ? rawTotAmt * exRate : rawTotAmt;
                   const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
                   const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
                     ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
                     : rawPaid;
-
-                  // Convert all payments up to this one accurately to dispCurr
-                  let totalPaidSoFarInDispCurr = 0;
-                  let advancePaidSoFarInDispCurr = 0;
-
-                  paymentsUpToThis.forEach(p => {
-                    const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
-                    const pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) && parseFloat(p.amountInCurrency) > 0
-                      ? parseFloat(p.amountInCurrency)
-                      : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
-                    const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
-                    const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
-
-                    let convertedToDisp = pAmt;
-                    if (dispCurr === 'LKR') {
-                      convertedToDisp = pLkr > 0 ? pLkr : (pCurr === 'LKR' ? pAmt : pAmt * pExRate);
-                    } else if (pCurr === dispCurr.toUpperCase()) {
-                      convertedToDisp = pAmt;
-                    } else if (pCurr === 'LKR') {
-                      convertedToDisp = pExRate > 0 ? pAmt / pExRate : pAmt;
-                    } else {
-                      // Converting through LKR rate
-                      const lkrVal = pLkr > 0 ? pLkr : (pAmt * pExRate);
-                      convertedToDisp = exRate > 0 ? lkrVal / exRate : pAmt;
-                    }
-
-                    totalPaidSoFarInDispCurr += convertedToDisp;
-                    if (p.paymentType === 'ADVANCE' || p.isAdvancePayment) {
-                      advancePaidSoFarInDispCurr += convertedToDisp;
-                    }
-                  });
-
-                  const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidSoFarInDispCurr);
+                  const totalPaidBCurr = (totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate)));
+                  const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidBCurr);
                   const convertedLkrPaid = (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate));
 
                   return (
@@ -2918,7 +2904,7 @@ Serene Villa Hiriketiya`;
                       {paymentsUpToThis.length > 1 && (
                         <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-slate-500">
                           <span>Total Paid So Far:</span>
-                          <span className="font-bold">{dispCurr} {totalPaidSoFarInDispCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="font-bold">{dispCurr} {totalPaidBCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {cardFeeVal > 0 && (
