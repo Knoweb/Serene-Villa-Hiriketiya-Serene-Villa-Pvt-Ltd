@@ -151,6 +151,14 @@ const mapBookingTypeForBackend = (type) => {
   return 'Direct';
 };
 
+const getBankKeyForCurrency = (curr) => {
+  const c = (curr || '').toUpperCase();
+  if (c === 'EUR') return 'EUR_SB';
+  if (c === 'AUD') return 'AUD_SB';
+  if (c === 'LKR') return 'LKR_PB_COMPANY';
+  return 'USD_PB';
+};
+
 const Reservations = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -693,8 +701,18 @@ const Reservations = () => {
     }
 
     let associatedBooking = bookings.find(b => b.guestRegistrationId === reg.id);
+    if (!associatedBooking) {
+      associatedBooking = getBookingForReg(reg.id);
+    }
     
     if (associatedBooking) {
+      const bCurr = (associatedBooking.currency || 'USD').toUpperCase();
+      let defaultRate = 1;
+      if (bCurr === 'USD') defaultRate = 300;
+      else if (bCurr === 'EUR') defaultRate = 325;
+      else if (bCurr === 'AUD') defaultRate = 220;
+      else if (bCurr === 'LKR') defaultRate = 1;
+
       setBookingForm({
         roomType: associatedBooking.roomType || defaultRoomType,
         room: associatedBooking.roomNumber || '',
@@ -711,6 +729,15 @@ const Reservations = () => {
         adults: reg.adults || 1,
         children: reg.children || 0
       });
+      setPaymentForm(prev => ({
+        ...prev,
+        currencyCode: bCurr,
+        exchangeRate: parseFloat(associatedBooking.exchangeRate) || defaultRate
+      }));
+      setBankSlipForm(prev => ({
+        ...prev,
+        bankKey: getBankKeyForCurrency(bCurr)
+      }));
       fetchAdvancePayments(associatedBooking.id);
     } else {
       // Default blank/pre-filled values fallback
@@ -730,6 +757,15 @@ const Reservations = () => {
         adults: reg.adults || 1,
         children: reg.children || 0
       });
+      setPaymentForm(prev => ({
+        ...prev,
+        currencyCode: 'USD',
+        exchangeRate: 300
+      }));
+      setBankSlipForm(prev => ({
+        ...prev,
+        bankKey: 'USD_PB'
+      }));
       setAdvancePayments([]);
     }
     setBookingSuccess(false);
@@ -2349,8 +2385,14 @@ const Reservations = () => {
                     // Auto-fill amount when switching to FULL tab
                     const handleTabChange = (tab) => {
                       setPaymentTab(tab);
+                      const bRate = parseFloat(associatedBooking.exchangeRate) || (bCurr === 'USD' ? 300 : bCurr === 'EUR' ? 325 : bCurr === 'AUD' ? 220 : 1);
                       if (tab === 'FULL') {
-                        setPaymentForm(prev => ({ ...prev, amount: remainingBal.toFixed(2), currencyCode: 'LKR', exchangeRate: 1 }));
+                        setPaymentForm(prev => ({ 
+                          ...prev, 
+                          amount: remainingBal.toFixed(2), 
+                          currencyCode: bCurr, 
+                          exchangeRate: bRate 
+                        }));
                       } else {
                         setPaymentForm(prev => ({ ...prev, amount: '' }));
                       }
@@ -2390,30 +2432,33 @@ const Reservations = () => {
                                 <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full ${
                                   isFull ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'
                                 }`}>
-                                  {remainingBal.toLocaleString()} LKR
+                                  {remainingBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {bCurr}
                                 </span>
                               )}
                             </button>
                           </div>
                         )}
-
                         {/* Form Fields */}
                         <div className={`border rounded-xl p-3.5 space-y-3 ${
                           isFull ? 'border-blue-100 bg-blue-50/30' : 'border-slate-100 bg-slate-50/20'
                         }`}>
                           <div className="grid grid-cols-2 gap-2.5">
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Currency</label>
-                              <select
-                                value={paymentForm.currencyCode}
-                                onChange={handlePaymentCurrencyChange}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
-                              >
-                                <option value="LKR">LKR</option>
-                                <option value="USD">USD</option>
-                                <option value="EUR">EUR</option>
-                                <option value="AUD">AUD</option>
-                              </select>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Currency <span className="text-[9px] text-slate-400 font-normal">(Synced to Booking)</span>
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  readOnly
+                                  disabled
+                                  value={paymentForm.currencyCode || bCurr}
+                                  className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold font-mono text-slate-700 cursor-not-allowed text-xs"
+                                />
+                                <span className="absolute right-2 top-2 text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                                  Locked
+                                </span>
+                              </div>
                             </div>
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -2555,7 +2600,7 @@ const Reservations = () => {
                                      className="w-full bg-amber-50/20 border border-amber-300 focus:border-amber-500 rounded-lg px-3 py-2 font-bold font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500 pr-14 text-xs"
                                    />
                                    <span className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-500">
-                                     {paymentForm.currencyCode || 'USD'}
+                                     {paymentForm.currencyCode || bCurr}
                                    </span>
                                  </div>
                                </div>
@@ -2584,6 +2629,8 @@ const Reservations = () => {
               {associatedBooking && (() => {
                 const bId = associatedBooking.id || selectedReg?.id;
                 const bookingSlips = allBankSlips[bId] || [];
+                const bCurr = getBookingCurrency(associatedBooking);
+                const activeBank = BANK_ACCOUNTS[bankSlipForm.bankKey] || BANK_ACCOUNTS[getBankKeyForCurrency(bCurr)] || BANK_ACCOUNTS.USD_PB;
 
                 return (
                   <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3.5 mt-4">
@@ -2597,22 +2644,60 @@ const Reservations = () => {
                       </span>
                     </div>
 
+                    {/* Prominently displayed Bank Account Details for this Booking Currency */}
+                    <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between border-b border-emerald-200/60 pb-1.5">
+                        <span className="text-[10px] font-black text-emerald-900 uppercase tracking-wider">
+                          Official Bank Account ({activeBank.currency})
+                        </span>
+                        <span className="text-[9px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-extrabold">
+                          {activeBank.currency} Account
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-700 pt-0.5">
+                        <div>
+                          <span className="text-slate-400 block text-[9px] uppercase font-bold">Bank Name</span>
+                          <span className="font-bold text-slate-900">{activeBank.bankName}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[9px] uppercase font-bold">Branch</span>
+                          <span className="font-bold text-slate-900">{activeBank.branch}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-slate-400 block text-[9px] uppercase font-bold">Account Holder</span>
+                          <span className="font-bold text-slate-900">{activeBank.accountHolder}</span>
+                        </div>
+                        <div className="col-span-2 flex items-center justify-between bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 mt-0.5">
+                          <div>
+                            <span className="text-slate-400 block text-[8px] uppercase font-bold">Account Number</span>
+                            <span className="font-mono font-extrabold text-emerald-800 text-xs tracking-wider">{activeBank.accountNumber}</span>
+                          </div>
+                          {activeBank.swiftCode && (
+                            <div className="text-right">
+                              <span className="text-slate-400 block text-[8px] uppercase font-bold">Swift Code</span>
+                              <span className="font-mono font-bold text-slate-700 text-xs">{activeBank.swiftCode}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     <form onSubmit={(e) => handleSaveBankSlip(e, bId)} className="space-y-2.5 text-xs">
                       {/* Bank Account Selection Dropdown */}
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                          Bank Account & Currency *
+                          Select Account
                         </label>
                         <select
                           value={bankSlipForm.bankKey}
                           onChange={(e) => setBankSlipForm({ ...bankSlipForm, bankKey: e.target.value })}
                           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
                         >
+                          <option value="EUR_SB">EUR (€) - Sampath Bank (Acc: 521630000114)</option>
                           <option value="USD_PB">USD ($) - People's Bank (Acc: 288402130016448)</option>
+                          <option value="AUD_SB">AUD ($) - Sampath Bank (Acc: 521630000092)</option>
                           <option value="LKR_PB_COMPANY">LKR 1 - Serene Villa (pvt)LTD (People's Bank - Acc: 288100190017275)</option>
                           <option value="LKR_PB_PERSONAL">LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)</option>
-                          <option value="EUR_SB">EUR (€) - Sampath Bank (Acc: 521630000114)</option>
-                          <option value="AUD_SB">AUD ($) - Sampath Bank (Acc: 521630000092)</option>
                         </select>
                       </div>
 
