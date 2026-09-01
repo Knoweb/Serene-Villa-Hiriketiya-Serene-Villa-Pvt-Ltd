@@ -312,8 +312,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           ))}
           <tr className="font-bold bg-slate-50 border-t border-slate-300">
             <td className="p-2 border-r border-slate-300">TOTAL VALUE</td>
-            <td className="p-2 text-right border-r border-slate-300 font-mono text-emerald-800">{Math.floor(displayTotalAmount).toLocaleString()}</td>
-            <td className="p-2 text-center font-mono text-emerald-800">{Math.round((displayTotalAmount - Math.floor(displayTotalAmount)) * 100).toString().padStart(2, '0')}</td>
+            <td className="p-2 text-right border-r border-slate-300 font-mono text-emerald-800">{Math.floor(dispTotalAmount).toLocaleString()}</td>
+            <td className="p-2 text-center font-mono text-emerald-800">{Math.round((dispTotalAmount - Math.floor(dispTotalAmount)) * 100).toString().padStart(2, '0')}</td>
           </tr>
         </tbody>
       </table>
