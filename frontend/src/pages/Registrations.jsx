@@ -2768,14 +2768,13 @@ Serene Villa Hiriketiya`;
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
         const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
 
-        // For Final Payment or Discount Adjusted Invoice, include all sibling bookings (base, extra nights, and discount deductions).
-        // For isolated sub-booking clicks, only show that specific target sub-booking.
-        const targetBookings = (isConsolidatedBill && siblingBookings.length > 0)
-          ? siblingBookings
-          : [associatedBooking];
+        // Top itemized table: show only actual room nights / extra options
+        const targetBookings = isOriginalBill 
+          ? [associatedBooking] 
+          : (siblingBookings.length > 0 ? siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC')) : [associatedBooking]);
 
         let itemizedRows = [];
-        let grandTotalAmount = 0;
+        let roomChargesTotal = 0;
 
         targetBookings.forEach((book) => {
           const roomsList = (book.roomNumber || '')
@@ -2801,16 +2800,14 @@ Serene Villa Hiriketiya`;
                 1
               );
           
-          const bookTotalAmount = book.totalAmount || 0;
+          const bookTotalAmount = Math.abs(book.totalAmount || 0);
           const bookDispTotal = bookTotalAmount * convFactor;
           const bookTotalCents = Math.round(bookDispTotal * 100);
           const nightsVal = book.numberOfNights || 1;
 
-          // Determine label suffix prefix (e.g. Extra Night or Person)
           let suffixLabel = "";
           if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
           else if (book.bookingNumber?.includes('/1P')) suffixLabel = " (Extra Person)";
-          else if (book.bookingNumber?.includes('/DISC')) suffixLabel = " (Discount)";
 
           for (let idx = 0; idx < countRooms; idx++) {
             let rowAmount = 0;
@@ -2832,31 +2829,21 @@ Serene Villa Hiriketiya`;
             let desc = rNum 
               ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
               : `Night - ${currentRoomType}${suffixLabel}`;
-            
-            const isDiscBooking = book.bookingNumber?.includes('/DISC') || rowAmount < 0;
-            if (isDiscBooking) {
-              desc = `Discount: ${book.remarks?.replace(/^Discount:\s*/i, '') || 'Admin Approved Discount'}`;
-            }
-
-            const absAmount = Math.abs(rowAmount);
-            const absVal = Math.floor(absAmount);
-            const absCts = Math.round((absAmount - absVal) * 100).toString().padStart(2, '0');
 
             itemizedRows.push({
               roomNumber: rNum,
               description: desc,
-              rate: isDiscBooking ? `-${(Math.abs(rowAmount) / nightsVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-              amountVal: isDiscBooking ? `-${absVal.toLocaleString()}` : amountVal.toLocaleString(),
-              amountCts: absCts,
+              rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+              amountVal: amountVal.toLocaleString(),
+              amountCts: amountCts,
               rawAmount: rowAmount,
-              isDiscount: isDiscBooking,
               isExtra: !!(book.bookingNumber && book.bookingNumber.includes('/'))
             });
-            grandTotalAmount += rowAmount;
+            roomChargesTotal += rowAmount;
           }
         });
 
-        const dispTotalAmount = grandTotalAmount;
+        const dispTotalAmount = roomChargesTotal;
         
         const fallbackRow = {
           description: `Night - ${associatedBooking?.roomType || 'Room'}`,
@@ -3007,66 +2994,89 @@ Serene Villa Hiriketiya`;
                   const exRate = exRateRender;
                   const dispCurr = forceReceiptLkr ? 'LKR' : bCurr;
                   
-                  const activeBookings = (isConsolidatedBill && siblingBookings.length > 0) ? siblingBookings : [associatedBooking];
-                  const rawTotAmt = activeBookings.reduce((sum, b) => sum + (parseFloat(b.totalAmount || b.amount || 0)), 0);
-                  const totAmt = forceReceiptLkr && bCurr !== 'LKR' ? rawTotAmt * exRate : rawTotAmt;
+                  // Sibling bookings calculation
+                  const discBookings = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+                  const totalDiscountVal = isOriginalBill ? 0 : discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+
+                  // Base Gross Booking Amount before discount
+                  const grossTotAmt = roomChargesTotal / convFactor;
+                  // Net Booking Amount after discount
+                  const netTotAmt = Math.max(0, grossTotAmt - totalDiscountVal);
+                  const dispNetTotAmt = forceReceiptLkr && bCurr !== 'LKR' ? netTotAmt * exRate : netTotAmt;
+
                   const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
-                  const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
-                    ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
-                    : rawPaid;
+                  const paidAmt = isFinalPayment
+                    ? (forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR'
+                        ? netTotAmt * exRate
+                        : netTotAmt)
+                    : (forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
+                        ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
+                        : rawPaid);
+
                   const totalPaidBCurr = (totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate)));
-                  const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidBCurr);
-                  const convertedLkrPaid = (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate));
+                  const remBal = isFinalPayment ? 0 : Math.max(0, dispNetTotAmt - totalPaidBCurr);
+                  
+                  const convertedAmountLkr = (dispNetTotAmt * (dispCurr === 'LKR' ? 1 : exRate));
 
                   return (
-                    <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
-                      <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                    <div className="border border-slate-700/60 rounded-lg p-3 bg-white space-y-1.5 shadow-2xs print:border-slate-400">
+                      <div className="flex justify-between pb-0.5 border-b border-slate-100">
                         <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-                        <span className="font-bold text-slate-800">{dispCurr} {totAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-bold text-slate-800">{dispCurr} {dispNetTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                        <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment Paid:' : 'Advance Paid:'}</span>
-                        <span className="font-bold text-emerald-850 print:text-slate-900">{dispCurr} {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                      {paymentsUpToThis.length > 1 && (
-                        <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-slate-500">
-                          <span>Total Paid So Far:</span>
-                          <span className="font-bold">{dispCurr} {totalPaidBCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+
+                      {totalDiscountVal > 0 && !isOriginalBill && (
+                        <div className="flex justify-between pb-0.5 border-b border-slate-100 text-rose-600 bg-rose-50/50 px-1 py-0.5 rounded">
+                          <span className="font-semibold">Discount Deducted:</span>
+                          <span className="font-bold font-mono">-{dispCurr} {(forceReceiptLkr && bCurr !== 'LKR' ? totalDiscountVal * exRate : totalDiscountVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
+
+                      <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Amount Paid:' : 'Advance Paid:'}</span>
+                        <span className="font-bold text-slate-900">{dispCurr} {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+
                       {cardFeeVal > 0 && (
-                        <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                          <span className="text-slate-500 font-semibold">CHARGES:</span>
-                          <span className="font-bold text-slate-850">
+                        <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                          <span className="text-slate-700 font-bold">CHARGES:</span>
+                          <span className="font-bold text-slate-900">
                             {dispCurr} {(dispCurr === 'LKR' ? (cardFeeVal < (rawPaid * 0.01) ? cardFeeVal * exRate : cardFeeVal) : (cardFeeVal > (rawPaid * 0.5) ? cardFeeVal / exRate : cardFeeVal)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       )}
+
                       {otherVal > 0 && (
-                        <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                        <div className="flex justify-between pb-0.5 border-b border-slate-100">
                           <span className="text-slate-500 font-semibold">OTHER CHARGES:</span>
                           <span className="font-bold text-amber-700">
                             {dispCurr} {(dispCurr === 'LKR' ? ((selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR') === 'LKR' ? otherVal : otherVal * exRate) : otherVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       )}
+
                       {dispCurr !== 'LKR' && (
                         <>
-                          <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
+                          <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
                             <span className="text-slate-500">Exchange Rate:</span>
                             <span className="font-medium text-slate-700">{exRate}</span>
                           </div>
-                          <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
+                          <div className="flex justify-between pb-0.5 border-b border-slate-100">
                             <span className="text-slate-500 font-semibold">Converted Amount:</span>
-                            <span className="font-bold text-emerald-850 print:text-slate-900">LKR {convertedLkrPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="font-bold text-slate-900">LKR {convertedAmountLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                         </>
                       )}
-                      <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-800/30 print:border-slate-300">
-                        <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>
-                        <span className={`font-mono text-xs ${isFinalPayment ? 'text-blue-700' : 'text-emerald-800'} print:text-slate-900`}>{dispCurr} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+
+                      <div className="flex justify-between pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
+                        <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
+                        <span className="font-mono text-xs text-slate-900">{dispCurr} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      {isFinalPayment && <div className="text-center mt-1"><span className="text-[9px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">✓ FULLY PAID</span></div>}
+                      {isFinalPayment && (
+                        <div className="text-center mt-1 pt-0.5">
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">✓ FULLY PAID</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

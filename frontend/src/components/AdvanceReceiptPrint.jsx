@@ -46,11 +46,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               ? 'Discount Receipt' 
               : 'Advance Payment Receipt';
 
-  const targetBookings = ((isFinalPayment || isDiscountAdjusted) && siblingBookings.length > 0)
-    ? siblingBookings
-    : [associatedBooking];
+  // Filter top itemized rows to show only room nights (clean layout matching Image 1)
+  const targetBookings = isOriginalBill 
+    ? [associatedBooking] 
+    : (siblingBookings.length > 0 ? siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC')) : [associatedBooking]);
 
   let itemizedRows = [];
+  let roomChargesTotal = 0;
+
   targetBookings.forEach((book) => {
     const roomTypes = book.roomType ? book.roomType.split(',').map(t => t.trim()).filter(Boolean) : [];
     const roomNumbers = book.roomNumber ? book.roomNumber.split(',').map(n => n.trim()).filter(Boolean) : [];
@@ -73,7 +76,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           1
         );
 
-    const bookTotalAmount = book.totalAmount || 0;
+    const bookTotalAmount = Math.abs(book.totalAmount || 0);
     const bookDispTotal = bookTotalAmount * convFactor;
     const bookTotalCents = Math.round(bookDispTotal * 100);
     const nightsVal = book.numberOfNights || 1;
@@ -81,7 +84,6 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
     let suffixLabel = "";
     if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
     else if (book.bookingNumber?.includes('/1P')) suffixLabel = " (Extra Person)";
-    else if (book.bookingNumber?.includes('/DISC')) suffixLabel = " (Discount)";
 
     for (let idx = 0; idx < countRooms; idx++) {
       let rowAmount = 0;
@@ -102,28 +104,22 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
         ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
         : `Night - ${currentRoomType}${suffixLabel}`;
 
-      const isDiscBooking = book.bookingNumber?.includes('/DISC') || rowAmount < 0;
-      if (isDiscBooking) {
-        desc = `Discount: ${book.remarks?.replace(/^Discount:\s*/i, '') || 'Admin Approved Discount'}`;
-      }
-
-      const absAmount = Math.abs(rowAmount);
-      const absVal = Math.floor(absAmount);
-      const absCts = Math.round((absAmount - absVal) * 100).toString().padStart(2, '0');
+      const amountVal = Math.floor(rowAmount);
+      const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
 
       itemizedRows.push({
         roomNumber: rNum,
         description: desc,
-        rate: isDiscBooking ? `-${(Math.abs(rowAmount) / nightsVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        amountVal: isDiscBooking ? `-${absVal.toLocaleString()}` : Math.floor(rowAmount).toLocaleString(),
-        amountCts: absCts,
-        rawAmount: rowAmount,
-        isDiscount: isDiscBooking
+        rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        amountVal: amountVal.toLocaleString(),
+        amountCts: amountCts,
+        rawAmount: rowAmount
       });
+      roomChargesTotal += rowAmount;
     }
   });
 
-  const displayTotalAmount = itemizedRows.reduce((sum, row) => sum + (parseFloat(row.amountVal.replace(/,/g, '')) || 0) + (parseFloat(row.amountCts)/100), 0);
+  const displayTotalAmount = roomChargesTotal;
 
   // Format Dates
   const formatDate = (dateStr) => {
@@ -140,33 +136,20 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           <div className="flex items-center gap-2">
             <img src={logoImg} alt="Serene Villa Logo" className="h-12 w-12 object-contain" />
             <div>
-              <h2 className="text-xl font-black text-emerald-800 tracking-tight leading-none">Serene Villa</h2>
-              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">(Pvt) Ltd - Hiriketiya</p>
+              <h1 className="text-xl font-bold text-slate-800">Serene Villa</h1>
+              <p className="text-xs text-slate-500 font-semibold">(PVT) LTD - HIRIKETIYA</p>
             </div>
           </div>
-          
-          <div className="text-[10px] text-slate-700 leading-tight space-y-0.5 mt-2 font-medium">
-            <p>Pehembiya Road, Hiriketiya, Dickwella.</p>
-            <p>Email: Serenehiriketiya@gmail.com</p>
-            <p>Hotline: +94 41 225 5204 / +94 70 499 8787</p>
-          </div>
+          <p className="text-xs text-slate-600">Pehembiya Road, Hiriketiya, Dickwella.</p>
+          <p className="text-xs text-slate-600">Email: Serenehiriketiya@gmail.com</p>
+          <p className="text-xs text-slate-600">Hotline: +94 41 225 5204 / +94 70 499 8787</p>
         </div>
 
-        {/* Right Column: Title & Receipt Details Box */}
-        <div className="text-right space-y-2">
-          <h1 className="text-lg font-black tracking-wide uppercase text-emerald-800">
-            {receiptTitle}
-          </h1>
-          {isFinalPayment ? (
-            <span className="inline-block bg-blue-100 text-blue-800 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-              ✓ Fully Settled
-            </span>
-          ) : (
-            <span className="inline-block bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-              ✓ Advance Payment Received
-            </span>
-          )}
-          <div className="inline-block border border-slate-300 rounded p-2 text-[10px] text-left space-y-1">
+        {/* Right Column: Receipt Type & Meta */}
+        <div className="text-right space-y-1">
+          <h2 className="text-lg font-black text-emerald-800 tracking-wide uppercase">{receiptTitle}</h2>
+          {isFinalPayment && <span className="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-1">✓ FULLY SETTLED</span>}
+          <div className="border border-emerald-800/30 rounded px-3 py-1.5 bg-emerald-50/20 text-xs text-left space-y-0.5">
             <div className="flex gap-4 justify-between">
               <span className="text-slate-500 font-semibold">Booking No:</span>
               <span className="font-mono font-bold text-emerald-800">{associatedBooking.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`}</span>
@@ -251,54 +234,41 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
         );
       })()}
 
-      {/* Main Table */}
-      <div className="mb-6">
-        <table className="w-full border-collapse border border-emerald-800/20 text-[11px]" style={{ border: '1px solid rgba(6, 95, 70, 0.2)' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#065f46', color: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', colorAdjust: 'exact' }}>
-              <th className="px-3 py-2 text-left uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', borderRight: '1px solid rgba(255,255,255,0.2)', width: '70%' }}>DESCRIPTION</th>
-              <th colSpan={2} className="px-3 py-2 text-center uppercase text-[8px] tracking-wider" style={{ backgroundColor: '#065f46', color: '#ffffff', width: '30%' }}>AMOUNT</th>
+      {/* Main Breakdown Table */}
+      <table className="w-full text-xs border border-slate-300 mb-6">
+        <thead>
+          <tr className="bg-emerald-800 text-white font-bold">
+            <th className="p-2 text-left border-r border-emerald-700 w-2/3">DESCRIPTION</th>
+            <th colSpan="2" className="p-2 text-center">AMOUNT</th>
+          </tr>
+          <tr className="bg-slate-100 text-slate-700 text-[10px] font-semibold border-b border-slate-300">
+            <th className="border-r border-slate-300"></th>
+            <th className="p-1 border-r border-slate-300 text-center w-24">{displayCurrency === 'LKR' ? 'RS.' : displayCurrency}</th>
+            <th className="p-1 text-center w-12">CTS.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {itemizedRows.map((row, idx) => (
+            <tr key={idx} className="border-b border-slate-200">
+              <td className="p-2 border-r border-slate-200">{row.description}</td>
+              <td className="p-2 text-right border-r border-slate-200 font-mono">{row.amountVal}</td>
+              <td className="p-2 text-center font-mono">{row.amountCts}</td>
             </tr>
-            <tr style={{ backgroundColor: '#ffffff', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-              <th style={{ backgroundColor: '#ffffff', border: '1px solid rgba(6, 95, 70, 0.2)', borderTop: 'none' }}></th>
-              <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-28" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRight: '1px solid rgba(6, 95, 70, 0.2)', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>{displayCurrency === 'LKR' ? 'RS.' : displayCurrency}</th>
-              <th className="px-3 py-1.5 text-center uppercase text-[8px] tracking-wider w-12" style={{ backgroundColor: '#ffffff', color: '#1e293b', borderBottom: '1px solid rgba(6, 95, 70, 0.2)' }}>CTS.</th>
-            </tr>
-          </thead>
-          <tbody className="font-medium text-slate-700" style={{ fontWeight: '600', color: '#1e293b' }}>
-            {itemizedRows.map((row, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                <td className="px-3 py-1.5" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                  {row.description}
-                </td>
-                <td className="px-3 py-1.5 text-right font-mono font-bold" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                  {row.amountVal}
-                </td>
-                <td className="px-3 py-1.5 text-center font-mono font-bold">
-                  {row.amountCts}
-                </td>
-              </tr>
-            ))}
+          ))}
+          <tr className="font-bold bg-slate-50 border-t border-slate-300">
+            <td className="p-2 border-r border-slate-300">TOTAL VALUE</td>
+            <td className="p-2 text-right border-r border-slate-300 font-mono text-emerald-800">{Math.floor(displayTotalAmount).toLocaleString()}</td>
+            <td className="p-2 text-center font-mono text-emerald-800">{Math.round((displayTotalAmount - Math.floor(displayTotalAmount)) * 100).toString().padStart(2, '0')}</td>
+          </tr>
+        </tbody>
+      </table>
 
-            <tr style={{ backgroundColor: 'rgba(6, 95, 70, 0.03)', fontWeight: '800', borderTop: '2px solid #065f46', color: '#065f46' }}>
-              <td className="px-3 py-2 text-right uppercase text-[8px] tracking-wider font-black" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>Total Value</td>
-              <td className="px-3 py-2 text-right font-black font-mono" style={{ borderRight: '1px solid rgba(6, 95, 70, 0.15)' }}>
-                {Math.floor(displayTotalAmount).toLocaleString()}
-              </td>
-              <td className="px-3 py-2 text-center font-black font-mono">
-                {Math.round((displayTotalAmount - Math.floor(displayTotalAmount)) * 100).toString().padStart(2, '0')}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {/* Calculations & Summary Section */}
-      <div className="grid grid-cols-2 gap-6 mb-6 text-[11px]">
-        {/* Left Column: Reference / Remarks */}
-        <div className="border border-slate-300 rounded p-3 text-slate-600 flex flex-col justify-between">
+      {/* Bottom Section: Payment Reference & Totals Box (Matching User Image 2) */}
+      <div className="grid grid-cols-2 gap-4 text-xs mb-8">
+        {/* Left Column: Reference & Notes */}
+        <div className="border border-slate-250 border-dashed rounded p-3 flex flex-col justify-between">
           <div>
-            <span className="font-bold text-[8px] uppercase tracking-wider block mb-1 text-slate-400">Payment Reference / Remarks</span>
+            <span className="font-bold text-[8px] uppercase tracking-wider block mb-1 text-slate-400">PAYMENT REFERENCE / REMARKS</span>
             <p className="font-mono text-slate-800 font-semibold mb-2">Ref: {selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
             {selectedPaymentForReceipt.remarks && (
               <p className="text-[10px] leading-tight text-slate-750">
@@ -312,40 +282,49 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               : '* Please preserve this receipt for final checkout subtraction.'}
           </div>
         </div>
+
         {/* Right Column: Numeric breakdown */}
         {(() => {
-          const totAmt = forceLkr ? (associatedBooking.totalAmount || 0) * exRate : (associatedBooking.totalAmount || 0);
+          const discBookings = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+          const totalDiscountVal = isOriginalBill ? 0 : discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+
+          const grossTotAmt = roomChargesTotal / convFactor;
+          const netTotAmt = Math.max(0, grossTotAmt - totalDiscountVal);
+          const dispNetTotAmt = forceLkr ? netTotAmt * exRate : netTotAmt;
+
           const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
-          const paidDisplayAmt = forceLkr 
-            ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
-            : rawPaid;
-          const totalPaidUpToThisDisplay = forceLkr
-            ? totalPaidUpToThis
-            : (totalPaidUpToThis / exRate);
-          const remBal = Math.max(0, totAmt - totalPaidUpToThisDisplay);
+          const paidDisplayAmt = isFinalPayment
+            ? (forceLkr ? netTotAmt * exRate : netTotAmt)
+            : (forceLkr 
+                ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
+                : rawPaid);
+
+          const totalPaidUpToThisDisplay = forceLkr ? totalPaidUpToThis : (totalPaidUpToThis / exRate);
+          const remBal = isFinalPayment ? 0 : Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay);
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
-          const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate);
+          
+          const convertedAmountLkr = (dispNetTotAmt * (displayCurrency === 'LKR' ? 1 : exRate));
 
           return (
-            <div className="border border-slate-350 rounded p-3 space-y-2 bg-slate-50/20">
-              <div className="flex justify-between pb-1 border-b border-slate-200">
+            <div className="border border-slate-700/60 rounded-lg p-3 space-y-1.5 bg-white shadow-2xs">
+              <div className="flex justify-between pb-0.5 border-b border-slate-100">
                 <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-                <span className="font-bold text-slate-800">{displayCurrency} {totAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-bold text-slate-800">{displayCurrency} {dispNetTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
+
+              {totalDiscountVal > 0 && !isOriginalBill && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-rose-600 bg-rose-50/50 px-1 py-0.5 rounded">
+                  <span className="font-semibold">Discount Deducted:</span>
+                  <span className="font-bold font-mono">-{displayCurrency} {(forceLkr ? totalDiscountVal * exRate : totalDiscountVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
               
-              <div className="flex justify-between pb-1 border-b border-slate-200">
-                <span className="text-slate-500 font-semibold">Amount Paid:</span>
+              <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Amount Paid:' : 'Advance Paid:'}</span>
                 <span className="font-bold text-slate-900">
                   {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-
-              {paymentsUpToThis.length > 1 && (
-                <div className="flex justify-between pb-1 border-b border-slate-200 text-slate-500">
-                  <span>Total Paid So Far:</span>
-                  <span className="font-bold">{displayCurrency} {(totalPaidUpToThis * (forceLkr ? 1 : (1/exRate))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-              )}
 
               {(() => {
                 const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
@@ -361,9 +340,9 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                   
                   const feeDisplay = `${displayCurrency} ${feeDisplayVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   return (
-                    <div className="flex justify-between pb-1 border-b border-slate-200">
-                      <span className="text-slate-550 font-semibold">CHARGES:</span>
-                      <span className="font-bold text-slate-800">
+                    <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                      <span className="text-slate-700 font-bold">CHARGES:</span>
+                      <span className="font-bold text-slate-900">
                         {feeDisplay}
                       </span>
                     </div>
@@ -372,61 +351,30 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 return null;
               })()}
 
-              {(() => {
-                const otherFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
-                const otherFee = otherFeeMatch ? parseFloat(otherFeeMatch[1]) : 0;
-                if (otherFee > 0) {
-                  const feeDisplay = forceLkr || displayCurrency === 'LKR'
-                    ? `LKR ${(currencyCode === 'LKR' ? otherFee : (otherFee * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : `${displayCurrency} ${otherFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                  
-                  const grossAmt = paidDisplayAmt;
-                  const netPayable = Math.max(0, grossAmt - (forceLkr || displayCurrency === 'LKR' ? (currencyCode === 'LKR' ? otherFee : (otherFee * exRate)) : otherFee));
-                  
-                  return (
-                    <>
-                      <div className="flex justify-between pb-1 border-b border-slate-200 text-amber-800">
-                        <span className="font-semibold">OTHER CHARGES (Deducted):</span>
-                        <span className="font-bold">
-                          - {feeDisplay}
-                        </span>
-                      </div>
-                      <div className="flex justify-between pb-1 border-b border-slate-200 text-emerald-800">
-                        <span className="font-semibold">NET PAYABLE AMOUNT:</span>
-                        <span className="font-bold">
-                          {displayCurrency} {netPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </>
-                  );
-                }
-                return null;
-              })()}
-
               {!forceLkr && (currencyCode !== 'LKR') && (
                 <>
-                  <div className="flex justify-between pb-1 border-b border-slate-200 text-[10px]">
+                  <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
                     <span className="text-slate-500">Exchange Rate:</span>
                     <span className="font-medium text-slate-750">{exRate}</span>
                   </div>
-                  <div className="flex justify-between pb-1 border-b border-slate-200">
+                  <div className="flex justify-between pb-0.5 border-b border-slate-100">
                     <span className="text-slate-500 font-semibold">Converted Amount:</span>
                     <span className="font-bold text-slate-900">
-                      LKR {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      LKR {convertedAmountLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </>
               )}
 
-              <div className="flex justify-between pt-1 font-bold text-sm border-t border-slate-350">
+              <div className="flex justify-between pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
                 <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
                 <span className="font-bold text-xs text-slate-900">
                   {displayCurrency} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               {isFinalPayment && (
-                <div className="text-center mt-2">
-                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">✓ FULLY PAID</span>
+                <div className="text-center mt-1 pt-0.5">
+                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">✓ FULLY PAID</span>
                 </div>
               )}
             </div>
