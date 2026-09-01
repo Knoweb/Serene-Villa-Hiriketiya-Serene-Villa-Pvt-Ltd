@@ -1959,17 +1959,25 @@ const Registrations = () => {
                                     if (isDiscount) {
                                       // Discount clicked -> Open the New Consolidated Invoice with Discount Deducted
                                       const baseB = bookings.find(b => b.guestRegistrationId === selectedReg.id && (!b.bookingNumber || !b.bookingNumber.includes('/'))) || associatedBooking;
+                                      const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+                                      let detectedCurr = baseB?.currency || associatedBooking?.currency || selectedReg?.currency || bookingForm?.currencyCode || extraB?.currency;
+                                      if (!detectedCurr || detectedCurr === 'LKR') {
+                                        detectedCurr = isForeignGuest ? 'USD' : 'LKR';
+                                      }
+                                      const detectedExRate = parseFloat(baseB?.exchangeRate || associatedBooking?.exchangeRate || bookingForm?.exchangeRate || 335);
+
                                       const discPaymentMock = {
                                         id: `disc-${extraB.id}`,
                                         bookingId: baseB?.id || selectedReg.id,
                                         amount: 0,
                                         amountInCurrency: 0,
-                                        currencyCode: baseB?.currency || 'USD',
-                                        currency: baseB?.currency || 'USD',
+                                        currencyCode: detectedCurr,
+                                        currency: detectedCurr,
+                                        exchangeRate: detectedExRate,
                                         paymentMethod: 'Discount Adjusted',
                                         paymentDate: new Date().toISOString().split('T')[0],
                                         paymentType: 'DISCOUNT_ADJUSTED',
-                                        referenceNumber: `${baseB?.bookingNumber || 'SV'}-DISC`,
+                                        referenceNumber: `${baseB?.bookingNumber || selectedReg.bookingNumber || 'SV'}-DISC`,
                                         remarks: extraB.remarks || 'Discount Applied Invoice'
                                       };
                                       setSelectedPaymentForReceipt(discPaymentMock);
@@ -1979,8 +1987,8 @@ const Registrations = () => {
                                         guestName: selectedReg.guestName,
                                         bookingRef: baseB?.bookingNumber || selectedReg.bookingNumber,
                                         roomNumber: baseB?.roomNumber || selectedReg.roomNumber,
-                                        totalAmount: baseB?.totalAmount || 0,
-                                        bookingCurrency: baseB?.currency || 'USD'
+                                        totalAmount: parseFloat(baseB?.totalAmount || selectedReg.totalAmount || bookingForm.amount || 0),
+                                        bookingCurrency: detectedCurr
                                       });
                                     } else {
                                       const subPaymentMock = {
@@ -2763,8 +2771,24 @@ Serene Villa Hiriketiya`;
           ? (selectedReg.numberOfNights || selectedReg.nights || 1)
           : (associatedBooking.numberOfNights || associatedBooking.nights || 1);
 
-        const bCurrRender = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
-        const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
+        // Find base booking item and extra charges
+        const baseBookingItem = siblingBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
+        const discBookings = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+        const extraItems = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
+
+        const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+
+        // Robust currency detection matching the payment card
+        let bCurrRender = associatedBooking?.currency || baseBookingItem?.currency;
+        if (!bCurrRender || bCurrRender === 'LKR') {
+          if (selectedReg?.currency && selectedReg.currency !== 'LKR') bCurrRender = selectedReg.currency;
+          else if (bookingForm?.currencyCode && bookingForm.currencyCode !== 'LKR') bCurrRender = bookingForm.currencyCode;
+          else if (selectedPaymentForReceipt?.currencyCode && selectedPaymentForReceipt.currencyCode !== 'LKR') bCurrRender = selectedPaymentForReceipt.currencyCode;
+          else if (associatedBooking?.tableCurrency) bCurrRender = associatedBooking.tableCurrency;
+          else bCurrRender = isForeignGuest ? 'USD' : 'LKR';
+        }
+
+        const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || parseFloat(bookingForm?.exchangeRate) || 335;
         const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
         const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
         
@@ -2773,22 +2797,22 @@ Serene Villa Hiriketiya`;
 
         // Top itemized table: show only actual room nights / extra options
         const targetBookings = isOriginalBill 
-          ? [associatedBooking] 
+          ? [baseBookingItem] 
           : (siblingBookings.length > 0 ? siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC')) : [associatedBooking]);
 
         let itemizedRows = [];
         let roomChargesTotal = 0;
 
         targetBookings.forEach((book) => {
-          const roomsList = (book.roomNumber || '')
+          const roomsList = (book.roomNumber || selectedReg?.roomNumber || '')
             .split(',').map(r => r.trim()).filter(Boolean);
-          const roomTypesList = (book.roomType || '')
+          const roomTypesList = (book.roomType || selectedReg?.roomType || '')
             .split(',').map(t => t.trim()).filter(Boolean);
           
           let parsedRoomPrices = null;
-          if (book.roomPrices) {
+          if (book.roomPrices || selectedReg?.roomPrices) {
             try {
-              const p = JSON.parse(book.roomPrices);
+              const p = JSON.parse(book.roomPrices || selectedReg.roomPrices);
               if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
             } catch(e) {}
           }
@@ -2803,10 +2827,14 @@ Serene Villa Hiriketiya`;
                 1
               );
           
-          const bookTotalAmount = Math.abs(book.totalAmount || 0);
+          let bookTotalAmount = Math.abs(parseFloat(book.totalAmount || book.amount || 0));
+          if (bookTotalAmount === 0 && !isSubBooking) {
+            bookTotalAmount = Math.abs(parseFloat(selectedReg?.totalAmount || bookingForm?.amount || associatedBooking?.totalAmount || 0));
+          }
+
           const bookDispTotal = bookTotalAmount * convFactor;
           const bookTotalCents = Math.round(bookDispTotal * 100);
-          const nightsVal = book.numberOfNights || 1;
+          const nightsVal = book.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || 1;
 
           let suffixLabel = "";
           if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";

@@ -55,13 +55,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   let roomChargesTotal = 0;
 
   targetBookings.forEach((book) => {
-    const roomTypes = book.roomType ? book.roomType.split(',').map(t => t.trim()).filter(Boolean) : [];
-    const roomNumbers = book.roomNumber ? book.roomNumber.split(',').map(n => n.trim()).filter(Boolean) : [];
+    const roomTypes = (book.roomType || selectedReg?.roomType) ? (book.roomType || selectedReg.roomType).split(',').map(t => t.trim()).filter(Boolean) : [];
+    const roomNumbers = (book.roomNumber || selectedReg?.roomNumber) ? (book.roomNumber || selectedReg.roomNumber).split(',').map(n => n.trim()).filter(Boolean) : [];
 
     let parsedRoomPrices = null;
-    if (book.roomPrices) {
+    if (book.roomPrices || selectedReg?.roomPrices) {
       try {
-        const p = JSON.parse(book.roomPrices);
+        const p = JSON.parse(book.roomPrices || selectedReg.roomPrices);
         if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
       } catch(e) {}
     }
@@ -76,10 +76,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           1
         );
 
-    const bookTotalAmount = Math.abs(book.totalAmount || 0);
+    let bookTotalAmount = Math.abs(parseFloat(book.totalAmount || book.amount || 0));
+    if (bookTotalAmount === 0 && !isSubBooking) {
+      bookTotalAmount = Math.abs(parseFloat(selectedReg?.totalAmount || associatedBooking?.totalAmount || 0));
+    }
+
     const bookDispTotal = bookTotalAmount * convFactor;
     const bookTotalCents = Math.round(bookDispTotal * 100);
-    const nightsVal = book.numberOfNights || 1;
+    const nightsVal = book.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || 1;
 
     let suffixLabel = "";
     if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
