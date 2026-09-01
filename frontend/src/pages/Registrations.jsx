@@ -3407,12 +3407,18 @@ Serene Villa Hiriketiya`;
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 flex flex-col space-y-3.5">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <Tag className="text-emerald-600" size={16} /> Add Discount to Booking
+                <Tag className="text-emerald-600" size={16} /> {isAdmin ? 'Apply Discount to Booking' : 'Request Discount Approval'}
               </h3>
               <button onClick={() => setShowDiscountModal(false)} className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer">
                 <X size={18} />
               </button>
             </div>
+
+            {!isAdmin && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-[11px] text-amber-800 font-medium">
+                🔒 <strong>Admin Approval Required:</strong> Your discount request will be submitted to the Admin for approval before applying to the final bill.
+              </div>
+            )}
             
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -3420,40 +3426,65 @@ Serene Villa Hiriketiya`;
               try {
                 const discountVal = parseFloat(discountForm.amount || 0);
                 if (discountVal <= 0) {
-                  alert('Please enter a positive value to deduct.');
+                  alert('Please enter a positive discount amount.');
                   return;
                 }
-                const newBNum = `${associatedBooking.bookingNumber}/DISC`;
-                const payload = {
-                  guestRegistrationId: selectedReg.id,
-                  bookingNumber: newBNum,
-                  roomNumber: associatedBooking.roomNumber || 'Discount',
-                  roomType: associatedBooking.roomType || 'Discount',
-                  bookingType: 'Direct',
-                  boardBasis: 'Room Only',
-                  remarks: discountForm.remarks || 'Discount adjustment',
-                  amount: -discountVal, // negative entry for discount deduction
-                  totalAmount: -discountVal,
-                  currency: discountForm.currencyCode,
-                  currencyCode: discountForm.currencyCode,
-                  checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
-                  checkOutDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
-                  numberOfNights: 1,
-                  status: 'Confirmed'
-                };
-                
-                const response = await fetch(`${API_BASE}/bookings/create-extra`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  throw new Error(errorText || 'Failed to apply discount');
+
+                if (isAdmin) {
+                  // Direct Admin Application
+                  const newBNum = `${associatedBooking.bookingNumber}/DISC`;
+                  const payload = {
+                    guestRegistrationId: selectedReg.id,
+                    bookingNumber: newBNum,
+                    roomNumber: associatedBooking.roomNumber || 'Discount',
+                    roomType: associatedBooking.roomType || 'Discount',
+                    bookingType: 'Direct',
+                    boardBasis: 'Room Only',
+                    remarks: discountForm.remarks || 'Discount adjustment',
+                    amount: -discountVal, // negative deduction
+                    totalAmount: -discountVal,
+                    currency: discountForm.currencyCode,
+                    currencyCode: discountForm.currencyCode,
+                    checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
+                    checkOutDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
+                    numberOfNights: 1,
+                    status: 'Confirmed'
+                  };
+                  
+                  const response = await fetch(`${API_BASE}/bookings/create-extra`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  });
+                  
+                  if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Failed to apply discount');
+                  }
+                  
+                  alert('Discount applied successfully to booking!');
+                } else {
+                  // Front Office staff request -> Saved for Admin Approval
+                  const saved = localStorage.getItem('pms_discounts');
+                  const existingDiscounts = saved ? JSON.parse(saved) : [];
+                  const newRequest = {
+                    id: Date.now(),
+                    bookingRef: associatedBooking.bookingNumber,
+                    guestName: selectedReg.guestName,
+                    totalAmount: associatedBooking.totalAmount || selectedReg.totalAmount || 0,
+                    requestedDiscount: `${discountForm.currencyCode} ${discountVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                    currency: discountForm.currencyCode,
+                    reason: discountForm.remarks || 'Front Office guest discount request',
+                    status: 'Pending',
+                    requestedBy: user.username || 'Front Office',
+                    createdAt: new Date().toISOString()
+                  };
+
+                  existingDiscounts.unshift(newRequest);
+                  localStorage.setItem('pms_discounts', JSON.stringify(existingDiscounts));
+                  alert('Discount approval request sent to Admin successfully! The discount will be applied to the final bill once approved.');
                 }
-                
-                alert('Discount applied successfully!');
+
                 setShowDiscountModal(false);
                 setDiscountForm({ amount: '', currencyCode: 'USD', remarks: '' });
                 fetchRegistrations();
@@ -3468,7 +3499,7 @@ Serene Villa Hiriketiya`;
                   <select
                     value={discountForm.currencyCode}
                     onChange={(e) => setDiscountForm(prev => ({ ...prev, currencyCode: e.target.value }))}
-                    className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 focus:outline-none cursor-pointer"
                   >
                     <option value="USD">USD</option>
                     <option value="LKR">LKR</option>
@@ -3481,20 +3512,21 @@ Serene Villa Hiriketiya`;
                     placeholder="0.00"
                     value={discountForm.amount}
                     onChange={(e) => setDiscountForm(prev => ({ ...prev, amount: e.target.value }))}
-                    className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
+                    className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold font-mono text-slate-900 focus:outline-none focus:border-emerald-500"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reason / Remarks</label>
                 <input
                   type="text"
-                  placeholder="e.g. 10% Early Bird Discount"
+                  placeholder="e.g. Loyalty discount, Long stay discount"
                   value={discountForm.remarks}
                   onChange={(e) => setDiscountForm(prev => ({ ...prev, remarks: e.target.value }))}
                   className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+                  required
                 />
               </div>
 
@@ -3503,7 +3535,7 @@ Serene Villa Hiriketiya`;
                   Cancel
                 </button>
                 <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer shadow-sm">
-                  Apply Discount
+                  {isAdmin ? 'Apply Discount' : 'Submit for Approval'}
                 </button>
               </div>
             </form>

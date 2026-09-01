@@ -55,7 +55,51 @@ const Discounts = () => {
     fetchStaff();
   }, []);
 
-  const handleAction = (id, status) => {
+  const handleAction = async (id, status) => {
+    const targetReq = requests.find(r => r.id === id);
+    if (targetReq && status === 'Approved') {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
+      try {
+        // Fetch all bookings to find the matched parent booking
+        const bRes = await fetch(`${API_BASE}/bookings`);
+        if (bRes.ok) {
+          const allB = await bRes.json();
+          const matchedParent = allB.find(b => b.bookingNumber === targetReq.bookingRef || (b.bookingNumber && b.bookingNumber.includes(targetReq.bookingRef)));
+          if (matchedParent) {
+            const rawDiscountNum = parseFloat(String(targetReq.requestedDiscount).replace(/[^\d.-]/g, '')) || 0;
+            const discCurrency = targetReq.requestedDiscount?.includes('LKR') ? 'LKR' : (targetReq.currency || matchedParent.currency || 'USD');
+            const newBNum = `${matchedParent.bookingNumber}/DISC`;
+
+            const payload = {
+              guestRegistrationId: matchedParent.guestRegistrationId,
+              bookingNumber: newBNum,
+              roomNumber: matchedParent.roomNumber || 'Discount',
+              roomType: matchedParent.roomType || 'Discount',
+              bookingType: 'Direct',
+              boardBasis: 'Room Only',
+              remarks: `Discount: ${targetReq.reason || 'Admin Approved Discount'}`,
+              amount: -Math.abs(rawDiscountNum),
+              totalAmount: -Math.abs(rawDiscountNum),
+              currency: discCurrency,
+              currencyCode: discCurrency,
+              checkInDate: matchedParent.checkInDate,
+              checkOutDate: matchedParent.checkOutDate,
+              numberOfNights: 1,
+              status: 'Confirmed'
+            };
+
+            await fetch(`${API_BASE}/bookings/create-extra`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error applying approved discount to booking:', err);
+      }
+    }
+
     const updated = requests.map(req => {
       if (req.id === id) {
         return {
