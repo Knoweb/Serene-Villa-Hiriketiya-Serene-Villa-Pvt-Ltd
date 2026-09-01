@@ -2870,8 +2870,39 @@ Serene Villa Hiriketiya`;
                   const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
                     ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
                     : rawPaid;
-                  const totalPaidBCurr = (totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate)));
-                  const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidBCurr);
+
+                  // Convert all payments up to this one accurately to dispCurr
+                  let totalPaidSoFarInDispCurr = 0;
+                  let advancePaidSoFarInDispCurr = 0;
+
+                  paymentsUpToThis.forEach(p => {
+                    const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+                    const pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) && parseFloat(p.amountInCurrency) > 0
+                      ? parseFloat(p.amountInCurrency)
+                      : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
+                    const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                    const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+
+                    let convertedToDisp = pAmt;
+                    if (dispCurr === 'LKR') {
+                      convertedToDisp = pLkr > 0 ? pLkr : (pCurr === 'LKR' ? pAmt : pAmt * pExRate);
+                    } else if (pCurr === dispCurr.toUpperCase()) {
+                      convertedToDisp = pAmt;
+                    } else if (pCurr === 'LKR') {
+                      convertedToDisp = pExRate > 0 ? pAmt / pExRate : pAmt;
+                    } else {
+                      // Converting through LKR rate
+                      const lkrVal = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                      convertedToDisp = exRate > 0 ? lkrVal / exRate : pAmt;
+                    }
+
+                    totalPaidSoFarInDispCurr += convertedToDisp;
+                    if (p.paymentType === 'ADVANCE' || p.isAdvancePayment) {
+                      advancePaidSoFarInDispCurr += convertedToDisp;
+                    }
+                  });
+
+                  const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidSoFarInDispCurr);
                   const convertedLkrPaid = (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate));
 
                   return (
@@ -2887,7 +2918,7 @@ Serene Villa Hiriketiya`;
                       {paymentsUpToThis.length > 1 && (
                         <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-slate-500">
                           <span>Total Paid So Far:</span>
-                          <span className="font-bold">{dispCurr} {totalPaidBCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="font-bold">{dispCurr} {totalPaidSoFarInDispCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       {cardFeeVal > 0 && (

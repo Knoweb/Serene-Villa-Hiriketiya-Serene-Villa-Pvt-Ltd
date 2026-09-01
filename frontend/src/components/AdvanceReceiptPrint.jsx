@@ -304,10 +304,32 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           const paidDisplayAmt = forceLkr 
             ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
             : rawPaid;
-          const totalPaidUpToThisDisplay = forceLkr
-            ? totalPaidUpToThis
-            : (totalPaidUpToThis / exRate);
-          const remBal = Math.max(0, totAmt - totalPaidUpToThisDisplay);
+
+          // Convert all payments up to this one accurately to displayCurrency
+          let totalPaidSoFarInDisplayCurr = 0;
+          paymentsUpToThis.forEach(p => {
+            const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+            const pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) && parseFloat(p.amountInCurrency) > 0
+              ? parseFloat(p.amountInCurrency)
+              : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
+            const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+            const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+
+            let convertedToDisp = pAmt;
+            if (displayCurrency === 'LKR') {
+              convertedToDisp = pLkr > 0 ? pLkr : (pCurr === 'LKR' ? pAmt : pAmt * pExRate);
+            } else if (pCurr === displayCurrency.toUpperCase()) {
+              convertedToDisp = pAmt;
+            } else if (pCurr === 'LKR') {
+              convertedToDisp = pExRate > 0 ? pAmt / pExRate : pAmt;
+            } else {
+              const lkrVal = pLkr > 0 ? pLkr : (pAmt * pExRate);
+              convertedToDisp = exRate > 0 ? lkrVal / exRate : pAmt;
+            }
+            totalPaidSoFarInDisplayCurr += convertedToDisp;
+          });
+
+          const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidSoFarInDisplayCurr);
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           const paidAmt = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate);
 
@@ -319,7 +341,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               </div>
               
               <div className="flex justify-between pb-1 border-b border-slate-200">
-                <span className="text-slate-500 font-semibold">Amount Paid:</span>
+                <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment Paid:' : 'Advance Paid:'}</span>
                 <span className="font-bold text-slate-900">
                   {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
@@ -328,7 +350,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               {paymentsUpToThis.length > 1 && (
                 <div className="flex justify-between pb-1 border-b border-slate-200 text-slate-500">
                   <span>Total Paid So Far:</span>
-                  <span className="font-bold">{displayCurrency} {(totalPaidUpToThis * (forceLkr ? 1 : (1/exRate))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="font-bold">{displayCurrency} {totalPaidSoFarInDisplayCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
 
