@@ -2803,38 +2803,45 @@ Serene Villa Hiriketiya`;
         let itemizedRows = [];
         let roomChargesTotal = 0;
 
+        // Robust split helper for room types and room numbers
+        const parseList = (str) => {
+          if (!str) return [];
+          return String(str).split(',').map(s => s.trim()).filter(Boolean);
+        };
+
         targetBookings.forEach((book) => {
-          const roomsList = (book.roomNumber || selectedReg?.roomNumber || '')
-            .split(',').map(r => r.trim()).filter(Boolean);
-          const roomTypesList = (book.roomType || selectedReg?.roomType || '')
-            .split(',').map(t => t.trim()).filter(Boolean);
+          // Room numbers & types from this sub-booking, or fallback to selectedReg / associatedBooking
+          const rawRooms = book.roomNumber || (book === baseBookingItem ? (selectedReg?.roomNumber || associatedBooking?.roomNumber || '') : '');
+          const rawTypes = book.roomType || (book === baseBookingItem ? (selectedReg?.roomType || associatedBooking?.roomType || '') : '');
+          const rawPrices = book.roomPrices || (book === baseBookingItem ? (selectedReg?.roomPrices || associatedBooking?.roomPrices || '') : '');
+
+          const roomsList = parseList(rawRooms);
+          const roomTypesList = parseList(rawTypes);
           
           let parsedRoomPrices = null;
-          if (book.roomPrices || selectedReg?.roomPrices) {
+          if (rawPrices) {
             try {
-              const p = JSON.parse(book.roomPrices || selectedReg.roomPrices);
+              const p = typeof rawPrices === 'string' ? JSON.parse(rawPrices) : rawPrices;
               if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
             } catch(e) {}
           }
 
           const isSubBooking = !!(book.bookingNumber && book.bookingNumber.includes('/'));
-          const countRooms = isSubBooking
-            ? (roomsList.length > 0 ? roomsList.length : 1)
-            : Math.max(
-                roomsList.length, 
-                roomTypesList.length, 
-                parsedRoomPrices ? parsedRoomPrices.length : 0, 
-                1
-              );
+          const countRooms = Math.max(
+            roomsList.length, 
+            roomTypesList.length, 
+            parsedRoomPrices ? parsedRoomPrices.length : 0, 
+            1
+          );
           
           let bookTotalAmount = Math.abs(parseFloat(book.totalAmount || book.amount || 0));
-          if (bookTotalAmount === 0 && !isSubBooking) {
+          if (bookTotalAmount === 0 && (!isSubBooking || book === baseBookingItem)) {
             bookTotalAmount = Math.abs(parseFloat(selectedReg?.totalAmount || bookingForm?.amount || associatedBooking?.totalAmount || 0));
           }
 
           const bookDispTotal = bookTotalAmount * convFactor;
           const bookTotalCents = Math.round(bookDispTotal * 100);
-          const nightsVal = book.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || 1;
+          const nightsVal = book.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1;
 
           let suffixLabel = "";
           if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
@@ -2842,7 +2849,7 @@ Serene Villa Hiriketiya`;
 
           for (let idx = 0; idx < countRooms; idx++) {
             let rowAmount = 0;
-            if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
+            if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price != null && !isNaN(parsedRoomPrices[idx].price)) {
               rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
             } else {
               const currentCentsSum = Math.round((bookTotalCents / countRooms) * (idx + 1));
@@ -2854,8 +2861,9 @@ Serene Villa Hiriketiya`;
             const rateAmount = rowAmount / nightsVal;
             const amountVal = Math.floor(rowAmount);
             const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
-            const currentRoomType = roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (roomTypesList[0] || 'Room'));
-            const rNum = roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
+            
+            const currentRoomType = roomTypesList[idx] || roomTypesList[0] || (selectedReg?.roomType || associatedBooking?.roomType || 'Room');
+            const rNum = roomsList[idx] || '';
 
             let desc = rNum 
               ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`

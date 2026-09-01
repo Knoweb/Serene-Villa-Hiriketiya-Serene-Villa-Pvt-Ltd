@@ -46,44 +46,54 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               ? 'Discount Receipt' 
               : 'Advance Payment Receipt';
 
+  const baseBookingItem = siblingBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
+
   // Filter top itemized rows to show only room nights (clean layout matching Image 1)
   const targetBookings = isOriginalBill 
-    ? [associatedBooking] 
+    ? [baseBookingItem] 
     : (siblingBookings.length > 0 ? siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC')) : [associatedBooking]);
 
   let itemizedRows = [];
   let roomChargesTotal = 0;
 
+  // Robust split helper for room types and room numbers
+  const parseList = (str) => {
+    if (!str) return [];
+    return String(str).split(',').map(s => s.trim()).filter(Boolean);
+  };
+
   targetBookings.forEach((book) => {
-    const roomTypes = (book.roomType || selectedReg?.roomType) ? (book.roomType || selectedReg.roomType).split(',').map(t => t.trim()).filter(Boolean) : [];
-    const roomNumbers = (book.roomNumber || selectedReg?.roomNumber) ? (book.roomNumber || selectedReg.roomNumber).split(',').map(n => n.trim()).filter(Boolean) : [];
+    const rawRooms = book.roomNumber || (book === baseBookingItem ? (selectedReg?.roomNumber || associatedBooking?.roomNumber || '') : '');
+    const rawTypes = book.roomType || (book === baseBookingItem ? (selectedReg?.roomType || associatedBooking?.roomType || '') : '');
+    const rawPrices = book.roomPrices || (book === baseBookingItem ? (selectedReg?.roomPrices || associatedBooking?.roomPrices || '') : '');
+
+    const roomsList = parseList(rawRooms);
+    const roomTypesList = parseList(rawTypes);
 
     let parsedRoomPrices = null;
-    if (book.roomPrices || selectedReg?.roomPrices) {
+    if (rawPrices) {
       try {
-        const p = JSON.parse(book.roomPrices || selectedReg.roomPrices);
+        const p = typeof rawPrices === 'string' ? JSON.parse(rawPrices) : rawPrices;
         if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
       } catch(e) {}
     }
 
     const isSubBooking = !!(book.bookingNumber && book.bookingNumber.includes('/'));
-    const countRooms = isSubBooking
-      ? (roomNumbers.length > 0 ? roomNumbers.length : 1)
-      : Math.max(
-          roomNumbers.length,
-          roomTypes.length,
-          parsedRoomPrices ? parsedRoomPrices.length : 0,
-          1
-        );
+    const countRooms = Math.max(
+      roomsList.length,
+      roomTypesList.length,
+      parsedRoomPrices ? parsedRoomPrices.length : 0,
+      1
+    );
 
     let bookTotalAmount = Math.abs(parseFloat(book.totalAmount || book.amount || 0));
-    if (bookTotalAmount === 0 && !isSubBooking) {
+    if (bookTotalAmount === 0 && (!isSubBooking || book === baseBookingItem)) {
       bookTotalAmount = Math.abs(parseFloat(selectedReg?.totalAmount || associatedBooking?.totalAmount || 0));
     }
 
     const bookDispTotal = bookTotalAmount * convFactor;
     const bookTotalCents = Math.round(bookDispTotal * 100);
-    const nightsVal = book.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || 1;
+    const nightsVal = book.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1;
 
     let suffixLabel = "";
     if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
@@ -91,7 +101,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
     for (let idx = 0; idx < countRooms; idx++) {
       let rowAmount = 0;
-      if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price) {
+      if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price != null && !isNaN(parsedRoomPrices[idx].price)) {
         rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
       } else {
         const currentCentsSum = Math.round((bookTotalCents / countRooms) * (idx + 1));
@@ -101,8 +111,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       }
 
       const rateAmount = rowAmount / nightsVal;
-      const currentRoomType = roomTypes[idx] || (roomTypes.length === 1 ? roomTypes[0] : (roomTypes[0] || 'Room'));
-      const rNum = roomNumbers[idx] || (roomNumbers.length === 1 ? roomNumbers[0] : '');
+      const currentRoomType = roomTypesList[idx] || roomTypesList[0] || (selectedReg?.roomType || associatedBooking?.roomType || 'Room');
+      const rNum = roomsList[idx] || '';
 
       let desc = rNum
         ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
