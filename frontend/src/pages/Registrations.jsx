@@ -2483,7 +2483,19 @@ const Registrations = () => {
         const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
         const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
         const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
-        const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
+        const isExtraNight = associatedBooking.bookingNumber?.includes('/1N');
+        const isExtraPerson = associatedBooking.bookingNumber?.includes('/1P');
+        const isDiscount = associatedBooking.bookingNumber?.includes('/DISC');
+
+        let receiptTitle = isFinalPayment 
+          ? 'Final Payment Receipt' 
+          : isExtraNight 
+            ? 'Extra Night Receipt' 
+            : isExtraPerson 
+              ? 'One Person Receipt' 
+              : isDiscount 
+                ? 'Discount Receipt' 
+                : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
           const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
@@ -2644,12 +2656,15 @@ Serene Villa Hiriketiya`;
             } catch(e) {}
           }
 
-          const countRooms = Math.max(
-            roomsList.length, 
-            roomTypesList.length, 
-            parsedRoomPrices ? parsedRoomPrices.length : 0, 
-            1
-          );
+          const isSubBooking = !!(book.bookingNumber && book.bookingNumber.includes('/'));
+          const countRooms = isSubBooking
+            ? (roomsList.length > 0 ? roomsList.length : 1)
+            : Math.max(
+                roomsList.length, 
+                roomTypesList.length, 
+                parsedRoomPrices ? parsedRoomPrices.length : 0, 
+                1
+              );
           
           const bookTotalAmount = book.totalAmount || 0;
           const bookDispTotal = bookTotalAmount * convFactor;
@@ -2771,10 +2786,25 @@ Serene Villa Hiriketiya`;
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Channel</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.bookingType || 'Direct Booking'}</span></div>
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - in</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkInDate || associatedBooking?.checkInDate || '').replace(/-/g, '.')}</span></div>
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - out</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '').replace(/-/g, '.')}</span></div>
-                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Nights</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(nightsVal).padStart(2, '0')} nights</span></div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Nights</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">
+                    {String(isExtraNight ? 1 : nightsVal).padStart(2, '0')} nights {isExtraNight && <span className="text-amber-700 font-bold text-[10px]">(Extra Night)</span>}
+                  </span>
+                </div>
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Basis</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.boardBasis || 'Bed & Breakfast'}</span></div>
-                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Adults</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.adults || associatedBooking?.adults || 1).padStart(2, '0')}</span></div>
-                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Children</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{String(selectedReg?.children || associatedBooking?.children || 0).padStart(2, '0')}</span></div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Adults</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">
+                    {isExtraPerson ? '01 (Extra One Person)' : String(selectedReg?.adults || associatedBooking?.adults || 1).padStart(2, '0')}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Children</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">
+                    {isExtraPerson ? '00' : String(selectedReg?.children || associatedBooking?.children || 0).padStart(2, '0')}
+                  </span>
+                </div>
               </div>
 
               <div className="mb-4">
@@ -3063,11 +3093,12 @@ Serene Villa Hiriketiya`;
               if (!selectedReg || !associatedBooking) return;
               try {
                 const newBNum = `${associatedBooking.bookingNumber}/1N`;
+                const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraNightForm.room));
                 const payload = {
                   guestRegistrationId: selectedReg.id,
                   bookingNumber: newBNum,
                   roomNumber: extraNightForm.room || associatedBooking.roomNumber,
-                  roomType: associatedBooking.roomType,
+                  roomType: matchedRoom ? matchedRoom.roomType : (associatedBooking.roomType?.split(',')[0] || 'Deluxe Room'),
                   bookingType: 'Direct',
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
                   remarks: extraNightForm.remarks || 'Extra Night addition',
@@ -3228,11 +3259,12 @@ Serene Villa Hiriketiya`;
               if (!selectedReg || !associatedBooking) return;
               try {
                 const newBNum = `${associatedBooking.bookingNumber}/1P`;
+                const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraPersonForm.room));
                 const payload = {
                   guestRegistrationId: selectedReg.id,
                   bookingNumber: newBNum,
                   roomNumber: extraPersonForm.room || associatedBooking.roomNumber,
-                  roomType: associatedBooking.roomType,
+                  roomType: matchedRoom ? matchedRoom.roomType : (associatedBooking.roomType?.split(',')[0] || 'Deluxe Room'),
                   bookingType: 'Direct',
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
                   remarks: extraPersonForm.remarks || 'Extra Person addition',

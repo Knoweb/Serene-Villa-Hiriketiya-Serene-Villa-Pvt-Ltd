@@ -26,7 +26,19 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const remainingBalLkr = Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
 
   const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' && remainingBalLkr <= 10;
-  const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
+  const isExtraNight = associatedBooking.bookingNumber?.includes('/1N');
+  const isExtraPerson = associatedBooking.bookingNumber?.includes('/1P');
+  const isDiscount = associatedBooking.bookingNumber?.includes('/DISC');
+
+  const receiptTitle = isFinalPayment 
+    ? 'Final Payment Receipt' 
+    : isExtraNight 
+      ? 'Extra Night Receipt' 
+      : isExtraPerson 
+        ? 'One Person Receipt' 
+        : isDiscount 
+          ? 'Discount Receipt' 
+          : 'Advance Payment Receipt';
 
   const targetBookings = [associatedBooking];
 
@@ -43,12 +55,15 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       } catch(e) {}
     }
 
-    const countRooms = Math.max(
-      roomNumbers.length,
-      roomTypes.length,
-      parsedRoomPrices ? parsedRoomPrices.length : 0,
-      1
-    );
+    const isSubBooking = !!(book.bookingNumber && book.bookingNumber.includes('/'));
+    const countRooms = isSubBooking
+      ? (roomNumbers.length > 0 ? roomNumbers.length : 1)
+      : Math.max(
+          roomNumbers.length,
+          roomTypes.length,
+          parsedRoomPrices ? parsedRoomPrices.length : 0,
+          1
+        );
 
     const bookTotalAmount = book.totalAmount || 0;
     const bookDispTotal = bookTotalAmount * convFactor;
@@ -196,7 +211,9 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Nights</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{String(nights).padStart(2, '0')} nights</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                  {String(isExtraNight ? 1 : nights).padStart(2, '0')} nights {isExtraNight && <span style={{ color: '#b45309', fontWeight: '700', fontSize: '10px' }}>(Extra Night)</span>}
+                </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Basis</span>
@@ -204,11 +221,15 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Adults</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{String(adults).padStart(2, '0')}</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                  {isExtraPerson ? '01 (Extra One Person)' : String(adults).padStart(2, '0')}
+                </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Children</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{String(children).padStart(2, '0')}</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                  {isExtraPerson ? '00' : String(children).padStart(2, '0')}
+                </span>
               </div>
             </div>
           </>
