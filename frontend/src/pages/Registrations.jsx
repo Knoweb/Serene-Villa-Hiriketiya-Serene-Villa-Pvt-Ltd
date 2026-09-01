@@ -544,9 +544,15 @@ const Registrations = () => {
       console.error('Error fetching full registration details:', err);
     }
     
-    let associatedBooking = getBookingForReg(reg.id);
+    const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
+    const primaryCandidate = allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
     
     if (associatedBooking) {
+      const parentAmt = (associatedBooking.totalAmount && associatedBooking.totalAmount > 0)
+        ? associatedBooking.totalAmount
+        : (reg.totalAmount && reg.totalAmount > 0 ? reg.totalAmount : '');
+
       setBookingForm({
         roomType: associatedBooking.roomType || reg.roomType || defaultRoomType,
         room: associatedBooking.roomNumber || reg.roomNumber || reg.room || '',
@@ -554,7 +560,7 @@ const Registrations = () => {
         bookingNumber: associatedBooking.bookingNumber || '',
         boardBasis: associatedBooking.boardBasis || 'Room Only',
         remarks: associatedBooking.remarks || '',
-        amount: associatedBooking.totalAmount || reg.totalAmount || '',
+        amount: parentAmt,
         currencyCode: associatedBooking.currency || reg.currency || reg.currencyCode || 'USD',
         paymentStatus: reg.paymentStatus || associatedBooking.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
@@ -811,7 +817,8 @@ const Registrations = () => {
       fetchAdvancePayments(booking.id);
 
       setSelectedPaymentForReceipt(savedPayment);
-      const realBooking = getBookingForReg(selectedReg.id) || booking;
+      const baseBooking = bookings.find(b => b.guestRegistrationId === selectedReg?.id && (!b.bookingNumber || !b.bookingNumber.includes('/')));
+      const realBooking = baseBooking || getBookingForReg(selectedReg?.id) || booking;
       setReceiptData({
         ...savedPayment,
         guestName: selectedReg.guestName,
@@ -893,10 +900,10 @@ const Registrations = () => {
     const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
     const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
 
-    // 1. If registration already has a specific bookingNumber, prioritize exact match
-    if (targetReg.bookingNumber) {
+    // 1. If registration already has a specific bookingNumber, prioritize exact match (excluding sub-bookings with '/')
+    if (targetReg.bookingNumber && !targetReg.bookingNumber.includes('/')) {
       const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
-      const directMatch = bookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
+      const directMatch = bookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/') && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
       if (directMatch) return directMatch;
     }
 
@@ -1869,10 +1876,60 @@ const Registrations = () => {
                   {/* List of Extra Bookings / Other Options with direct Invoice / Receipt Generation */}
                   {(() => {
                     const extraBookings = bookings.filter(b => b.guestRegistrationId === selectedReg.id && b.bookingNumber && b.bookingNumber.includes('/'));
-                    if (extraBookings.length === 0) return null;
+                    const hasDiscount = extraBookings.some(b => b.bookingNumber?.includes('/DISC'));
+                    const baseB = bookings.find(b => b.guestRegistrationId === selectedReg.id && (!b.bookingNumber || !b.bookingNumber.includes('/'))) || associatedBooking;
 
                     return (
                       <div className="space-y-2 pt-1">
+                        {hasDiscount && baseB && (
+                          <div className="flex items-center justify-between p-2.5 bg-blue-50/60 border border-blue-200/80 rounded-xl text-xs">
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                                  Original Bill
+                                </span>
+                                <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                  {baseB.bookingNumber}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 font-medium">
+                                Total: <span className="font-bold text-blue-700">{baseB.currency || 'USD'} {parseFloat(baseB.totalAmount || baseB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> (Before Discount)
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const origPaymentMock = {
+                                  id: `orig-${baseB.id}`,
+                                  bookingId: baseB.id,
+                                  amount: 0,
+                                  amountInCurrency: 0,
+                                  currencyCode: baseB.currency || 'USD',
+                                  currency: baseB.currency || 'USD',
+                                  paymentMethod: 'Original Bill',
+                                  paymentDate: new Date().toISOString().split('T')[0],
+                                  paymentType: 'ORIGINAL_BILL',
+                                  referenceNumber: baseB.bookingNumber,
+                                  remarks: 'Original Reservation Invoice (Before Discount)'
+                                };
+                                setSelectedPaymentForReceipt(origPaymentMock);
+                                setReceiptData({
+                                  receiptNumber: `INV-${(baseB.bookingNumber || selectedReg.bookingNumber || 'SV').replace('/', '-')}-ORIG`,
+                                  generatedAt: new Date().toISOString(),
+                                  guestName: selectedReg.guestName,
+                                  bookingRef: baseB.bookingNumber,
+                                  roomNumber: baseB.roomNumber,
+                                  totalAmount: baseB.totalAmount || baseB.amount || 0,
+                                  bookingCurrency: baseB.currency || 'USD'
+                                });
+                                setShowReceiptModal(true);
+                              }}
+                              className="text-blue-700 hover:text-blue-800 font-extrabold flex items-center gap-1 bg-blue-50 hover:bg-blue-100 border border-blue-200/80 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs text-[11px]"
+                            >
+                              <Receipt className="h-3.5 w-3.5" /> Original Invoice
+                            </button>
+                          </div>
+                        )}
                         <div className="space-y-1.5">
                           {extraBookings.map((extraB) => {
                             const isExtraNight = extraB.bookingNumber.includes('/1N');
@@ -1899,34 +1956,62 @@ const Registrations = () => {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const subPaymentMock = {
-                                      id: `extra-${extraB.id}`,
-                                      bookingId: extraB.id,
-                                      amount: extraB.totalAmount || extraB.amount || 0,
-                                      amountInCurrency: extraB.totalAmount || extraB.amount || 0,
-                                      currencyCode: extraB.currency || 'USD',
-                                      currency: extraB.currency || 'USD',
-                                      paymentMethod: 'Direct Bill',
-                                      paymentDate: new Date().toISOString().split('T')[0],
-                                      paymentType: 'ADVANCE',
-                                      referenceNumber: extraB.bookingNumber,
-                                      remarks: extraB.remarks || `${badgeTitle} Bill`
-                                    };
-                                    setSelectedPaymentForReceipt(subPaymentMock);
-                                    setReceiptData({
-                                      receiptNumber: `REC-${extraB.bookingNumber.replace('/', '-')}`,
-                                      generatedAt: new Date().toISOString(),
-                                      guestName: selectedReg.guestName,
-                                      bookingRef: extraB.bookingNumber,
-                                      roomNumber: extraB.roomNumber,
-                                      totalAmount: extraB.totalAmount || extraB.amount || 0,
-                                      bookingCurrency: extraB.currency || 'USD'
-                                    });
+                                    if (isDiscount) {
+                                      // Discount clicked -> Open the New Consolidated Invoice with Discount Deducted
+                                      const baseB = bookings.find(b => b.guestRegistrationId === selectedReg.id && (!b.bookingNumber || !b.bookingNumber.includes('/'))) || associatedBooking;
+                                      const discPaymentMock = {
+                                        id: `disc-${extraB.id}`,
+                                        bookingId: baseB?.id || selectedReg.id,
+                                        amount: 0,
+                                        amountInCurrency: 0,
+                                        currencyCode: baseB?.currency || 'USD',
+                                        currency: baseB?.currency || 'USD',
+                                        paymentMethod: 'Discount Adjusted',
+                                        paymentDate: new Date().toISOString().split('T')[0],
+                                        paymentType: 'DISCOUNT_ADJUSTED',
+                                        referenceNumber: `${baseB?.bookingNumber || 'SV'}-DISC`,
+                                        remarks: extraB.remarks || 'Discount Applied Invoice'
+                                      };
+                                      setSelectedPaymentForReceipt(discPaymentMock);
+                                      setReceiptData({
+                                        receiptNumber: `INV-${(baseB?.bookingNumber || selectedReg.bookingNumber || 'SV').replace('/', '-')}-ADJ`,
+                                        generatedAt: new Date().toISOString(),
+                                        guestName: selectedReg.guestName,
+                                        bookingRef: baseB?.bookingNumber || selectedReg.bookingNumber,
+                                        roomNumber: baseB?.roomNumber || selectedReg.roomNumber,
+                                        totalAmount: baseB?.totalAmount || 0,
+                                        bookingCurrency: baseB?.currency || 'USD'
+                                      });
+                                    } else {
+                                      const subPaymentMock = {
+                                        id: `extra-${extraB.id}`,
+                                        bookingId: extraB.id,
+                                        amount: extraB.totalAmount || extraB.amount || 0,
+                                        amountInCurrency: extraB.totalAmount || extraB.amount || 0,
+                                        currencyCode: extraB.currency || 'USD',
+                                        currency: extraB.currency || 'USD',
+                                        paymentMethod: 'Direct Bill',
+                                        paymentDate: new Date().toISOString().split('T')[0],
+                                        paymentType: 'ADVANCE',
+                                        referenceNumber: extraB.bookingNumber,
+                                        remarks: extraB.remarks || `${badgeTitle} Bill`
+                                      };
+                                      setSelectedPaymentForReceipt(subPaymentMock);
+                                      setReceiptData({
+                                        receiptNumber: `REC-${extraB.bookingNumber.replace('/', '-')}`,
+                                        generatedAt: new Date().toISOString(),
+                                        guestName: selectedReg.guestName,
+                                        bookingRef: extraB.bookingNumber,
+                                        roomNumber: extraB.roomNumber,
+                                        totalAmount: extraB.totalAmount || extraB.amount || 0,
+                                        bookingCurrency: extraB.currency || 'USD'
+                                      });
+                                    }
                                     setShowReceiptModal(true);
                                   }}
                                   className="text-emerald-700 hover:text-emerald-800 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs text-[11px]"
                                 >
-                                  <Receipt className="h-3.5 w-3.5" /> Invoice
+                                  <Receipt className="h-3.5 w-3.5" /> {isDiscount ? 'Adjusted Invoice' : 'Invoice'}
                                 </button>
                               </div>
                             );
@@ -1949,18 +2034,26 @@ const Registrations = () => {
                   {(() => {
                     const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
                     
-                    // Aggregate all related sub-bookings (such as /1N, /1P, and /DISC discounts)
                     const relatedBookings = bookings.filter(b => b.guestRegistrationId === selectedReg.id);
-                    const totalAmt = relatedBookings.length > 0
-                      ? relatedBookings.reduce((sum, b) => sum + (parseFloat(b.totalAmount || b.amount || 0)), 0)
+                    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+                    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+                    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
+
+                    const baseAmount = baseBookingItem 
+                      ? (parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0))
                       : parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
 
-                    // Smartly detect booking currency (less than 10,000 is foreign currency USD/EUR/AUD/GBP)
-                    let bookingCurrency = associatedBooking?.currency;
+                    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    
+                    const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+
+                    // Smartly detect booking currency
+                    let bookingCurrency = associatedBooking?.currency || baseBookingItem?.currency;
                     if (!bookingCurrency || bookingCurrency === 'LKR') {
                       if (selectedReg?.currency && selectedReg.currency !== 'LKR') bookingCurrency = selectedReg.currency;
                       else if (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR') bookingCurrency = bookingForm.currencyCode;
-                      else if (totalAmt > 0 && totalAmt < 10000) bookingCurrency = 'USD';
+                      else if (baseAmount > 0 && baseAmount < 10000) bookingCurrency = 'USD';
                       else bookingCurrency = isForeignGuest ? 'USD' : 'LKR';
                     }
 
@@ -1984,7 +2077,6 @@ const Registrations = () => {
                       } else if (bookingCurrency.toUpperCase() === 'LKR') {
                         convertedAmt = pLkr > 0 ? pLkr : (pAmt * pExRate);
                       } else {
-                        // Converting from LKR to foreign currency (e.g. USD)
                         if (pExRate > 0) {
                           convertedAmt = (pLkr > 0 ? pLkr : pAmt) / pExRate;
                         }
@@ -2005,9 +2097,39 @@ const Registrations = () => {
                     return (
                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
                         <div className="flex justify-between font-semibold text-slate-500">
-                          <span>Total Booking Amount:</span>
-                          <span className="font-mono font-bold text-slate-900">{totalAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}</span>
+                          <span>Original Room Charges:</span>
+                          <span className={`font-mono font-bold ${totalDiscountDeduction > 0 ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                            {baseAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                          </span>
                         </div>
+                        {totalDiscountDeduction > 0 && (
+                          <div className="flex justify-between font-semibold text-rose-600 bg-rose-50/80 px-2.5 py-1.5 rounded-lg border border-rose-200/50">
+                            <span className="flex items-center gap-1 font-bold">
+                              🏷️ Approved Discount:
+                            </span>
+                            <span className="font-mono font-extrabold text-rose-600">
+                              -{totalDiscountDeduction.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                            </span>
+                          </div>
+                        )}
+                        {totalExtraCharges > 0 && (
+                          <div className="flex justify-between font-semibold text-purple-700 bg-purple-50/80 px-2.5 py-1.5 rounded-lg border border-purple-200/50">
+                            <span className="flex items-center gap-1 font-bold">
+                              ➕ Extra Options:
+                            </span>
+                            <span className="font-mono font-extrabold text-purple-700">
+                              +{totalExtraCharges.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                            </span>
+                          </div>
+                        )}
+                        {(totalDiscountDeduction > 0 || totalExtraCharges > 0) && (
+                          <div className="flex justify-between font-bold text-slate-800 border-t border-dashed border-slate-200 pt-1.5">
+                            <span>Adjusted Total Amount:</span>
+                            <span className="font-mono font-extrabold text-emerald-800">
+                              {totalAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                            </span>
+                          </div>
+                        )}
                         {advancePaidInBookingCurrency > 0 && (
                           <div className="flex justify-between font-semibold text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200/50">
                             <span className="flex items-center gap-1 font-bold">
@@ -2484,6 +2606,9 @@ const Registrations = () => {
         if (!associatedBooking) return null;
         
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
+        const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
+        const isConsolidatedBill = isFinalPayment || isDiscountAdjusted;
+
         const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
         const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
         const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
@@ -2492,15 +2617,17 @@ const Registrations = () => {
         const isExtraPerson = associatedBooking.bookingNumber?.includes('/1P');
         const isDiscount = associatedBooking.bookingNumber?.includes('/DISC');
 
-        let receiptTitle = isFinalPayment 
-          ? 'Final Payment Receipt' 
-          : isExtraNight 
-            ? 'Extra Night Receipt' 
-            : isExtraPerson 
-              ? 'One Person Receipt' 
-              : isDiscount 
-                ? 'Discount Receipt' 
-                : 'Advance Payment Receipt';
+        let receiptTitle = isDiscountAdjusted
+          ? 'Discount Adjusted Invoice'
+          : isFinalPayment 
+            ? 'Final Payment Receipt' 
+            : isExtraNight 
+              ? 'Extra Night Receipt' 
+              : isExtraPerson 
+                ? 'One Person Receipt' 
+                : isDiscount 
+                  ? 'Discount Receipt' 
+                  : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
           const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
@@ -2641,9 +2768,9 @@ Serene Villa Hiriketiya`;
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
         const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
 
-        // For Final Payment / Checkout Invoice, include all sibling bookings (base, extra nights, and discount deductions).
+        // For Final Payment or Discount Adjusted Invoice, include all sibling bookings (base, extra nights, and discount deductions).
         // For isolated sub-booking clicks, only show that specific target sub-booking.
-        const targetBookings = (isFinalPayment && siblingBookings.length > 0)
+        const targetBookings = (isConsolidatedBill && siblingBookings.length > 0)
           ? siblingBookings
           : [associatedBooking];
 
@@ -2880,7 +3007,7 @@ Serene Villa Hiriketiya`;
                   const exRate = exRateRender;
                   const dispCurr = forceReceiptLkr ? 'LKR' : bCurr;
                   
-                  const activeBookings = (isFinalPayment && siblingBookings.length > 0) ? siblingBookings : [associatedBooking];
+                  const activeBookings = (isConsolidatedBill && siblingBookings.length > 0) ? siblingBookings : [associatedBooking];
                   const rawTotAmt = activeBookings.reduce((sum, b) => sum + (parseFloat(b.totalAmount || b.amount || 0)), 0);
                   const totAmt = forceReceiptLkr && bCurr !== 'LKR' ? rawTotAmt * exRate : rawTotAmt;
                   const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
