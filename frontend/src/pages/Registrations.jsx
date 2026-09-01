@@ -1817,7 +1817,7 @@ const Registrations = () => {
 
               {/* Other Options Dropdown directly above payments area */}
               {associatedBooking && (
-                <div className="relative pt-4 border-t border-slate-100/80">
+                <div className="relative pt-4 border-t border-slate-100/80 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wide font-black flex items-center gap-1">
                       OTHER OPTIONS
@@ -1865,6 +1865,76 @@ const Registrations = () => {
                       </button>
                     </div>
                   )}
+
+                  {/* List of Extra Bookings / Other Options with direct Invoice / Receipt Generation */}
+                  {(() => {
+                    const extraBookings = bookings.filter(b => b.guestRegistrationId === selectedReg.id && b.bookingNumber && b.bookingNumber.includes('/'));
+                    if (extraBookings.length === 0) return null;
+
+                    return (
+                      <div className="space-y-2 pt-1">
+                        <div className="space-y-1.5">
+                          {extraBookings.map((extraB) => {
+                            const isExtraNight = extraB.bookingNumber.includes('/1N');
+                            const isExtraPerson = extraB.bookingNumber.includes('/1P');
+                            const isDiscount = extraB.bookingNumber.includes('/DISC');
+                            const badgeTitle = isExtraNight ? 'Extra Night' : isExtraPerson ? 'One Person' : isDiscount ? 'Discount' : 'Extra Option';
+                            const badgeColor = isExtraNight ? 'bg-amber-100 text-amber-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800';
+
+                            return (
+                              <div key={extraB.id} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
+                                <div>
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${badgeColor}`}>
+                                      {badgeTitle}
+                                    </span>
+                                    <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                      {extraB.bookingNumber}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 font-medium">
+                                    Room: <span className="font-bold text-slate-700">{extraB.roomNumber || 'N/A'}</span> • Amount: <span className="font-bold text-emerald-700">{extraB.currency || 'USD'} {parseFloat(extraB.totalAmount || extraB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const subPaymentMock = {
+                                      id: `extra-${extraB.id}`,
+                                      bookingId: extraB.id,
+                                      amount: extraB.totalAmount || extraB.amount || 0,
+                                      amountInCurrency: extraB.totalAmount || extraB.amount || 0,
+                                      currencyCode: extraB.currency || 'USD',
+                                      currency: extraB.currency || 'USD',
+                                      paymentMethod: 'Direct Bill',
+                                      paymentDate: new Date().toISOString().split('T')[0],
+                                      paymentType: 'ADVANCE',
+                                      referenceNumber: extraB.bookingNumber,
+                                      remarks: extraB.remarks || `${badgeTitle} Bill`
+                                    };
+                                    setSelectedPaymentForReceipt(subPaymentMock);
+                                    setReceiptData({
+                                      receiptNumber: `REC-${extraB.bookingNumber.replace('/', '-')}`,
+                                      generatedAt: new Date().toISOString(),
+                                      guestName: selectedReg.guestName,
+                                      bookingRef: extraB.bookingNumber,
+                                      roomNumber: extraB.roomNumber,
+                                      totalAmount: extraB.totalAmount || extraB.amount || 0,
+                                      bookingCurrency: extraB.currency || 'USD'
+                                    });
+                                    setShowReceiptModal(true);
+                                  }}
+                                  className="text-emerald-700 hover:text-emerald-800 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs text-[11px]"
+                                >
+                                  <Receipt className="h-3.5 w-3.5" /> Invoice
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
