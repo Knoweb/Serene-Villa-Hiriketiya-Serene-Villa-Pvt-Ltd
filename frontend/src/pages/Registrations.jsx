@@ -2599,32 +2599,36 @@ const Registrations = () => {
                         </button>
                       </div>
                     </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       {/* Receipt Modal */}
       {showReceiptModal && receiptData && selectedPaymentForReceipt && (() => {
-        const associatedBooking = bookings.find(b => b.id === selectedPaymentForReceipt.bookingId) || getBookingForReg(selectedReg.id);
-        if (!associatedBooking) return null;
+        // Look up by bookingId first, or by guest registration's base booking
+        const associatedBooking = bookings.find(b => b.id === selectedPaymentForReceipt.bookingId) 
+          || bookings.find(b => b.guestRegistrationId === selectedReg?.id && (!b.bookingNumber || !b.bookingNumber.includes('/')))
+          || getBookingForReg(selectedReg?.id);
+
+        if (!associatedBooking && !selectedReg) return null;
         
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
         const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
         const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
-        const isConsolidatedBill = isFinalPayment || isDiscountAdjusted;
+        const isConsolidatedBill = isFinalPayment || isDiscountAdjusted || isOriginalBill;
 
         const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
         const cardFeeVal = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
         const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
         const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
-        const isExtraNight = associatedBooking.bookingNumber?.includes('/1N');
-        const isExtraPerson = associatedBooking.bookingNumber?.includes('/1P');
-        const isDiscount = associatedBooking.bookingNumber?.includes('/DISC');
+        const isExtraNight = associatedBooking?.bookingNumber?.includes('/1N');
+        const isExtraPerson = associatedBooking?.bookingNumber?.includes('/1P');
+        const isDiscount = associatedBooking?.bookingNumber?.includes('/DISC');
 
         let receiptTitle = isDiscountAdjusted
           ? 'Discount Adjusted Invoice'
@@ -2641,9 +2645,9 @@ const Registrations = () => {
                     : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
-          const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
-          const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
-          const totalBookingAmountLkr = bCurr === 'LKR' ? (associatedBooking.totalAmount || 0) : ((associatedBooking.totalAmount || 0) * exRate);
+          const bCurr = (associatedBooking?.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking?.tableCurrency || 'USD');
+          const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking?.exchangeRate) || 335;
+          const totalBookingAmountLkr = bCurr === 'LKR' ? (associatedBooking?.totalAmount || 0) : ((associatedBooking?.totalAmount || 0) * exRate);
           
           const paymentsUpToThis = getVisiblePayments(advancePayments)
             .filter(p => p.id <= selectedPaymentForReceipt.id);
@@ -2666,17 +2670,17 @@ const Registrations = () => {
               ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
 
-          const nightsCount = selectedReg.numberOfNights || selectedReg.nights || 1;
+          const nightsCount = selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1;
 
           const text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴
 
-Dear *${selectedReg.guestName || 'Guest'}*,
+Dear *${selectedReg?.guestName || 'Guest'}*,
 
 Thank you for your payment! Here is your official payment receipt:
 
 📄 *Receipt No:* ${receiptData.receiptNumber}
-🔖 *Booking Ref:* ${associatedBooking.bookingNumber}
-🗓 *Check-in - Check-out:* ${selectedReg.checkInDate} to ${selectedReg.checkOutDate} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'})
+🔖 *Booking Ref:* ${associatedBooking?.bookingNumber || selectedReg?.bookingNumber}
+🗓 *Check-in - Check-out:* ${selectedReg?.checkInDate || associatedBooking?.checkInDate} to ${selectedReg?.checkOutDate || associatedBooking?.checkOutDate} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'})
 
 💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}
 💵 *Amount Paid:* ${amountPaidStr}
@@ -2729,7 +2733,6 @@ Serene Villa Hiriketiya`;
             });
 
             const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
-
             if (jsPDF) {
               const pdf = new jsPDF({
                 orientation: 'portrait',
@@ -2762,24 +2765,23 @@ Serene Villa Hiriketiya`;
         };
 
         // Fetch all related bookings for this guest registration (including base, /1N, /1P, /DISC sub-bookings)
-        const siblingBookings = bookings.filter(b => b.guestRegistrationId === selectedReg.id);
+        const siblingBookings = (selectedReg?.id != null)
+          ? bookings.filter(b => b.guestRegistrationId === selectedReg.id)
+          : [];
         
-        // Find if user is looking at a sub-booking payment or want a consolidated view
-        const subBookingsList = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/'));
-
-        const nightsVal = isFinalPayment 
-          ? (selectedReg.numberOfNights || selectedReg.nights || 1)
-          : (associatedBooking.numberOfNights || associatedBooking.nights || 1);
-
         // Find base booking item and extra charges
         const baseBookingItem = siblingBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
         const discBookings = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
         const extraItems = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
 
+        const nightsVal = isFinalPayment 
+          ? (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1)
+          : (associatedBooking?.numberOfNights || associatedBooking?.nights || selectedReg?.numberOfNights || 1);
+
         const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
 
         // Robust currency detection matching the payment card
-        let bCurrRender = associatedBooking?.currency || baseBookingItem?.currency;
+        let bCurrRender = associatedBooking?.currency || baseBookingItem?.currency || selectedReg?.currency || bookingForm?.currencyCode || selectedPaymentForReceipt?.currencyCode;
         if (!bCurrRender || bCurrRender === 'LKR') {
           if (selectedReg?.currency && selectedReg.currency !== 'LKR') bCurrRender = selectedReg.currency;
           else if (bookingForm?.currencyCode && bookingForm.currencyCode !== 'LKR') bCurrRender = bookingForm.currencyCode;
@@ -2788,17 +2790,35 @@ Serene Villa Hiriketiya`;
           else bCurrRender = isForeignGuest ? 'USD' : 'LKR';
         }
 
-        const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || parseFloat(bookingForm?.exchangeRate) || 335;
+        const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking?.exchangeRate) || parseFloat(bookingForm?.exchangeRate) || 335;
         const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
         const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
         
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
         const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
 
-        // Top itemized table: show only actual room nights / extra options
-        const targetBookings = isOriginalBill 
-          ? [baseBookingItem] 
-          : (siblingBookings.length > 0 ? siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC')) : [associatedBooking]);
+        // Top itemized table target bookings:
+        let targetBookings = [];
+        if (isOriginalBill) {
+          targetBookings = [baseBookingItem || associatedBooking];
+        } else if (siblingBookings.length > 0) {
+          targetBookings = siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC'));
+        } else if (associatedBooking) {
+          targetBookings = [associatedBooking];
+        } else {
+          targetBookings = [];
+        }
+
+        // If targetBookings is empty, create a virtual booking from selectedReg
+        if (targetBookings.length === 0 && selectedReg) {
+          targetBookings = [{
+            roomNumber: selectedReg.roomNumber,
+            roomType: selectedReg.roomType,
+            roomPrices: selectedReg.roomPrices,
+            totalAmount: selectedReg.totalAmount || bookingForm?.amount || 0,
+            numberOfNights: selectedReg.numberOfNights || selectedReg.nights || 1
+          }];
+        }
 
         let itemizedRows = [];
         let roomChargesTotal = 0;
