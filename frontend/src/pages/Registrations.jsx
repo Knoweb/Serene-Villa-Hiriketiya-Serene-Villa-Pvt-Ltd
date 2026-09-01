@@ -3029,9 +3029,11 @@ Serene Villa Hiriketiya`;
                   const discBookings = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
                   const totalDiscountVal = isOriginalBill ? 0 : discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
 
-                  // Base Gross Booking Amount before discount
+                  // Base Gross Booking Amount (e.g. EUR 3,100)
                   const grossTotAmt = roomChargesTotal / convFactor;
-                  // Net Booking Amount after discount
+                  const dispGrossTotAmt = forceReceiptLkr && bCurr !== 'LKR' ? grossTotAmt * exRate : grossTotAmt;
+
+                  // Net Booking Amount after discount deduction (e.g. EUR 2,600)
                   const netTotAmt = Math.max(0, grossTotAmt - totalDiscountVal);
                   const dispNetTotAmt = forceReceiptLkr && bCurr !== 'LKR' ? netTotAmt * exRate : netTotAmt;
 
@@ -3047,13 +3049,14 @@ Serene Villa Hiriketiya`;
                   const totalPaidBCurr = (totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate)));
                   const remBal = isFinalPayment ? 0 : Math.max(0, dispNetTotAmt - totalPaidBCurr);
                   
-                  const convertedAmountLkr = (dispNetTotAmt * (dispCurr === 'LKR' ? 1 : exRate));
+                  // Converted Amount in LKR is calculated AFTER deducting the discount (e.g. EUR 2,600 * 350 = LKR 910,000)
+                  const convertedAmountLkr = (netTotAmt * (bCurr === 'LKR' ? 1 : exRate));
 
                   return (
                     <div className="border border-slate-700/60 rounded-lg p-3 bg-white space-y-1.5 shadow-2xs print:border-slate-400">
                       <div className="flex justify-between pb-0.5 border-b border-slate-100">
                         <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-                        <span className="font-bold text-slate-800">{dispCurr} {dispNetTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-bold text-slate-800">{dispCurr} {dispGrossTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
 
                       {totalDiscountVal > 0 && !isOriginalBill && (
@@ -3063,10 +3066,13 @@ Serene Villa Hiriketiya`;
                         </div>
                       )}
 
-                      <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Amount Paid:' : 'Advance Paid:'}</span>
-                        <span className="font-bold text-slate-900">{dispCurr} {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
+                      {/* Advance Paid / Amount Paid: Only show if an actual payment has been made or is final payment */}
+                      {(paidAmt > 0 || isFinalPayment) && (
+                        <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                          <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Amount Paid:' : 'Advance Paid:'}</span>
+                          <span className="font-bold text-slate-900">{dispCurr} {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
 
                       {cardFeeVal > 0 && (
                         <div className="flex justify-between pb-0.5 border-b border-slate-100">

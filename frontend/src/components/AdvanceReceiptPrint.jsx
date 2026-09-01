@@ -293,6 +293,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           const totalDiscountVal = isOriginalBill ? 0 : discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
 
           const grossTotAmt = roomChargesTotal / convFactor;
+          const dispGrossTotAmt = forceLkr ? grossTotAmt * exRate : grossTotAmt;
+
           const netTotAmt = Math.max(0, grossTotAmt - totalDiscountVal);
           const dispNetTotAmt = forceLkr ? netTotAmt * exRate : netTotAmt;
 
@@ -307,13 +309,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           const remBal = isFinalPayment ? 0 : Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay);
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           
-          const convertedAmountLkr = (dispNetTotAmt * (displayCurrency === 'LKR' ? 1 : exRate));
+          // Converted amount in LKR is calculated on the net amount after discount deduction
+          const convertedAmountLkr = (netTotAmt * (displayCurrency === 'LKR' ? 1 : exRate));
 
           return (
             <div className="border border-slate-700/60 rounded-lg p-3 space-y-1.5 bg-white shadow-2xs">
               <div className="flex justify-between pb-0.5 border-b border-slate-100">
                 <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-                <span className="font-bold text-slate-800">{displayCurrency} {dispNetTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-bold text-slate-800">{displayCurrency} {dispGrossTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
 
               {totalDiscountVal > 0 && !isOriginalBill && (
@@ -323,12 +326,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 </div>
               )}
               
-              <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Amount Paid:' : 'Advance Paid:'}</span>
-                <span className="font-bold text-slate-900">
-                  {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
+              {(paidDisplayAmt > 0 || isFinalPayment) && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Amount Paid:' : 'Advance Paid:'}</span>
+                  <span className="font-bold text-slate-900">
+                    {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
 
               {(() => {
                 const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
