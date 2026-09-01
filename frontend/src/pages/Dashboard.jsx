@@ -383,9 +383,17 @@ const Dashboard = () => {
 
 
                 <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4 col-span-1 md:col-span-2 lg:col-span-3">
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <Percent className="h-4.5 w-4.5 text-emerald-600" /> Pending Discount Approvals
-                  </h3>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <Percent className="h-4.5 w-4.5 text-emerald-600" /> Pending Discount Approvals
+                    </h3>
+                    <button 
+                      onClick={() => navigate('/discounts')}
+                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1"
+                    >
+                      Manage Discounts <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   <div className="border border-slate-100 rounded-xl overflow-hidden text-xs font-semibold text-slate-600">
                     {pendingDiscounts.length === 0 ? (
                       <div className="p-8 text-center text-slate-400 font-bold">
@@ -428,6 +436,86 @@ const Dashboard = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Approved Discounts & Applied Reductions Section on Dashboard */}
+                {(() => {
+                  const savedDiscounts = localStorage.getItem('pms_discounts');
+                  const allDiscounts = savedDiscounts ? JSON.parse(savedDiscounts) : [];
+                  const approvedDiscounts = allDiscounts.filter(d => d.status === 'Approved');
+
+                  if (approvedDiscounts.length === 0) return null;
+
+                  return (
+                    <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4 col-span-1 md:col-span-2 lg:col-span-3">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-2">
+                          <CheckCircle className="h-4.5 w-4.5 text-emerald-600" /> Approved Discounts & Reduced Final Bills ({approvedDiscounts.length})
+                        </h3>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200/60">
+                          Auto-Deducted from Final Bill
+                        </span>
+                      </div>
+
+                      <div className="border border-emerald-100/60 rounded-xl overflow-hidden text-xs font-semibold">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-emerald-50/50 border-b border-emerald-100 text-emerald-800 font-bold uppercase tracking-wider text-[9px]">
+                                <th className="p-3">Booking Ref</th>
+                                <th className="p-3">Guest Name</th>
+                                <th className="p-3">Original Total</th>
+                                <th className="p-3">Discount Deducted</th>
+                                <th className="p-3">Reduced Net Total</th>
+                                <th className="p-3">Approved By</th>
+                                <th className="p-3 text-right">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-emerald-50/60 text-slate-700">
+                              {approvedDiscounts.map((disc) => {
+                                const rawDiscountNum = parseFloat(String(disc.requestedDiscount).replace(/[^\d.-]/g, '')) || 0;
+                                const originalTot = disc.totalAmount || 0;
+                                const reducedTot = Math.max(0, originalTot - rawDiscountNum);
+                                const curr = disc.currency || (String(disc.requestedDiscount).includes('LKR') ? 'LKR' : 'USD');
+
+                                return (
+                                  <tr key={disc.id} className="hover:bg-emerald-50/30 transition">
+                                    <td className="p-3 font-mono text-emerald-700 font-bold">
+                                      {disc.bookingRef}
+                                    </td>
+                                    <td className="p-3 font-bold text-slate-900">{disc.guestName}</td>
+                                    <td className="p-3 font-mono text-slate-500 line-through">
+                                      {curr} {originalTot.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="p-3 font-mono font-bold text-rose-600">
+                                      -{curr} {rawDiscountNum.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="p-3 font-mono font-extrabold text-emerald-700 bg-emerald-50/30">
+                                      {curr} {reducedTot.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="p-3 text-slate-500">
+                                      <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-[9px] font-bold">
+                                        ✓ {disc.approvedBy || 'Admin'}
+                                      </span>
+                                    </td>
+                                    <td className="p-3 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={() => navigate('/registrations')}
+                                        className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer"
+                                      >
+                                        <FileText className="h-3 w-3" /> View Final Bill
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}
