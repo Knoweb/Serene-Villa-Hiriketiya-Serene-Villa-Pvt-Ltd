@@ -2607,6 +2607,7 @@ const Registrations = () => {
         
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
         const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
+        const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
         const isConsolidatedBill = isFinalPayment || isDiscountAdjusted;
 
         const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
@@ -2619,15 +2620,17 @@ const Registrations = () => {
 
         let receiptTitle = isDiscountAdjusted
           ? 'Discount Adjusted Invoice'
-          : isFinalPayment 
-            ? 'Final Payment Receipt' 
-            : isExtraNight 
-              ? 'Extra Night Receipt' 
-              : isExtraPerson 
-                ? 'One Person Receipt' 
-                : isDiscount 
-                  ? 'Discount Receipt' 
-                  : 'Advance Payment Receipt';
+          : isOriginalBill
+            ? 'Original Reservation Invoice'
+            : isFinalPayment 
+              ? 'Final Payment Receipt' 
+              : isExtraNight 
+                ? 'Extra Night Receipt' 
+                : isExtraPerson 
+                  ? 'One Person Receipt' 
+                  : isDiscount 
+                    ? 'Discount Receipt' 
+                    : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
           const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
