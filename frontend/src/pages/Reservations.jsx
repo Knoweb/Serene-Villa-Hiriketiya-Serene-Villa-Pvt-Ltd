@@ -980,12 +980,9 @@ const Reservations = () => {
       unitPrice: '',
       totalPrice: '',
       currency: 'USD',
-    tableCurrency: 'USD',
-      tableCurrency: 'LKR',
+      tableCurrency: 'USD',
       exchangeRate: '1.00',
-    allocatedRooms: [],
-    exchangeRate: '1.00',
-    allocatedRooms: [],
+      allocatedRooms: [],
       confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
       senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
@@ -4169,13 +4166,25 @@ Serene Villa Hiriketiya`;
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Table Currency:</span>
                                 <select
-                                  value={confirmationData.tableCurrency || 'USD'}
+                                  value={confirmationData.tableCurrency || confirmationData.currency || 'USD'}
                                   onChange={(e) => {
                                     const newTableCurr = e.target.value;
-                                    setConfirmationData({
-                                      ...confirmationData,
-                                      tableCurrency: newTableCurr
-                                    });
+                                    let defaultRate = '1.00';
+                                    if (newTableCurr === 'USD') defaultRate = '300.00';
+                                    else if (newTableCurr === 'EUR') defaultRate = '325.00';
+                                    else if (newTableCurr === 'AUD') defaultRate = '220.00';
+                                    else if (newTableCurr === 'LKR') defaultRate = '1.00';
+
+                                    const tableSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, itm) => sum + (parseFloat(itm.price) || 0), 0) : 0;
+                                    const rate = parseFloat(defaultRate) || 1;
+
+                                    setConfirmationData(prev => ({
+                                      ...prev,
+                                      tableCurrency: newTableCurr,
+                                      currency: newTableCurr,
+                                      exchangeRate: defaultRate,
+                                      totalPrice: (tableSum * rate).toFixed(2)
+                                    }));
                                   }}
                                   className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
                                 >
@@ -4192,7 +4201,7 @@ Serene Villa Hiriketiya`;
                                   <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
                                     <th className="pb-1.5 font-semibold">Room Name</th>
                                     <th className="pb-1.5 font-semibold">Room Number</th>
-                                    <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.tableCurrency || 'USD'})</th>
+                                    <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.tableCurrency || confirmationData.currency || 'USD'})</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -4202,7 +4211,7 @@ Serene Villa Hiriketiya`;
                                       <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
                                       <td className="py-1 text-right">
                                         <div className="inline-flex items-center gap-1.5 justify-end">
-                                          <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.tableCurrency || 'USD'}</span>
+                                          <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.tableCurrency || confirmationData.currency || 'USD'}</span>
                                           <input
                                             type="number"
                                             step="0.01"
@@ -4231,7 +4240,7 @@ Serene Villa Hiriketiya`;
                                   <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
                                     <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
                                     <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
-                                      {confirmationData.tableCurrency || 'USD'} {(() => {
+                                      {confirmationData.tableCurrency || confirmationData.currency || 'USD'} {(() => {
                                         const tableSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, itm) => sum + (parseFloat(itm.price) || 0), 0) : 0;
                                         return tableSum.toFixed(2);
                                       })()}
@@ -4296,33 +4305,23 @@ Serene Villa Hiriketiya`;
                       </select>
                     </div>
 
-                    {/* Currency */}
+                    {/* Currency (Locked & Synced to Room Table Currency) */}
                     <div className="space-y-1.5 col-span-1">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
-                      <select 
-                        value={confirmationData.currency}
-                        onChange={(e) => {
-                          const curr = e.target.value;
-                          const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
-                          const rate = parseFloat(confirmationData.exchangeRate) || 1;
-                          setConfirmationData({
-                            ...confirmationData,
-                            currency: curr,
-                            totalPrice: (usdSum * rate).toFixed(2)
-                          });
-                        }}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
-                      >
-                        <option value="USD">USD</option>
-                        <option value="LKR">LKR</option>
-                        <option value="EUR">EUR</option>
-                        <option value="AUD">AUD</option>
-                      </select>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency (Locked)</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          readOnly
+                          disabled
+                          value={confirmationData.tableCurrency || confirmationData.currency || 'USD'}
+                          className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-bold font-mono cursor-not-allowed text-xs"
+                        />
+                      </div>
                     </div>
 
                     {/* Currency Rate */}
                     <div className="space-y-1.5 col-span-1">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency Rate</label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exchange Rate (to LKR)</label>
                       <input 
                         type="number" 
                         step="0.01"
@@ -4343,9 +4342,9 @@ Serene Villa Hiriketiya`;
 
                     {/* Total Price (LKR) */}
                     <div className="space-y-1.5 col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price (LKR)</label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price ({confirmationData.tableCurrency || confirmationData.currency || 'USD'})</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-2 text-slate-450 font-bold text-xs select-none">LKR</span>
+                        <span className="absolute left-3 top-2 text-slate-450 font-bold text-xs select-none">{confirmationData.tableCurrency || confirmationData.currency || 'USD'}</span>
                         <input 
                           type="number" 
                           readOnly
@@ -4591,14 +4590,26 @@ Serene Villa Hiriketiya`;
                          <div className="flex items-center gap-1.5">
                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Table Currency:</span>
                            <select
-                             value={confirmationData.tableCurrency || 'LKR'}
-                             onChange={(e) => {
-                               const newTableCurr = e.target.value;
-                               setConfirmationData({
-                                 ...confirmationData,
-                                 tableCurrency: newTableCurr
-                               });
-                             }}
+                              value={confirmationData.tableCurrency || confirmationData.currency || 'USD'}
+                              onChange={(e) => {
+                                const newTableCurr = e.target.value;
+                                let defaultRate = '1.00';
+                                if (newTableCurr === 'USD') defaultRate = '300.00';
+                                else if (newTableCurr === 'EUR') defaultRate = '325.00';
+                                else if (newTableCurr === 'AUD') defaultRate = '220.00';
+                                else if (newTableCurr === 'LKR') defaultRate = '1.00';
+
+                                const tableSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, itm) => sum + (parseFloat(itm.price) || 0), 0) : 0;
+                                const rate = parseFloat(defaultRate) || 1;
+
+                                setConfirmationData(prev => ({
+                                  ...prev,
+                                  tableCurrency: newTableCurr,
+                                  currency: newTableCurr,
+                                  exchangeRate: defaultRate,
+                                  totalPrice: (tableSum * rate).toFixed(2)
+                                }));
+                              }}
                              className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
                            >
                              <option value="USD">USD</option>
@@ -4614,7 +4625,7 @@ Serene Villa Hiriketiya`;
                              <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
                                <th className="pb-1.5 font-semibold">Room Name</th>
                                <th className="pb-1.5 font-semibold">Room Number</th>
-                               <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.tableCurrency || 'LKR'})</th>
+                               <th className="pb-1.5 font-semibold w-36 text-right">Price ({confirmationData.tableCurrency || confirmationData.currency || 'USD'})</th>
                              </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-100">
@@ -4624,7 +4635,7 @@ Serene Villa Hiriketiya`;
                                   <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
                                   <td className="py-1 text-right">
                                     <div className="inline-flex items-center gap-1.5 justify-end">
-                                      <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.tableCurrency || 'LKR'}</span>
+                                      <span className="text-[10px] text-slate-400 font-bold font-mono">{confirmationData.tableCurrency || confirmationData.currency || 'USD'}</span>
                                       <input
                                         type="number"
                                         step="0.01"
@@ -4654,7 +4665,7 @@ Serene Villa Hiriketiya`;
                               <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
                                 <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
                                 <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
-                                  {confirmationData.tableCurrency || 'LKR'} {(() => {
+                                  {confirmationData.tableCurrency || confirmationData.currency || 'USD'} {(() => {
                                     const tableSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
                                     return tableSum.toFixed(2);
                                   })()}
@@ -4663,31 +4674,21 @@ Serene Villa Hiriketiya`;
                             </tbody>
                          </table>
                        </div>
-                     </div>
-                   )}                   {/* Currency */}
-                   <div className="space-y-1.5 col-span-1">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency</label>
-                     <select 
-                       value={confirmationData.currency}
-                       onChange={(e) => {
-                         const curr = e.target.value;
-                         const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
-                         const rate = parseFloat(confirmationData.exchangeRate) || 1;
-                         setConfirmationData({
-                           ...confirmationData,
-                           currency: curr,
-                           totalPrice: (usdSum * rate).toFixed(2)
-                         });
-                       }}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
-                     >
-                       <option value="USD">USD</option>
-                       <option value="LKR">LKR</option>
-                       <option value="EUR">EUR</option>
-                       <option value="AUD">AUD</option>
-                     </select>
-                   </div>
-
+                      </div>
+                    )}
+                    {/* Currency (Locked & Synced to Room Table Currency) */}
+                    <div className="space-y-1.5 col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency (Locked)</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          readOnly
+                          disabled
+                          value={confirmationData.tableCurrency || confirmationData.currency || 'USD'}
+                          className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-bold font-mono cursor-not-allowed text-xs"
+                        />
+                      </div>
+                    </div>
                    {/* Currency Rate */}
                    <div className="space-y-1.5 col-span-1">
                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency Rate</label>
