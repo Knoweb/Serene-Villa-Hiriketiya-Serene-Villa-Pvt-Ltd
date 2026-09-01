@@ -2554,10 +2554,8 @@ Serene Villa Hiriketiya`;
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
         const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
 
-        // Build itemized rows dynamically from either the single target booking (if printing sub-payment) or all sibling bookings (if final settlement)
-        const targetBookings = isFinalPayment 
-          ? siblingBookings 
-          : [associatedBooking];
+        // Always isolate the bill to the specific booking being paid/viewed (Base or sub-booking /1N, /1P)
+        const targetBookings = [associatedBooking];
 
         let itemizedRows = [];
         let grandTotalAmount = 0;
@@ -2723,46 +2721,21 @@ Serene Villa Hiriketiya`;
                     </tr>
                   </thead>
                   <tbody className="font-semibold text-slate-800">
-                    {(() => {
-                      const baseRows = itemizedRows.filter(r => !r.isExtra);
-                      const extraRows = itemizedRows.filter(r => r.isExtra);
-                      
-                      const renderRow = (row, idx) => (
+                    {itemizedRows.length > 0 ? (
+                      itemizedRows.map((row, idx) => (
                         <tr key={idx} className="border-b border-emerald-800/20 print:border-slate-400">
                           <td className="border-r border-emerald-800/20 px-3 py-1.5 text-left print:border-slate-400">{row.description}</td>
                           <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400">{row.amountVal}</td>
                           <td className="px-2 py-1.5 text-center font-mono border-emerald-800/20">{row.amountCts}</td>
                         </tr>
-                      );
-
-                      let elements = [];
-                      
-                      // 1. Render Base Room details
-                      if (baseRows.length > 0 && isFinalPayment) {
-                        elements.push(
-                          <tr key="base-header" className="bg-slate-50 border-b border-emerald-800/20">
-                            <td colSpan={3} className="px-3 py-1 text-[8px] font-black text-slate-500 uppercase tracking-wider">Base Room Allocation</td>
-                          </tr>
-                        );
-                        baseRows.forEach((row, i) => elements.push(renderRow(row, `base-${i}`)));
-                      }
-
-                      // 2. Render Extra Options details
-                      const extrasToRender = isFinalPayment ? extraRows : itemizedRows;
-                      if (extrasToRender.length > 0) {
-                        elements.push(
-                          <tr key="extra-header" className="bg-slate-50 border-b border-emerald-800/20 border-t border-emerald-800/20">
-                            <td colSpan={3} className="px-3 py-1 text-[8px] font-black text-slate-500 uppercase tracking-wider">Other Options / Extra Additions</td>
-                          </tr>
-                        );
-                        extrasToRender.forEach((row, i) => elements.push(renderRow(row, `extra-${i}`)));
-                      }
-
-                      if (elements.length > 0) return elements;
-
-                      // Fallback
-                      return renderRow(fallbackRow, 'fallback');
-                    })()}
+                      ))
+                    ) : (
+                      <tr className="border-b border-emerald-800/20 print:border-slate-400">
+                        <td className="border-r border-emerald-800/20 px-3 py-1.5 text-left print:border-slate-400">{fallbackRow.description}</td>
+                        <td className="border-r border-emerald-800/20 px-3 py-1.5 text-right font-mono print:border-slate-400">{fallbackRow.amountVal}</td>
+                        <td className="px-2 py-1.5 text-center font-mono border-emerald-800/20">{fallbackRow.amountCts}</td>
+                      </tr>
+                    )}
                     <tr className="bg-emerald-50/10 font-bold text-slate-900 border-t-2 border-emerald-800/30 print:border-slate-400">
                       <td className="border-r border-emerald-800/20 px-3 py-2 text-right uppercase text-[8px] tracking-wider print:border-slate-400 font-extrabold" colSpan={1}>TOTAL VALUE</td>
                       <td className="border-r border-emerald-800/20 px-3 py-2 text-right font-mono font-bold print:border-slate-400 text-emerald-800">{Math.floor(dispTotalAmount).toLocaleString()}</td>
