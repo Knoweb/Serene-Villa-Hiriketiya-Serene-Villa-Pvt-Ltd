@@ -2554,37 +2554,52 @@ const Reservations = () => {
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
                               />
                             </div>
-                            {paymentForm.paymentMethod === 'Card' && (
-                               <div className="col-span-2 space-y-1">
-                                 <div className="flex justify-between items-center">
-                                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Charges (LKR)</label>
-                                   <button
-                                     type="button"
-                                     onClick={() => {
-                                       const amt = parseFloat(paymentForm.amount) || 0;
-                                       const rate = paymentForm.currencyCode === 'LKR' ? 1 : (parseFloat(paymentForm.exchangeRate) || 1);
-                                       const lkrAmt = amt * rate;
-                                       const bankFeeLkr = (lkrAmt * 0.03).toFixed(2);
-                                       setPaymentForm({ ...paymentForm, cardFee: bankFeeLkr });
-                                     }}
-                                     className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition cursor-pointer"
-                                   >
-                                     + Add 3% Charges ({(((parseFloat(paymentForm.amount)||0) * (paymentForm.currencyCode === 'LKR' ? 1 : (parseFloat(paymentForm.exchangeRate)||1))) * 0.03).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} LKR)
-                                   </button>
-                                 </div>
-                                 <div className="relative">
-                                   <input
-                                     type="number"
-                                     step="any"
-                                     placeholder="0.00 (Optional - enter only if charging guest)"
-                                     value={paymentForm.cardFee}
-                                     onChange={(e) => setPaymentForm({ ...paymentForm, cardFee: e.target.value })}
-                                     className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none text-slate-700 pr-12"
-                                   />
-                                   <span className="absolute right-3 top-2 text-[10px] font-bold text-slate-400">LKR</span>
-                                 </div>
-                               </div>
-                             )}
+
+                            {paymentForm.paymentMethod === 'Card' && (() => {
+                              const payCurr = paymentForm.currencyCode || bookingCurrency || 'EUR';
+                              const rawAmt = parseFloat(paymentForm.amount) || 0;
+                              const calc3Pct = (rawAmt * 0.03).toFixed(2);
+                              return (
+                                <div className="col-span-2 space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                      Card Charges ({payCurr})
+                                    </label>
+                                    <div className="flex gap-1.5 items-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setPaymentForm(prev => ({ ...prev, cardFee: calc3Pct }));
+                                        }}
+                                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition cursor-pointer"
+                                      >
+                                        + Auto 3% ({calc3Pct} {payCurr})
+                                      </button>
+                                      {paymentForm.cardFee && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setPaymentForm(prev => ({ ...prev, cardFee: '' }))}
+                                          className="text-[10px] text-slate-400 hover:text-rose-500 px-1 py-0.5 rounded transition"
+                                        >
+                                          Clear
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="relative">
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      placeholder="0.00 (Optional - enter only if charging guest)"
+                                      value={paymentForm.cardFee}
+                                      onChange={(e) => setPaymentForm({ ...paymentForm, cardFee: e.target.value })}
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none text-slate-700 pr-14"
+                                    />
+                                    <span className="absolute right-3 top-2 text-[10px] font-bold text-slate-400">{payCurr}</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             <div className="col-span-2">
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
