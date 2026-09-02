@@ -3061,7 +3061,12 @@ Serene Villa Hiriketiya`;
                     </div>
                     <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Date:</span>
-                      <span className="font-bold text-slate-800">{new Date(receiptData.generatedAt).toLocaleDateString()}</span>
+                      <span className="font-bold text-slate-800">{(() => {
+                        const rawD = selectedPaymentForReceipt?.paymentDate || receiptData?.generatedAt || receiptData?.paymentDate || selectedPaymentForReceipt?.createdAt;
+                        if (!rawD) return new Date().toLocaleDateString();
+                        const parsed = new Date(rawD);
+                        return isNaN(parsed.getTime()) ? String(rawD).split('T')[0] : parsed.toLocaleDateString();
+                      })()}</span>
                     </div>
                   </div>
                 </div>
@@ -3168,13 +3173,28 @@ Serene Villa Hiriketiya`;
                   const dispNetTotAmt = forceReceiptLkr && bCurr !== 'LKR' ? netTotAmt * exRate : netTotAmt;
 
                   const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
-                  const paidAmt = isFinalPayment
-                    ? (forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR'
-                        ? netTotAmt * exRate
-                        : netTotAmt)
-                    : (forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
-                        ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
-                        : rawPaid);
+                  
+                  // Compute prior advance payments received prior to this payment (or marked as Advance)
+                  const allVisiblePays = getVisiblePayments(advancePayments);
+                  const priorAdvancePays = isFinalPayment
+                    ? allVisiblePays.filter(p => p.id !== selectedPaymentForReceipt.id && (p.paymentType === 'ADVANCE' || p.isAdvancePayment || p.id < selectedPaymentForReceipt.id))
+                    : [];
+                  
+                  const priorAdvancePaidBCurr = priorAdvancePays.reduce((sum, p) => {
+                    const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+                    const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
+                    const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                    const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+                    if (pCurr === bCurr.toUpperCase()) return sum + pAmt;
+                    if (bCurr.toUpperCase() === 'LKR') return sum + (pLkr > 0 ? pLkr : (pAmt * pExRate));
+                    return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
+                  }, 0);
+
+                  const dispPriorAdvancePaid = forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
+
+                  const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
+                    ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
+                    : rawPaid;
 
                   let remBal = 0;
                   if (isFinalPayment) {
@@ -3209,10 +3229,18 @@ Serene Villa Hiriketiya`;
                         </div>
                       )}
 
-                      {/* Advance Paid / Amount Paid: Only show if an actual payment has been made or is final payment */}
-                      {(paidAmt > 0 || isFinalPayment) && (
+                      {/* Advance Payments Received earlier (Shown on Final Receipt) */}
+                      {isFinalPayment && dispPriorAdvancePaid > 0 && (
+                        <div className="flex justify-between pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
+                          <span className="font-semibold">Advance Paid Earlier:</span>
+                          <span className="font-bold font-mono">-{dispCurr} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+
+                      {/* Current Payment Amount */}
+                      {paidAmt > 0 && (
                         <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                          <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Amount Paid:' : 'Advance Paid:'}</span>
+                          <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Settlement Paid:' : 'Advance Paid:'}</span>
                           <span className="font-bold text-slate-900">{dispCurr} {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}

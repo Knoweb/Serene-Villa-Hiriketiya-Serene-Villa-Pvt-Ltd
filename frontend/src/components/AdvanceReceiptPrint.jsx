@@ -225,7 +225,12 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             </div>
             <div className="flex gap-4 justify-between">
               <span className="text-slate-500 font-semibold">Date:</span>
-              <span className="font-bold text-slate-800">{new Date(receiptData.generatedAt).toLocaleDateString()}</span>
+              <span className="font-bold text-slate-800">{(() => {
+                const rawD = selectedPaymentForReceipt?.paymentDate || receiptData?.generatedAt || receiptData?.paymentDate || selectedPaymentForReceipt?.createdAt;
+                if (!rawD) return new Date().toLocaleDateString();
+                const parsed = new Date(rawD);
+                return isNaN(parsed.getTime()) ? String(rawD).split('T')[0] : parsed.toLocaleDateString();
+              })()}</span>
             </div>
           </div>
         </div>
@@ -369,11 +374,27 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           const dispNetTotAmt = forceLkr ? netTotAmt * exRate : netTotAmt;
 
           const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
-          const paidDisplayAmt = isFinalPayment
-            ? (forceLkr ? netTotAmt * exRate : netTotAmt)
-            : (forceLkr 
-                ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
-                : rawPaid);
+          
+          // Compute prior advance payments received prior to this payment (or marked as Advance)
+          const priorAdvancePays = isFinalPayment
+            ? payments.filter(p => p.id !== selectedPaymentForReceipt.id && (p.paymentType === 'ADVANCE' || p.isAdvancePayment || p.id < selectedPaymentForReceipt.id))
+            : [];
+          
+          const priorAdvancePaidBCurr = priorAdvancePays.reduce((sum, p) => {
+            const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+            const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
+            const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+            const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+            if (pCurr === bCurr.toUpperCase()) return sum + pAmt;
+            if (bCurr.toUpperCase() === 'LKR') return sum + (pLkr > 0 ? pLkr : (pAmt * pExRate));
+            return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
+          }, 0);
+
+          const dispPriorAdvancePaid = forceLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
+
+          const paidDisplayAmt = forceLkr 
+            ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
+            : rawPaid;
 
           let remBal = 0;
           if (isFinalPayment) {
@@ -405,10 +426,18 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                   <span className="font-bold font-mono">-{displayCurrency} {(forceLkr ? totalDiscountVal * exRate : totalDiscountVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
+
+              {/* Advance Payments Received earlier (Shown on Final Receipt) */}
+              {isFinalPayment && dispPriorAdvancePaid > 0 && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
+                  <span className="font-semibold">Advance Paid Earlier:</span>
+                  <span className="font-bold font-mono">-{displayCurrency} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
               
-              {(paidDisplayAmt > 0 || isFinalPayment) && (
+              {paidDisplayAmt > 0 && (
                 <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Amount Paid:' : 'Advance Paid:'}</span>
+                  <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Settlement Paid:' : 'Advance Paid:'}</span>
                   <span className="font-bold text-slate-900">
                     {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
