@@ -902,33 +902,35 @@ const Registrations = () => {
       if (!res.ok) throw new Error('Failed to save payment');
       const savedPayment = await res.json();
 
-      // Determine new payment status
-      let newPaymentStatus = 'Unpaid';
-      if (isFull || newTotalInBookingCurrency >= totalBookingAmount) newPaymentStatus = 'Paid';
-      else if (newTotalInBookingCurrency > 0) newPaymentStatus = 'Partially Paid';
+    const totalBookingAmount = baseAmount + totalExtraCharges;
 
-      await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentStatus: newPaymentStatus })
-      });
+    // Determine new payment status
+    let newPaymentStatus = 'Unpaid';
+    if (isFull || newTotalInBookingCurrency >= (netBookingAmount - 0.01)) newPaymentStatus = 'Paid';
+    else if (newTotalInBookingCurrency > 0) newPaymentStatus = 'Partially Paid';
 
-      setSelectedReg(prev => ({ ...prev, paymentStatus: newPaymentStatus }));
-      fetchRegistrations();
-      fetchAdvancePayments(booking.id);
+    await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentStatus: newPaymentStatus })
+    });
 
-      setSelectedPaymentForReceipt(savedPayment);
-      const baseBooking = bookings.find(b => b.guestRegistrationId === selectedReg?.id && (!b.bookingNumber || !b.bookingNumber.includes('/')));
-      const realBooking = baseBooking || getBookingForReg(selectedReg?.id) || booking;
-      setReceiptData({
-        ...savedPayment,
-        guestName: selectedReg.guestName,
-        bookingRef: realBooking?.bookingNumber || bookingForm.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, ''),
-        roomNumber: realBooking?.roomNumber || bookingForm.room,
-        totalAmount: totalBookingAmount,
-        bookingCurrency: bookingCurrency
-      });
-      setShowReceiptModal(true);
+    setSelectedReg(prev => ({ ...prev, paymentStatus: newPaymentStatus }));
+    fetchRegistrations();
+    fetchAdvancePayments(booking.id);
+
+    setSelectedPaymentForReceipt(savedPayment);
+    const baseBooking = bookings.find(b => b.guestRegistrationId === selectedReg?.id && (!b.bookingNumber || !b.bookingNumber.includes('/')));
+    const realBooking = baseBooking || getBookingForReg(selectedReg?.id) || booking;
+    setReceiptData({
+      ...savedPayment,
+      guestName: selectedReg.guestName,
+      bookingRef: realBooking?.bookingNumber || bookingForm.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, ''),
+      roomNumber: realBooking?.roomNumber || bookingForm.room,
+      totalAmount: totalBookingAmount,
+      bookingCurrency: bookingCurrency
+    });
+    setShowReceiptModal(true);
 
       setPaymentForm({
         amount: '',
