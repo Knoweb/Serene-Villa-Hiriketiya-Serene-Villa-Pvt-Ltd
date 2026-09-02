@@ -2123,66 +2123,95 @@ const Registrations = () => {
                     const bal = pStatus === 'Paid' ? 0 : Math.max(0, totalAmt - totalPaidInBookingCurrency);
 
                     return (
-                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2 text-xs">
-                        <div className="flex justify-between font-semibold text-slate-500">
-                          <span>Original Room Charges:</span>
-                          <span className={`font-mono font-bold ${totalDiscountDeduction > 0 ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-2.5 text-xs">
+                        {/* Header & Status */}
+                        <div className="flex justify-between items-center pb-2.5 border-b border-slate-100">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Financial Summary</span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide flex items-center gap-1 ${
+                            pStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800'
+                            : pStatus === 'Partially Paid' ? 'bg-amber-100 text-amber-800'
+                            : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              pStatus === 'Paid' ? 'bg-emerald-600'
+                              : pStatus === 'Partially Paid' ? 'bg-amber-600'
+                              : 'bg-rose-600'
+                            }`} />
+                            {pStatus}
+                          </span>
+                        </div>
+
+                        {/* Original Base Rate */}
+                        <div className="flex justify-between items-center text-slate-600 py-0.5 font-medium">
+                          <span>Base Reservation Charges</span>
+                          <span className={`font-mono font-bold ${totalDiscountDeduction > 0 ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                             {baseAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                           </span>
                         </div>
+
+                        {/* Approved Discount Item */}
                         {totalDiscountDeduction > 0 && (
-                          <div className="flex justify-between font-semibold text-rose-600 bg-rose-50/80 px-2.5 py-1.5 rounded-lg border border-rose-200/50">
-                            <span className="flex items-center gap-1 font-bold">
-                              🏷️ Approved Discount:
+                          <div className="flex justify-between items-center text-rose-700 bg-rose-50/70 px-3 py-1.5 rounded-xl border border-rose-100">
+                            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+                              <Tag size={13} className="text-rose-600" />
+                              Approved Discount
                             </span>
-                            <span className="font-mono font-extrabold text-rose-600">
+                            <span className="font-mono font-black text-rose-700">
                               -{totalDiscountDeduction.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                             </span>
                           </div>
                         )}
+
+                        {/* Extra Options Item */}
                         {totalExtraCharges > 0 && (
-                          <div className="flex justify-between font-semibold text-purple-700 bg-purple-50/80 px-2.5 py-1.5 rounded-lg border border-purple-200/50">
-                            <span className="flex items-center gap-1 font-bold">
-                              ➕ Extra Options:
+                          <div className="flex justify-between items-center text-purple-800 bg-purple-50/70 px-3 py-1.5 rounded-xl border border-purple-100">
+                            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+                              <Plus size={13} className="text-purple-600 stroke-[2.5]" />
+                              Additional Bookings & Extras
                             </span>
-                            <span className="font-mono font-extrabold text-purple-700">
+                            <span className="font-mono font-black text-purple-800">
                               +{totalExtraCharges.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                             </span>
                           </div>
                         )}
+
+                        {/* Net Total / Adjusted Total */}
                         {(totalDiscountDeduction > 0 || totalExtraCharges > 0) && (
-                          <div className="flex justify-between font-bold text-slate-800 border-t border-dashed border-slate-200 pt-1.5">
-                            <span>Adjusted Total Amount:</span>
-                            <span className="font-mono font-extrabold text-emerald-800">
+                          <div className="flex justify-between items-center font-bold text-slate-800 border-t border-dashed border-slate-200/80 pt-2">
+                            <span className="text-[11px] font-bold text-slate-700">Net Payable Total:</span>
+                            <span className="font-mono font-extrabold text-slate-900 text-[13px]">
                               {totalAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                             </span>
                           </div>
                         )}
+
+                        {/* Advance Payments Received */}
                         {advancePaidInBookingCurrency > 0 && (
-                          <div className="flex justify-between font-semibold text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200/50">
-                            <span className="flex items-center gap-1 font-bold">
-                              <ShieldCheck size={13} className="text-emerald-600" /> Advance Paid by Guest:
+                          <div className="flex justify-between items-center text-emerald-800 bg-emerald-50/70 px-3 py-1.5 rounded-xl border border-emerald-100">
+                            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+                              <ShieldCheck size={14} className="text-emerald-600" />
+                              Advance Paid
                             </span>
-                            <span className="font-mono font-extrabold text-emerald-700">-{advancePaidInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}</span>
+                            <span className="font-mono font-black text-emerald-700">
+                              -{advancePaidInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                            </span>
                           </div>
                         )}
-                        <div className="flex justify-between font-semibold text-slate-500">
-                          <span>Total Paid So Far:</span>
-                          <span className="font-mono font-bold text-emerald-600">+{totalPaidInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}</span>
-                        </div>
-                        <div className="flex justify-between font-extrabold text-slate-900 border-t border-slate-200/60 pt-2 text-sm">
-                          <span>Remaining Balance to Pay:</span>
-                          <span className={`font-mono ${Math.max(0, bal) > 0 ? 'text-rose-600 font-black' : 'text-emerald-600'}`}>
-                            {Math.max(0, bal).toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+
+                        {/* Total Paid Record */}
+                        <div className="flex justify-between items-center text-slate-500 py-0.5 text-[11px] font-medium">
+                          <span>Total Amount Received:</span>
+                          <span className="font-mono font-bold text-emerald-700">
+                            +{totalPaidInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center border-t border-slate-200/60 pt-2">
-                          <span className="font-bold text-slate-500">Payment Status:</span>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                            pStatus === 'Paid' ? 'bg-green-100 text-green-700'
-                            : pStatus === 'Partially Paid' ? 'bg-amber-100 text-amber-700'
-                            : 'bg-rose-100 text-rose-700'
-                          }`}>{pStatus}</span>
+
+                        {/* Outstanding Balance Banner */}
+                        <div className="flex justify-between items-center font-extrabold border-t border-slate-100 pt-2.5 bg-slate-50 -mx-4 -mb-4 px-4 py-3 rounded-b-2xl">
+                          <span className="text-slate-800 text-[11px] uppercase tracking-wider font-extrabold">Outstanding Balance:</span>
+                          <span className={`font-mono text-sm font-black ${Math.max(0, bal) > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                            {Math.max(0, bal).toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                          </span>
                         </div>
                       </div>
                     );
