@@ -383,6 +383,7 @@ const Registrations = () => {
     currencyCode: 'LKR',
     exchangeRate: 1,
     paymentMethod: 'Cash',
+    cardFee: '',
     referenceNumber: '',
     remarks: '',
     paymentDate: new Date().toISOString().split('T')[0],
@@ -865,6 +866,11 @@ const Registrations = () => {
     const newTotalInBookingCurrency = currentPaidInBookingCurrency + amountInBookingCurrency;
     const isFull = tab === 'FULL' || newTotalInBookingCurrency >= (netBookingAmount - 0.01);
 
+    let finalRemarks = paymentForm.remarks || '';
+    if (paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0) {
+      finalRemarks = `${finalRemarks ? finalRemarks + ' ' : ''}[Charges: ${parseFloat(paymentForm.cardFee)}]`;
+    }
+
     const payload = {
       bookingId: booking.id,
       guestRegistrationId: selectedReg.id,
@@ -879,7 +885,7 @@ const Registrations = () => {
       paymentMethod: paymentForm.paymentMethod,
       referenceNumber: paymentForm.referenceNumber,
       receiptNumber: paymentForm.referenceNumber,
-      remarks: paymentForm.remarks,
+      remarks: finalRemarks,
       createdBy: user.username,
       slipPath: paymentForm.slipPath || '/uploads/dummy_slip.png',
       paymentSlipUrl: paymentForm.slipPath || '/uploads/dummy_slip.png',
@@ -929,6 +935,7 @@ const Registrations = () => {
         currencyCode: bookingCurrency,
         exchangeRate: exRate,
         paymentMethod: 'Cash',
+        cardFee: '',
         referenceNumber: '',
         remarks: '',
         paymentDate: new Date().toISOString().split('T')[0],
@@ -2532,7 +2539,11 @@ const Registrations = () => {
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
                               <select
                                 value={paymentForm.paymentMethod}
-                                onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                                onChange={(e) => {
+                                  const method = e.target.value;
+                                  const fee = method === 'Card' ? '' : '';
+                                  setPaymentForm({ ...paymentForm, paymentMethod: method, cardFee: fee });
+                                }}
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
                               >
                                 <option value="Cash">Cash</option>
@@ -2551,6 +2562,37 @@ const Registrations = () => {
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
                               />
                             </div>
+                            {paymentForm.paymentMethod === 'Card' && (
+                              <div className="col-span-2 space-y-1">
+                                <div className="flex justify-between items-center">
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Charges (LKR)</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const amt = parseFloat(paymentForm.amount) || 0;
+                                      const rate = paymentForm.currencyCode === 'LKR' ? 1 : (parseFloat(paymentForm.exchangeRate) || 1);
+                                      const lkrAmt = amt * rate;
+                                      const bankFeeLkr = (lkrAmt * 0.03).toFixed(2);
+                                      setPaymentForm({ ...paymentForm, cardFee: bankFeeLkr });
+                                    }}
+                                    className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition cursor-pointer"
+                                  >
+                                    + Add 3% Charges ({(((parseFloat(paymentForm.amount)||0) * (paymentForm.currencyCode === 'LKR' ? 1 : (parseFloat(paymentForm.exchangeRate)||1))) * 0.03).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} LKR)
+                                  </button>
+                                </div>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    placeholder="0.00 (Optional - enter only if charging guest)"
+                                    value={paymentForm.cardFee}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, cardFee: e.target.value })}
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none text-slate-700 pr-12"
+                                  />
+                                  <span className="absolute right-3 top-2 text-[10px] font-bold text-slate-400">LKR</span>
+                                </div>
+                              </div>
+                            )}
                             <div className="col-span-2">
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
                               <input
