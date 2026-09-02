@@ -2850,9 +2850,14 @@ Serene Villa Hiriketiya`;
 
         // Top itemized table target bookings:
         let targetBookings = [];
-        if (isOriginalBill) {
+        if (isExtraNight || isExtraPerson) {
+          // For Extra Night or Extra Person sub-bills, target strictly the sub-booking!
+          targetBookings = [associatedBooking];
+        } else if (isOriginalBill || (!isFinalPayment && !isDiscountAdjusted)) {
+          // For Original Bill or standard Advance Payment receipt on base booking, target strictly the base booking!
           targetBookings = [baseBookingItem || associatedBooking];
         } else if (siblingBookings.length > 0) {
+          // For Final Settlement or Discount Adjusted Consolidated Bill, include all room bookings
           const nonDisc = siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC'));
           targetBookings = nonDisc.length > 0 ? nonDisc : (baseBookingItem ? [baseBookingItem] : (associatedBooking ? [associatedBooking] : []));
         } else if (associatedBooking) {
@@ -3131,13 +3136,15 @@ Serene Villa Hiriketiya`;
                   
                   // Sibling bookings calculation
                   const discBookings = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
-                  const totalDiscountVal = isOriginalBill ? 0 : discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                  // Discounts must ONLY be deducted on Discount Adjusted Invoices or Final Payment Receipts (never on Extra Night/Person bills or standard Advance receipts)
+                  const shouldApplyDiscount = (isDiscountAdjusted || isFinalPayment) && !isOriginalBill;
+                  const totalDiscountVal = shouldApplyDiscount ? discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0) : 0;
 
-                  // Base Gross Booking Amount (e.g. EUR 3,100)
+                  // Base Gross Booking Amount for this receipt
                   const grossTotAmt = roomChargesTotal / convFactor;
                   const dispGrossTotAmt = forceReceiptLkr && bCurr !== 'LKR' ? grossTotAmt * exRate : grossTotAmt;
 
-                  // Net Booking Amount after discount deduction (e.g. EUR 2,600)
+                  // Net Booking Amount after discount deduction
                   const netTotAmt = Math.max(0, grossTotAmt - totalDiscountVal);
                   const dispNetTotAmt = forceReceiptLkr && bCurr !== 'LKR' ? netTotAmt * exRate : netTotAmt;
 
@@ -3150,10 +3157,23 @@ Serene Villa Hiriketiya`;
                         ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
                         : rawPaid);
 
-                  const totalPaidBCurr = (totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate)));
-                  const remBal = isFinalPayment ? 0 : Math.max(0, dispNetTotAmt - totalPaidBCurr);
+                  let remBal = 0;
+                  if (isFinalPayment) {
+                    remBal = 0;
+                  } else if (isExtraNight || isExtraPerson) {
+                    // For sub-booking, remaining balance is sub-booking total minus payments made for this sub-booking
+                    remBal = Math.max(0, dispNetTotAmt - paidAmt);
+                  } else if (isDiscountAdjusted) {
+                    // For discount adjusted invoice, remaining balance is net total minus all payments made so far
+                    const totalPaidBCurr = totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate));
+                    remBal = Math.max(0, dispNetTotAmt - totalPaidBCurr);
+                  } else {
+                    // For standard Advance Payment receipt on base booking, calculate against base booking payments
+                    const totalPaidBCurr = totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate));
+                    remBal = Math.max(0, dispGrossTotAmt - totalPaidBCurr);
+                  }
                   
-                  // Converted Amount in LKR is calculated AFTER deducting the discount (e.g. EUR 2,600 * 350 = LKR 910,000)
+                  // Converted Amount in LKR is calculated AFTER deducting the discount (if applicable)
                   const convertedAmountLkr = (netTotAmt * (bCurr === 'LKR' ? 1 : exRate));
 
                   return (
@@ -3163,7 +3183,7 @@ Serene Villa Hiriketiya`;
                         <span className="font-bold text-slate-800">{dispCurr} {dispGrossTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
 
-                      {totalDiscountVal > 0 && !isOriginalBill && (
+                      {totalDiscountVal > 0 && shouldApplyDiscount && (
                         <div className="flex justify-between pb-0.5 border-b border-slate-100 text-rose-600 bg-rose-50/50 px-1 py-0.5 rounded">
                           <span className="font-semibold">Discount Deducted:</span>
                           <span className="font-bold font-mono">-{dispCurr} {(forceReceiptLkr && bCurr !== 'LKR' ? totalDiscountVal * exRate : totalDiscountVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>

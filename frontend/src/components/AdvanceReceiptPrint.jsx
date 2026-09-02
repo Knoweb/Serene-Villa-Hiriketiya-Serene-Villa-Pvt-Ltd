@@ -50,9 +50,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
   // Filter top itemized rows to show only room nights (clean layout matching Image 1)
   let targetBookings = [];
-  if (isOriginalBill) {
+  if (isExtraNight || isExtraPerson) {
+    // For Extra Night or Extra Person sub-bills, target strictly the sub-booking!
+    targetBookings = [associatedBooking];
+  } else if (isOriginalBill || (!isFinalPayment && !isDiscountAdjusted)) {
+    // For Original Bill or standard Advance Payment receipt on base booking, target strictly the base booking!
     targetBookings = [baseBookingItem || associatedBooking];
   } else if (siblingBookings.length > 0) {
+    // For Final Settlement or Discount Adjusted Consolidated Bill, include all room bookings
     const nonDisc = siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC'));
     targetBookings = nonDisc.length > 0 ? nonDisc : (baseBookingItem ? [baseBookingItem] : (associatedBooking ? [associatedBooking] : []));
   } else if (associatedBooking) {
@@ -348,7 +353,9 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
         {/* Right Column: Numeric breakdown */}
         {(() => {
           const discBookings = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
-          const totalDiscountVal = isOriginalBill ? 0 : discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+          // Discounts must ONLY be deducted on Discount Adjusted Invoices or Final Payment Receipts
+          const shouldApplyDiscount = (isDiscountAdjusted || isFinalPayment) && !isOriginalBill;
+          const totalDiscountVal = shouldApplyDiscount ? discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0) : 0;
 
           const grossTotAmt = roomChargesTotal / convFactor;
           const dispGrossTotAmt = forceLkr ? grossTotAmt * exRate : grossTotAmt;
@@ -363,11 +370,21 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
                 : rawPaid);
 
-          const totalPaidUpToThisDisplay = forceLkr ? totalPaidUpToThis : (totalPaidUpToThis / exRate);
-          const remBal = isFinalPayment ? 0 : Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay);
+          let remBal = 0;
+          if (isFinalPayment) {
+            remBal = 0;
+          } else if (isExtraNight || isExtraPerson) {
+            remBal = Math.max(0, dispNetTotAmt - paidDisplayAmt);
+          } else if (isDiscountAdjusted) {
+            const totalPaidUpToThisDisplay = forceLkr ? totalPaidUpToThis : (totalPaidUpToThis / exRate);
+            remBal = Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay);
+          } else {
+            const totalPaidUpToThisDisplay = forceLkr ? totalPaidUpToThis : (totalPaidUpToThis / exRate);
+            remBal = Math.max(0, dispGrossTotAmt - totalPaidUpToThisDisplay);
+          }
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           
-          // Converted amount in LKR is calculated on the net amount after discount deduction
+          // Converted amount in LKR is calculated on the net amount after discount deduction (if applicable)
           const convertedAmountLkr = (netTotAmt * (displayCurrency === 'LKR' ? 1 : exRate));
 
           return (
@@ -377,7 +394,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 <span className="font-bold text-slate-800">{displayCurrency} {dispGrossTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
 
-              {totalDiscountVal > 0 && !isOriginalBill && (
+              {totalDiscountVal > 0 && shouldApplyDiscount && (
                 <div className="flex justify-between pb-0.5 border-b border-slate-100 text-rose-600 bg-rose-50/50 px-1 py-0.5 rounded">
                   <span className="font-semibold">Discount Deducted:</span>
                   <span className="font-bold font-mono">-{displayCurrency} {(forceLkr ? totalDiscountVal * exRate : totalDiscountVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
