@@ -37,7 +37,8 @@ import {
   Pencil,
   Save,
   Trash2,
-  Tag
+  Tag,
+  Upload
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
@@ -138,6 +139,14 @@ const ROOM_TEMPLATES = {
     occupancy: '2 Adults',
     features: ['AC', 'Free Wi-Fi', 'Queen Bed', 'Hot Water']
   }
+};
+
+const getBankKeyForCurrency = (curr) => {
+  const c = (curr || '').toUpperCase();
+  if (c === 'EUR') return 'EUR_SB';
+  if (c === 'AUD') return 'AUD_SB';
+  if (c === 'LKR') return 'LKR_PB_COMPANY';
+  return 'USD_PB';
 };
 
 const Registrations = () => {
@@ -281,6 +290,73 @@ const Registrations = () => {
       return {};
     }
   });
+
+  // Bank Slip Upload state
+  const [bankSlipForm, setBankSlipForm] = useState({
+    bankKey: 'USD_PB',
+    paidDate: new Date().toISOString().split('T')[0],
+    paymentType: 'Advance Payment',
+    slipUrl: '',
+    fileName: ''
+  });
+
+  const handleSaveBankSlip = (e, bookingId) => {
+    e.preventDefault();
+    if (!bookingId) {
+      alert('Please select a booking to upload slip.');
+      return;
+    }
+    if (!bankSlipForm.slipUrl) {
+      alert('Please select a payment slip file to upload.');
+      return;
+    }
+
+    const currentSlips = allBankSlips[bookingId] || [];
+    const newSlip = {
+      id: Date.now(),
+      bankKey: bankSlipForm.bankKey,
+      paidDate: bankSlipForm.paidDate,
+      paymentType: bankSlipForm.paymentType,
+      slipUrl: bankSlipForm.slipUrl,
+      fileName: bankSlipForm.fileName || 'bank_slip.png',
+      createdAt: new Date().toISOString()
+    };
+
+    const updated = {
+      ...allBankSlips,
+      [bookingId]: [newSlip, ...currentSlips]
+    };
+
+    setAllBankSlips(updated);
+    try {
+      localStorage.setItem('serene_bank_slips', JSON.stringify(updated));
+    } catch (err) {
+      console.error('LocalStorage save error', err);
+    }
+
+    setBankSlipForm({
+      bankKey: 'USD_PB',
+      paidDate: new Date().toISOString().split('T')[0],
+      paymentType: 'Advance Payment',
+      slipUrl: '',
+      fileName: ''
+    });
+    alert('Bank Payment Slip uploaded and saved successfully!');
+  };
+
+  const handleDeleteBankSlip = (bookingId, slipId) => {
+    if (!window.confirm('Are you sure you want to remove this bank slip?')) return;
+    const currentSlips = allBankSlips[bookingId] || [];
+    const updatedSlips = currentSlips.filter(s => s.id !== slipId);
+    const updated = {
+      ...allBankSlips,
+      [bookingId]: updatedSlips
+    };
+    setAllBankSlips(updated);
+    try {
+      localStorage.setItem('serene_bank_slips', JSON.stringify(updated));
+    } catch (e) {}
+  };
 
   // Reload bank slips whenever window gains focus or storage event
   useEffect(() => {
@@ -2471,6 +2547,201 @@ const Registrations = () => {
                     );
                   })()}
 
+                  {/* Bank Slip Upload & Official Account Details */}
+                  {(() => {
+                    const bId = associatedBooking.id || selectedReg?.id;
+                    const bookingSlips = allBankSlips[bId] || [];
+                    const isForeign = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+                    const bCurr = (associatedBooking?.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking?.tableCurrency || (isForeign ? 'USD' : 'LKR'));
+                    const activeBank = BANK_ACCOUNTS[bankSlipForm.bankKey] || BANK_ACCOUNTS[getBankKeyForCurrency(bCurr)] || BANK_ACCOUNTS.USD_PB;
+
+                    return (
+                      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3.5 mt-4">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <Upload className="h-4 w-4 text-emerald-600" />
+                            BANK PAYMENT SLIP & RECEIPT UPLOAD
+                          </h4>
+                          <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
+                            Bank Transfer
+                          </span>
+                        </div>
+
+                        {/* Prominently displayed Bank Account Details for this Booking Currency */}
+                        <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between border-b border-emerald-200/60 pb-1.5">
+                            <span className="text-[10px] font-black text-emerald-900 uppercase tracking-wider">
+                              Official Bank Account ({activeBank.currency})
+                            </span>
+                            <span className="text-[9px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-extrabold">
+                              {activeBank.currency} Account
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-700 pt-0.5">
+                            <div>
+                              <span className="text-slate-400 block text-[9px] uppercase font-bold">Bank Name</span>
+                              <span className="font-bold text-slate-900">{activeBank.bankName}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[9px] uppercase font-bold">Branch</span>
+                              <span className="font-bold text-slate-900">{activeBank.branch}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-slate-400 block text-[9px] uppercase font-bold">Account Holder</span>
+                              <span className="font-bold text-slate-900">{activeBank.accountHolder}</span>
+                            </div>
+                            <div className="col-span-2 flex items-center justify-between bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 mt-0.5">
+                              <div>
+                                <span className="text-slate-400 block text-[8px] uppercase font-bold">Account Number</span>
+                                <span className="font-mono font-extrabold text-emerald-800 text-xs tracking-wider">{activeBank.accountNumber}</span>
+                              </div>
+                              {activeBank.swiftCode && (
+                                <div className="text-right">
+                                  <span className="text-slate-400 block text-[8px] uppercase font-bold">Swift Code</span>
+                                  <span className="font-mono font-bold text-slate-700 text-xs">{activeBank.swiftCode}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <form onSubmit={(e) => handleSaveBankSlip(e, bId)} className="space-y-2.5 text-xs">
+                          {/* Bank Account Selection Dropdown */}
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                              Select Account
+                            </label>
+                            <select
+                              value={bankSlipForm.bankKey}
+                              onChange={(e) => setBankSlipForm({ ...bankSlipForm, bankKey: e.target.value })}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
+                            >
+                              <option value="EUR_SB">EUR (€) - Sampath Bank (Acc: 521630000114)</option>
+                              <option value="USD_PB">USD ($) - People's Bank (Acc: 288402130016448)</option>
+                              <option value="AUD_SB">AUD ($) - Sampath Bank (Acc: 521630000092)</option>
+                              <option value="LKR_PB_COMPANY">LKR 1 - Serene Villa (pvt)LTD (People's Bank - Acc: 288100190017275)</option>
+                              <option value="LKR_PB_PERSONAL">LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)</option>
+                            </select>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* Payment Category */}
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Payment Type
+                              </label>
+                              <select
+                                value={bankSlipForm.paymentType}
+                                onChange={(e) => setBankSlipForm({ ...bankSlipForm, paymentType: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-semibold text-slate-700 focus:outline-none text-xs cursor-pointer"
+                              >
+                                <option value="Advance Payment">Advance Payment</option>
+                                <option value="Full Payment">Full Payment</option>
+                                <option value="Other / Balance">Other / Balance</option>
+                              </select>
+                            </div>
+
+                            {/* Paid Date */}
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Paid Date *
+                              </label>
+                              <input
+                                type="date"
+                                required
+                                value={bankSlipForm.paidDate}
+                                onChange={(e) => setBankSlipForm({ ...bankSlipForm, paidDate: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-semibold text-slate-700 focus:outline-none text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Upload Slip File */}
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                              Upload Payment Slip / Receipt (Image / PDF) *
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setBankSlipForm(prev => ({
+                                      ...prev,
+                                      slipUrl: reader.result,
+                                      fileName: file.name
+                                    }));
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="w-full text-[10px] file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-emerald-100 file:text-emerald-800 hover:file:bg-emerald-200 cursor-pointer"
+                            />
+                            {bankSlipForm.fileName && (
+                              <div className="text-[10px] text-emerald-700 font-bold mt-1">
+                                ✓ File loaded: {bankSlipForm.fileName}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Save Bank Slip Button */}
+                          <button
+                            type="submit"
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm text-xs mt-1"
+                          >
+                            <Upload size={13} />
+                            Save & Attach Bank Slip
+                          </button>
+                        </form>
+
+                        {/* List of Uploaded Slips for this reservation */}
+                        {bookingSlips.length > 0 && (
+                          <div className="pt-2 border-t border-slate-100 space-y-2">
+                            <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                              Uploaded Bank Slips ({bookingSlips.length})
+                            </h5>
+                            <div className="space-y-2">
+                              {bookingSlips.map((slip) => {
+                                const bd = BANK_ACCOUNTS[slip.bankKey] || BANK_ACCOUNTS.USD_PB;
+                                return (
+                                  <div key={slip.id} className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 flex items-center justify-between text-xs">
+                                    <div className="space-y-0.5">
+                                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                                        <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[9px] font-extrabold">{slip.paymentType}</span>
+                                        <span>{bd.bankName}</span>
+                                      </div>
+                                      <div className="text-[10px] text-slate-500 font-medium">
+                                        Acc: <span className="font-mono font-bold text-slate-700">{bd.accountNumber}</span> | Paid: {slip.paidDate}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedSlipPreview(slip)}
+                                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-bold text-[10px] transition cursor-pointer flex items-center gap-1"
+                                      >
+                                        <Eye size={11} /> View
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteBankSlip(bId, slip.id)}
+                                        className="bg-rose-50 hover:bg-rose-100 text-rose-600 p-1 rounded-md transition cursor-pointer"
+                                      >
+                                        <Trash2 size={11} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                 </div>
               ) : (
@@ -3936,6 +4207,68 @@ Serene Villa Hiriketiya`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bank Slip Preview Modal */}
+      {selectedSlipPreview && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <FileText size={16} className="text-emerald-400" />
+                  Bank Payment Slip Preview
+                </h3>
+                <p className="text-[10px] text-slate-400">
+                  {selectedSlipPreview.paymentType} • Paid Date: {selectedSlipPreview.paidDate}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setSelectedSlipPreview(null)} 
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 flex flex-col items-center justify-center bg-slate-100">
+              {selectedSlipPreview.slipUrl?.startsWith('data:application/pdf') ? (
+                <iframe 
+                  src={selectedSlipPreview.slipUrl} 
+                  title="Bank Slip PDF" 
+                  className="w-full h-[60vh] border rounded-lg"
+                />
+              ) : (
+                <img 
+                  src={selectedSlipPreview.slipUrl} 
+                  alt="Bank Slip Preview" 
+                  className="max-h-[65vh] w-auto max-w-full object-contain rounded-lg shadow-md"
+                />
+              )}
+            </div>
+            <div className="p-3 bg-white border-t border-slate-200 flex justify-between items-center text-xs">
+              <span className="text-slate-500 font-semibold truncate max-w-xs">
+                {selectedSlipPreview.fileName || 'Payment Slip'}
+              </span>
+              <div className="flex gap-2">
+                <a
+                  href={selectedSlipPreview.slipUrl}
+                  download={selectedSlipPreview.fileName || 'bank_slip'}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition"
+                >
+                  <FileDown size={13} /> Download
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSlipPreview(null)}
+                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
