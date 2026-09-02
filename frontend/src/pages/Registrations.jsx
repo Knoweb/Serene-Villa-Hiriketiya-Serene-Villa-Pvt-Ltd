@@ -398,11 +398,15 @@ const Registrations = () => {
   const [showExtraPersonModal, setShowExtraPersonModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   
+  const [isExtraNightRoomDropdownOpen, setIsExtraNightRoomDropdownOpen] = useState(false);
+  const [isExtraPersonRoomDropdownOpen, setIsExtraPersonRoomDropdownOpen] = useState(false);
+
   const [extraNightForm, setExtraNightForm] = useState({
     amount: '',
     currencyCode: 'USD',
     remarks: '',
     room: '',
+    allocatedRooms: [],
     checkInDate: '',
     checkOutDate: '',
     numberOfNights: 1
@@ -412,7 +416,8 @@ const Registrations = () => {
     amount: '',
     currencyCode: 'USD',
     remarks: '',
-    room: ''
+    room: '',
+    allocatedRooms: []
   });
 
   const [discountForm, setDiscountForm] = useState({
