@@ -10,8 +10,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const displayCurrency = forceLkr ? 'LKR' : bCurr;
   const convFactor = forceLkr ? exRate : 1;
 
+  const baseBNum = associatedBooking?.bookingNumber || selectedReg?.bookingNumber;
   const siblingBookings = bookings.length > 0 
-    ? bookings.filter(b => b.guestRegistrationId === selectedReg.id)
+    ? bookings.filter(b => {
+        if (b.guestRegistrationId === selectedReg.id) return true;
+        if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) return true;
+        return false;
+      })
     : [associatedBooking];
 
   const totalBookingAmount = siblingBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);

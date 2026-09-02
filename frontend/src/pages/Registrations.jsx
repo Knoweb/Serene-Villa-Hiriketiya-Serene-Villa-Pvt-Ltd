@@ -1895,9 +1895,15 @@ const Registrations = () => {
 
                   {/* List of Extra Bookings / Other Options with direct Invoice / Receipt Generation */}
                   {(() => {
-                    const extraBookings = bookings.filter(b => b.guestRegistrationId === selectedReg.id && b.bookingNumber && b.bookingNumber.includes('/'));
-                    const hasDiscount = extraBookings.some(b => b.bookingNumber?.includes('/DISC'));
                     const baseB = bookings.find(b => b.guestRegistrationId === selectedReg.id && (!b.bookingNumber || !b.bookingNumber.includes('/'))) || associatedBooking;
+                    const baseBNum = baseB?.bookingNumber || selectedReg?.bookingNumber;
+                    const extraBookings = bookings.filter(b => {
+                      if (!selectedReg) return false;
+                      const hasRegMatch = b.guestRegistrationId === selectedReg.id && b.bookingNumber && b.bookingNumber.includes('/');
+                      const hasPrefixMatch = baseBNum && b.bookingNumber && b.bookingNumber.startsWith(baseBNum + '/');
+                      return hasRegMatch || hasPrefixMatch;
+                    });
+                    const hasDiscount = extraBookings.some(b => b.bookingNumber?.includes('/DISC'));
 
                     return (
                       <div className="space-y-2 pt-1">
@@ -2062,7 +2068,15 @@ const Registrations = () => {
                   {(() => {
                     const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
                     
-                    const relatedBookings = bookings.filter(b => b.guestRegistrationId === selectedReg.id);
+                    const relatedBookings = bookings.filter(b => {
+                      if (!selectedReg) return false;
+                      if (b.guestRegistrationId === selectedReg.id) return true;
+                      const baseBNum = associatedBooking?.bookingNumber || selectedReg?.bookingNumber;
+                      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                        return true;
+                      }
+                      return false;
+                    });
                     const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
                     const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
                     const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
@@ -2816,8 +2830,13 @@ Serene Villa Hiriketiya`;
         };
 
         // Fetch all related bookings for this guest registration (including base, /1N, /1P, /DISC sub-bookings)
+        const baseBNum = associatedBooking?.bookingNumber || selectedReg?.bookingNumber;
         const siblingBookings = (selectedReg?.id != null)
-          ? bookings.filter(b => b.guestRegistrationId === selectedReg.id)
+          ? bookings.filter(b => {
+              if (b.guestRegistrationId === selectedReg.id) return true;
+              if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) return true;
+              return false;
+            })
           : [];
         
         // Find base booking item and extra charges

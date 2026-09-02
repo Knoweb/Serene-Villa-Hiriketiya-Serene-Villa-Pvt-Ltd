@@ -60,21 +60,52 @@ const Discounts = () => {
     if (targetReq && status === 'Approved') {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
       try {
-        // Fetch all bookings to find the matched parent booking
-        const bRes = await fetch(`${API_BASE}/bookings`);
+        // Fetch all bookings and registrations to find the matched parent booking and registration
+        const [bRes, rRes] = await Promise.all([
+          fetch(`${API_BASE}/bookings`),
+          fetch(`${API_BASE}/registrations`)
+        ]);
+
         if (bRes.ok) {
           const allB = await bRes.json();
-          const matchedParent = allB.find(b => b.bookingNumber === targetReq.bookingRef || (b.bookingNumber && b.bookingNumber.includes(targetReq.bookingRef)));
-          if (matchedParent) {
+          const allR = rRes.ok ? await rRes.json() : [];
+
+          // Clean matching for booking reference
+          const cleanRef = String(targetReq.bookingRef || '').trim().toLowerCase();
+          const cleanGuestName = String(targetReq.guestName || '').trim().toLowerCase();
+
+          // 1. Find matching booking
+          let matchedParent = allB.find(b => {
+            const bNum = String(b.bookingNumber || '').trim().toLowerCase();
+            const bGuest = String(b.guestName || '').trim().toLowerCase();
+            return (cleanRef && (bNum === cleanRef || bNum.startsWith(cleanRef))) ||
+                   (cleanGuestName && bGuest && bGuest === cleanGuestName);
+          });
+
+          // 2. Find matching registration if guestRegistrationId is not set
+          let matchedRegId = matchedParent?.guestRegistrationId;
+          if (!matchedRegId && allR.length > 0) {
+            const matchedReg = allR.find(r => {
+              const rNum = String(r.passportNumber || r.bookingNumber || '').trim().toLowerCase();
+              const rGuest = String(r.guestName || '').trim().toLowerCase();
+              return (cleanRef && (rNum.includes(cleanRef) || cleanRef.includes(rNum))) ||
+                     (cleanGuestName && rGuest && rGuest === cleanGuestName);
+            });
+            if (matchedReg) matchedRegId = matchedReg.id;
+          }
+
+          if (matchedParent || matchedRegId) {
+            const parentBookingNumber = matchedParent?.bookingNumber || targetReq.bookingRef;
             const rawDiscountNum = parseFloat(String(targetReq.requestedDiscount).replace(/[^\d.-]/g, '')) || 0;
-            const discCurrency = targetReq.requestedDiscount?.includes('LKR') ? 'LKR' : (targetReq.currency || matchedParent.currency || 'USD');
-            const newBNum = `${matchedParent.bookingNumber}/DISC`;
+            const discCurrency = targetReq.requestedDiscount?.includes('LKR') ? 'LKR' : (targetReq.currency || matchedParent?.currency || 'USD');
+            const newBNum = `${parentBookingNumber}/DISC`;
 
             const payload = {
-              guestRegistrationId: matchedParent.guestRegistrationId,
+              guestRegistrationId: matchedRegId || matchedParent?.guestRegistrationId,
               bookingNumber: newBNum,
-              roomNumber: matchedParent.roomNumber || 'Discount',
-              roomType: matchedParent.roomType || 'Discount',
+              guestName: targetReq.guestName || matchedParent?.guestName,
+              roomNumber: matchedParent?.roomNumber || 'Discount',
+              roomType: matchedParent?.roomType || 'Discount',
               bookingType: 'Direct',
               boardBasis: 'Room Only',
               remarks: `Discount: ${targetReq.reason || 'Admin Approved Discount'}`,
@@ -82,17 +113,24 @@ const Discounts = () => {
               totalAmount: -Math.abs(rawDiscountNum),
               currency: discCurrency,
               currencyCode: discCurrency,
-              checkInDate: matchedParent.checkInDate,
-              checkOutDate: matchedParent.checkOutDate,
+              checkInDate: matchedParent?.checkInDate || new Date().toISOString().split('T')[0],
+              checkOutDate: matchedParent?.checkOutDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
               numberOfNights: 1,
               status: 'Confirmed'
             };
 
-            await fetch(`${API_BASE}/bookings/create-extra`, {
+            const createRes = await fetch(`${API_BASE}/bookings/create-extra`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
+
+            if (!createRes.ok) {
+              const errBody = await createRes.text();
+              console.warn('create-extra response not ok:', errBody);
+            }
+          } else {
+            console.warn('Could not find matching parent booking or registration for discount:', targetReq);
           }
         }
       } catch (err) {
