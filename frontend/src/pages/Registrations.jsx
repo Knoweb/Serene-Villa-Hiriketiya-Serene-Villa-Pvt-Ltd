@@ -325,7 +325,10 @@ const Registrations = () => {
     amount: '',
     currencyCode: 'USD',
     remarks: '',
-    room: ''
+    room: '',
+    checkInDate: '',
+    checkOutDate: '',
+    numberOfNights: 1
   });
 
   const [extraPersonForm, setExtraPersonForm] = useState({
@@ -1853,6 +1856,23 @@ const Registrations = () => {
                       <button
                         type="button"
                         onClick={() => {
+                          const baseCheckOut = associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date().toISOString().split('T')[0];
+                          const dateObj = new Date(baseCheckOut);
+                          dateObj.setDate(dateObj.getDate() + 1);
+                          const nextDay = dateObj.toISOString().split('T')[0];
+                          
+                          const baseCurrency = associatedBooking?.currency || selectedReg?.currency || 'USD';
+                          const defaultRoom = associatedBooking?.roomNumber?.split(',')[0]?.trim() || '';
+
+                          setExtraNightForm({
+                            amount: '',
+                            currencyCode: baseCurrency,
+                            remarks: 'Extra night addition',
+                            room: defaultRoom,
+                            checkInDate: baseCheckOut,
+                            checkOutDate: nextDay,
+                            numberOfNights: 1
+                          });
                           setShowExtraNightModal(true);
                           setShowOtherOptions(false);
                         }}
@@ -2670,7 +2690,9 @@ const Registrations = () => {
               ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
 
-          const nightsCount = selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1;
+          const nightsCount = isExtraNight ? (associatedBooking?.numberOfNights || 1) : (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1);
+          const shareCheckIn = (isExtraNight && associatedBooking?.checkInDate ? associatedBooking.checkInDate : (selectedReg?.checkInDate || associatedBooking?.checkInDate || '')).replace(/-/g, '.');
+          const shareCheckOut = (isExtraNight && associatedBooking?.checkOutDate ? associatedBooking.checkOutDate : (selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '')).replace(/-/g, '.');
 
           const text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴
 
@@ -2680,7 +2702,7 @@ Thank you for your payment! Here is your official payment receipt:
 
 📄 *Receipt No:* ${receiptData.receiptNumber}
 🔖 *Booking Ref:* ${associatedBooking?.bookingNumber || selectedReg?.bookingNumber}
-🗓 *Check-in - Check-out:* ${selectedReg?.checkInDate || associatedBooking?.checkInDate} to ${selectedReg?.checkOutDate || associatedBooking?.checkOutDate} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'})
+🗓 *Check-in - Check-out:* ${shareCheckIn} to ${shareCheckOut} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'}${isExtraNight ? ' - Extra Night' : ''})
 
 💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}
 💵 *Amount Paid:* ${amountPaidStr}
@@ -2996,12 +3018,12 @@ Serene Villa Hiriketiya`;
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 p-3 border border-slate-200 rounded-lg text-[11px] mb-4 bg-white">
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Guest Name</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{selectedReg?.guestName || associatedBooking?.guestName || ''}</span></div>
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Channel</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.bookingType || 'Direct Booking'}</span></div>
-                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - in</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkInDate || associatedBooking?.checkInDate || '').replace(/-/g, '.')}</span></div>
-                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - out</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '').replace(/-/g, '.')}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - in</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(isExtraNight && associatedBooking?.checkInDate ? associatedBooking.checkInDate : (selectedReg?.checkInDate || associatedBooking?.checkInDate || '')).replace(/-/g, '.')}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - out</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(isExtraNight && associatedBooking?.checkOutDate ? associatedBooking.checkOutDate : (selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '')).replace(/-/g, '.')}</span></div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-slate-500 font-semibold w-24 shrink-0">Nights</span>
                   <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">
-                    {String(isExtraNight ? 1 : nightsVal).padStart(2, '0')} nights {isExtraNight && <span className="text-amber-700 font-bold text-[10px]">(Extra Night)</span>}
+                    {String(isExtraNight ? (associatedBooking?.numberOfNights || 1) : nightsVal).padStart(2, '0')} nights {isExtraNight && <span className="text-amber-700 font-bold text-[10px]">(Extra Night)</span>}
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Basis</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.boardBasis || 'Bed & Breakfast'}</span></div>
@@ -3338,6 +3360,7 @@ Serene Villa Hiriketiya`;
               try {
                 const newBNum = `${associatedBooking.bookingNumber}/1N`;
                 const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraNightForm.room));
+                const totalNights = parseInt(extraNightForm.numberOfNights, 10) || 1;
                 const payload = {
                   guestRegistrationId: selectedReg.id,
                   bookingNumber: newBNum,
@@ -3350,15 +3373,9 @@ Serene Villa Hiriketiya`;
                   totalAmount: parseFloat(extraNightForm.amount || 0),
                   currency: extraNightForm.currencyCode,
                   currencyCode: extraNightForm.currencyCode,
-                  checkInDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date().toISOString().split('T')[0],
-                  checkOutDate: (() => {
-                    const baseDate = associatedBooking?.checkOutDate || selectedReg?.checkOutDate;
-                    if (!baseDate) return new Date(Date.now() + 86400000).toISOString().split('T')[0];
-                    const dateObj = new Date(baseDate);
-                    dateObj.setDate(dateObj.getDate() + 1);
-                    return dateObj.toISOString().split('T')[0];
-                  })(),
-                  numberOfNights: 1,
+                  checkInDate: extraNightForm.checkInDate || associatedBooking?.checkOutDate || selectedReg?.checkOutDate,
+                  checkOutDate: extraNightForm.checkOutDate,
+                  numberOfNights: totalNights,
                   status: 'Confirmed'
                 };
                 
@@ -3375,13 +3392,53 @@ Serene Villa Hiriketiya`;
                 
                 alert('Extra Night booking added successfully!');
                 setShowExtraNightModal(false);
-                setExtraNightForm({ amount: '', currencyCode: 'USD', remarks: '', room: '' });
+                setExtraNightForm({ amount: '', currencyCode: 'USD', remarks: '', room: '', checkInDate: '', checkOutDate: '', numberOfNights: 1 });
                 fetchRegistrations();
               } catch(err) {
                 alert(err.message);
               }
             }} className="space-y-3.5 text-xs">
               
+              {/* Check-In and Check-Out Dates */}
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Check-in Date <span className="text-[9px] text-emerald-600 font-semibold">(From Previous Checkout)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={extraNightForm.checkInDate}
+                    readOnly
+                    className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-700 text-xs cursor-not-allowed focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Check-out Date <span className="text-[9px] text-emerald-600 font-semibold">({extraNightForm.numberOfNights} {extraNightForm.numberOfNights === 1 ? 'Night' : 'Nights'})</span>
+                  </label>
+                  <input
+                    type="date"
+                    min={extraNightForm.checkInDate}
+                    value={extraNightForm.checkOutDate}
+                    onChange={(e) => {
+                      const newOut = e.target.value;
+                      if (!newOut) return;
+                      const inDate = new Date(extraNightForm.checkInDate);
+                      const outDate = new Date(newOut);
+                      const diffTime = outDate.getTime() - inDate.getTime();
+                      const diffDays = Math.max(1, Math.round(diffTime / (1000 * 3600 * 24)));
+                      setExtraNightForm(prev => ({
+                        ...prev,
+                        checkOutDate: newOut,
+                        numberOfNights: diffDays
+                      }));
+                    }}
+                    className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                    required
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Room Number(s)</label>
                 <select

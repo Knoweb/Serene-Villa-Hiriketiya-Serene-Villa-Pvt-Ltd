@@ -225,15 +225,22 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       {(() => {
         const guestName = selectedReg?.guestName || associatedBooking?.guestName || '';
         const bookingChannel = associatedBooking?.bookingType || 'Direct Booking';
-        const checkInDate = isFinalPayment 
-          ? (selectedReg?.checkInDate || associatedBooking?.checkInDate || '')
-          : (associatedBooking?.checkInDate || selectedReg?.checkInDate || '');
-        const checkOutDate = isFinalPayment 
-          ? (selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '')
-          : (associatedBooking?.checkOutDate || selectedReg?.checkOutDate || '');
-        const nights = isFinalPayment 
-          ? (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.nights || 1)
-          : (associatedBooking?.numberOfNights || associatedBooking?.nights || 1);
+        const isExtraNight = associatedBooking?.bookingNumber?.includes('/1N');
+        const checkInDate = isExtraNight && associatedBooking?.checkInDate
+          ? associatedBooking.checkInDate
+          : (isFinalPayment 
+              ? (selectedReg?.checkInDate || associatedBooking?.checkInDate || '')
+              : (associatedBooking?.checkInDate || selectedReg?.checkInDate || ''));
+        const checkOutDate = isExtraNight && associatedBooking?.checkOutDate
+          ? associatedBooking.checkOutDate
+          : (isFinalPayment 
+              ? (selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '')
+              : (associatedBooking?.checkOutDate || selectedReg?.checkOutDate || ''));
+        const nights = isExtraNight 
+          ? (associatedBooking?.numberOfNights || 1)
+          : (isFinalPayment 
+              ? (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.nights || 1)
+              : (associatedBooking?.numberOfNights || associatedBooking?.nights || 1));
         const boardBasis = associatedBooking?.boardBasis || 'Bed & Breakfast';
         const adults = selectedReg?.adults || associatedBooking?.adults || 1;
         const children = selectedReg?.children || associatedBooking?.children || 0;
@@ -265,7 +272,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Nights</span>
                 <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
-                  {String(isExtraNight ? 1 : nights).padStart(2, '0')} nights {isExtraNight && <span style={{ color: '#b45309', fontWeight: '700', fontSize: '10px' }}>(Extra Night)</span>}
+                  {String(nights).padStart(2, '0')} nights {isExtraNight && <span style={{ color: '#b45309', fontWeight: '700', fontSize: '10px' }}>(Extra Night)</span>}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
