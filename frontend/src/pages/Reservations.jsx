@@ -2364,7 +2364,23 @@ const Reservations = () => {
                   {/* Single Unified Payment Form */}
                   {(() => {
                     const bCurr = getBookingCurrency(associatedBooking);
-                    const totalAmt = parseFloat(associatedBooking.totalAmount || 0);
+                    const relatedBookings = bookings.filter(b => {
+                      if (!associatedBooking) return false;
+                      if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
+                      const baseBNum = associatedBooking.bookingNumber;
+                      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                        return true;
+                      }
+                      return false;
+                    });
+                    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+                    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+                    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
+                    const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(associatedBooking.totalAmount || 0);
+                    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+
                     const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
                       const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
                       const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);

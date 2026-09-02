@@ -845,9 +845,25 @@ const Registrations = () => {
       }
     });
 
+    const relatedBookings = bookings.filter(b => {
+      if (!selectedReg) return false;
+      if (b.guestRegistrationId === selectedReg.id) return true;
+      const baseBNum = booking.bookingNumber || selectedReg?.bookingNumber;
+      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+        return true;
+      }
+      return false;
+    });
+    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
+    const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(booking.totalAmount || 0);
+    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+    const netBookingAmount = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+
     const newTotalInBookingCurrency = currentPaidInBookingCurrency + amountInBookingCurrency;
-    const totalBookingAmount = booking.totalAmount || 0;
-    const isFull = tab === 'FULL' || newTotalInBookingCurrency >= (totalBookingAmount - 0.01);
+    const isFull = tab === 'FULL' || newTotalInBookingCurrency >= (netBookingAmount - 0.01);
 
     const payload = {
       bookingId: booking.id,
@@ -2344,14 +2360,35 @@ const Registrations = () => {
                   {/* Single Unified Payment Form */}
                   {(() => {
                     const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-                    const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
+                    
+                    const relatedBookings = bookings.filter(b => {
+                      if (!selectedReg) return false;
+                      if (b.guestRegistrationId === selectedReg.id) return true;
+                      const baseBNum = associatedBooking?.bookingNumber || selectedReg?.bookingNumber;
+                      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                        return true;
+                      }
+                      return false;
+                    });
+                    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+                    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+                    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
+
+                    const baseAmount = baseBookingItem 
+                      ? (parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0))
+                      : parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
+
+                    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    
+                    const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
 
                     // Smart currency detection: if associatedBooking has no explicit non-LKR currency, infer from amount
-                    let bookingCurrency = associatedBooking?.currency;
+                    let bookingCurrency = associatedBooking?.currency || baseBookingItem?.currency;
                     if (!bookingCurrency || bookingCurrency === 'LKR') {
                       if (selectedReg?.currency && selectedReg.currency !== 'LKR') bookingCurrency = selectedReg.currency;
                       else if (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR') bookingCurrency = bookingForm.currencyCode;
-                      else if (totalAmt > 0 && totalAmt < 10000) bookingCurrency = 'USD';
+                      else if (baseAmount > 0 && baseAmount < 10000) bookingCurrency = 'USD';
                       else bookingCurrency = isForeignGuest ? 'USD' : 'LKR';
                     }
                     const bookingExRate = parseFloat(associatedBooking?.exchangeRate || bookingForm.exchangeRate || 1);
@@ -2373,14 +2410,16 @@ const Registrations = () => {
                       } else if (bookingCurrency.toUpperCase() === 'LKR') {
                         convertedAmt = pLkr > 0 ? pLkr : (pAmt * pExRate);
                       } else {
-                        if (pLkr > 0 && pExRate > 1) convertedAmt = pLkr / pExRate;
+                        if (pExRate > 0) {
+                          convertedAmt = (pLkr > 0 ? pLkr : pAmt) / pExRate;
+                        }
                       }
 
                       totalPaidInBookingCurrency += convertedAmt;
                     });
 
                     const remainingBal = (associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid') ? 0 : Math.max(0, totalAmt - totalPaidInBookingCurrency);
-                    const isFullyPaid = remainingBal <= 0 || associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid';
+                    const isFullyPaid = remainingBal <= 0.001 || associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid';
 
                     if (isFullyPaid) return (
                       <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700 font-bold">
@@ -2459,43 +2498,36 @@ const Registrations = () => {
                             </div>
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                Amount {isFull && <span className="text-blue-500 normal-case font-normal">(auto-filled)</span>}
+                                Amount {isFull && <span className="text-blue-500 normal-case font-normal">(editable)</span>}
                               </label>
                               <input
                                 type="number"
                                 step="any"
                                 required
-                                readOnly={isFull}
                                 placeholder="0.00"
                                 value={paymentForm.amount}
-                                onChange={(e) => !isFull && setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                                className={`w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none ${
-                                  isFull ? 'bg-blue-50 text-blue-700 cursor-default' : 'bg-white text-slate-700'
-                                }`}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                                className="w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none bg-white text-slate-700"
                               />
                             </div>
-                            {!isFull && (
-                              <>
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    required
-                                    disabled={paymentForm.currencyCode === 'LKR'}
-                                    value={paymentForm.exchangeRate}
-                                    onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
-                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted (LKR)</label>
-                                  <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700 font-mono">
-                                    {((parseFloat(paymentForm.amount) || 0) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString()} LKR
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
+                              <input
+                                type="number"
+                                step="any"
+                                required
+                                disabled={paymentForm.currencyCode === 'LKR'}
+                                value={paymentForm.exchangeRate}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted (LKR)</label>
+                              <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700 font-mono">
+                                {((parseFloat(paymentForm.amount) || 0) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString()} LKR
+                              </div>
+                            </div>
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
                               <select
