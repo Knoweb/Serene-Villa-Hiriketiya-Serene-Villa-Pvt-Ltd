@@ -77,4 +77,6 @@ public class Booking {
     private LocalDate checkOutDate;
 
     private Integer numberOfNights;
+    
+    private Boolean showExchangeRateOnBill = false;
 }

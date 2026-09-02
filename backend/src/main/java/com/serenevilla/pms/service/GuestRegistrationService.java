@@ -314,6 +314,14 @@ public class GuestRegistrationService {
             if (details.containsKey("numberOfNights") && details.get("numberOfNights") != null) {
                 booking.setNumberOfNights(Integer.parseInt(String.valueOf(details.get("numberOfNights"))));
             }
+            if (details.containsKey("showExchangeRateOnBill") && details.get("showExchangeRateOnBill") != null) {
+                Object val = details.get("showExchangeRateOnBill");
+                if (val instanceof Boolean) {
+                    booking.setShowExchangeRateOnBill((Boolean) val);
+                } else {
+                    booking.setShowExchangeRateOnBill(Boolean.parseBoolean(String.valueOf(val)));
+                }
+            }
 
             bookingRepository.save(booking);
 

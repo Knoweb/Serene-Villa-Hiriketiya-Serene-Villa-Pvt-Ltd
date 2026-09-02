@@ -469,7 +469,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 return null;
               })()}
 
-              {!forceLkr && (currencyCode !== 'LKR') && (
+              {!forceLkr && (currencyCode !== 'LKR') && (associatedBooking?.showExchangeRateOnBill || selectedPaymentForReceipt?.showExchangeRateOnBill) && (
                 <>
                   <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
                     <span className="text-slate-500">Exchange Rate:</span>

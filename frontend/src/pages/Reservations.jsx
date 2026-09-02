@@ -338,7 +338,8 @@ const Reservations = () => {
     confirmedBy: localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
     reservationStatus: 'Confirm Booking',
     senderName: localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
-    badgeText: 'Hold'
+    badgeText: 'Hold',
+    showExchangeRateOnBill: false
   });
 
   const [showRoomSelector, setShowRoomSelector] = useState(false);
@@ -851,7 +852,8 @@ const Reservations = () => {
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold',
       remarks: booking.remarks || '',
-      bookingType: booking.bookingType || 'Direct Booking'
+      bookingType: booking.bookingType || 'Direct Booking',
+      showExchangeRateOnBill: !!booking.showExchangeRateOnBill
     });
     setShowDraftPreviewModal(true);
   };
@@ -895,7 +897,8 @@ const Reservations = () => {
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold',
       remarks: booking.remarks || '',
-      bookingType: booking.bookingType || 'Direct Booking'
+      bookingType: booking.bookingType || 'Direct Booking',
+      showExchangeRateOnBill: !!booking.showExchangeRateOnBill
     });
     setIsCreatingNewReservation(false);
     setShowConfirmationModal(true);
@@ -938,7 +941,8 @@ const Reservations = () => {
       senderName: booking.senderName || localStorage.getItem('pms_sender_name') || 'Muthuni Weerasingha',
       badgeText: 'Hold',
       remarks: booking.remarks || '',
-      bookingType: booking.bookingType || 'Direct Booking'
+      bookingType: booking.bookingType || 'Direct Booking',
+      showExchangeRateOnBill: !!booking.showExchangeRateOnBill
     });
     setIsCreatingNewReservation(false);
     setShowDirectDownloadContainer(true);
@@ -1025,7 +1029,8 @@ const Reservations = () => {
       badgeText: 'Hold',
       remarks: '',
       room: '',
-      bookingType: type
+      bookingType: type,
+      showExchangeRateOnBill: false
     });
     setIsCreatingNewReservation(true);
     setShowTypeSelector(false);
@@ -1102,6 +1107,7 @@ const Reservations = () => {
           totalAmount: roomSum,
           currency: selCurr,
           exchangeRate: confirmationData.exchangeRate || '1.00',
+          showExchangeRateOnBill: !!confirmationData.showExchangeRateOnBill,
           roomPrices: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 
             ? JSON.stringify(confirmationData.allocatedRooms) 
             : '',
@@ -1199,6 +1205,7 @@ const Reservations = () => {
         currency: selCurr,
         tableCurrency: selCurr,
         exchangeRate: confirmationData.exchangeRate || '1.00',
+        showExchangeRateOnBill: !!confirmationData.showExchangeRateOnBill,
         unitPrice: '0.00',
         roomPrices: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 
           ? JSON.stringify(confirmationData.allocatedRooms) 
@@ -3589,7 +3596,7 @@ Serene Villa Hiriketiya`;
                             </span>
                           </div>
 
-                          {!forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (
+                          {!forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (selectedPaymentForReceipt?.showExchangeRateOnBill || associatedBooking?.showExchangeRateOnBill) && (
                             <>
                               <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
                                 <span className="text-slate-500">Exchange Rate:</span>
@@ -4471,6 +4478,23 @@ Serene Villa Hiriketiya`;
                       </div>
                     </div>
 
+                    {/* Option to display exchange rate and converted amount on bills */}
+                    <div className="col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-slate-800">Show Exchange Rate & Converted LKR on Bills</div>
+                        <div className="text-[10px] text-slate-500">Enable this if you want the bill/receipt to explicitly display the currency conversion details.</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={!!confirmationData.showExchangeRateOnBill}
+                          onChange={(e) => setConfirmationData({ ...confirmationData, showExchangeRateOnBill: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                      </label>
+                    </div>
+
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation Status</label>
                       <select 
@@ -4839,6 +4863,23 @@ Serene Villa Hiriketiya`;
                          className="w-full bg-slate-100 border border-slate-200 rounded-lg pl-10 pr-3 py-2 text-slate-500 cursor-not-allowed font-bold font-mono"
                        />
                      </div>
+                   </div>
+
+                   {/* Option to display exchange rate and converted amount on bills */}
+                   <div className="col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between">
+                     <div>
+                       <div className="text-xs font-bold text-slate-800">Show Exchange Rate & Converted LKR on Bills</div>
+                       <div className="text-[10px] text-slate-500">Enable this if you want the bill/receipt to explicitly display the currency conversion details.</div>
+                     </div>
+                     <label className="relative inline-flex items-center cursor-pointer">
+                       <input 
+                         type="checkbox" 
+                         checked={!!confirmationData.showExchangeRateOnBill}
+                         onChange={(e) => setConfirmationData({ ...confirmationData, showExchangeRateOnBill: e.target.checked })}
+                         className="sr-only peer"
+                       />
+                       <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                     </label>
                    </div>
 
                    {/* WhatsApp Number */}

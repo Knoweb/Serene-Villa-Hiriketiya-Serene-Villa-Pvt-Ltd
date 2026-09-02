@@ -173,7 +173,7 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
             <span style={{ color: '#64748b', fontWeight: '600' }}>Total Amount:</span>
             <span style={{ fontWeight: '700', color: '#1e293b' }}>{currency} {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
-          {currency !== 'LKR' && (
+          {currency !== 'LKR' && (advanceData?.showExchangeRateOnBill || associatedBooking?.showExchangeRateOnBill) && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(6, 95, 70, 0.1)', paddingBottom: '2px', fontSize: '11px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Exchange Rate:</span>
