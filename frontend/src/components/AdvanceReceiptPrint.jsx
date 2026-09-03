@@ -155,19 +155,35 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       let explicitRoomNum = null;
       let explicitRoomType = null;
 
-      if (parsedRoomPrices && parsedRoomPrices[idx]) {
-        const pItem = parsedRoomPrices[idx];
-        if (pItem.price != null && !isNaN(pItem.price)) {
-          rowAmount = (parseFloat(pItem.price) || 0) * convFactor;
+      const currentRoomNumFromList = roomsList[idx] || (roomsList.length === 1 && idx === 0 ? roomsList[0] : '');
+      const cleanRoomNumFromList = currentRoomNumFromList ? String(currentRoomNumFromList).replace(/^Room\s*/i, '').trim() : '';
+
+      // Exact room matching by room number if available, else by index
+      let matchedPriceItem = null;
+      if (parsedRoomPrices && parsedRoomPrices.length > 0) {
+        if (cleanRoomNumFromList) {
+          matchedPriceItem = parsedRoomPrices.find(p => {
+            const pNum = String(p.roomNumber || p.roomNum || '').replace(/^Room\s*/i, '').trim();
+            return pNum === cleanRoomNumFromList;
+          });
         }
-        if (pItem.rate != null && !isNaN(pItem.rate)) {
-          explicitRate = (parseFloat(pItem.rate) || 0) * convFactor;
+        if (!matchedPriceItem && parsedRoomPrices[idx]) {
+          matchedPriceItem = parsedRoomPrices[idx];
         }
-        if (pItem.roomNumber || pItem.roomNum) {
-          explicitRoomNum = String(pItem.roomNumber || pItem.roomNum).replace(/^Room\s*/i, '').trim();
+      }
+
+      if (matchedPriceItem) {
+        if (matchedPriceItem.price != null && !isNaN(matchedPriceItem.price)) {
+          rowAmount = (parseFloat(matchedPriceItem.price) || 0) * convFactor;
         }
-        if (pItem.roomType) {
-          explicitRoomType = pItem.roomType;
+        if (matchedPriceItem.rate != null && !isNaN(matchedPriceItem.rate)) {
+          explicitRate = (parseFloat(matchedPriceItem.rate) || 0) * convFactor;
+        }
+        if (matchedPriceItem.roomNumber || matchedPriceItem.roomNum) {
+          explicitRoomNum = String(matchedPriceItem.roomNumber || matchedPriceItem.roomNum).replace(/^Room\s*/i, '').trim();
+        }
+        if (matchedPriceItem.roomType) {
+          explicitRoomType = matchedPriceItem.roomType;
         }
       }
 
@@ -180,7 +196,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
       const rateAmount = explicitRate != null ? explicitRate : (rowAmount / (nightsVal || 1));
       const currentRoomType = explicitRoomType || roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (selectedReg?.roomType || associatedBooking?.roomType || 'Room'));
-      const rNum = explicitRoomNum || roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
+      const rNum = explicitRoomNum || cleanRoomNumFromList || '';
 
       let desc = rNum
         ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`

@@ -3400,19 +3400,35 @@ Serene Villa Hiriketiya`;
             let explicitRoomNum = null;
             let explicitRoomType = null;
 
-            if (parsedRoomPrices && parsedRoomPrices[idx]) {
-              const pItem = parsedRoomPrices[idx];
-              if (pItem.price != null && !isNaN(pItem.price)) {
-                rowAmount = (parseFloat(pItem.price) || 0) * convFactor;
+            const currentRoomNumFromList = roomsList[idx] || (roomsList.length === 1 && idx === 0 ? roomsList[0] : '');
+            const cleanRoomNumFromList = currentRoomNumFromList ? String(currentRoomNumFromList).replace(/^Room\s*/i, '').trim() : '';
+
+            // Exact room matching by room number if available, else by index
+            let matchedPriceItem = null;
+            if (parsedRoomPrices && parsedRoomPrices.length > 0) {
+              if (cleanRoomNumFromList) {
+                matchedPriceItem = parsedRoomPrices.find(p => {
+                  const pNum = String(p.roomNumber || p.roomNum || '').replace(/^Room\s*/i, '').trim();
+                  return pNum === cleanRoomNumFromList;
+                });
               }
-              if (pItem.rate != null && !isNaN(pItem.rate)) {
-                explicitRate = (parseFloat(pItem.rate) || 0) * convFactor;
+              if (!matchedPriceItem && parsedRoomPrices[idx]) {
+                matchedPriceItem = parsedRoomPrices[idx];
               }
-              if (pItem.roomNumber || pItem.roomNum) {
-                explicitRoomNum = String(pItem.roomNumber || pItem.roomNum).replace(/^Room\s*/i, '').trim();
+            }
+
+            if (matchedPriceItem) {
+              if (matchedPriceItem.price != null && !isNaN(matchedPriceItem.price)) {
+                rowAmount = (parseFloat(matchedPriceItem.price) || 0) * convFactor;
               }
-              if (pItem.roomType) {
-                explicitRoomType = pItem.roomType;
+              if (matchedPriceItem.rate != null && !isNaN(matchedPriceItem.rate)) {
+                explicitRate = (parseFloat(matchedPriceItem.rate) || 0) * convFactor;
+              }
+              if (matchedPriceItem.roomNumber || matchedPriceItem.roomNum) {
+                explicitRoomNum = String(matchedPriceItem.roomNumber || matchedPriceItem.roomNum).replace(/^Room\s*/i, '').trim();
+              }
+              if (matchedPriceItem.roomType) {
+                explicitRoomType = matchedPriceItem.roomType;
               }
             }
 
@@ -3425,7 +3441,7 @@ Serene Villa Hiriketiya`;
             
             const rateAmount = explicitRate != null ? explicitRate : (rowAmount / (nightsVal || 1));
             const currentRoomType = explicitRoomType || roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (selectedReg?.roomType || associatedBooking?.roomType || 'Room'));
-            const rNum = explicitRoomNum || roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
+            const rNum = explicitRoomNum || cleanRoomNumFromList || '';
 
             let desc = rNum 
               ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
@@ -4003,6 +4019,14 @@ Serene Villa Hiriketiya`;
                   const errorText = await response.text();
                   throw new Error(errorText || 'Failed to create extra night booking');
                 }
+
+                const createdBooking = await response.json();
+                
+                // Immediately synchronize local bookings state
+                setBookings(prev => {
+                  const filtered = prev.filter(b => b.id !== createdBooking.id && b.bookingNumber !== createdBooking.bookingNumber);
+                  return [...filtered, createdBooking];
+                });
                 
                 alert('Extra Night booking added successfully!');
                 setShowExtraNightModal(false);
@@ -4238,6 +4262,14 @@ Serene Villa Hiriketiya`;
                   const errorText = await response.text();
                   throw new Error(errorText || 'Failed to create extra person booking');
                 }
+
+                const createdBooking = await response.json();
+                
+                // Immediately synchronize local bookings state
+                setBookings(prev => {
+                  const filtered = prev.filter(b => b.id !== createdBooking.id && b.bookingNumber !== createdBooking.bookingNumber);
+                  return [...filtered, createdBooking];
+                });
                 
                 alert('Extra Person booking added successfully!');
                 setShowExtraPersonModal(false);
