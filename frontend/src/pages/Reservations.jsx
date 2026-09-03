@@ -701,10 +701,9 @@ const Reservations = () => {
       console.error('Error fetching full registration details in reservations:', err);
     }
 
-    let associatedBooking = bookings.find(b => b.guestRegistrationId === reg.id);
-    if (!associatedBooking) {
-      associatedBooking = getBookingForReg(reg.id);
-    }
+    const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
+    const primaryCandidate = allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
     
     if (associatedBooking) {
       const bCurr = (associatedBooking.currency || 'USD').toUpperCase();
@@ -1413,10 +1412,10 @@ const Reservations = () => {
     const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
     const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
 
-    // 1. If registration already has a specific bookingNumber, prioritize exact match
-    if (targetReg.bookingNumber) {
+    // 1. If registration already has a specific bookingNumber, prioritize exact match (excluding sub-bookings with '/')
+    if (targetReg.bookingNumber && !targetReg.bookingNumber.includes('/')) {
       const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
-      const directMatch = bookings.find(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
+      const directMatch = bookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/') && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
       if (directMatch) return directMatch;
     }
 
@@ -1442,7 +1441,11 @@ const Reservations = () => {
     if (candidates.length === 0) return null;
 
     // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
-    candidates.sort((a, b) => {
+    // Also ignore sub-bookings (bookings with "/" in bookingNumber) as the primary associatedBooking
+    const primaryCandidates = candidates.filter(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    const finalCandidates = primaryCandidates.length > 0 ? primaryCandidates : candidates;
+
+    finalCandidates.sort((a, b) => {
       const aIsReal = a.bookingNumber && (a.bookingNumber.startsWith('D-789') || (!a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11')));
       const bIsReal = b.bookingNumber && (b.bookingNumber.startsWith('D-789') || (!b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11')));
       if (aIsReal && !bIsReal) return -1;
@@ -1450,7 +1453,7 @@ const Reservations = () => {
       return (b.id || 0) - (a.id || 0);
     });
 
-    return candidates[0];
+    return finalCandidates[0];
   };
 
   const qrPort = window.location.port ? `:${window.location.port}` : '';
@@ -1487,7 +1490,23 @@ const Reservations = () => {
   useEffect(() => {
     if (associatedBooking) {
       const bCurr = getBookingCurrency(associatedBooking);
-      const totalAmt = parseFloat(associatedBooking.totalAmount || 0);
+      const relatedBookings = bookings.filter(b => {
+        if (!associatedBooking) return false;
+        if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
+        const baseBNum = associatedBooking.bookingNumber;
+        if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+          return true;
+        }
+        return false;
+      });
+      const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+      const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+      const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
+      const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(associatedBooking.totalAmount || 0);
+      const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+      const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+      const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+
       const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
         const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
         const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
@@ -1507,7 +1526,7 @@ const Reservations = () => {
         cardFee: ''
       }));
     }
-  }, [associatedBooking, advancePayments]);
+  }, [associatedBooking, advancePayments, bookings]);
 
   return (
     <div className="space-y-6">
@@ -1983,13 +2002,24 @@ const Reservations = () => {
                     ) : (
                       <div>
                         {(() => {
-                          let parsedItems = [];
-                          const currency = bookingForm.currencyCode || associatedBooking?.currency || selectedReg?.currency || 'USD';
-                          const totalAmt = parseFloat(bookingForm.amount || associatedBooking?.totalAmount || selectedReg?.totalAmount || 0);
+                          const relatedBookings = bookings.filter(b => {
+                            if (!associatedBooking) return false;
+                            if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
+                            const baseBNum = associatedBooking.bookingNumber;
+                            if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                              return true;
+                            }
+                            return false;
+                          });
+                          const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
 
-                          if (associatedBooking?.roomPrices) {
+                          let parsedItems = [];
+                          const currency = bookingForm.currencyCode || baseBookingItem?.currency || associatedBooking?.currency || selectedReg?.currency || 'USD';
+                          const totalAmt = parseFloat(bookingForm.amount || baseBookingItem?.totalAmount || associatedBooking?.totalAmount || selectedReg?.totalAmount || 0);
+
+                          if (baseBookingItem?.roomPrices || associatedBooking?.roomPrices) {
                             try {
-                              const p = JSON.parse(associatedBooking.roomPrices);
+                              const p = JSON.parse(baseBookingItem?.roomPrices || associatedBooking?.roomPrices);
                               if (Array.isArray(p) && p.length > 0) {
                                 parsedItems = p.map((item, idx) => ({
                                   roomNumber: item.roomNumber || item.roomNum || `Room ${idx + 1}`,
@@ -2000,12 +2030,12 @@ const Reservations = () => {
                           }
 
                           if (parsedItems.length === 0) {
-                            const rawRoomNums = (bookingForm.room || associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
+                            const rawRoomNums = (bookingForm.room || baseBookingItem?.roomNumber || associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
                               .split(',')
                               .map(r => r.trim())
                               .filter(Boolean);
 
-                            const rawRoomTypes = (bookingForm.roomType || associatedBooking?.roomType || selectedReg?.roomType || '')
+                            const rawRoomTypes = (bookingForm.roomType || baseBookingItem?.roomType || associatedBooking?.roomType || selectedReg?.roomType || '')
                               .split(',')
                               .map(t => t.trim())
                               .filter(Boolean);
@@ -2081,25 +2111,53 @@ const Reservations = () => {
                   </div>
 
                   {/* Price */}
-                  <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-100/40">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
-                    {isEditingBooking ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-400 font-bold text-xs">{getBookingCurrency(associatedBooking)}</span>
-                        <input 
-                          type="number"
-                          step="any"
-                          value={bookingForm.amount}
-                          onChange={(e) => setBookingForm({...bookingForm, amount: e.target.value})}
-                          className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs text-right focus:outline-none focus:border-emerald-500 font-mono"
-                        />
+                  {(() => {
+                    const relatedBookings = bookings.filter(b => {
+                      if (!associatedBooking) return false;
+                      if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
+                      const baseBNum = associatedBooking.bookingNumber;
+                      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                        return true;
+                      }
+                      return false;
+                    });
+                    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+                    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+                    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
+                    const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(associatedBooking?.totalAmount || 0);
+                    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    const netTotalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+
+                    return (
+                      <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-100/40">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
+                        {isEditingBooking ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-400 font-bold text-xs">{getBookingCurrency(associatedBooking)}</span>
+                            <input 
+                              type="number"
+                              step="any"
+                              value={bookingForm.amount}
+                              onChange={(e) => setBookingForm({...bookingForm, amount: e.target.value})}
+                              className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs text-right focus:outline-none focus:border-emerald-500 font-mono"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-right">
+                            <span className="font-extrabold text-slate-855 text-sm font-mono">
+                              {getBookingCurrency(associatedBooking)} {netTotalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                            {totalDiscountDeduction > 0 && (
+                              <p className="text-[9px] text-rose-600 font-semibold font-mono">
+                                (Base: {baseAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} - Disc: {totalDiscountDeduction.toLocaleString(undefined, { minimumFractionDigits: 2 })})
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <span className="font-extrabold text-slate-855 text-sm font-mono">
-                        {getBookingCurrency(associatedBooking)} {associatedBooking?.totalAmount ? parseFloat(associatedBooking.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
-                      </span>
-                    )}
-                  </div>
+                    );
+                  })()}
 
                   {/* Room No input field (Only displayed in Edit Mode) */}
                   {isEditingBooking && (
@@ -2172,33 +2230,43 @@ const Reservations = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      const relatedBookings = bookings.filter(b => {
+                        if (!associatedBooking) return false;
+                        if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
+                        const baseBNum = associatedBooking.bookingNumber;
+                        if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                          return true;
+                        }
+                        return false;
+                      });
+                      const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
                       const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
                       setConfirmationData({
                         guestName: selectedReg.guestName || '',
-                        bookingNumber: associatedBooking.bookingNumber || '',
+                        bookingNumber: baseBookingItem.bookingNumber || associatedBooking.bookingNumber || '',
                         checkInDate: selectedReg.checkInDate || '',
                         checkOutDate: selectedReg.checkOutDate || '',
                         nights: nightsVal,
                         adults: selectedReg.adults || 1,
                         children: selectedReg.children || 0,
-                        boardBasis: associatedBooking.boardBasis || 'Room Only',
+                        boardBasis: baseBookingItem.boardBasis || associatedBooking.boardBasis || 'Room Only',
                         email: selectedReg.email || 'N/A',
                         whatsappNumber: selectedReg.whatsappNumber || 'N/A',
                         nationality: selectedReg.nationality || 'N/A',
                         reservationDate: new Date().toISOString().split('T')[0],
-                        roomType: associatedBooking.roomType || '',
-                        unitPrice: associatedBooking.unitPrice || '0.00',
-                        totalPrice: (associatedBooking.totalAmount || 0).toFixed(2),
-                        currency: associatedBooking.currency || 'LKR',
-                        tableCurrency: associatedBooking.currency || 'LKR',
-                        exchangeRate: associatedBooking.exchangeRate || '1.00',
-                        allocatedRooms: getRoomsForBooking(associatedBooking),
-                        confirmedBy: associatedBooking.confirmedBy || 'Muthuni Weerasingha',
+                        roomType: baseBookingItem.roomType || associatedBooking.roomType || '',
+                        unitPrice: baseBookingItem.unitPrice || associatedBooking.unitPrice || '0.00',
+                        totalPrice: (baseBookingItem.totalAmount || associatedBooking.totalAmount || 0).toFixed(2),
+                        currency: baseBookingItem.currency || associatedBooking.currency || 'LKR',
+                        tableCurrency: baseBookingItem.currency || associatedBooking.currency || 'LKR',
+                        exchangeRate: baseBookingItem.exchangeRate || associatedBooking.exchangeRate || '1.00',
+                        allocatedRooms: getRoomsForBooking(baseBookingItem),
+                        confirmedBy: baseBookingItem.confirmedBy || associatedBooking.confirmedBy || 'Muthuni Weerasingha',
                         reservationStatus: 'Confirm Booking',
-                        senderName: associatedBooking.senderName || confirmationData.senderName || localStorage.getItem('pms_sender_name') || user?.name || user?.username || '',
+                        senderName: baseBookingItem.senderName || associatedBooking.senderName || confirmationData.senderName || localStorage.getItem('pms_sender_name') || user?.name || user?.username || '',
                         badgeText: '',
-                        remarks: associatedBooking.remarks || '',
-                        bookingType: associatedBooking.bookingType || 'Booking.com Booking'
+                        remarks: baseBookingItem.remarks || associatedBooking.remarks || '',
+                        bookingType: baseBookingItem.bookingType || associatedBooking.bookingType || 'Booking.com Booking'
                       });
                       setShowDraftPreviewModal(true);
                     }}
@@ -2296,7 +2364,23 @@ const Reservations = () => {
                   {/* Payment Summary Card */}
                   {(() => {
                     const bCurr = getBookingCurrency(associatedBooking);
-                    const totalAmt = parseFloat(associatedBooking.totalAmount || 0);
+                    const relatedBookings = bookings.filter(b => {
+                      if (!associatedBooking) return false;
+                      if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
+                      const baseBNum = associatedBooking.bookingNumber;
+                      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                        return true;
+                      }
+                      return false;
+                    });
+                    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+                    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+                    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
+                    const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(associatedBooking.totalAmount || 0);
+                    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
+                    const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+
                     const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
                       const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
                       const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
