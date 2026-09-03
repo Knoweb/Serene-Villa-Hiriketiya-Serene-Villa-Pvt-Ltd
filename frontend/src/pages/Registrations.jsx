@@ -1968,13 +1968,67 @@ const Registrations = () => {
                           const nextDay = dateObj.toISOString().split('T')[0];
                           
                           const baseCurrency = associatedBooking?.currency || selectedReg?.currency || 'USD';
-                          const defaultRoom = associatedBooking?.roomNumber?.split(',')[0]?.trim() || '';
+                          
+                          // Pre-populate allocatedRooms from parent booking roomPrices or roomNumber/roomType
+                          let initialAllocated = [];
+                          if (associatedBooking?.roomPrices) {
+                            try {
+                              const p = typeof associatedBooking.roomPrices === 'string' ? JSON.parse(associatedBooking.roomPrices) : associatedBooking.roomPrices;
+                              if (Array.isArray(p) && p.length > 0) {
+                                initialAllocated = p.map(item => {
+                                  const rNum = String(item.roomNumber || item.roomNum || '').replace(/^Room\s*/i, '').trim();
+                                  const rType = item.roomType || rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room';
+                                  const parentNights = associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1;
+                                  const rawPrice = parseFloat(item.price || item.rate || 0);
+                                  const perNightRate = (item.rate != null && item.rate !== '') ? parseFloat(item.rate) : (rawPrice / parentNights);
+                                  return {
+                                    roomNumber: rNum,
+                                    roomType: rType,
+                                    rate: isNaN(perNightRate) ? 0 : perNightRate,
+                                    price: isNaN(perNightRate) ? 0 : perNightRate, // for 1 extra night
+                                    selected: true
+                                  };
+                                });
+                              }
+                            } catch(e) {}
+                          }
+
+                          if (initialAllocated.length === 0) {
+                            const rawRoomNums = String(associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
+                              .split(',')
+                              .map(r => r.replace(/^Room\s*/i, '').trim())
+                              .filter(Boolean);
+                            const rawRoomTypes = String(associatedBooking?.roomType || selectedReg?.roomType || '')
+                              .split(',')
+                              .map(t => t.trim())
+                              .filter(Boolean);
+                            const parentNights = associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1;
+                            const totalAmt = parseFloat(associatedBooking?.totalAmount || associatedBooking?.amount || selectedReg?.totalAmount || 0);
+                            const count = Math.max(rawRoomNums.length, rawRoomTypes.length, 1);
+                            const avgPerRoomPerNight = count > 0 && parentNights > 0 ? (totalAmt / (count * parentNights)) : 0;
+
+                            for (let i = 0; i < count; i++) {
+                              const rNum = rawRoomNums[i] || (rawRoomNums[0] || '101');
+                              const rType = rawRoomTypes[i] || (rawRoomTypes[0] || (rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room'));
+                              initialAllocated.push({
+                                roomNumber: rNum,
+                                roomType: rType,
+                                rate: avgPerRoomPerNight,
+                                price: avgPerRoomPerNight,
+                                selected: true
+                              });
+                            }
+                          }
+
+                          const totalExtraSum = initialAllocated.reduce((sum, r) => sum + (r.selected ? (parseFloat(r.price) || 0) : 0), 0);
+                          const defaultRoom = initialAllocated.map(r => r.roomNumber).join(', ');
 
                           setExtraNightForm({
-                            amount: '',
+                            amount: totalExtraSum > 0 ? totalExtraSum.toFixed(2) : '',
                             currencyCode: baseCurrency,
                             remarks: 'Extra night addition',
                             room: defaultRoom,
+                            allocatedRooms: initialAllocated,
                             checkInDate: baseCheckOut,
                             checkOutDate: nextDay,
                             numberOfNights: 1
@@ -3333,7 +3387,7 @@ Serene Villa Hiriketiya`;
 
           const bookDispTotal = bookTotalAmount * convFactor;
           const bookTotalCents = Math.round(bookDispTotal * 100);
-          const nightsVal = book.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1;
+          const nightsVal = book.numberOfNights || (isSubBooking ? 1 : (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1));
 
           let suffixLabel = "";
           if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
@@ -3341,25 +3395,43 @@ Serene Villa Hiriketiya`;
 
           for (let idx = 0; idx < countRooms; idx++) {
             let rowAmount = 0;
-            if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price != null && !isNaN(parsedRoomPrices[idx].price)) {
-              rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
-            } else {
+            let explicitRate = null;
+            let explicitRoomNum = null;
+            let explicitRoomType = null;
+
+            if (parsedRoomPrices && parsedRoomPrices[idx]) {
+              const pItem = parsedRoomPrices[idx];
+              if (pItem.price != null && !isNaN(pItem.price)) {
+                rowAmount = (parseFloat(pItem.price) || 0) * convFactor;
+              }
+              if (pItem.rate != null && !isNaN(pItem.rate)) {
+                explicitRate = (parseFloat(pItem.rate) || 0) * convFactor;
+              }
+              if (pItem.roomNumber || pItem.roomNum) {
+                explicitRoomNum = String(pItem.roomNumber || pItem.roomNum).replace(/^Room\s*/i, '').trim();
+              }
+              if (pItem.roomType) {
+                explicitRoomType = pItem.roomType;
+              }
+            }
+
+            if (rowAmount === 0 && !parsedRoomPrices) {
               const currentCentsSum = Math.round((bookTotalCents / countRooms) * (idx + 1));
               const prevCentsSum = Math.round((bookTotalCents / countRooms) * idx);
               const rowCents = currentCentsSum - prevCentsSum;
               rowAmount = rowCents / 100;
             }
             
-            const rateAmount = rowAmount / nightsVal;
-            const amountVal = Math.floor(rowAmount);
-            const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
-            
-            const currentRoomType = roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (selectedReg?.roomType || associatedBooking?.roomType || 'Room'));
-            const rNum = roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
+            const rateAmount = explicitRate != null ? explicitRate : (rowAmount / (nightsVal || 1));
+            const currentRoomType = explicitRoomType || roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (selectedReg?.roomType || associatedBooking?.roomType || 'Room'));
+            const rNum = explicitRoomNum || roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
 
             let desc = rNum 
               ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
               : `Night - ${currentRoomType}${suffixLabel}`;
+
+            const amountVal = Math.floor(rowAmount);
+            const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
 
             itemizedRows.push({
               roomNumber: rNum,
@@ -3448,12 +3520,57 @@ Serene Villa Hiriketiya`;
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 p-3 border border-slate-200 rounded-lg text-[11px] mb-4 bg-white">
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Guest Name</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{selectedReg?.guestName || associatedBooking?.guestName || ''}</span></div>
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Channel</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.bookingType || 'Direct Booking'}</span></div>
-                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - in</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(isExtraNight && associatedBooking?.checkInDate ? associatedBooking.checkInDate : (selectedReg?.checkInDate || associatedBooking?.checkInDate || '')).replace(/-/g, '.')}</span></div>
-                <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Check - out</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{(isExtraNight && associatedBooking?.checkOutDate ? associatedBooking.checkOutDate : (selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '')).replace(/-/g, '.')}</span></div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Check - in</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">
+                    {(() => {
+                      let cIn = associatedBooking?.checkInDate || selectedReg?.checkInDate || '';
+                      if (isConsolidatedBill) {
+                        const validCheckIns = siblingBookings.map(b => b.checkInDate).filter(Boolean);
+                        if (validCheckIns.length > 0) cIn = validCheckIns.reduce((min, d) => d < min ? d : min, validCheckIns[0]);
+                      }
+                      return cIn ? cIn.replace(/-/g, '.') : '';
+                    })()}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-slate-500 font-semibold w-24 shrink-0">Check - out</span>
+                  <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">
+                    {(() => {
+                      let cOut = associatedBooking?.checkOutDate || selectedReg?.checkOutDate || '';
+                      if (isConsolidatedBill) {
+                        const validCheckOuts = siblingBookings.map(b => b.checkOutDate).filter(Boolean);
+                        if (validCheckOuts.length > 0) cOut = validCheckOuts.reduce((max, d) => d > max ? d : max, validCheckOuts[0]);
+                      }
+                      return cOut ? cOut.replace(/-/g, '.') : '';
+                    })()}
+                  </span>
+                </div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-slate-500 font-semibold w-24 shrink-0">Nights</span>
                   <span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">
-                    {String(isExtraNight ? (associatedBooking?.numberOfNights || 1) : nightsVal).padStart(2, '0')} nights {isExtraNight && <span className="text-amber-700 font-bold text-[10px]">(Extra Night)</span>}
+                    {(() => {
+                      let calcNights = associatedBooking?.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || 1;
+                      if (isConsolidatedBill) {
+                        const validCheckIns = siblingBookings.map(b => b.checkInDate).filter(Boolean);
+                        const validCheckOuts = siblingBookings.map(b => b.checkOutDate).filter(Boolean);
+                        if (validCheckIns.length > 0 && validCheckOuts.length > 0) {
+                          const minIn = validCheckIns.reduce((min, d) => d < min ? d : min, validCheckIns[0]);
+                          const maxOut = validCheckOuts.reduce((max, d) => d > max ? d : max, validCheckOuts[0]);
+                          const inD = new Date(minIn);
+                          const outD = new Date(maxOut);
+                          const diffDays = Math.round((outD.getTime() - inD.getTime()) / (1000 * 3600 * 24));
+                          if (diffDays > 0) calcNights = diffDays;
+                        }
+                      } else if (isExtraNight && associatedBooking?.numberOfNights) {
+                        calcNights = associatedBooking.numberOfNights;
+                      }
+                      return (
+                        <>
+                          {String(calcNights).padStart(2, '0')} nights {isExtraNight && <span className="text-amber-700 font-bold text-[10px]">(Extra Night)</span>}
+                        </>
+                      );
+                    })()}
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5"><span className="text-slate-500 font-semibold w-24 shrink-0">Basis</span><span className="font-bold text-slate-900 border-b border-dashed border-slate-200 flex-1 pb-0.5">{associatedBooking?.boardBasis || 'Bed & Breakfast'}</span></div>
@@ -3827,18 +3944,46 @@ Serene Villa Hiriketiya`;
               if (!selectedReg || !associatedBooking) return;
               try {
                 const newBNum = `${associatedBooking.bookingNumber}/1N`;
-                const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraNightForm.room));
                 const totalNights = parseInt(extraNightForm.numberOfNights, 10) || 1;
+                
+                const selectedRooms = (extraNightForm.allocatedRooms && extraNightForm.allocatedRooms.length > 0)
+                  ? extraNightForm.allocatedRooms.filter(r => r.selected)
+                  : [];
+                
+                if (selectedRooms.length === 0 && !extraNightForm.room) {
+                  throw new Error('Please select at least one room for the extra night');
+                }
+
+                const roomNums = selectedRooms.length > 0 
+                  ? selectedRooms.map(r => r.roomNumber).join(', ') 
+                  : (extraNightForm.room || associatedBooking.roomNumber);
+                const roomTypes = selectedRooms.length > 0 
+                  ? selectedRooms.map(r => r.roomType).join(', ') 
+                  : (associatedBooking.roomType || 'Deluxe Room');
+                
+                const totalExtraAmount = selectedRooms.length > 0
+                  ? selectedRooms.reduce((sum, r) => sum + (parseFloat(r.price) || 0), 0)
+                  : parseFloat(extraNightForm.amount || 0);
+
+                const roomPricesArray = selectedRooms.map(r => ({
+                  roomNumber: r.roomNumber,
+                  roomType: r.roomType,
+                  rate: parseFloat(r.rate || 0),
+                  nights: totalNights,
+                  price: parseFloat(r.price || 0)
+                }));
+
                 const payload = {
                   guestRegistrationId: selectedReg.id,
                   bookingNumber: newBNum,
-                  roomNumber: extraNightForm.room || associatedBooking.roomNumber,
-                  roomType: matchedRoom ? matchedRoom.roomType : (associatedBooking.roomType?.split(',')[0] || 'Deluxe Room'),
+                  roomNumber: roomNums,
+                  roomType: roomTypes,
+                  roomPrices: roomPricesArray.length > 0 ? JSON.stringify(roomPricesArray) : null,
                   bookingType: 'Direct',
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
                   remarks: extraNightForm.remarks || 'Extra Night addition',
-                  amount: parseFloat(extraNightForm.amount || 0),
-                  totalAmount: parseFloat(extraNightForm.amount || 0),
+                  amount: totalExtraAmount,
+                  totalAmount: totalExtraAmount,
                   currency: extraNightForm.currencyCode,
                   currencyCode: extraNightForm.currencyCode,
                   checkInDate: extraNightForm.checkInDate || associatedBooking?.checkOutDate || selectedReg?.checkOutDate,
@@ -3860,7 +4005,7 @@ Serene Villa Hiriketiya`;
                 
                 alert('Extra Night booking added successfully!');
                 setShowExtraNightModal(false);
-                setExtraNightForm({ amount: '', currencyCode: 'USD', remarks: '', room: '', checkInDate: '', checkOutDate: '', numberOfNights: 1 });
+                setExtraNightForm({ amount: '', currencyCode: 'USD', remarks: '', room: '', allocatedRooms: [], checkInDate: '', checkOutDate: '', numberOfNights: 1 });
                 fetchRegistrations();
               } catch(err) {
                 alert(err.message);
@@ -3895,10 +4040,23 @@ Serene Villa Hiriketiya`;
                       const outDate = new Date(newOut);
                       const diffTime = outDate.getTime() - inDate.getTime();
                       const diffDays = Math.max(1, Math.round(diffTime / (1000 * 3600 * 24)));
+                      
+                      // Recalculate prices for all allocated rooms based on diffDays
+                      const updatedRooms = (extraNightForm.allocatedRooms || []).map(r => {
+                        const rRate = parseFloat(r.rate) || 0;
+                        return {
+                          ...r,
+                          price: (rRate * diffDays).toFixed(2)
+                        };
+                      });
+                      const totalSum = updatedRooms.reduce((sum, r) => sum + (r.selected ? (parseFloat(r.price) || 0) : 0), 0);
+
                       setExtraNightForm(prev => ({
                         ...prev,
                         checkOutDate: newOut,
-                        numberOfNights: diffDays
+                        numberOfNights: diffDays,
+                        allocatedRooms: updatedRooms,
+                        amount: totalSum.toFixed(2)
                       }));
                     }}
                     className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
@@ -3907,84 +4065,106 @@ Serene Villa Hiriketiya`;
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Room Number(s)</label>
-                <select
-                  value={extraNightForm.room}
-                  onChange={(e) => {
-                    const roomNo = e.target.value;
-                    setExtraNightForm(prev => ({ ...prev, room: roomNo }));
-                  }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
-                  required
-                >
-                  <option value="">-- Choose Room --</option>
-                  {rooms.map(r => (
-                    <option key={r.roomNumber} value={r.roomNumber}>Room {r.roomNumber}</option>
-                  ))}
-                </select>
-              </div>
-
-              {extraNightForm.room && (() => {
-                const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraNightForm.room));
-                const roomTypeStr = matchedRoom ? matchedRoom.roomType : 'Deluxe Room';
-                return (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-                    <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">Room Allocations & Prices</label>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Table Currency:</span>
-                        <select
-                          value={extraNightForm.currencyCode}
-                          onChange={(e) => setExtraNightForm(prev => ({ ...prev, currencyCode: e.target.value }))}
-                          className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
-                        >
-                          <option value="USD">USD</option>
-                          <option value="LKR">LKR</option>
-                          <option value="EUR">EUR</option>
-                          <option value="AUD">AUD</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
-                            <th className="pb-1.5 font-semibold">Room Name</th>
-                            <th className="pb-1.5 font-semibold">Room Number</th>
-                            <th className="pb-1.5 font-semibold w-36 text-right">Price ({extraNightForm.currencyCode})</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          <tr className="text-slate-700">
-                            <td className="py-2 pr-2 font-medium">{roomTypeStr}</td>
-                            <td className="py-2 pr-2 font-mono font-bold text-slate-900">{extraNightForm.room}</td>
-                            <td className="py-1 text-right">
-                              <div className="inline-flex items-center gap-1.5 justify-end">
-                                <span className="text-[10px] text-slate-400 font-bold font-mono">{extraNightForm.currencyCode}</span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={extraNightForm.amount}
-                                  onChange={(e) => setExtraNightForm(prev => ({ ...prev, amount: e.target.value }))}
-                                  className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
-                                  required
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                          <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
-                            <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
-                            <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
-                              {extraNightForm.currencyCode} {(parseFloat(extraNightForm.amount) || 0).toFixed(2)}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+              {/* Room Allocations & Price Rates Table */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">
+                    Select Rooms & Room Rates ({extraNightForm.numberOfNights} {extraNightForm.numberOfNights === 1 ? 'Night' : 'Nights'})
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Currency:</span>
+                    <select
+                      value={extraNightForm.currencyCode}
+                      onChange={(e) => setExtraNightForm(prev => ({ ...prev, currencyCode: e.target.value }))}
+                      className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="LKR">LKR</option>
+                      <option value="EUR">EUR</option>
+                      <option value="AUD">AUD</option>
+                    </select>
                   </div>
-                );
-              })()}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                        <th className="pb-1.5 font-semibold w-8 text-center">Include</th>
+                        <th className="pb-1.5 font-semibold">Room Name</th>
+                        <th className="pb-1.5 font-semibold">Room No</th>
+                        <th className="pb-1.5 font-semibold text-right w-24">Rate / Night</th>
+                        <th className="pb-1.5 font-semibold w-28 text-right">Total Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {extraNightForm.allocatedRooms && extraNightForm.allocatedRooms.length > 0 ? (
+                        extraNightForm.allocatedRooms.map((rItem, idx) => (
+                          <tr key={idx} className={rItem.selected ? "text-slate-800 bg-white" : "text-slate-400 bg-slate-50/60 opacity-60"}>
+                            <td className="py-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={!!rItem.selected}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  const updated = [...extraNightForm.allocatedRooms];
+                                  updated[idx] = { ...updated[idx], selected: isChecked };
+                                  const totalSum = updated.reduce((sum, r) => sum + (r.selected ? (parseFloat(r.price) || 0) : 0), 0);
+                                  const roomStr = updated.filter(r => r.selected).map(r => r.roomNumber).join(', ');
+                                  setExtraNightForm(prev => ({
+                                    ...prev,
+                                    allocatedRooms: updated,
+                                    room: roomStr,
+                                    amount: totalSum.toFixed(2)
+                                  }));
+                                }}
+                                className="w-3.5 h-3.5 accent-emerald-600 rounded cursor-pointer"
+                              />
+                            </td>
+                            <td className="py-2 pr-2 font-medium">{rItem.roomType}</td>
+                            <td className="py-2 pr-2 font-mono font-bold text-slate-900">{rItem.roomNumber}</td>
+                            <td className="py-1 text-right">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={rItem.rate}
+                                disabled={!rItem.selected}
+                                onChange={(e) => {
+                                  const newRate = parseFloat(e.target.value) || 0;
+                                  const totalNights = parseInt(extraNightForm.numberOfNights, 10) || 1;
+                                  const newPrice = (newRate * totalNights).toFixed(2);
+                                  const updated = [...extraNightForm.allocatedRooms];
+                                  updated[idx] = { ...updated[idx], rate: e.target.value, price: newPrice };
+                                  const totalSum = updated.reduce((sum, r) => sum + (r.selected ? (parseFloat(r.price) || 0) : 0), 0);
+                                  setExtraNightForm(prev => ({
+                                    ...prev,
+                                    allocatedRooms: updated,
+                                    amount: totalSum.toFixed(2)
+                                  }));
+                                }}
+                                className="w-20 bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-right font-mono font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500"
+                              />
+                            </td>
+                            <td className="py-1 text-right font-mono font-bold text-slate-900 pr-1">
+                              {extraNightForm.currencyCode} {(parseFloat(rItem.price) || 0).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-3 text-center text-slate-400 italic">No room allocated to parent reservation</td>
+                        </tr>
+                      )}
+                      <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
+                        <td className="py-2.5 pl-2 font-bold" colSpan={4}>Total Sum ({extraNightForm.numberOfNights} Nights)</td>
+                        <td className="py-2.5 pr-2 text-right font-mono font-bold text-emerald-800">
+                          {extraNightForm.currencyCode} {(parseFloat(extraNightForm.amount) || 0).toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>

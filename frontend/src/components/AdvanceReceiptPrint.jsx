@@ -143,7 +143,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
     const bookDispTotal = bookTotalAmount * convFactor;
     const bookTotalCents = Math.round(bookDispTotal * 100);
-    const nightsVal = book.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1;
+    const nightsVal = book.numberOfNights || (isSubBooking ? 1 : (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1));
 
     let suffixLabel = "";
     if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
@@ -151,18 +151,36 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
     for (let idx = 0; idx < countRooms; idx++) {
       let rowAmount = 0;
-      if (parsedRoomPrices && parsedRoomPrices[idx] && parsedRoomPrices[idx].price != null && !isNaN(parsedRoomPrices[idx].price)) {
-        rowAmount = (parseFloat(parsedRoomPrices[idx].price) || 0) * convFactor;
-      } else {
+      let explicitRate = null;
+      let explicitRoomNum = null;
+      let explicitRoomType = null;
+
+      if (parsedRoomPrices && parsedRoomPrices[idx]) {
+        const pItem = parsedRoomPrices[idx];
+        if (pItem.price != null && !isNaN(pItem.price)) {
+          rowAmount = (parseFloat(pItem.price) || 0) * convFactor;
+        }
+        if (pItem.rate != null && !isNaN(pItem.rate)) {
+          explicitRate = (parseFloat(pItem.rate) || 0) * convFactor;
+        }
+        if (pItem.roomNumber || pItem.roomNum) {
+          explicitRoomNum = String(pItem.roomNumber || pItem.roomNum).replace(/^Room\s*/i, '').trim();
+        }
+        if (pItem.roomType) {
+          explicitRoomType = pItem.roomType;
+        }
+      }
+
+      if (rowAmount === 0 && !parsedRoomPrices) {
         const currentCentsSum = Math.round((bookTotalCents / countRooms) * (idx + 1));
         const prevCentsSum = Math.round((bookTotalCents / countRooms) * idx);
         const rowCents = currentCentsSum - prevCentsSum;
         rowAmount = rowCents / 100;
       }
 
-      const rateAmount = rowAmount / nightsVal;
-      const currentRoomType = roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (selectedReg?.roomType || associatedBooking?.roomType || 'Room'));
-      const rNum = roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
+      const rateAmount = explicitRate != null ? explicitRate : (rowAmount / (nightsVal || 1));
+      const currentRoomType = explicitRoomType || roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (selectedReg?.roomType || associatedBooking?.roomType || 'Room'));
+      const rNum = explicitRoomNum || roomsList[idx] || (roomsList.length === 1 ? roomsList[0] : '');
 
       let desc = rNum
         ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
@@ -185,8 +203,6 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   });
 
   const dispTotalAmount = roomChargesTotal;
-
-  // Format Dates
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString();
@@ -194,9 +210,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
   return (
     <div ref={ref} className="receipt-print-area text-black font-sans bg-white p-4">
-      {/* Header Section */}
       <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-3 mb-6">
-        {/* Left Column: Logo & Hotel Details */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <img src={logoImg} alt="Serene Villa Logo" className="h-12 w-12 object-contain" />
@@ -210,7 +224,6 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           <p className="text-xs text-slate-600">Hotline: +94 41 225 5204 / +94 70 499 8787</p>
         </div>
 
-        {/* Right Column: Receipt Type & Meta */}
         <div className="text-right space-y-1">
           <h2 className="text-lg font-black text-emerald-800 tracking-wide uppercase">{receiptTitle}</h2>
           {isFinalPayment && <span className="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-1">✓ FULLY SETTLED</span>}
@@ -236,26 +249,29 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
         </div>
       </div>
 
-      {/* Reservation Details Section (Matching Draft Bill layout) */}
       {(() => {
         const guestName = selectedReg?.guestName || associatedBooking?.guestName || '';
         const bookingChannel = associatedBooking?.bookingType || 'Direct Booking';
-        const isExtraNight = associatedBooking?.bookingNumber?.includes('/1N');
-        const checkInDate = isExtraNight && associatedBooking?.checkInDate
-          ? associatedBooking.checkInDate
-          : (isFinalPayment 
-              ? (selectedReg?.checkInDate || associatedBooking?.checkInDate || '')
-              : (associatedBooking?.checkInDate || selectedReg?.checkInDate || ''));
-        const checkOutDate = isExtraNight && associatedBooking?.checkOutDate
-          ? associatedBooking.checkOutDate
-          : (isFinalPayment 
-              ? (selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '')
-              : (associatedBooking?.checkOutDate || selectedReg?.checkOutDate || ''));
-        const nights = isExtraNight 
-          ? (associatedBooking?.numberOfNights || 1)
-          : (isFinalPayment 
-              ? (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.nights || 1)
-              : (associatedBooking?.numberOfNights || associatedBooking?.nights || 1));
+        
+        let checkInDate = associatedBooking?.checkInDate || selectedReg?.checkInDate || '';
+        let checkOutDate = associatedBooking?.checkOutDate || selectedReg?.checkOutDate || '';
+        let nights = associatedBooking?.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || 1;
+
+        if (isConsolidatedBill) {
+          const validCheckIns = siblingBookings.map(b => b.checkInDate).filter(Boolean);
+          const validCheckOuts = siblingBookings.map(b => b.checkOutDate).filter(Boolean);
+          if (validCheckIns.length > 0) checkInDate = validCheckIns.reduce((min, d) => d < min ? d : min, validCheckIns[0]);
+          if (validCheckOuts.length > 0) checkOutDate = validCheckOuts.reduce((max, d) => d > max ? d : max, validCheckOuts[0]);
+          if (checkInDate && checkOutDate) {
+            const inD = new Date(checkInDate);
+            const outD = new Date(checkOutDate);
+            const diffDays = Math.round((outD.getTime() - inD.getTime()) / (1000 * 3600 * 24));
+            if (diffDays > 0) nights = diffDays;
+          }
+        } else if (isExtraNight && associatedBooking?.checkInDate && associatedBooking?.checkOutDate) {
+          nights = associatedBooking.numberOfNights || 1;
+        }
+
         const boardBasis = associatedBooking?.boardBasis || 'Bed & Breakfast';
         const adults = selectedReg?.adults || associatedBooking?.adults || 1;
         const children = selectedReg?.children || associatedBooking?.children || 0;
@@ -266,7 +282,6 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             <div style={{ fontSize: '9px', fontWeight: '800', color: '#065f46', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>
               RESERVATION DETAILS
             </div>
-            
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 24px', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px', marginBottom: '20px', backgroundColor: '#ffffff' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Guest Name</span>
@@ -287,7 +302,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Nights</span>
                 <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
-                  {String(nights).padStart(2, '0')} nights {isExtraNight && <span style={{ color: '#b45309', fontWeight: '700', fontSize: '10px' }}>(Extra Night)</span>}
+                  {String(nights).padStart(2, '0')} nights
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
