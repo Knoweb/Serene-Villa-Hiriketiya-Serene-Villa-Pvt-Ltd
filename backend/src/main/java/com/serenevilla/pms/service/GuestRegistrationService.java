@@ -225,8 +225,9 @@ public class GuestRegistrationService {
 
             GuestRegistration savedReg = guestRegistrationRepository.save(reg);
 
-            // Find or create associated booking with smart matching
+            // Find or create associated booking with smart matching (strictly excluding sub-bookings like /1N, /DISC)
             List<Booking> candidates = bookingRepository.findAll().stream()
+                    .filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))
                     .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
                               || (details.containsKey("bookingNumber") && details.get("bookingNumber") != null && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(String.valueOf(details.get("bookingNumber")).trim()))
                               || (savedReg.getGuestName() != null && b.getGuestName() != null && b.getGuestName().trim().equalsIgnoreCase(savedReg.getGuestName().trim())))

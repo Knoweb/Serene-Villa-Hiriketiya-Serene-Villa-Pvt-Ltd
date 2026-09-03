@@ -702,8 +702,8 @@ const Reservations = () => {
     }
 
     const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
-    const primaryCandidate = allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && (parseFloat(b.totalAmount || b.amount || 0) >= 0))
-      || allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    const primaryCandidate = allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && !b.bookingNumber?.includes('-DISC') && !b.bookingNumber?.includes('1N') && !b.bookingNumber?.includes('1P') && (parseFloat(b.totalAmount || b.amount || 0) >= 0))
+      || allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && !b.bookingNumber?.includes('-DISC') && !b.bookingNumber?.includes('1N') && !b.bookingNumber?.includes('1P'));
     let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
     
     if (associatedBooking) {
@@ -1442,9 +1442,15 @@ const Reservations = () => {
     if (candidates.length === 0) return null;
 
     // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
-    // Strictly filter out sub-bookings (bookings with "/" in bookingNumber) and negative discount rows
-    const primaryCandidates = candidates.filter(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && (parseFloat(b.totalAmount || b.amount || 0) >= 0));
-    const nonSubCandidates = candidates.filter(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    // Strictly filter out sub-bookings (bookings with "/" in bookingNumber, discount, or extra-night rows)
+    const isRootBooking = (b) => {
+      if (!b.bookingNumber) return true;
+      const bNum = b.bookingNumber;
+      return !bNum.includes('/') && !bNum.includes('-DISC') && !bNum.includes('1N') && !bNum.includes('1P');
+    };
+
+    const primaryCandidates = candidates.filter(b => isRootBooking(b) && (parseFloat(b.totalAmount || b.amount || 0) >= 0));
+    const nonSubCandidates = candidates.filter(b => isRootBooking(b));
     const finalCandidates = primaryCandidates.length > 0 ? primaryCandidates : (nonSubCandidates.length > 0 ? nonSubCandidates : candidates);
 
     finalCandidates.sort((a, b) => {
@@ -2013,12 +2019,12 @@ const Reservations = () => {
                           }
 
                           if (parsedItems.length === 0) {
-                            const rawRoomNums = (bookingForm.room || baseBookingItem?.roomNumber || associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
+                            const rawRoomNums = (associatedBooking?.roomNumber || bookingForm.room || '')
                               .split(',')
                               .map(r => r.trim())
                               .filter(Boolean);
 
-                            const rawRoomTypes = (bookingForm.roomType || baseBookingItem?.roomType || associatedBooking?.roomType || selectedReg?.roomType || '')
+                            const rawRoomTypes = (associatedBooking?.roomType || bookingForm.roomType || '')
                               .split(',')
                               .map(t => t.trim())
                               .filter(Boolean);
