@@ -702,7 +702,8 @@ const Reservations = () => {
     }
 
     const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
-    const primaryCandidate = allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    const primaryCandidate = allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && (parseFloat(b.totalAmount || b.amount || 0) >= 0))
+      || allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
     let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
     
     if (associatedBooking) {
@@ -1441,11 +1442,17 @@ const Reservations = () => {
     if (candidates.length === 0) return null;
 
     // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
-    // Also ignore sub-bookings (bookings with "/" in bookingNumber) as the primary associatedBooking
-    const primaryCandidates = candidates.filter(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
-    const finalCandidates = primaryCandidates.length > 0 ? primaryCandidates : candidates;
+    // Strictly filter out sub-bookings (bookings with "/" in bookingNumber) and negative discount rows
+    const primaryCandidates = candidates.filter(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && (parseFloat(b.totalAmount || b.amount || 0) >= 0));
+    const nonSubCandidates = candidates.filter(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    const finalCandidates = primaryCandidates.length > 0 ? primaryCandidates : (nonSubCandidates.length > 0 ? nonSubCandidates : candidates);
 
     finalCandidates.sort((a, b) => {
+      const aAmt = parseFloat(a.totalAmount || a.amount || 0);
+      const bAmt = parseFloat(b.totalAmount || b.amount || 0);
+      if (aAmt > 0 && bAmt <= 0) return -1;
+      if (aAmt <= 0 && bAmt > 0) return 1;
+
       const aIsReal = a.bookingNumber && (a.bookingNumber.startsWith('D-789') || (!a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11')));
       const bIsReal = b.bookingNumber && (b.bookingNumber.startsWith('D-789') || (!b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11')));
       if (aIsReal && !bIsReal) return -1;
@@ -1490,22 +1497,7 @@ const Reservations = () => {
   useEffect(() => {
     if (associatedBooking) {
       const bCurr = getBookingCurrency(associatedBooking);
-      const relatedBookings = bookings.filter(b => {
-        if (!associatedBooking) return false;
-        if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
-        const baseBNum = associatedBooking.bookingNumber;
-        if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
-          return true;
-        }
-        return false;
-      });
-      const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
-      const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
-      const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
-      const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(associatedBooking.totalAmount || 0);
-      const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-      const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-      const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+      const totalAmt = parseFloat(associatedBooking.totalAmount || associatedBooking.amount || 0);
 
       const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
         const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
@@ -2002,24 +1994,15 @@ const Reservations = () => {
                     ) : (
                       <div>
                         {(() => {
-                          const relatedBookings = bookings.filter(b => {
-                            if (!associatedBooking) return false;
-                            if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
-                            const baseBNum = associatedBooking.bookingNumber;
-                            if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
-                              return true;
-                            }
-                            return false;
-                          });
-                          const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
+                          const baseBookingItem = associatedBooking;
 
                           let parsedItems = [];
-                          const currency = bookingForm.currencyCode || baseBookingItem?.currency || associatedBooking?.currency || selectedReg?.currency || 'USD';
-                          const totalAmt = parseFloat(bookingForm.amount || baseBookingItem?.totalAmount || associatedBooking?.totalAmount || selectedReg?.totalAmount || 0);
+                          const currency = bookingForm.currencyCode || baseBookingItem?.currency || selectedReg?.currency || 'USD';
+                          const totalAmt = parseFloat(bookingForm.amount || baseBookingItem?.totalAmount || selectedReg?.totalAmount || 0);
 
-                          if (baseBookingItem?.roomPrices || associatedBooking?.roomPrices) {
+                          if (baseBookingItem?.roomPrices) {
                             try {
-                              const p = JSON.parse(baseBookingItem?.roomPrices || associatedBooking?.roomPrices);
+                              const p = JSON.parse(baseBookingItem.roomPrices);
                               if (Array.isArray(p) && p.length > 0) {
                                 parsedItems = p.map((item, idx) => ({
                                   roomNumber: item.roomNumber || item.roomNum || `Room ${idx + 1}`,
@@ -2420,22 +2403,7 @@ const Reservations = () => {
                   {/* Single Unified Payment Form */}
                   {(() => {
                     const bCurr = getBookingCurrency(associatedBooking);
-                    const relatedBookings = bookings.filter(b => {
-                      if (!associatedBooking) return false;
-                      if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
-                      const baseBNum = associatedBooking.bookingNumber;
-                      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
-                        return true;
-                      }
-                      return false;
-                    });
-                    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
-                    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
-                    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
-                    const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(associatedBooking.totalAmount || 0);
-                    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-                    const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+                    const totalAmt = parseFloat(associatedBooking.totalAmount || associatedBooking.amount || 0);
 
                     const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
                       const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
