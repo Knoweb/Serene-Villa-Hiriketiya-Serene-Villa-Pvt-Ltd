@@ -2204,11 +2204,40 @@ const Reservations = () => {
                       });
                       const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
                       const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+                      const allocatedRooms = (() => {
+                        if (baseBookingItem.roomPrices) {
+                          try {
+                            const p = typeof baseBookingItem.roomPrices === 'string' ? JSON.parse(baseBookingItem.roomPrices) : baseBookingItem.roomPrices;
+                            if (Array.isArray(p) && p.length > 0) {
+                              return p.map((item, idx) => ({
+                                roomType: item.roomType || baseBookingItem.roomType || 'Deluxe Room',
+                                roomNumber: String(item.roomNumber || item.roomNum || `Room ${idx + 1}`).replace(/^Room\s*/i, '').trim(),
+                                price: item.price != null && item.price !== '' ? item.price : (item.rate || '0.00')
+                              }));
+                            }
+                          } catch (e) {}
+                        }
+                        const rNums = (baseBookingItem.roomNumber || '').split(',').map(r => r.trim()).filter(Boolean);
+                        const rTypes = (baseBookingItem.roomType || '').split(',').map(t => t.trim()).filter(Boolean);
+                        const count = Math.max(rNums.length, rTypes.length, 1);
+                        const tot = parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0);
+                        const perRoom = count > 0 && tot > 0 ? (tot / count).toFixed(2) : '0.00';
+                        const res = [];
+                        for (let i = 0; i < count; i++) {
+                          res.push({
+                            roomType: rTypes[i] || rTypes[0] || baseBookingItem.roomType || 'Deluxe Room',
+                            roomNumber: rNums[i] || (count > 1 ? `${i + 1}` : (rNums[0] || '')),
+                            price: perRoom
+                          });
+                        }
+                        return res;
+                      })();
+
                       setConfirmationData({
                         guestName: selectedReg.guestName || '',
                         bookingNumber: baseBookingItem.bookingNumber || associatedBooking.bookingNumber || '',
-                        checkInDate: selectedReg.checkInDate || '',
-                        checkOutDate: selectedReg.checkOutDate || '',
+                        checkInDate: baseBookingItem.checkInDate || selectedReg.checkInDate || '',
+                        checkOutDate: baseBookingItem.checkOutDate || selectedReg.checkOutDate || '',
                         nights: nightsVal,
                         adults: selectedReg.adults || 1,
                         children: selectedReg.children || 0,
@@ -2219,16 +2248,16 @@ const Reservations = () => {
                         reservationDate: new Date().toISOString().split('T')[0],
                         roomType: baseBookingItem.roomType || associatedBooking.roomType || '',
                         unitPrice: baseBookingItem.unitPrice || associatedBooking.unitPrice || '0.00',
-                        totalPrice: (baseBookingItem.totalAmount || associatedBooking.totalAmount || 0).toFixed(2),
-                        currency: baseBookingItem.currency || associatedBooking.currency || 'LKR',
-                        tableCurrency: baseBookingItem.currency || associatedBooking.currency || 'LKR',
+                        totalPrice: (parseFloat(baseBookingItem.totalAmount || associatedBooking.totalAmount || 0)).toFixed(2),
+                        currency: baseBookingItem.currency || associatedBooking.currency || 'USD',
+                        tableCurrency: baseBookingItem.currency || associatedBooking.currency || 'USD',
                         exchangeRate: baseBookingItem.exchangeRate || associatedBooking.exchangeRate || '1.00',
-                        allocatedRooms: getRoomsForBooking(baseBookingItem),
+                        allocatedRooms: allocatedRooms,
                         confirmedBy: baseBookingItem.confirmedBy || associatedBooking.confirmedBy || 'Muthuni Weerasingha',
                         reservationStatus: 'Confirm Booking',
                         senderName: baseBookingItem.senderName || associatedBooking.senderName || confirmationData.senderName || localStorage.getItem('pms_sender_name') || user?.name || user?.username || '',
                         badgeText: '',
-                        remarks: baseBookingItem.remarks || associatedBooking.remarks || '',
+                        remarks: baseBookingItem.remarks || '',
                         bookingType: baseBookingItem.bookingType || associatedBooking.bookingType || 'Booking.com Booking'
                       });
                       setShowDraftPreviewModal(true);
