@@ -630,7 +630,8 @@ const Registrations = () => {
     }
     
     const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
-    const primaryCandidate = allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
+    const primaryCandidate = allRelatedBookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/')) 
+      || allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
     let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
     
     if (associatedBooking) {
@@ -649,9 +650,9 @@ const Registrations = () => {
         currencyCode: associatedBooking.currency || reg.currency || reg.currencyCode || 'USD',
         paymentStatus: reg.paymentStatus || associatedBooking.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: reg.checkInDate || associatedBooking.checkInDate || '',
-        checkOutDate: reg.checkOutDate || associatedBooking.checkOutDate || '',
-        numberOfNights: reg.numberOfNights || reg.nights || 0
+        checkInDate: associatedBooking.checkInDate || reg.checkInDate || '',
+        checkOutDate: associatedBooking.checkOutDate || reg.checkOutDate || '',
+        numberOfNights: associatedBooking.numberOfNights || reg.numberOfNights || reg.nights || 0
       });
       fetchAdvancePayments(associatedBooking.id);
     } else {
