@@ -2112,22 +2112,7 @@ const Reservations = () => {
 
                   {/* Price */}
                   {(() => {
-                    const relatedBookings = bookings.filter(b => {
-                      if (!associatedBooking) return false;
-                      if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
-                      const baseBNum = associatedBooking.bookingNumber;
-                      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
-                        return true;
-                      }
-                      return false;
-                    });
-                    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
-                    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
-                    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
-                    const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(associatedBooking?.totalAmount || 0);
-                    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-                    const netTotalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+                    const baseAmount = parseFloat(associatedBooking?.totalAmount || associatedBooking?.amount || 0);
 
                     return (
                       <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-100/40">
@@ -2146,13 +2131,8 @@ const Reservations = () => {
                         ) : (
                           <div className="text-right">
                             <span className="font-extrabold text-slate-855 text-sm font-mono">
-                              {getBookingCurrency(associatedBooking)} {netTotalAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              {getBookingCurrency(associatedBooking)} {baseAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </span>
-                            {totalDiscountDeduction > 0 && (
-                              <p className="text-[9px] text-rose-600 font-semibold font-mono">
-                                (Base: {baseAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} - Disc: {totalDiscountDeduction.toLocaleString(undefined, { minimumFractionDigits: 2 })})
-                              </p>
-                            )}
                           </div>
                         )}
                       </div>
@@ -2364,22 +2344,7 @@ const Reservations = () => {
                   {/* Payment Summary Card */}
                   {(() => {
                     const bCurr = getBookingCurrency(associatedBooking);
-                    const relatedBookings = bookings.filter(b => {
-                      if (!associatedBooking) return false;
-                      if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
-                      const baseBNum = associatedBooking.bookingNumber;
-                      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
-                        return true;
-                      }
-                      return false;
-                    });
-                    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
-                    const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
-                    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
-                    const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(associatedBooking.totalAmount || 0);
-                    const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-                    const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+                    const totalAmt = parseFloat(associatedBooking.totalAmount || associatedBooking.amount || 0);
 
                     const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
                       const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
