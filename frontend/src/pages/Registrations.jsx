@@ -1965,6 +1965,9 @@ const Registrations = () => {
                         onClick={() => {
                           const baseCheckOut = associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date().toISOString().split('T')[0];
                           const dateObj = new Date(baseCheckOut);
+                          if (isNaN(dateObj.getTime())) {
+                            dateObj.setTime(Date.now());
+                          }
                           dateObj.setDate(dateObj.getDate() + 1);
                           const nextDay = dateObj.toISOString().split('T')[0];
                           
@@ -1979,14 +1982,15 @@ const Registrations = () => {
                                 initialAllocated = p.map(item => {
                                   const rNum = String(item.roomNumber || item.roomNum || '').replace(/^Room\s*/i, '').trim();
                                   const rType = item.roomType || rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room';
-                                  const parentNights = associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1;
+                                  const parentNights = parseFloat(associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1) || 1;
                                   const rawPrice = parseFloat(item.price || item.rate || 0);
-                                  const perNightRate = (item.rate != null && item.rate !== '') ? parseFloat(item.rate) : (rawPrice / parentNights);
+                                  const perNightRate = (item.rate != null && item.rate !== '' && !isNaN(item.rate)) ? parseFloat(item.rate) : (rawPrice / parentNights);
+                                  const cleanRate = isNaN(perNightRate) ? 0 : parseFloat(perNightRate.toFixed(2));
                                   return {
                                     roomNumber: rNum,
                                     roomType: rType,
-                                    rate: isNaN(perNightRate) ? 0 : perNightRate,
-                                    price: isNaN(perNightRate) ? 0 : perNightRate, // for 1 extra night
+                                    rate: cleanRate,
+                                    price: cleanRate, // 1 night = rate * 1
                                     selected: true
                                   };
                                 });
@@ -2003,10 +2007,10 @@ const Registrations = () => {
                               .split(',')
                               .map(t => t.trim())
                               .filter(Boolean);
-                            const parentNights = associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1;
+                            const parentNights = parseFloat(associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1) || 1;
                             const totalAmt = parseFloat(associatedBooking?.totalAmount || associatedBooking?.amount || selectedReg?.totalAmount || 0);
                             const count = Math.max(rawRoomNums.length, rawRoomTypes.length, 1);
-                            const avgPerRoomPerNight = count > 0 && parentNights > 0 ? (totalAmt / (count * parentNights)) : 0;
+                            const avgPerRoomPerNight = count > 0 && parentNights > 0 ? parseFloat((totalAmt / (count * parentNights)).toFixed(2)) : 0;
 
                             for (let i = 0; i < count; i++) {
                               const rNum = rawRoomNums[i] || (rawRoomNums[0] || '101');
@@ -4143,7 +4147,7 @@ Serene Villa Hiriketiya`;
                                     const matchedR = rooms.find(rm => String(rm.roomNumber) === String(rNum));
                                     const defaultRate = matchedR ? parseFloat(matchedR.price || 0) : 0;
                                     const currentRate = existing ? (parseFloat(existing.rate) || defaultRate) : defaultRate;
-                                    const calcPrice = existing ? existing.price : (currentRate * totalNights).toFixed(2);
+                                    const calcPrice = (currentRate * totalNights).toFixed(2);
                                     return {
                                       roomType: matchedR ? (matchedR.roomType || 'Deluxe Room') : (existing?.roomType || 'Deluxe Room'),
                                       roomNumber: rNum,
