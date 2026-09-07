@@ -422,6 +422,7 @@ const Bookings = () => {
             <div className="grid grid-cols-2 gap-4 border-b border-slate-200 pb-4 mb-4">
               <div>
                 <p><strong>Invoice No:</strong> {invoiceView.invoiceNumber}</p>
+                <p><strong>Payment Method:</strong> <span className="text-emerald-700 font-bold">{invoiceView.paymentMethod}</span></p>
                 <p><strong>Date:</strong> {invoiceView.date}</p>
                 <p><strong>Guest:</strong> {invoiceView.guestName}</p>
               </div>
