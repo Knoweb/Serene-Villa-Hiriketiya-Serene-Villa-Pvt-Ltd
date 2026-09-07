@@ -1420,8 +1420,13 @@ const Reservations = () => {
       if (directMatch) return directMatch;
     }
 
-    // Find all matching candidate bookings
+    // Find all matching candidate bookings (strictly base bookings only)
     const candidates = bookings.filter(b => {
+      // Never match a sub-booking (/DISC, /1N, /1P) as a base reservation
+      if (b.bookingNumber && (b.bookingNumber.includes('/') || b.bookingNumber.includes('DISC') || b.bookingNumber.includes('1N') || b.bookingNumber.includes('1P') || parseFloat(b.totalAmount || b.amount || 0) < 0)) {
+        return false;
+      }
+
       if (b.guestRegistrationId === regId) return true;
 
       const cleanBName = (b.guestName || '')
