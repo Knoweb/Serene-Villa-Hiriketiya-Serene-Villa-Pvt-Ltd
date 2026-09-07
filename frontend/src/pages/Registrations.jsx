@@ -3299,17 +3299,10 @@ Serene Villa Hiriketiya`;
         if (isExtraNight || isExtraPerson) {
           // For Extra Night or Extra Person sub-bills, target strictly the sub-booking!
           targetBookings = [associatedBooking];
-        } else if (isOriginalBill || (!isFinalPayment && !isDiscountAdjusted)) {
-          // For Original Bill or standard Advance Payment receipt on base booking, target strictly the base booking!
-          targetBookings = [baseBookingItem || associatedBooking];
-        } else if (siblingBookings.length > 0) {
-          // For Final Settlement or Discount Adjusted Consolidated Bill, include all room bookings
-          const nonDisc = siblingBookings.filter(b => !b.bookingNumber?.includes('/DISC'));
-          targetBookings = nonDisc.length > 0 ? nonDisc : (baseBookingItem ? [baseBookingItem] : (associatedBooking ? [associatedBooking] : []));
-        } else if (associatedBooking) {
-          targetBookings = [associatedBooking];
         } else {
-          targetBookings = [];
+          // For Final Invoices, Discount Adjusted Invoices, Original Bills, and standard Advance Receipts:
+          // Keep extra nights and extra persons separate! Only target the base booking!
+          targetBookings = [baseBookingItem || associatedBooking];
         }
 
         // If targetBookings is empty, create a virtual booking from selectedReg
