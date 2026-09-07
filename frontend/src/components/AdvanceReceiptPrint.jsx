@@ -33,6 +33,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' && remainingBalLkr <= 10;
   const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
   const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
+  const isConsolidatedBill = isFinalPayment || isDiscountAdjusted || isOriginalBill;
   const isExtraNight = associatedBooking.bookingNumber?.includes('/1N');
   const isExtraPerson = associatedBooking.bookingNumber?.includes('/1P');
   const isDiscount = associatedBooking.bookingNumber?.includes('/DISC');
