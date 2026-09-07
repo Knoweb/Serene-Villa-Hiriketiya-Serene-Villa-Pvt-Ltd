@@ -54,8 +54,9 @@ public class BookingController {
             b.setPaymentStatus(paymentStatus);
             Booking saved = bookingRepository.save(b);
             
-            // Also update associated guest registration
-            if (b.getGuestRegistrationId() != null) {
+            // Only update associated guest registration if it's the main booking (not a sub-booking with '/')
+            boolean isSubBooking = b.getBookingNumber() != null && b.getBookingNumber().contains("/");
+            if (!isSubBooking && b.getGuestRegistrationId() != null) {
                 guestRegistrationRepository.findById(b.getGuestRegistrationId()).ifPresent(reg -> {
                     reg.setPaymentStatus(paymentStatus);
                     guestRegistrationRepository.save(reg);

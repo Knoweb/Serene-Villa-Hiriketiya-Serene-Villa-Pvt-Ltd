@@ -237,6 +237,21 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
         <div className="text-right space-y-1">
           <h2 className="text-lg font-black text-emerald-800 tracking-wide uppercase">{receiptTitle}</h2>
           {isFinalPayment && <span className="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-1">✓ FULLY SETTLED</span>}
+          {(() => {
+            const isSubExtra = !!(associatedBooking.bookingNumber && associatedBooking.bookingNumber.includes('/') && !associatedBooking.bookingNumber.includes('/DISC'));
+            const statusVal = selectedPaymentForReceipt?.paymentStatus || receiptData?.paymentStatus || associatedBooking?.paymentStatus;
+            if (isSubExtra && statusVal) {
+              const isPaid = statusVal === 'Paid';
+              return (
+                <span className={`inline-block text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider mb-1 ${
+                  isPaid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                }`}>
+                  {isPaid ? '✓ PAID' : '⚠ PAYMENT PENDING / UNPAID'}
+                </span>
+              );
+            }
+            return null;
+          })()}
           <div className="border border-emerald-800/30 rounded px-3 py-1.5 bg-emerald-50/20 text-xs text-left space-y-0.5">
             <div className="flex gap-4 justify-between">
               <span className="text-slate-500 font-semibold">Booking No:</span>
@@ -252,6 +267,21 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 {selectedPaymentForReceipt?.paymentMethod || receiptData?.paymentMethod || 'Cash'}
               </span>
             </div>
+            {(() => {
+              const isSubExtra = !!(associatedBooking.bookingNumber && associatedBooking.bookingNumber.includes('/') && !associatedBooking.bookingNumber.includes('/DISC'));
+              const statusVal = selectedPaymentForReceipt?.paymentStatus || receiptData?.paymentStatus || associatedBooking?.paymentStatus;
+              if (isSubExtra && statusVal) {
+                return (
+                  <div className="flex gap-4 justify-between">
+                    <span className="text-slate-500 font-semibold">Status:</span>
+                    <span className={`font-black uppercase tracking-wide ${statusVal === 'Paid' ? 'text-emerald-800' : 'text-amber-800'}`}>
+                      {statusVal === 'Paid' ? 'PAID' : 'UNPAID'}
+                    </span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div className="flex gap-4 justify-between">
               <span className="text-slate-500 font-semibold">Date:</span>
               <span className="font-bold text-slate-800">{(() => {

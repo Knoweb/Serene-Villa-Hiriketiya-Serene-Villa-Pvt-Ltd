@@ -2211,17 +2211,48 @@ const Registrations = () => {
                             const isDiscount = extraB.bookingNumber.includes('/DISC');
                             const badgeTitle = isExtraNight ? 'Extra Night' : isExtraPerson ? 'One Person' : isDiscount ? 'Discount' : 'Extra Option';
                             const badgeColor = isExtraNight ? 'bg-amber-100 text-amber-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800';
+                            const isBillPaid = extraB.paymentStatus === 'Paid';
 
                             return (
                               <div key={extraB.id} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
                                 <div>
-                                  <div className="flex items-center gap-1.5 mb-1">
+                                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                                     <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${badgeColor}`}>
                                       {badgeTitle}
                                     </span>
                                     <span className="font-mono font-bold text-slate-800 text-[11px]">
                                       {extraB.bookingNumber}
                                     </span>
+
+                                    {/* Interactive Payment Status Badge (Click to Toggle Paid / Unpaid) */}
+                                    {!isDiscount && (
+                                      <button
+                                        type="button"
+                                        title="Click to toggle Paid / Unpaid status"
+                                        onClick={async () => {
+                                          const newStatus = isBillPaid ? 'Pending' : 'Paid';
+                                          try {
+                                            const res = await fetch(`${API_BASE}/bookings/${extraB.id}/payment-status?paymentStatus=${newStatus}`, {
+                                              method: 'PUT'
+                                            });
+                                            if (res.ok) {
+                                              const updated = await res.json();
+                                              setBookings(prev => prev.map(b => b.id === extraB.id ? { ...b, paymentStatus: newStatus } : b));
+                                            }
+                                          } catch (err) {
+                                            console.error('Failed to toggle extra bill payment status:', err);
+                                          }
+                                        }}
+                                        className={`inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border transition cursor-pointer shadow-2xs ${
+                                          isBillPaid 
+                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200' 
+                                            : 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
+                                        }`}
+                                      >
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isBillPaid ? 'bg-emerald-600' : 'bg-amber-600'}`}></span>
+                                        {isBillPaid ? 'Paid' : 'Unpaid / Pending'}
+                                      </button>
+                                    )}
                                   </div>
                                   <p className="text-[10px] text-slate-500 font-medium">
                                     Room: <span className="font-bold text-slate-700">{extraB.roomNumber || 'N/A'}</span> • Amount: <span className="font-bold text-emerald-700">{extraB.currency || 'USD'} {parseFloat(extraB.totalAmount || extraB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -2293,6 +2324,7 @@ const Registrations = () => {
                                         bookingRef: extraB.bookingNumber,
                                         roomNumber: extraB.roomNumber,
                                         paymentMethod: detectedMethod,
+                                        paymentStatus: extraB.paymentStatus || 'Paid',
                                         totalAmount: extraB.totalAmount || extraB.amount || 0,
                                         bookingCurrency: extraB.currency || 'USD'
                                       });
@@ -4337,7 +4369,7 @@ Serene Villa Hiriketiya`;
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
                   <select
@@ -4349,6 +4381,17 @@ Serene Villa Hiriketiya`;
                     <option value="Card">Card</option>
                     <option value="Online">Online / Bank Transfer</option>
                     <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Status</label>
+                  <select
+                    value={extraNightForm.paymentStatus || 'Paid'}
+                    onChange={(e) => setExtraNightForm({ ...extraNightForm, paymentStatus: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="Paid">🟢 Paid</option>
+                    <option value="Pending">🟡 Unpaid / Pending</option>
                   </select>
                 </div>
                 <div>
@@ -4625,7 +4668,7 @@ Serene Villa Hiriketiya`;
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
                   <select
@@ -4640,10 +4683,21 @@ Serene Villa Hiriketiya`;
                   </select>
                 </div>
                 <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Status</label>
+                  <select
+                    value={extraPersonForm.paymentStatus || 'Paid'}
+                    onChange={(e) => setExtraPersonForm({ ...extraPersonForm, paymentStatus: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="Paid">🟢 Paid</option>
+                    <option value="Pending">🟡 Unpaid / Pending</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
                   <input
                     type="text"
-                    placeholder="e.g. Extra person bed charge"
+                    placeholder="e.g. Extra bed for one person"
                     value={extraPersonForm.remarks}
                     onChange={(e) => setExtraPersonForm({...extraPersonForm, remarks: e.target.value})}
                     className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
