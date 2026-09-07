@@ -4132,6 +4132,7 @@ Serene Villa Hiriketiya`;
                         <th className="pb-1.5 font-semibold">Room No</th>
                         <th className="pb-1.5 font-semibold text-right w-24">Rate / Night</th>
                         <th className="pb-1.5 font-semibold w-28 text-right">Total Amount</th>
+                        <th className="pb-1.5 font-semibold w-8 text-center"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -4185,11 +4186,31 @@ Serene Villa Hiriketiya`;
                             <td className="py-1 text-right font-mono font-bold text-slate-900 pr-1">
                               {extraNightForm.currencyCode} {(parseFloat(rItem.price) || 0).toFixed(2)}
                             </td>
+                            <td className="py-1 text-center">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = extraNightForm.allocatedRooms.filter((_, i) => i !== idx);
+                                  const totalSum = updated.reduce((sum, r) => sum + (r.selected ? (parseFloat(r.price) || 0) : 0), 0);
+                                  const roomStr = updated.filter(r => r.selected).map(r => r.roomNumber).join(', ');
+                                  setExtraNightForm(prev => ({
+                                    ...prev,
+                                    allocatedRooms: updated,
+                                    room: roomStr,
+                                    amount: totalSum.toFixed(2)
+                                  }));
+                                }}
+                                className="text-rose-400 hover:text-rose-600 p-1 hover:bg-rose-50 rounded transition cursor-pointer"
+                                title="Remove Room"
+                              >
+                                <X size={13} />
+                              </button>
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-3 text-center text-slate-400 italic">No room allocated to parent reservation</td>
+                          <td colSpan={6} className="py-3 text-center text-slate-400 italic">No rooms added. Click below to add a room.</td>
                         </tr>
                       )}
                       <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
@@ -4197,9 +4218,71 @@ Serene Villa Hiriketiya`;
                         <td className="py-2.5 pr-2 text-right font-mono font-bold text-emerald-800">
                           {extraNightForm.currencyCode} {(parseFloat(extraNightForm.amount) || 0).toFixed(2)}
                         </td>
+                        <td></td>
                       </tr>
                     </tbody>
                   </table>
+                </div>
+
+                {/* Add New Additional Room Dropdown */}
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap bg-white p-2 rounded-lg">
+                  <span className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
+                    <Plus size={12} className="text-emerald-600" /> Add Another Room:
+                  </span>
+                  <div className="flex items-center gap-2 flex-1 max-w-sm justify-end">
+                    <select
+                      id="extraNightAddRoomSelect"
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-500"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>-- Select Room to Add --</option>
+                      {rooms
+                        .filter(r => !(extraNightForm.allocatedRooms || []).some(ar => String(ar.roomNumber) === String(r.roomNumber)))
+                        .map(r => (
+                          <option key={r.id || r.roomNumber} value={r.roomNumber}>
+                            Room {r.roomNumber} - {r.roomType} (Rate: {r.price || 0})
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const selectEl = document.getElementById('extraNightAddRoomSelect');
+                        const selectedNum = selectEl?.value;
+                        if (!selectedNum) return;
+                        const roomObj = rooms.find(r => String(r.roomNumber) === String(selectedNum));
+                        if (!roomObj) return;
+
+                        const totalNights = parseInt(extraNightForm.numberOfNights, 10) || 1;
+                        const defaultRate = parseFloat(roomObj.price || 0);
+                        const defaultPrice = (defaultRate * totalNights).toFixed(2);
+
+                        const newAllocated = [
+                          ...(extraNightForm.allocatedRooms || []),
+                          {
+                            roomNumber: String(roomObj.roomNumber),
+                            roomType: roomObj.roomType || 'Deluxe Room',
+                            rate: defaultRate,
+                            price: defaultPrice,
+                            selected: true
+                          }
+                        ];
+                        const totalSum = newAllocated.reduce((sum, r) => sum + (r.selected ? (parseFloat(r.price) || 0) : 0), 0);
+                        const roomStr = newAllocated.filter(r => r.selected).map(r => r.roomNumber).join(', ');
+
+                        setExtraNightForm(prev => ({
+                          ...prev,
+                          allocatedRooms: newAllocated,
+                          room: roomStr,
+                          amount: totalSum.toFixed(2)
+                        }));
+                        selectEl.value = '';
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                    >
+                      <Plus size={12} /> Add Room
+                    </button>
+                  </div>
                 </div>
               </div>
 
