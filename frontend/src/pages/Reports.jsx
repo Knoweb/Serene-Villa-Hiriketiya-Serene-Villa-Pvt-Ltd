@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import logoImg from '../assets/logo.jpeg';
-import { toPng } from 'html-to-image';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { 
   FileDown, 
   AlertCircle, 
@@ -21,6 +22,17 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
+
+// Clean Number Formatter (e.g. "1,200,000.00") without prepending "LKR" to prevent column overflow
+const formatNum = (val) => {
+  const num = Number(val) || 0;
+  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+};
+
+const formatLKR = (val) => {
+  const num = Number(val) || 0;
+  return `LKR ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num)}`;
+};
 
 const Reports = () => {
   const { user } = useAuth();
@@ -53,17 +65,6 @@ const Reports = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-
-  // Formatting helpers
-  const formatLKR = (val) => {
-    const num = Number(val) || 0;
-    return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
-  };
-
-  const formatLKRCompact = (val) => {
-    const num = Number(val) || 0;
-    return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
-  };
 
   const getReportPeriod = () => {
     if (reportType === 'DailyCheckIn' || reportType === 'Daily') return date;
@@ -137,70 +138,62 @@ const Reports = () => {
     window.print();
   };
 
-  // Universal Action: Download High Resolution PDF / PNG
+  // Universal Action: Download High Resolution PDF / PNG with Multi-Page / Perfect Fit Support
   const handleDownloadPDF = async () => {
     const element = printAreaRef.current;
     if (!element) return;
 
     setDownloadingPdf(true);
     try {
-      // Create a clean clone for PDF generation to ensure no scrollbars or screen constraints
-      const clone = element.cloneNode(true);
-      clone.style.width = '1050px';
-      clone.style.maxWidth = '1050px';
-      clone.style.position = 'absolute';
-      clone.style.left = '-9999px';
-      clone.style.top = '0';
-      clone.style.background = '#ffffff';
-      clone.style.padding = '32px';
-      clone.style.boxShadow = 'none';
-      clone.style.borderRadius = '0';
-      clone.style.border = 'none';
-
-      // Ensure all overflow elements in clone are visible
-      const overflowElements = clone.querySelectorAll('.overflow-x-auto, [class*="overflow"]');
-      overflowElements.forEach(el => {
-        el.style.overflow = 'visible';
-        el.style.width = '100%';
-      });
-
-      document.body.appendChild(clone);
-
-      const dataUrl = await toPng(clone, {
-        cacheBust: true,
-        pixelRatio: 2,
+      // Capture element using html2canvas with high scale
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
         backgroundColor: '#ffffff',
-        width: 1050,
-        height: clone.scrollHeight,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
       });
 
-      document.body.removeChild(clone);
-
-      const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
+      const imgData = canvas.toDataURL('image/png');
       const cleanFileName = `SereneVilla_${reportType}_${getReportPeriod().replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 
-      if (jsPDF) {
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'pt',
-          format: 'a4'
-        });
+      // A4 dimensions in pt: 595.28 x 841.89
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'a4'
+      });
 
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const margin = 20;
-        const imgWidth = pdfWidth - (margin * 2);
-        const imgHeight = (clone.scrollHeight * imgWidth) / 1050;
-        const xPos = margin;
-        const yPos = margin;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      const printWidth = pageWidth - (margin * 2);
+      const printHeight = (canvas.height * printWidth) / canvas.width;
 
-        pdf.addImage(dataUrl, 'PNG', xPos, yPos, imgWidth, imgHeight);
-        pdf.save(`${cleanFileName}.pdf`);
+      if (printHeight <= pageHeight - (margin * 2)) {
+        // Fits comfortably on 1 single page
+        pdf.addImage(imgData, 'PNG', margin, margin, printWidth, printHeight);
       } else {
-        const link = document.createElement('a');
-        link.download = `${cleanFileName}.png`;
-        link.href = dataUrl;
-        link.click();
+        // Multi-page slicing if table content is longer
+        let heightLeft = printHeight;
+        let position = margin;
+        let page = 1;
+
+        pdf.addImage(imgData, 'PNG', margin, position, printWidth, printHeight);
+        heightLeft -= (pageHeight - (margin * 2));
+
+        while (heightLeft > 0) {
+          position = -(page * (pageHeight - (margin * 2))) + margin;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', margin, position, printWidth, printHeight);
+          heightLeft -= (pageHeight - (margin * 2));
+          page++;
+        }
       }
+
+      pdf.save(`${cleanFileName}.pdf`);
     } catch (err) {
       console.error('PDF export failed:', err);
       alert('Unable to generate PDF directly. Please use the Print button and choose "Save as PDF".');
@@ -713,29 +706,29 @@ const Reports = () => {
                           <td className="p-2 font-bold text-slate-800 text-[10px] break-words">
                             {row.roomName || 'N/A'}
                           </td>
-                          <td className="p-2 text-right font-mono text-slate-700 text-[10px]">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[10px] whitespace-nowrap">
                             {row.cashAmount > 0 ? (
-                              <span className="font-bold text-emerald-700">{formatLKR(row.cashAmount)}</span>
+                              <span className="font-bold text-emerald-700">{formatNum(row.cashAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2 text-right font-mono text-slate-700 text-[10px]">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[10px] whitespace-nowrap">
                             {row.cardAmount > 0 ? (
-                              <span className="font-bold text-blue-700">{formatLKR(row.cardAmount)}</span>
+                              <span className="font-bold text-blue-700">{formatNum(row.cardAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2 text-right font-mono text-slate-700 text-[10px]">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[10px] whitespace-nowrap">
                             {row.bankTransferAmount > 0 ? (
-                              <span className="font-bold text-amber-700">{formatLKR(row.bankTransferAmount)}</span>
+                              <span className="font-bold text-amber-700">{formatNum(row.bankTransferAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2 text-right font-mono font-black text-emerald-900 bg-emerald-50/30 text-[10px]">
-                            {formatLKR(row.convertedAmount)}
+                          <td className="p-2 text-right font-mono font-black text-emerald-900 bg-emerald-50/30 text-[10px] whitespace-nowrap">
+                            {formatNum(row.convertedAmount)}
                           </td>
                         </tr>
                       ))}
@@ -754,17 +747,17 @@ const Reports = () => {
                         <td colSpan="3" className="p-2 text-right uppercase text-[9px] text-slate-600">
                           Subtotals / Totals:
                         </td>
-                        <td className="p-2 text-right font-mono text-emerald-800 text-[10px]">
-                          {formatLKR(totalCashRows)}
+                        <td className="p-2 text-right font-mono text-emerald-800 text-[10px] whitespace-nowrap">
+                          {formatNum(totalCashRows)}
                         </td>
-                        <td className="p-2 text-right font-mono text-blue-800 text-[10px]">
-                          {formatLKR(totalCardRows)}
+                        <td className="p-2 text-right font-mono text-blue-800 text-[10px] whitespace-nowrap">
+                          {formatNum(totalCardRows)}
                         </td>
-                        <td className="p-2 text-right font-mono text-amber-800 text-[10px]">
-                          {formatLKR(totalBankRows)}
+                        <td className="p-2 text-right font-mono text-amber-800 text-[10px] whitespace-nowrap">
+                          {formatNum(totalBankRows)}
                         </td>
-                        <td className="p-2 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-[11px]">
-                          {formatLKR(totalConvertedRows)}
+                        <td className="p-2 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-[11px] whitespace-nowrap">
+                          {formatNum(totalConvertedRows)}
                         </td>
                       </tr>
                     </tfoot>
