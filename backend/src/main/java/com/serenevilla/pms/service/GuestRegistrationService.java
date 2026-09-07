@@ -107,38 +107,64 @@ public class GuestRegistrationService {
                     }
 
                     if (bookings != null && !bookings.isEmpty()) {
-                        Booking booking = bookings.get(bookings.size() - 1);
-                        List<Payment> allPayments = paymentRepository.findByBookingId(booking.getId());
-                        if (allPayments != null) {
-                            // Filter out hidden payments
-                            List<Payment> visiblePayments = allPayments.stream()
-                                    .filter(p -> p != null && (p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice()))
-                                    .toList();
-                            
-                            double totalPaidLkr = visiblePayments.stream()
-                                    .mapToDouble(p -> p.getConvertedAmountLkr() != null ? p.getConvertedAmountLkr() : p.getAmountLkr())
-                                    .sum();
-                            
-                            double totalAmt = booking.getTotalAmount();
-                            String bCurr = booking.getCurrency() != null ? booking.getCurrency().toUpperCase() : "USD";
-                            double exRate = 1.0;
-                            try {
-                                if (booking.getExchangeRate() != null && !booking.getExchangeRate().trim().isEmpty()) {
-                                    exRate = Double.parseDouble(booking.getExchangeRate().trim());
-                                }
-                            } catch (Exception ignored) {}
-                            if (exRate <= 0) exRate = 335.0;
+                        // Find all sibling/related bookings for this guest
+                        Booking primaryBooking = bookings.get(0);
+                        String baseBNum = primaryBooking.getBookingNumber() != null ? primaryBooking.getBookingNumber().split("/")[0] : null;
 
-                            double totalBookingAmtLkr = "LKR".equals(bCurr) ? totalAmt : (totalAmt * exRate);
+                        List<Booking> allRelated = bookingRepository.findAll().stream()
+                                .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(reg.getId()))
+                                          || (baseBNum != null && b.getBookingNumber() != null && (b.getBookingNumber().equals(baseBNum) || b.getBookingNumber().startsWith(baseBNum + "/"))))
+                                .toList();
 
-                            String computedStatus = "Unpaid";
-                            if (totalBookingAmtLkr > 0 && totalPaidLkr >= (totalBookingAmtLkr - 10.0)) {
-                                computedStatus = "Paid";
-                            } else if (totalPaidLkr > 0) {
-                                computedStatus = "Paid Advance";
+                        List<Payment> allVisiblePayments = new java.util.ArrayList<>();
+                        for (Booking b : allRelated) {
+                            List<Payment> pList = paymentRepository.findByBookingId(b.getId());
+                            if (pList != null) {
+                                allVisiblePayments.addAll(pList.stream()
+                                        .filter(p -> p != null && (p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice()))
+                                        .toList());
                             }
-                            reg.setPaymentStatus(computedStatus);
                         }
+
+                        // Also check payments attached directly by guestRegistrationId
+                        List<Payment> directRegPayments = paymentRepository.findAll().stream()
+                                .filter(p -> p != null && p.getGuestRegistrationId() != null && p.getGuestRegistrationId().equals(reg.getId()))
+                                .filter(p -> p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice())
+                                .filter(p -> allVisiblePayments.stream().noneMatch(existing -> existing.getId().equals(p.getId())))
+                                .toList();
+                        allVisiblePayments.addAll(directRegPayments);
+
+                        double totalPaidLkr = allVisiblePayments.stream()
+                                .mapToDouble(p -> p.getConvertedAmountLkr() != null && p.getConvertedAmountLkr() > 0 ? p.getConvertedAmountLkr() : p.getAmountLkr())
+                                .sum();
+
+                        Booking baseBookingItem = allRelated.stream().filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/")).findFirst().orElse(primaryBooking);
+                        List<Booking> discBookings = allRelated.stream().filter(b -> b.getBookingNumber() != null && b.getBookingNumber().contains("/DISC")).toList();
+                        List<Booking> extraBookings = allRelated.stream().filter(b -> b.getBookingNumber() != null && b.getBookingNumber().contains("/") && !b.getBookingNumber().contains("/DISC")).toList();
+
+                        double baseAmt = baseBookingItem.getTotalAmount() != null ? baseBookingItem.getTotalAmount() : 0.0;
+                        double totalDisc = discBookings.stream().mapToDouble(b -> Math.abs(b.getTotalAmount() != null ? b.getTotalAmount() : 0.0)).sum();
+                        double totalExtras = extraBookings.stream().mapToDouble(b -> Math.abs(b.getTotalAmount() != null ? b.getTotalAmount() : 0.0)).sum();
+                        double netTotalAmt = Math.max(0, baseAmt + totalExtras - totalDisc);
+
+                        String bCurr = baseBookingItem.getCurrency() != null ? baseBookingItem.getCurrency().toUpperCase() : "USD";
+                        double exRate = 1.0;
+                        try {
+                            if (baseBookingItem.getExchangeRate() != null && !baseBookingItem.getExchangeRate().trim().isEmpty()) {
+                                exRate = Double.parseDouble(baseBookingItem.getExchangeRate().trim());
+                            }
+                        } catch (Exception ignored) {}
+                        if (exRate <= 0) exRate = 335.0;
+
+                        double totalBookingAmtLkr = "LKR".equals(bCurr) ? netTotalAmt : (netTotalAmt * exRate);
+
+                        String computedStatus = "Unpaid";
+                        if (totalBookingAmtLkr > 0 && totalPaidLkr >= (totalBookingAmtLkr - 10.0)) {
+                            computedStatus = "Paid";
+                        } else if (totalPaidLkr > 0) {
+                            computedStatus = "Paid Advance";
+                        }
+                        reg.setPaymentStatus(computedStatus);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

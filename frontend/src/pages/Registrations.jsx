@@ -1134,6 +1134,7 @@ const Registrations = () => {
           >
             <option value="">All Payment Statuses</option>
             <option value="Paid">Paid</option>
+            <option value="Paid Advance">Paid Advance</option>
             <option value="Unpaid">Unpaid</option>
             <option value="Pending">Pending</option>
           </select>
@@ -1246,15 +1247,24 @@ const Registrations = () => {
                           </td>
                           <td className="p-4 space-y-1">
                             <div>
-                              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold ${
-                                reg.paymentStatus === 'Paid' 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : reg.paymentStatus === 'Unpaid' 
-                                  ? 'bg-rose-100 text-rose-700' 
-                                  : 'bg-amber-100 text-amber-700'
-                              }`}>
-                                {reg.paymentStatus}
-                              </span>
+                              {(() => {
+                                const rawStatus = (reg.paymentStatus || 'Pending').trim();
+                                const lower = rawStatus.toLowerCase();
+                                let isPaid = lower === 'paid';
+                                let isAdvance = lower.includes('advance') || lower.includes('partially');
+                                let isUnpaid = lower === 'unpaid' || lower.includes('non');
+
+                                let badgeClass = 'bg-amber-100 text-amber-700';
+                                if (isPaid) badgeClass = 'bg-emerald-100 text-emerald-800 font-black';
+                                else if (isUnpaid) badgeClass = 'bg-rose-100 text-rose-700 font-bold';
+                                else if (isAdvance) badgeClass = 'bg-amber-100 text-amber-800 font-bold';
+
+                                return (
+                                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] ${badgeClass}`}>
+                                    {rawStatus}
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <div>
                               <span className={`inline-block px-2 py-0.5 bg-slate-50 rounded text-[9px] text-slate-500 font-bold border border-slate-100/50`}>
