@@ -404,6 +404,7 @@ const Registrations = () => {
   const [extraNightForm, setExtraNightForm] = useState({
     amount: '',
     currencyCode: 'USD',
+    paymentMethod: 'Cash',
     remarks: '',
     room: '',
     allocatedRooms: [],
@@ -415,6 +416,7 @@ const Registrations = () => {
   const [extraPersonForm, setExtraPersonForm] = useState({
     amount: '',
     currencyCode: 'USD',
+    paymentMethod: 'Cash',
     remarks: '',
     room: '',
     allocatedRooms: []
@@ -2037,6 +2039,7 @@ const Registrations = () => {
                           setExtraNightForm({
                             amount: totalExtraSum > 0 ? totalExtraSum.toFixed(2) : '',
                             currencyCode: baseCurrency,
+                            paymentMethod: 'Cash',
                             remarks: 'Extra night addition',
                             room: defaultRoom,
                             allocatedRooms: initialAllocated,
@@ -2064,10 +2067,15 @@ const Registrations = () => {
                                 initialAllocated = p.map(item => {
                                   const rNum = String(item.roomNumber || item.roomNum || '').replace(/^Room\s*/i, '').trim();
                                   const rType = item.roomType || rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room';
+                                  const parentNights = parseFloat(associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1) || 1;
+                                  const rawPrice = parseFloat(item.price || item.rate || 0);
+                                  const perNightRate = (item.rate != null && item.rate !== '' && !isNaN(item.rate)) ? parseFloat(item.rate) : (rawPrice / parentNights);
+                                  const cleanRate = isNaN(perNightRate) ? 0 : parseFloat(perNightRate.toFixed(2));
                                   return {
                                     roomNumber: rNum,
                                     roomType: rType,
-                                    price: '',
+                                    price: cleanRate > 0 ? cleanRate.toFixed(2) : '',
+                                    rate: cleanRate,
                                     selected: true
                                   };
                                 });
@@ -2084,7 +2092,10 @@ const Registrations = () => {
                               .split(',')
                               .map(t => t.trim())
                               .filter(Boolean);
+                            const parentNights = parseFloat(associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1) || 1;
+                            const totalAmt = parseFloat(associatedBooking?.totalAmount || associatedBooking?.amount || selectedReg?.totalAmount || 0);
                             const count = Math.max(rawRoomNums.length, rawRoomTypes.length, 1);
+                            const avgPerRoomPerNight = count > 0 && parentNights > 0 ? parseFloat((totalAmt / (count * parentNights)).toFixed(2)) : 0;
 
                             for (let i = 0; i < count; i++) {
                               const rNum = rawRoomNums[i] || (rawRoomNums[0] || '101');
@@ -2092,17 +2103,20 @@ const Registrations = () => {
                               initialAllocated.push({
                                 roomNumber: rNum,
                                 roomType: rType,
-                                price: '',
+                                price: avgPerRoomPerNight > 0 ? avgPerRoomPerNight.toFixed(2) : '',
+                                rate: avgPerRoomPerNight,
                                 selected: true
                               });
                             }
                           }
 
+                          const totalExtraSum = initialAllocated.reduce((sum, r) => sum + (r.selected ? (parseFloat(r.price) || 0) : 0), 0);
                           const defaultRoom = initialAllocated.map(r => r.roomNumber).join(', ');
 
                           setExtraPersonForm({
-                            amount: '',
+                            amount: totalExtraSum > 0 ? totalExtraSum.toFixed(2) : '',
                             currencyCode: baseCurrency,
+                            paymentMethod: 'Cash',
                             remarks: 'Extra person bed charge',
                             room: defaultRoom,
                             allocatedRooms: initialAllocated
@@ -2241,6 +2255,13 @@ const Registrations = () => {
                                         bookingCurrency: detectedCurr
                                       });
                                     } else {
+                                      let detectedMethod = extraB.paymentMethod;
+                                      if (!detectedMethod && extraB.remarks) {
+                                        const m = extraB.remarks.match(/Payment Method:\s*([A-Za-z\s/]+)/i);
+                                        if (m && m[1]) detectedMethod = m[1].trim();
+                                      }
+                                      if (!detectedMethod) detectedMethod = 'Cash';
+
                                       const subPaymentMock = {
                                         id: `extra-${extraB.id}`,
                                         bookingId: extraB.id,
@@ -2248,7 +2269,7 @@ const Registrations = () => {
                                         amountInCurrency: extraB.totalAmount || extraB.amount || 0,
                                         currencyCode: extraB.currency || 'USD',
                                         currency: extraB.currency || 'USD',
-                                        paymentMethod: 'Direct Bill',
+                                        paymentMethod: detectedMethod,
                                         paymentDate: new Date().toISOString().split('T')[0],
                                         paymentType: 'ADVANCE',
                                         referenceNumber: extraB.bookingNumber,
@@ -2261,6 +2282,7 @@ const Registrations = () => {
                                         guestName: selectedReg.guestName,
                                         bookingRef: extraB.bookingNumber,
                                         roomNumber: extraB.roomNumber,
+                                        paymentMethod: detectedMethod,
                                         totalAmount: extraB.totalAmount || extraB.amount || 0,
                                         bookingCurrency: extraB.currency || 'USD'
                                       });
@@ -4058,6 +4080,10 @@ Serene Villa Hiriketiya`;
                   price: parseFloat(r.price || 0)
                 }));
 
+                const remarksWithPayment = extraNightForm.remarks 
+                  ? `${extraNightForm.remarks} | Payment Method: ${extraNightForm.paymentMethod || 'Cash'}`
+                  : `Extra Night addition | Payment Method: ${extraNightForm.paymentMethod || 'Cash'}`;
+
                 const payload = {
                   guestRegistrationId: selectedReg.id,
                   bookingNumber: newBNum,
@@ -4066,7 +4092,8 @@ Serene Villa Hiriketiya`;
                   roomPrices: roomPricesArray.length > 0 ? JSON.stringify(roomPricesArray) : null,
                   bookingType: 'Direct',
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
-                  remarks: extraNightForm.remarks || 'Extra Night addition',
+                  paymentMethod: extraNightForm.paymentMethod || 'Cash',
+                  remarks: remarksWithPayment,
                   amount: totalExtraAmount,
                   totalAmount: totalExtraAmount,
                   currency: extraNightForm.currencyCode,
@@ -4300,15 +4327,30 @@ Serene Villa Hiriketiya`;
                 </div>
               )}
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Extra night at checkout"
-                  value={extraNightForm.remarks}
-                  onChange={(e) => setExtraNightForm({...extraNightForm, remarks: e.target.value})}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
+                  <select
+                    value={extraNightForm.paymentMethod || 'Cash'}
+                    onChange={(e) => setExtraNightForm({ ...extraNightForm, paymentMethod: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="Online">Online / Bank Transfer</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Extra night at checkout"
+                    value={extraNightForm.remarks}
+                    onChange={(e) => setExtraNightForm({...extraNightForm, remarks: e.target.value})}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -4369,6 +4411,10 @@ Serene Villa Hiriketiya`;
                   price: parseFloat(r.price || 0)
                 }));
 
+                const remarksWithPayment = extraPersonForm.remarks 
+                  ? `${extraPersonForm.remarks} | Payment Method: ${extraPersonForm.paymentMethod || 'Cash'}`
+                  : `Extra Person addition | Payment Method: ${extraPersonForm.paymentMethod || 'Cash'}`;
+
                 const payload = {
                   guestRegistrationId: selectedReg.id,
                   bookingNumber: newBNum,
@@ -4377,7 +4423,8 @@ Serene Villa Hiriketiya`;
                   roomPrices: roomPricesArray.length > 0 ? JSON.stringify(roomPricesArray) : null,
                   bookingType: 'Direct',
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
-                  remarks: extraPersonForm.remarks || 'Extra Person addition',
+                  paymentMethod: extraPersonForm.paymentMethod || 'Cash',
+                  remarks: remarksWithPayment,
                   amount: totalExtraAmount,
                   totalAmount: totalExtraAmount,
                   currency: extraPersonForm.currencyCode,
@@ -4568,15 +4615,30 @@ Serene Villa Hiriketiya`;
                 </div>
               )}
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Extra person bed charge"
-                  value={extraPersonForm.remarks}
-                  onChange={(e) => setExtraPersonForm({...extraPersonForm, remarks: e.target.value})}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
+                  <select
+                    value={extraPersonForm.paymentMethod || 'Cash'}
+                    onChange={(e) => setExtraPersonForm({ ...extraPersonForm, paymentMethod: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="Online">Online / Bank Transfer</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Extra person bed charge"
+                    value={extraPersonForm.remarks}
+                    onChange={(e) => setExtraPersonForm({...extraPersonForm, remarks: e.target.value})}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
