@@ -501,7 +501,7 @@ const Reports = () => {
         <div 
           ref={printAreaRef}
           id="financial-statement-canvas"
-          className="bg-white border border-slate-200/90 rounded-2xl p-6 md:p-8 shadow-sm print:shadow-none print:border-none print:p-2 space-y-6 text-slate-800"
+          className="report-print-area bg-white border border-slate-200/90 rounded-2xl p-6 md:p-8 shadow-sm print:shadow-none print:border-none print:p-0 space-y-6 text-slate-800 w-full"
         >
           {/* 1. Header / Letterhead */}
           <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-4">
@@ -557,8 +557,8 @@ const Reports = () => {
                   </span>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto print:overflow-visible">
+                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden table-fixed md:table-auto">
                     <thead>
                       <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[9px]">
                         <th className="p-2.5 text-center w-8">#</th>
@@ -665,56 +665,56 @@ const Reports = () => {
                   </span>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
                     <thead>
-                      <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[8px] md:text-[9px]">
-                        <th className="p-2.5">Invoice #</th>
-                        <th className="p-2.5">Booking Ref</th>
-                        <th className="p-2.5">Room</th>
-                        <th className="p-2.5 text-right">Cash (LKR)</th>
-                        <th className="p-2.5 text-right">Visa / Card (LKR)</th>
-                        <th className="p-2.5 text-right">Bank Transfer (LKR)</th>
-                        <th className="p-2.5 text-right font-black text-emerald-900">Total Amount (LKR)</th>
+                      <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[9px]">
+                        <th className="p-2 w-[15%]">Invoice #</th>
+                        <th className="p-2 w-[15%]">Booking Ref</th>
+                        <th className="p-2 w-[14%]">Room</th>
+                        <th className="p-2 w-[14%] text-right">Cash (LKR)</th>
+                        <th className="p-2 w-[14%] text-right">Visa / Card (LKR)</th>
+                        <th className="p-2 w-[14%] text-right">Bank Transfer (LKR)</th>
+                        <th className="p-2 w-[14%] text-right font-black text-emerald-900">Total Amount (LKR)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
                       {(data.rows || []).map((row, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/50 transition">
-                          <td className="p-2.5 font-bold text-slate-900 font-mono text-[10px]">
+                          <td className="p-2 font-bold text-slate-900 font-mono text-[10px]">
                             {row.invoiceNumber}
                           </td>
-                          <td className="p-2.5 text-slate-700 font-mono text-[10px]">
+                          <td className="p-2 text-slate-700 font-mono text-[10px]">
                             <div>
                               <span>{row.bookingNumber}</span>
                               <span className="text-[8px] text-slate-400 block">{row.bookingSource || 'Direct'}</span>
                             </div>
                           </td>
-                          <td className="p-2.5 font-bold text-slate-800">
+                          <td className="p-2 font-bold text-slate-800 text-[11px]">
                             {row.roomName || 'N/A'}
                           </td>
-                          <td className="p-2.5 text-right font-mono text-slate-700">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[11px]">
                             {row.cashAmount > 0 ? (
                               <span className="font-bold text-emerald-700">{formatLKR(row.cashAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2.5 text-right font-mono text-slate-700">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[11px]">
                             {row.cardAmount > 0 ? (
                               <span className="font-bold text-blue-700">{formatLKR(row.cardAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2.5 text-right font-mono text-slate-700">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[11px]">
                             {row.bankTransferAmount > 0 ? (
                               <span className="font-bold text-amber-700">{formatLKR(row.bankTransferAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2.5 text-right font-mono font-black text-emerald-900 bg-emerald-50/30">
+                          <td className="p-2 text-right font-mono font-black text-emerald-900 bg-emerald-50/30 text-[11px]">
                             {formatLKR(row.convertedAmount)}
                           </td>
                         </tr>
@@ -731,19 +731,19 @@ const Reports = () => {
                     {/* Subtotals for each payment type and grand total */}
                     <tfoot className="bg-slate-100/90 font-black border-t-2 border-slate-300 text-slate-900 text-xs">
                       <tr>
-                        <td colSpan="3" className="p-2.5 text-right uppercase text-[10px] text-slate-600">
+                        <td colSpan="3" className="p-2 text-right uppercase text-[10px] text-slate-600">
                           Subtotals / Totals:
                         </td>
-                        <td className="p-2.5 text-right font-mono text-emerald-800">
+                        <td className="p-2 text-right font-mono text-emerald-800 text-[11px]">
                           {formatLKR(totalCashRows)}
                         </td>
-                        <td className="p-2.5 text-right font-mono text-blue-800">
+                        <td className="p-2 text-right font-mono text-blue-800 text-[11px]">
                           {formatLKR(totalCardRows)}
                         </td>
-                        <td className="p-2.5 text-right font-mono text-amber-800">
+                        <td className="p-2 text-right font-mono text-amber-800 text-[11px]">
                           {formatLKR(totalBankRows)}
                         </td>
-                        <td className="p-2.5 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-sm">
+                        <td className="p-2 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-xs">
                           {formatLKR(totalConvertedRows)}
                         </td>
                       </tr>

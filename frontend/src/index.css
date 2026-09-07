@@ -20,6 +20,7 @@
     padding: 0 !important;
     background: white !important;
     height: auto !important;
+    min-height: auto !important;
     overflow: visible !important;
   }
 
@@ -62,31 +63,52 @@
   }
 
   .report-print-area {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
+    display: block !important;
     width: 100% !important;
+    max-width: 100% !important;
     background: white !important;
-    color: black !important;
+    color: #0f172a !important;
     box-shadow: none !important;
+    border: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .report-print-area table {
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  .report-print-area th,
+  .report-print-area td {
+    word-break: break-word !important;
+    white-space: normal !important;
+  }
+
+  .report-print-area .overflow-x-auto {
+    overflow: visible !important;
   }
 
   .no-print,
   .no-print * {
     display: none !important;
     visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   @page {
-    size: A4;
-    margin: 8mm;
+    size: A4 portrait;
+    margin: 10mm;
   }
 
   /* Force background colors (green headers) to render in print/PDF */
   .confirmation-print-area *,
-  .receipt-print-area * {
+  .receipt-print-area *,
+  .report-print-area * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
