@@ -562,10 +562,10 @@ const Reports = () => {
                     <thead>
                       <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[9px]">
                         <th className="p-2.5 text-center w-8">#</th>
-                        <th className="p-2.5">Guest Name (වෙන් කළ කෙනාගේ නම)</th>
-                        <th className="p-2.5 text-center">Room No (කාමරය)</th>
-                        <th className="p-2.5 text-center">Pax (පුද්ගලයන්) *</th>
-                        <th className="p-2.5 text-right">Amount / Booking Value (මුදල)</th>
+                        <th className="p-2.5">Guest Name</th>
+                        <th className="p-2.5 text-center">Room No</th>
+                        <th className="p-2.5 text-center">Pax</th>
+                        <th className="p-2.5 text-right">Amount / Booking Value</th>
                         <th className="p-2.5 text-center">Channel</th>
                         <th className="p-2.5 text-center">Status</th>
                       </tr>
@@ -658,7 +658,7 @@ const Reports = () => {
                 <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-emerald-700 rounded-xs"></span>
-                    Detailed Transactions Table (ගනුදෙනු විස්තරය)
+                    Detailed Transactions Table
                   </h3>
                   <span className="text-[10px] font-bold text-slate-500">
                     Settled Transactions: <strong className="text-slate-800">{data.rows?.length || 0}</strong>
@@ -763,7 +763,7 @@ const Reports = () => {
                 <div className="space-y-2.5">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-emerald-700 rounded-xs"></span>
-                    1. Executive Summary & Channels (විධායක සාරාංශය)
+                    1. Executive Summary & Channels
                   </h3>
                   
                   <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
@@ -830,7 +830,7 @@ const Reports = () => {
                 <div className="space-y-2.5">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-emerald-700 rounded-xs"></span>
-                    2. Payment Methods Breakdown (ගෙවීම් ක්‍රම)
+                    2. Payment Methods Breakdown
                   </h3>
 
                   <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
@@ -894,14 +894,14 @@ const Reports = () => {
             <div className="space-y-8 text-center">
               <div className="border-b border-slate-400 pb-1"></div>
               <div>
-                <p className="text-slate-900 font-extrabold tracking-wider">Prepared By (අත්සන)</p>
+                <p className="text-slate-900 font-extrabold tracking-wider">Prepared By</p>
                 <p className="text-slate-400 text-[8px] font-normal lowercase italic mt-0.5">Front Officer / Accountant</p>
               </div>
             </div>
             <div className="space-y-8 text-center">
               <div className="border-b border-slate-400 pb-1"></div>
               <div>
-                <p className="text-slate-900 font-extrabold tracking-wider">Checked By / Supervisory (සුපරීක්ෂණ අත්සන)</p>
+                <p className="text-slate-900 font-extrabold tracking-wider">Checked By / Supervisory</p>
                 <p className="text-slate-400 text-[8px] font-normal lowercase italic mt-0.5">Finance Manager / Operations</p>
               </div>
             </div>
