@@ -4075,22 +4075,10 @@ Serene Villa Hiriketiya`;
                       const diffTime = outDate.getTime() - inDate.getTime();
                       const diffDays = Math.max(1, Math.round(diffTime / (1000 * 3600 * 24)));
                       
-                      // Recalculate prices for all allocated rooms based on diffDays
-                      const updatedRooms = (extraNightForm.allocatedRooms || []).map(r => {
-                        const rRate = parseFloat(r.rate) || 0;
-                        return {
-                          ...r,
-                          price: (rRate * diffDays).toFixed(2)
-                        };
-                      });
-                      const totalSum = updatedRooms.reduce((sum, r) => sum + (r.selected ? (parseFloat(r.price) || 0) : 0), 0);
-
                       setExtraNightForm(prev => ({
                         ...prev,
                         checkOutDate: newOut,
-                        numberOfNights: diffDays,
-                        allocatedRooms: updatedRooms,
-                        amount: totalSum.toFixed(2)
+                        numberOfNights: diffDays
                       }));
                     }}
                     className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
@@ -4140,19 +4128,17 @@ Serene Villa Hiriketiya`;
                                   }
                                   const roomString = newRooms.join(', ');
                                   
-                                  const totalNights = parseInt(extraNightForm.numberOfNights, 10) || 1;
                                   const currentAllocated = extraNightForm.allocatedRooms || [];
                                   const newAllocated = newRooms.map(rNum => {
                                     const existing = currentAllocated.find(ca => String(ca.roomNumber) === String(rNum));
                                     const matchedR = rooms.find(rm => String(rm.roomNumber) === String(rNum));
                                     const defaultRate = matchedR ? parseFloat(matchedR.price || 0) : 0;
-                                    const currentRate = existing ? (parseFloat(existing.rate) || defaultRate) : defaultRate;
-                                    const calcPrice = (currentRate * totalNights).toFixed(2);
+                                    const currentPrice = existing ? existing.price : defaultRate;
                                     return {
                                       roomType: matchedR ? (matchedR.roomType || 'Deluxe Room') : (existing?.roomType || 'Deluxe Room'),
                                       roomNumber: rNum,
-                                      rate: currentRate,
-                                      price: calcPrice,
+                                      rate: currentPrice,
+                                      price: currentPrice,
                                       selected: true
                                     };
                                   });
@@ -4225,11 +4211,10 @@ Serene Villa Hiriketiya`;
                                     const val = e.target.value;
                                     const updated = [...extraNightForm.allocatedRooms];
                                     const numVal = parseFloat(val) || 0;
-                                    const totalNights = parseInt(extraNightForm.numberOfNights, 10) || 1;
                                     updated[idx] = {
                                       ...updated[idx],
                                       price: val,
-                                      rate: totalNights > 0 ? (numVal / totalNights) : numVal
+                                      rate: numVal
                                     };
                                     const totalSum = updated.reduce((sum, r) => sum + (parseFloat(r.price) || 0), 0);
                                     setExtraNightForm(prev => ({
