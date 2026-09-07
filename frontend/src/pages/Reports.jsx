@@ -144,17 +144,37 @@ const Reports = () => {
 
     setDownloadingPdf(true);
     try {
-      const dataUrl = await toPng(element, {
+      // Create a clean clone for PDF generation to ensure no scrollbars or screen constraints
+      const clone = element.cloneNode(true);
+      clone.style.width = '1050px';
+      clone.style.maxWidth = '1050px';
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.background = '#ffffff';
+      clone.style.padding = '32px';
+      clone.style.boxShadow = 'none';
+      clone.style.borderRadius = '0';
+      clone.style.border = 'none';
+
+      // Ensure all overflow elements in clone are visible
+      const overflowElements = clone.querySelectorAll('.overflow-x-auto, [class*="overflow"]');
+      overflowElements.forEach(el => {
+        el.style.overflow = 'visible';
+        el.style.width = '100%';
+      });
+
+      document.body.appendChild(clone);
+
+      const dataUrl = await toPng(clone, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
-        width: element.offsetWidth,
-        height: element.offsetHeight,
-        style: {
-          margin: '0',
-          transform: 'none'
-        }
+        width: 1050,
+        height: clone.scrollHeight,
       });
+
+      document.body.removeChild(clone);
 
       const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
       const cleanFileName = `SereneVilla_${reportType}_${getReportPeriod().replace(/[^a-zA-Z0-9_-]/g, '_')}`;
@@ -169,7 +189,7 @@ const Reports = () => {
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const margin = 20;
         const imgWidth = pdfWidth - (margin * 2);
-        const imgHeight = (element.offsetHeight * imgWidth) / element.offsetWidth;
+        const imgHeight = (clone.scrollHeight * imgWidth) / 1050;
         const xPos = margin;
         const yPos = margin;
 
@@ -665,56 +685,56 @@ const Reports = () => {
                   </span>
                 </div>
 
-                <div className="overflow-x-auto print:overflow-visible">
-                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                <div className="w-full">
+                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden table-fixed">
                     <thead>
                       <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[9px]">
-                        <th className="p-2 w-[15%]">Invoice #</th>
-                        <th className="p-2 w-[15%]">Booking Ref</th>
-                        <th className="p-2 w-[14%]">Room</th>
+                        <th className="p-2 w-[12%]">Invoice #</th>
+                        <th className="p-2 w-[16%]">Booking Ref</th>
+                        <th className="p-2 w-[16%]">Room</th>
                         <th className="p-2 w-[14%] text-right">Cash (LKR)</th>
-                        <th className="p-2 w-[14%] text-right">Visa / Card (LKR)</th>
+                        <th className="p-2 w-[14%] text-right">Visa/Card (LKR)</th>
                         <th className="p-2 w-[14%] text-right">Bank Transfer (LKR)</th>
-                        <th className="p-2 w-[14%] text-right font-black text-emerald-900">Total Amount (LKR)</th>
+                        <th className="p-2 w-[14%] text-right font-black text-emerald-900">Total (LKR)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
                       {(data.rows || []).map((row, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/50 transition">
-                          <td className="p-2 font-bold text-slate-900 font-mono text-[10px]">
+                          <td className="p-2 font-bold text-slate-900 font-mono text-[10px] break-words">
                             {row.invoiceNumber}
                           </td>
-                          <td className="p-2 text-slate-700 font-mono text-[10px]">
+                          <td className="p-2 text-slate-700 font-mono text-[10px] break-words">
                             <div>
                               <span>{row.bookingNumber}</span>
                               <span className="text-[8px] text-slate-400 block">{row.bookingSource || 'Direct'}</span>
                             </div>
                           </td>
-                          <td className="p-2 font-bold text-slate-800 text-[11px]">
+                          <td className="p-2 font-bold text-slate-800 text-[10px] break-words">
                             {row.roomName || 'N/A'}
                           </td>
-                          <td className="p-2 text-right font-mono text-slate-700 text-[11px]">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[10px]">
                             {row.cashAmount > 0 ? (
                               <span className="font-bold text-emerald-700">{formatLKR(row.cashAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2 text-right font-mono text-slate-700 text-[11px]">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[10px]">
                             {row.cardAmount > 0 ? (
                               <span className="font-bold text-blue-700">{formatLKR(row.cardAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2 text-right font-mono text-slate-700 text-[11px]">
+                          <td className="p-2 text-right font-mono text-slate-700 text-[10px]">
                             {row.bankTransferAmount > 0 ? (
                               <span className="font-bold text-amber-700">{formatLKR(row.bankTransferAmount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
-                          <td className="p-2 text-right font-mono font-black text-emerald-900 bg-emerald-50/30 text-[11px]">
+                          <td className="p-2 text-right font-mono font-black text-emerald-900 bg-emerald-50/30 text-[10px]">
                             {formatLKR(row.convertedAmount)}
                           </td>
                         </tr>
@@ -731,19 +751,19 @@ const Reports = () => {
                     {/* Subtotals for each payment type and grand total */}
                     <tfoot className="bg-slate-100/90 font-black border-t-2 border-slate-300 text-slate-900 text-xs">
                       <tr>
-                        <td colSpan="3" className="p-2 text-right uppercase text-[10px] text-slate-600">
+                        <td colSpan="3" className="p-2 text-right uppercase text-[9px] text-slate-600">
                           Subtotals / Totals:
                         </td>
-                        <td className="p-2 text-right font-mono text-emerald-800 text-[11px]">
+                        <td className="p-2 text-right font-mono text-emerald-800 text-[10px]">
                           {formatLKR(totalCashRows)}
                         </td>
-                        <td className="p-2 text-right font-mono text-blue-800 text-[11px]">
+                        <td className="p-2 text-right font-mono text-blue-800 text-[10px]">
                           {formatLKR(totalCardRows)}
                         </td>
-                        <td className="p-2 text-right font-mono text-amber-800 text-[11px]">
+                        <td className="p-2 text-right font-mono text-amber-800 text-[10px]">
                           {formatLKR(totalBankRows)}
                         </td>
-                        <td className="p-2 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-xs">
+                        <td className="p-2 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-[11px]">
                           {formatLKR(totalConvertedRows)}
                         </td>
                       </tr>
