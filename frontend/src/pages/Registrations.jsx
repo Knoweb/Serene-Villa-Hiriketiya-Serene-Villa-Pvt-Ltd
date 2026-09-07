@@ -1953,6 +1953,12 @@ const Registrations = () => {
                       <button
                         type="button"
                         onClick={() => {
+                          const baseCurrency = associatedBooking?.currency || selectedReg?.currency || 'USD';
+                          setDiscountForm({
+                            amount: '',
+                            currencyCode: baseCurrency,
+                            remarks: ''
+                          });
                           setShowDiscountModal(true);
                           setShowOtherOptions(false);
                         }}
@@ -2048,6 +2054,59 @@ const Registrations = () => {
                       <button
                         type="button"
                         onClick={() => {
+                          const baseCurrency = associatedBooking?.currency || selectedReg?.currency || 'USD';
+                          let initialAllocated = [];
+
+                          if (associatedBooking?.roomPrices) {
+                            try {
+                              const p = typeof associatedBooking.roomPrices === 'string' ? JSON.parse(associatedBooking.roomPrices) : associatedBooking.roomPrices;
+                              if (Array.isArray(p) && p.length > 0) {
+                                initialAllocated = p.map(item => {
+                                  const rNum = String(item.roomNumber || item.roomNum || '').replace(/^Room\s*/i, '').trim();
+                                  const rType = item.roomType || rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room';
+                                  return {
+                                    roomNumber: rNum,
+                                    roomType: rType,
+                                    price: '',
+                                    selected: true
+                                  };
+                                });
+                              }
+                            } catch(e) {}
+                          }
+
+                          if (initialAllocated.length === 0) {
+                            const rawRoomNums = String(associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
+                              .split(',')
+                              .map(r => r.replace(/^Room\s*/i, '').trim())
+                              .filter(Boolean);
+                            const rawRoomTypes = String(associatedBooking?.roomType || selectedReg?.roomType || '')
+                              .split(',')
+                              .map(t => t.trim())
+                              .filter(Boolean);
+                            const count = Math.max(rawRoomNums.length, rawRoomTypes.length, 1);
+
+                            for (let i = 0; i < count; i++) {
+                              const rNum = rawRoomNums[i] || (rawRoomNums[0] || '101');
+                              const rType = rawRoomTypes[i] || (rawRoomTypes[0] || (rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room'));
+                              initialAllocated.push({
+                                roomNumber: rNum,
+                                roomType: rType,
+                                price: '',
+                                selected: true
+                              });
+                            }
+                          }
+
+                          const defaultRoom = initialAllocated.map(r => r.roomNumber).join(', ');
+
+                          setExtraPersonForm({
+                            amount: '',
+                            currencyCode: baseCurrency,
+                            remarks: 'Extra person bed charge',
+                            room: defaultRoom,
+                            allocatedRooms: initialAllocated
+                          });
                           setShowExtraPersonModal(true);
                           setShowOtherOptions(false);
                         }}
@@ -4283,22 +4342,49 @@ Serene Villa Hiriketiya`;
               if (!selectedReg || !associatedBooking) return;
               try {
                 const newBNum = `${associatedBooking.bookingNumber}/1P`;
-                const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraPersonForm.room));
+                const selectedRooms = (extraPersonForm.allocatedRooms && extraPersonForm.allocatedRooms.length > 0)
+                  ? extraPersonForm.allocatedRooms.filter(r => r.selected)
+                  : [];
+                
+                if (selectedRooms.length === 0 && !extraPersonForm.room) {
+                  throw new Error('Please select at least one room for the extra person');
+                }
+
+                const roomNums = selectedRooms.length > 0 
+                  ? selectedRooms.map(r => r.roomNumber).join(', ') 
+                  : (extraPersonForm.room || associatedBooking.roomNumber);
+                const roomTypes = selectedRooms.length > 0 
+                  ? selectedRooms.map(r => r.roomType).join(', ') 
+                  : (associatedBooking.roomType || 'Deluxe Room');
+                
+                const totalExtraAmount = selectedRooms.length > 0
+                  ? selectedRooms.reduce((sum, r) => sum + (parseFloat(r.price) || 0), 0)
+                  : parseFloat(extraPersonForm.amount || 0);
+
+                const roomPricesArray = selectedRooms.map(r => ({
+                  roomNumber: r.roomNumber,
+                  roomType: r.roomType,
+                  rate: parseFloat(r.price || 0),
+                  nights: 1,
+                  price: parseFloat(r.price || 0)
+                }));
+
                 const payload = {
                   guestRegistrationId: selectedReg.id,
                   bookingNumber: newBNum,
-                  roomNumber: extraPersonForm.room || associatedBooking.roomNumber,
-                  roomType: matchedRoom ? matchedRoom.roomType : (associatedBooking.roomType?.split(',')[0] || 'Deluxe Room'),
+                  roomNumber: roomNums,
+                  roomType: roomTypes,
+                  roomPrices: roomPricesArray.length > 0 ? JSON.stringify(roomPricesArray) : null,
                   bookingType: 'Direct',
                   boardBasis: associatedBooking.boardBasis || 'Room Only',
                   remarks: extraPersonForm.remarks || 'Extra Person addition',
-                  amount: parseFloat(extraPersonForm.amount || 0),
-                  totalAmount: parseFloat(extraPersonForm.amount || 0),
+                  amount: totalExtraAmount,
+                  totalAmount: totalExtraAmount,
                   currency: extraPersonForm.currencyCode,
                   currencyCode: extraPersonForm.currencyCode,
                   checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
                   checkOutDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
-                  numberOfNights: associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1,
+                  numberOfNights: 1,
                   status: 'Confirmed'
                 };
                 
@@ -4323,91 +4409,164 @@ Serene Villa Hiriketiya`;
                 
                 alert('Extra Person booking added successfully!');
                 setShowExtraPersonModal(false);
-                setExtraPersonForm({ amount: '', currencyCode: 'USD', remarks: '', room: '' });
+                setExtraPersonForm({ amount: '', currencyCode: 'USD', remarks: '', room: '', allocatedRooms: [] });
                 fetchRegistrations();
               } catch(err) {
                 alert(err.message);
               }
             }} className="space-y-3.5 text-xs">
               
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Room Number(s)</label>
-                <select
-                  value={extraPersonForm.room}
-                  onChange={(e) => {
-                    const roomNo = e.target.value;
-                    setExtraPersonForm(prev => ({ ...prev, room: roomNo }));
-                  }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
-                  required
-                >
-                  <option value="">-- Choose Room --</option>
-                  {rooms.map(r => (
-                    <option key={r.roomNumber} value={r.roomNumber}>Room {r.roomNumber}</option>
-                  ))}
-                </select>
+              {/* Room Number(s) Multi-Select Dropdown */}
+              <div className="space-y-1.5 relative">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">SELECT ROOM NUMBER(S)</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsExtraPersonRoomDropdownOpen(!isExtraPersonRoomDropdownOpen)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer shadow-2xs hover:border-slate-300 transition"
+                  >
+                    <span className="truncate text-slate-700">
+                      {extraPersonForm.room 
+                        ? (extraPersonForm.room.startsWith('Room') ? extraPersonForm.room : `Room ${extraPersonForm.room}`) 
+                        : 'Select Rooms...'}
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
+                  </button>
+
+                  {isExtraPersonRoomDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setIsExtraPersonRoomDropdownOpen(false)}></div>
+                      <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto p-1.5 space-y-0.5 select-none">
+                        {rooms.map((room) => {
+                          const roomNumbers = extraPersonForm.room ? extraPersonForm.room.split(',').map(r => r.trim()).filter(Boolean) : [];
+                          const isChecked = roomNumbers.includes(String(room.roomNumber));
+                          return (
+                            <label 
+                              key={room.id || room.roomNumber} 
+                              className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium transition"
+                            >
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  let newRooms;
+                                  if (isChecked) {
+                                    newRooms = roomNumbers.filter(r => r !== String(room.roomNumber));
+                                  } else {
+                                    newRooms = [...roomNumbers, String(room.roomNumber)];
+                                  }
+                                  const roomString = newRooms.join(', ');
+                                  
+                                  const currentAllocated = extraPersonForm.allocatedRooms || [];
+                                  const newAllocated = newRooms.map(rNum => {
+                                    const existing = currentAllocated.find(ca => String(ca.roomNumber) === String(rNum));
+                                    const matchedR = rooms.find(rm => String(rm.roomNumber) === String(rNum));
+                                    const currentPrice = existing ? existing.price : '';
+                                    return {
+                                      roomType: matchedR ? (matchedR.roomType || 'Deluxe Room') : (existing?.roomType || 'Deluxe Room'),
+                                      roomNumber: rNum,
+                                      price: currentPrice,
+                                      selected: true
+                                    };
+                                  });
+
+                                  const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+
+                                  setExtraPersonForm(prev => ({
+                                    ...prev,
+                                    room: roomString,
+                                    allocatedRooms: newAllocated,
+                                    amount: totalSum > 0 ? totalSum.toFixed(2) : ''
+                                  }));
+                                }}
+                                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
+                              />
+                              <span>{room.roomNumber} - {room.roomType} ({room.status})</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {extraPersonForm.room && (() => {
-                const matchedRoom = rooms.find(r => String(r.roomNumber) === String(extraPersonForm.room));
-                const roomTypeStr = matchedRoom ? matchedRoom.roomType : 'Deluxe Room';
-                return (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-                    <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">Room Allocations & Prices</label>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Table Currency:</span>
-                        <select
-                          value={extraPersonForm.currencyCode}
-                          onChange={(e) => setExtraPersonForm(prev => ({ ...prev, currencyCode: e.target.value }))}
-                          className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
-                        >
-                          <option value="USD">USD</option>
-                          <option value="LKR">LKR</option>
-                          <option value="EUR">EUR</option>
-                          <option value="AUD">AUD</option>
-                        </select>
-                      </div>
+              {/* ROOM ALLOCATIONS & PRICES */}
+              {extraPersonForm.allocatedRooms && extraPersonForm.allocatedRooms.length > 0 && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                  <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-semibold">
+                      ROOM ALLOCATIONS & PRICES
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">TABLE CURRENCY:</span>
+                      <select
+                        value={extraPersonForm.currencyCode}
+                        onChange={(e) => setExtraPersonForm(prev => ({ ...prev, currencyCode: e.target.value }))}
+                        className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="LKR">LKR</option>
+                        <option value="EUR">EUR</option>
+                        <option value="AUD">AUD</option>
+                      </select>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
-                            <th className="pb-1.5 font-semibold">Room Name</th>
-                            <th className="pb-1.5 font-semibold">Room Number</th>
-                            <th className="pb-1.5 font-semibold w-36 text-right">Price ({extraPersonForm.currencyCode})</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          <tr className="text-slate-700">
-                            <td className="py-2 pr-2 font-medium">{roomTypeStr}</td>
-                            <td className="py-2 pr-2 font-mono font-bold text-slate-900">{extraPersonForm.room}</td>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                          <th className="pb-1.5 font-semibold">ROOM NAME</th>
+                          <th className="pb-1.5 font-semibold">ROOM NUMBER</th>
+                          <th className="pb-1.5 font-semibold w-36 text-right">PRICE ({extraPersonForm.currencyCode})</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {extraPersonForm.allocatedRooms.map((item, idx) => (
+                          <tr key={idx} className="text-slate-700">
+                            <td className="py-2 pr-2 font-medium">{item.roomType}</td>
+                            <td className="py-2 pr-2 font-mono font-bold text-slate-900">{item.roomNumber}</td>
                             <td className="py-1 text-right">
                               <div className="inline-flex items-center gap-1.5 justify-end">
                                 <span className="text-[10px] text-slate-400 font-bold font-mono">{extraPersonForm.currencyCode}</span>
                                 <input
                                   type="number"
                                   step="0.01"
-                                  value={extraPersonForm.amount}
-                                  onChange={(e) => setExtraPersonForm(prev => ({ ...prev, amount: e.target.value }))}
-                                  className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs"
+                                  placeholder="0.00"
+                                  value={item.price}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const updated = [...extraPersonForm.allocatedRooms];
+                                    updated[idx] = {
+                                      ...updated[idx],
+                                      price: val
+                                    };
+                                    const totalSum = updated.reduce((sum, r) => sum + (parseFloat(r.price) || 0), 0);
+                                    setExtraPersonForm(prev => ({
+                                      ...prev,
+                                      allocatedRooms: updated,
+                                      amount: totalSum > 0 ? totalSum.toFixed(2) : ''
+                                    }));
+                                  }}
+                                  className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-right text-slate-800 focus:outline-none font-bold font-mono text-xs focus:border-emerald-500"
                                   required
                                 />
                               </div>
                             </td>
                           </tr>
-                          <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
-                            <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
-                            <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
-                              {extraPersonForm.currencyCode} {(parseFloat(extraPersonForm.amount) || 0).toFixed(2)}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                        <tr className="border-t-2 border-slate-200 text-slate-900 font-bold bg-slate-100/50">
+                          <td className="py-2.5 pl-2 font-bold" colSpan={2}>Total Sum</td>
+                          <td className="py-2.5 pr-2 text-right font-mono font-bold text-slate-900">
+                            {extraPersonForm.currencyCode} {(parseFloat(extraPersonForm.amount) || 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                );
-              })()}
+                </div>
+              )}
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
