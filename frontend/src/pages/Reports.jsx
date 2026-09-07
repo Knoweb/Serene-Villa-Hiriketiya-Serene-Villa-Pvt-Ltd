@@ -1,29 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import logoImg from '../assets/logo.jpeg';
+import { toPng } from 'html-to-image';
 import { 
   FileDown, 
   AlertCircle, 
-  ArrowUpRight, 
   TrendingUp, 
   Calendar, 
-  FileText, 
   DollarSign, 
   Users, 
   CreditCard, 
   Building,
   Percent,
   Printer,
-  Loader
+  Loader,
+  Share2,
+  Download,
+  CheckCircle2,
+  UserCheck
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
 const Reports = () => {
   const { user } = useAuth();
+  const printAreaRef = useRef(null);
 
   // Guard access - Front Officer cannot access reports
-  if (user.role === 'FRONT_OFFICER') {
+  if (user && user.role === 'FRONT_OFFICER') {
     return (
       <div className="bg-white border border-slate-100 rounded-2xl p-8 text-center text-rose-600 shadow-sm space-y-3">
         <AlertCircle className="h-10 w-10 mx-auto" />
@@ -35,8 +39,8 @@ const Reports = () => {
     );
   }
 
-  // Report states
-  const [reportType, setReportType] = useState('Daily');
+  // Report states: 'DailyCheckIn', 'Daily', 'Weekly', 'Monthly', 'Custom'
+  const [reportType, setReportType] = useState('DailyCheckIn');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [startDate, setStartDate] = useState(
     new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -48,14 +52,22 @@ const Reports = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  // UI layout tabs
-  const [activeMainTab, setActiveMainTab] = useState('overview');
-  const [breakdownTab, setBreakdownTab] = useState('payments');
+  // Formatting helpers
+  const formatLKR = (val) => {
+    const num = Number(val) || 0;
+    return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+  };
+
+  const formatLKRCompact = (val) => {
+    const num = Number(val) || 0;
+    return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+  };
 
   const getReportPeriod = () => {
-    if (reportType === 'Daily') return date;
-    if (reportType === 'Weekly' || reportType === 'Range') return `${startDate} to ${endDate}`;
+    if (reportType === 'DailyCheckIn' || reportType === 'Daily') return date;
+    if (reportType === 'Weekly' || reportType === 'Custom') return `${startDate} to ${endDate}`;
     if (reportType === 'Monthly') {
       const monthNames = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -66,13 +78,30 @@ const Reports = () => {
     return date;
   };
 
+  const getReportTitle = () => {
+    switch (reportType) {
+      case 'DailyCheckIn':
+        return 'Daily Check-in Summary';
+      case 'Daily':
+        return 'Daily Income Summary';
+      case 'Weekly':
+        return 'Weekly Income Summary';
+      case 'Monthly':
+        return 'Monthly Income Summary';
+      case 'Custom':
+        return 'Custom Range Income Summary';
+      default:
+        return 'Financial & Operational Statement';
+    }
+  };
+
   // Fetch report data from API
   const fetchReport = async () => {
     setLoading(true);
     setError('');
     try {
       let url = '';
-      if (reportType === 'Daily') {
+      if (reportType === 'DailyCheckIn' || reportType === 'Daily') {
         url = `${API_BASE}/reports/daily?date=${date}`;
       } else if (reportType === 'Weekly') {
         url = `${API_BASE}/reports/weekly?startDate=${startDate}&endDate=${endDate}`;
@@ -103,16 +132,155 @@ const Reports = () => {
     fetchReport();
   }, [reportType, date, startDate, endDate, year, month]);
 
+  // Universal Action: Trigger Print View
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Universal Action: Download High Resolution PDF / PNG
+  const handleDownloadPDF = async () => {
+    const element = printAreaRef.current;
+    if (!element) return;
+
+    setDownloadingPdf(true);
+    try {
+      const dataUrl = await toPng(element, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        width: element.offsetWidth,
+        height: element.offsetHeight,
+        style: {
+          margin: '0',
+          transform: 'none'
+        }
+      });
+
+      const jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
+      const cleanFileName = `SereneVilla_${reportType}_${getReportPeriod().replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+
+      if (jsPDF) {
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: 'a4'
+        });
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const margin = 20;
+        const imgWidth = pdfWidth - (margin * 2);
+        const imgHeight = (element.offsetHeight * imgWidth) / element.offsetWidth;
+        const xPos = margin;
+        const yPos = margin;
+
+        pdf.addImage(dataUrl, 'PNG', xPos, yPos, imgWidth, imgHeight);
+        pdf.save(`${cleanFileName}.pdf`);
+      } else {
+        const link = document.createElement('a');
+        link.download = `${cleanFileName}.png`;
+        link.href = dataUrl;
+        link.click();
+      }
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      alert('Unable to generate PDF directly. Please use the Print button and choose "Save as PDF".');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Universal Action: Share via WhatsApp
+  const handleShareWhatsApp = () => {
+    if (!data) return;
+
+    let text = `🏨 *SERENE VILLA - HIRIKETIYA*\n`;
+    text += `📋 *${getReportTitle().toUpperCase()}*\n`;
+    text += `📅 *Period / Date:* ${getReportPeriod()}\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    if (reportType === 'DailyCheckIn') {
+      const checkIns = data.checkIns || [];
+      text += `👥 *DAILY CHECK-IN SUMMARY*\n`;
+      text += `Total Check-ins: *${checkIns.length}* | Total Pax: *${data.totalGuests || 0}*\n\n`;
+      
+      if (checkIns.length > 0) {
+        checkIns.forEach((c, idx) => {
+          text += `${idx + 1}. *${c.guestName}*\n`;
+          text += `   • Room: ${c.roomNumber} ${c.roomType ? `(${c.roomType})` : ''}\n`;
+          text += `   • Pax: ${c.pax} (${c.adults} Adults${c.children ? `, ${c.children} Kids` : ''})\n`;
+          text += `   • Amount: ${formatLKR(c.amount)}\n`;
+          text += `   • Source: ${c.bookingSource || 'Direct'}\n\n`;
+        });
+      } else {
+        text += `No check-ins recorded for this date.\n\n`;
+      }
+    } else {
+      text += `💰 *TOTAL REVENUE:* ${formatLKR(data.totalRevenue || 0)}\n\n`;
+      text += `💳 *PAYMENT METHODS:*\n`;
+      text += `• Cash: ${formatLKR(data.cashRevenue || 0)}\n`;
+      text += `• Visa / Card: ${formatLKR(data.cardRevenue || 0)}\n`;
+      text += `• Bank Transfer: ${formatLKR(data.bankTransferRevenue || 0)}\n\n`;
+
+      text += `🏢 *BOOKING CHANNELS:*\n`;
+      text += `• Booking.com: ${data.bookingComCount || 0} (${formatLKR(data.bookingComAmount || 0)})\n`;
+      text += `• Web Booking: ${data.webBookingCount || 0} (${formatLKR(data.webBookingAmount || 0)})\n`;
+      text += `• Airbnb: ${data.airbnbCount || 0} (${formatLKR(data.airbnbAmount || 0)})\n`;
+      text += `• Direct Booking: ${data.directBookingCount || 0} (${formatLKR(data.directBookingAmount || 0)})\n\n`;
+
+      text += `📊 *SUMMARY METRICS:*\n`;
+      text += `• Stays / Bookings: ${data.totalBookings || 0}\n`;
+      text += `• Outstanding Balance: ${formatLKR(data.totalOutstandingAmount || 0)}\n`;
+      text += `• Approved Discounts: ${formatLKR(data.approvedDiscountTotal || 0)}\n\n`;
+    }
+
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `_Generated on ${new Date().toLocaleString()}_\n`;
+    text += `Serene Villa Pvt Ltd Hiriketiya`;
+
+    const encodedText = encodeURIComponent(text);
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   // Export to CSV
   const handleExportCSV = () => {
-    if (!data || !data.rows || data.rows.length === 0) return;
+    if (!data) return;
+
+    if (reportType === 'DailyCheckIn') {
+      const headers = ['Guest Name', 'Passport / ID', 'Room Number', 'Room Type', 'Pax (Total)', 'Adults', 'Children', 'Booking Value (LKR)', 'Booking Ref', 'Booking Source', 'Status'];
+      const checkIns = data.checkIns || [];
+      const csvRows = [
+        headers.join(','),
+        ...checkIns.map(c => [
+          `"${c.guestName}"`,
+          `"${c.passportNumber}"`,
+          `"${c.roomNumber}"`,
+          `"${c.roomType}"`,
+          c.pax,
+          c.adults,
+          c.children,
+          c.amount,
+          `"${c.bookingNumber}"`,
+          `"${c.bookingSource}"`,
+          `"${c.paymentStatus}"`
+        ].join(','))
+      ];
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `SereneVilla_DailyCheckIn_${date}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
+    if (!data.rows || data.rows.length === 0) return;
 
     const headers = [
-      'Invoice Number', 'Booking Number', 'Guest Name', 'Passport Number', 
-      'Room', 'Check-In Date', 'Check-Out Date', 'Nights', 'Payment Method', 
-      'Payment Status', 'Currency', 'Exchange Rate', 'Paid Amount', 
-      'Converted Amount (LKR)', 'Invoice Total (LKR)', 'Advance Payment (LKR)', 
-      'Remaining Balance (LKR)', 'Booking Source', 'Discount Amount (LKR)', 'Discount Status'
+      'Invoice / Receipt', 'Booking Ref', 'Guest Name', 'Room', 'Check-In', 'Check-Out', 
+      'Payment Method', 'Cash (LKR)', 'Visa/Card (LKR)', 'Bank Transfer (LKR)', 'Total Amount (LKR)', 'Source'
     ];
 
     const csvRows = [
@@ -121,23 +289,15 @@ const Reports = () => {
         `"${row.invoiceNumber}"`,
         `"${row.bookingNumber}"`,
         `"${row.guestName}"`,
-        `"${row.passportNumber}"`,
         `"${row.roomName}"`,
         `"${row.checkInDate}"`,
         `"${row.checkOutDate}"`,
-        row.numberOfNights,
         `"${row.paymentMethod}"`,
-        `"${row.paymentStatus}"`,
-        `"${row.currencyCode}"`,
-        row.exchangeRate,
-        row.paidAmount,
-        row.convertedAmount,
-        row.invoiceTotal,
-        row.advancePaymentAmount,
-        row.remainingBalance,
-        `"${row.bookingSource}"`,
-        row.discountAmount,
-        `"${row.discountStatus}"`
+        row.cashAmount || 0,
+        row.cardAmount || 0,
+        row.bankTransferAmount || 0,
+        row.convertedAmount || 0,
+        `"${row.bookingSource}"`
       ].join(','))
     ];
 
@@ -145,126 +305,70 @@ const Reports = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `SereneVilla_Report_${reportType}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `SereneVilla_${reportType}_${getReportPeriod().replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Export to Excel (HTML formatted Spreadsheet)
-  const handleExportExcel = () => {
-    if (!data || !data.rows || data.rows.length === 0) return;
-
-    const headers = [
-      'Invoice Number', 'Booking Number', 'Guest Name', 'Passport Number', 
-      'Room', 'Check-In Date', 'Check-Out Date', 'Nights', 'Payment Method', 
-      'Payment Status', 'Currency', 'Exchange Rate', 'Paid Amount', 
-      'Converted Amount (LKR)', 'Invoice Total (LKR)', 'Advance Payment (LKR)', 
-      'Remaining Balance (LKR)', 'Booking Source', 'Discount Amount (LKR)', 'Discount Status'
-    ];
-
-    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-    html += '<head><meta charset="utf-8"/><style>table { border-collapse: collapse; font-family: sans-serif; } th { background-color: #10b981; color: white; font-weight: bold; } th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }</style></head><body>';
-    html += '<h2>Serene Villa Financial Report - ' + reportType + '</h2>';
-    html += '<p>Generated on: ' + new Date().toLocaleString() + '</p>';
-    html += '<table><thead><tr>';
-    headers.forEach(h => { html += `<th>${h}</th>`; });
-    html += '</tr></thead><tbody>';
-
-    data.rows.forEach(row => {
-      html += '<tr>';
-      html += `<td>${row.invoiceNumber || ''}</td>`;
-      html += `<td>${row.bookingNumber || ''}</td>`;
-      html += `<td>${row.guestName || ''}</td>`;
-      html += `<td>${row.passportNumber || ''}</td>`;
-      html += `<td>${row.roomName || ''}</td>`;
-      html += `<td>${row.checkInDate || ''}</td>`;
-      html += `<td>${row.checkOutDate || ''}</td>`;
-      html += `<td>${row.numberOfNights || 0}</td>`;
-      html += `<td>${row.paymentMethod || ''}</td>`;
-      html += `<td>${row.paymentStatus || ''}</td>`;
-      html += `<td>${row.currencyCode || ''}</td>`;
-      html += `<td>${row.exchangeRate || 1}</td>`;
-      html += `<td>${row.paidAmount || 0}</td>`;
-      html += `<td>${row.convertedAmount || 0}</td>`;
-      html += `<td>${row.invoiceTotal || 0}</td>`;
-      html += `<td>${row.advancePaymentAmount || 0}</td>`;
-      html += `<td>${row.remainingBalance || 0}</td>`;
-      html += `<td>${row.bookingSource || ''}</td>`;
-      html += `<td>${row.discountAmount || 0}</td>`;
-      html += `<td>${row.discountStatus || ''}</td>`;
-      html += '</tr>';
-    });
-
-    html += '</tbody></table></body></html>';
-
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `SereneVilla_Report_${reportType}_${new Date().toISOString().split('T')[0]}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Trigger Print View
-  const handlePrint = () => {
-    window.print();
-  };
-
-  // Formatting currency
-  const formatLKR = (val) => {
-    return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0 }).format(val);
-  };
+  // Calculations for transactions table
+  const totalCashRows = data?.rows?.reduce((sum, r) => sum + (r.cashAmount || 0), 0) || 0;
+  const totalCardRows = data?.rows?.reduce((sum, r) => sum + (r.cardAmount || 0), 0) || 0;
+  const totalBankRows = data?.rows?.reduce((sum, r) => sum + (r.bankTransferAmount || 0), 0) || 0;
+  const totalConvertedRows = data?.rows?.reduce((sum, r) => sum + (r.convertedAmount || 0), 0) || 0;
 
   return (
-    <div className="space-y-8">
-      {/* Header and Controls */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 no-print">
+    <div className="space-y-6">
+      {/* Header and Filter Controls (Hidden on Print) */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 no-print">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Reports & Financial Statements</h2>
-          <p className="text-sm text-slate-500 font-medium mt-1">Generate dynamic operational and financial statements for Serene Villa</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Financial & Operational Statements</span>
+          </h2>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Real-time business reports, daily check-in logs & executive financial summaries
+          </p>
         </div>
         
         {/* Date Filter Panel */}
-        <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-100 p-3 rounded-2xl shadow-sm w-full xl:w-auto">
-          <div className="flex flex-col min-w-[130px]">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Report Mode</span>
+        <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-200/80 p-2.5 rounded-2xl shadow-sm w-full xl:w-auto">
+          <div className="flex flex-col min-w-[170px]">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Select Statement</span>
             <select
               value={reportType}
               onChange={(e) => setReportType(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-semibold focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold focus:outline-none focus:border-emerald-500 transition cursor-pointer"
             >
-              <option value="Daily">Daily Report</option>
-              <option value="Weekly">Weekly Report</option>
-              <option value="Monthly">Monthly Report</option>
-              <option value="Custom">Custom Range</option>
+              <option value="DailyCheckIn">📅 Daily Check-in Summary</option>
+              <option value="Daily">💵 Daily Income Summary</option>
+              <option value="Weekly">📊 Weekly Income Summary</option>
+              <option value="Monthly">📈 Monthly Income Summary</option>
+              <option value="Custom">🗓️ Custom Range Summary</option>
             </select>
           </div>
 
           {/* Conditional Date Pickers */}
-          {reportType === 'Daily' && (
+          {(reportType === 'DailyCheckIn' || reportType === 'Daily') && (
             <div className="flex flex-col">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Date</span>
               <input 
                 type="date" 
                 value={date} 
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-750 focus:outline-none focus:border-emerald-500 transition" 
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition" 
               />
             </div>
           )}
 
           {reportType === 'Weekly' && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Start Date</span>
                 <input 
                   type="date" 
                   value={startDate} 
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-750 focus:outline-none focus:border-emerald-500 transition" 
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition" 
                 />
               </div>
               <div className="flex flex-col">
@@ -273,20 +377,20 @@ const Reports = () => {
                   type="date" 
                   value={endDate} 
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-750 focus:outline-none focus:border-emerald-500 transition" 
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition" 
                 />
               </div>
             </div>
           )}
 
           {reportType === 'Monthly' && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Year</span>
                 <select
                   value={year}
                   onChange={(e) => setYear(parseInt(e.target.value))}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
                 >
                   {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -296,7 +400,7 @@ const Reports = () => {
                 <select
                   value={month}
                   onChange={(e) => setMonth(parseInt(e.target.value))}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
                 >
                   {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                     <option key={m} value={m}>
@@ -309,14 +413,14 @@ const Reports = () => {
           )}
 
           {reportType === 'Custom' && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">From</span>
                 <input 
                   type="date" 
                   value={startDate} 
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-750 focus:outline-none focus:border-emerald-500 transition" 
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition" 
                 />
               </div>
               <div className="flex flex-col">
@@ -325,728 +429,494 @@ const Reports = () => {
                   type="date" 
                   value={endDate} 
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-750 focus:outline-none focus:border-emerald-500 transition" 
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition" 
                 />
               </div>
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-end gap-2 h-full pt-5 self-stretch">
+          {/* Universal Action Buttons: Print, PDF, WhatsApp, CSV */}
+          <div className="flex items-end gap-1.5 pt-4 self-stretch">
+            {/* Print Button */}
             <button 
               onClick={handlePrint}
-              className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold p-2.5 rounded-xl transition flex items-center justify-center"
-              title="Print Report"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+              title="Print Document"
             >
-              <Printer className="h-4.5 w-4.5" />
+              <Printer className="h-3.5 w-3.5 text-slate-600" />
+              <span>Print</span>
             </button>
+
+            {/* Download PDF Button */}
+            <button 
+              onClick={handleDownloadPDF}
+              disabled={downloadingPdf}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-blue-500/20 cursor-pointer disabled:opacity-50"
+              title="Download High-Res PDF"
+            >
+              {downloadingPdf ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              <span>PDF</span>
+            </button>
+
+            {/* Share via WhatsApp Button */}
+            <button 
+              onClick={handleShareWhatsApp}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 cursor-pointer"
+              title="Share Summary via WhatsApp"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span>WhatsApp</span>
+            </button>
+
+            {/* Export CSV Button */}
             <button 
               onClick={handleExportCSV}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
+              className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer"
               title="Export CSV"
             >
-              <FileDown className="h-4 w-4" /> CSV
-            </button>
-            <button 
-              onClick={handleExportExcel}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition flex items-center gap-1.5 shadow-md shadow-emerald-600/10 cursor-pointer"
-              title="Export Excel"
-            >
-              <FileDown className="h-4 w-4" /> Excel
+              <FileDown className="h-3.5 w-3.5" />
+              <span>CSV</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Loading & Error Messages */}
+      {/* Loading & Error Indicators */}
       {loading && (
-        <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-slate-100 shadow-sm">
-          <Loader className="h-8 w-8 text-emerald-700 animate-spin mr-3" />
-          <span className="font-bold text-slate-600">Generating report data...</span>
+        <div className="flex items-center justify-center p-12 bg-white rounded-2xl border border-slate-100 shadow-sm no-print">
+          <Loader className="h-7 w-7 text-emerald-600 animate-spin mr-3" />
+          <span className="font-bold text-slate-700 text-sm">Generating statement data...</span>
         </div>
       )}
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-sm font-semibold flex items-center gap-2">
-          <AlertCircle className="h-5 w-5" />
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-xs font-semibold flex items-center gap-2 no-print">
+          <AlertCircle className="h-4 w-4" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Report Body */}
+      {/* Main Printable Document Canvas (Styled for Screen & Perfect Clean Print) */}
       {!loading && !error && data && (
-        <div className="space-y-6 report-print-area">
-          
-
-
-          {/* Web View (no-print) */}
-          <div className="no-print space-y-6">
-            {/* Main Tab Switcher */}
-            <div className="flex gap-2 border-b border-slate-100 pb-px">
-              <button
-                onClick={() => setActiveMainTab('overview')}
-                className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition cursor-pointer ${
-                  activeMainTab === 'overview'
-                    ? 'border-emerald-600 text-emerald-800 font-extrabold'
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Overview Summary
-              </button>
-              <button
-                onClick={() => setActiveMainTab('ledger')}
-                className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition cursor-pointer ${
-                  activeMainTab === 'ledger'
-                    ? 'border-emerald-600 text-emerald-800 font-extrabold'
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Transaction Ledger
-              </button>
-            </div>
-
-            {/* 1. OVERVIEW VIEW */}
-            {activeMainTab === 'overview' && (
-              <div className="space-y-6">
-              {/* Stats Widgets */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <p className="text-[10px] font-bold uppercase tracking-wider">Total Revenue</p>
-                    <DollarSign className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{formatLKR(data.totalRevenue)}</h3>
-                  <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1 font-bold">
-                    <TrendingUp className="h-3 w-3" /> Settled payments
-                  </p>
-                </div>
-                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <p className="text-[10px] font-bold uppercase tracking-wider">Bookings Volume</p>
-                    <Calendar className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{data.totalBookings}</h3>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1">Stays in period</p>
-                </div>
-                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <p className="text-[10px] font-bold uppercase tracking-wider">Invoices Count</p>
-                    <FileText className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <h3 className="text-2xl font-extrabold text-slate-900 mt-1">{data.totalInvoices}</h3>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1">Transactions recorded</p>
-                </div>
-                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <p className="text-[10px] font-bold uppercase tracking-wider">Outstanding Amount</p>
-                    <AlertCircle className="h-4 w-4 text-rose-500" />
-                  </div>
-                  <h3 className="text-2xl font-extrabold text-rose-600 mt-1">{formatLKR(data.totalOutstandingAmount)}</h3>
-                  <p className="text-[10px] text-rose-600 font-bold mt-1 flex items-center gap-1">
-                    Collect at check-out
-                  </p>
-                </div>
-              </div>
-
-              {/* Simplified consolidated breakdown panel */}
-              <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-                <div className="border-b border-slate-100 bg-slate-50/50 p-2 flex flex-wrap gap-1.5 no-print">
-                  {[
-                    { id: 'payments', label: 'Payment Methods' },
-                    { id: 'occupancy', label: 'Occupancy & Guests' },
-                    { id: 'channels', label: 'Booking Channels' },
-                    { id: 'discounts', label: 'Discounts & Rebates' }
-                  ].map(tab => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setBreakdownTab(tab.id)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                        breakdownTab === tab.id
-                          ? 'bg-emerald-600 text-white shadow-sm border border-emerald-600'
-                          : 'text-slate-500 hover:bg-slate-100 border border-transparent'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Print mode displays all breakdowns sequentially */}
-                <div className="p-6">
-                  {/* Payments Segment */}
-                  {(breakdownTab === 'payments' || window.matchMedia('print').matches) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center print:mb-6">
-                      <div className="space-y-4 max-w-md">
-                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                          <CreditCard className="h-4 w-4 text-emerald-600" /> Revenue by Payment Method
-                        </h4>
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="flex items-center gap-1.5 text-slate-500">
-                              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block"></span>
-                              Cash:
-                            </span>
-                            <span className="text-slate-900 font-bold">{formatLKR(data.cashRevenue)}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="flex items-center gap-1.5 text-slate-500">
-                              <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block"></span>
-                              Card:
-                            </span>
-                            <span className="text-slate-900 font-bold">{formatLKR(data.cardRevenue)}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="flex items-center gap-1.5 text-slate-500">
-                              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block"></span>
-                              Bank Transfer:
-                            </span>
-                            <span className="text-slate-900 font-bold">{formatLKR(data.bankTransferRevenue)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Donut Chart Visual */}
-                      <div className="flex items-center justify-center bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50 max-w-xs mx-auto">
-                        {(() => {
-                          const total = (data.cashRevenue || 0) + (data.cardRevenue || 0) + (data.bankTransferRevenue || 0);
-                          if (total === 0) {
-                            return (
-                              <div className="text-center py-6">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">No Revenue Data</span>
-                              </div>
-                            );
-                          }
-                          const circ = 2 * Math.PI * 30; // 188.5
-                          const pCash = ((data.cashRevenue || 0) / total) * 100;
-                          const pCard = ((data.cardRevenue || 0) / total) * 100;
-                          const pBank = ((data.bankTransferRevenue || 0) / total) * 100;
-
-                          const offsetCash = 0;
-                          const offsetCard = -(pCash / 100) * circ;
-                          const offsetBank = -((pCash + pCard) / 100) * circ;
-
-                          return (
-                            <div className="relative flex items-center justify-center">
-                              <svg width="150" height="150" viewBox="0 0 100 100" className="transform -rotate-90">
-                                <circle cx="50" cy="50" r="30" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
-                                {/* Cash Segment */}
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r="30"
-                                  fill="transparent"
-                                  stroke="#10b981"
-                                  strokeWidth="12"
-                                  strokeDasharray={`${(pCash / 100) * circ} ${circ}`}
-                                  strokeDashoffset={offsetCash}
-                                  className="transition-all duration-1000 ease-out"
-                                />
-                                {/* Card Segment */}
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r="30"
-                                  fill="transparent"
-                                  stroke="#3b82f6"
-                                  strokeWidth="12"
-                                  strokeDasharray={`${(pCard / 100) * circ} ${circ}`}
-                                  strokeDashoffset={offsetCard}
-                                  className="transition-all duration-1000 ease-out"
-                                />
-                                {/* Bank Transfer Segment */}
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r="30"
-                                  fill="transparent"
-                                  stroke="#f59e0b"
-                                  strokeWidth="12"
-                                  strokeDasharray={`${(pBank / 100) * circ} ${circ}`}
-                                  strokeDashoffset={offsetBank}
-                                  className="transition-all duration-1000 ease-out"
-                                />
-                              </svg>
-                              <div className="absolute text-center">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase block leading-none">Total</span>
-                                <span className="text-xs font-black text-slate-800 font-mono mt-1 block">
-                                  {total >= 1000000 ? `${(total / 1000000).toFixed(1)}M` : total >= 1000 ? `${(total / 1000).toFixed(0)}K` : total}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Occupancy Segment */}
-                  {(breakdownTab === 'occupancy' || window.matchMedia('print').matches) && (
-                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 items-center print:mb-6 ${breakdownTab !== 'occupancy' ? 'hidden print:block' : ''}`}>
-                      <div className="space-y-4 max-w-md">
-                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                          <Users className="h-4 w-4 text-emerald-600" /> Occupancy & Guest Details
-                        </h4>
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Total Check-Ins:</span>
-                            <span className="text-slate-900 font-bold">{data.totalCheckIns}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Total Check-Outs:</span>
-                            <span className="text-slate-900 font-bold">{data.totalCheckOuts}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Guests (Adults / Kids):</span>
-                            <span className="text-slate-900 font-bold">{data.totalGuests} ({data.totalAdults} / {data.totalChildren})</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Animated Bars Visual */}
-                      <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100/50 space-y-4 max-w-xs mx-auto w-full">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Distribution Overview</span>
-                        {(() => {
-                          const maxGuests = Math.max(data.totalAdults || 0, data.totalChildren || 0, 1);
-                          const pAdults = ((data.totalAdults || 0) / maxGuests) * 100;
-                          const pChildren = ((data.totalChildren || 0) / maxGuests) * 100;
-                          return (
-                            <div className="space-y-3">
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                  <span>Adults ({data.totalAdults || 0})</span>
-                                  <span>{Math.round(pAdults)}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000" style={{ width: `${pAdults}%` }}></div>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                  <span>Children ({data.totalChildren || 0})</span>
-                                  <span>{Math.round(pChildren)}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
-                                  <div className="h-full bg-amber-500 rounded-full transition-all duration-1000" style={{ width: `${pChildren}%` }}></div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Channels Segment */}
-                  {(breakdownTab === 'channels' || window.matchMedia('print').matches) && (
-                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 items-center print:mb-6 ${breakdownTab !== 'channels' ? 'hidden print:block' : ''}`}>
-                      <div className="space-y-4 max-w-md">
-                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                          <Building className="h-4 w-4 text-emerald-600" /> Booking Channels & Sources
-                        </h4>
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Direct Bookings:</span>
-                            <span className="text-slate-900 font-bold">{data.directBookingCount}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Booking.com:</span>
-                            <span className="text-slate-900 font-bold">{data.bookingComCount}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Advance Payments:</span>
-                            <span className="text-emerald-700 font-extrabold">{formatLKR(data.totalAdvancePayments)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Radial Gauge Visual */}
-                      <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100/50 space-y-4 max-w-xs mx-auto w-full">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Channel Split</span>
-                        {(() => {
-                          const totalBookings = (data.directBookingCount || 0) + (data.bookingComCount || 0);
-                          const pDirect = totalBookings > 0 ? ((data.directBookingCount || 0) / totalBookings) * 100 : 0;
-                          const pBookingCom = totalBookings > 0 ? ((data.bookingComCount || 0) / totalBookings) * 100 : 0;
-                          return (
-                            <div className="space-y-3">
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                  <span>Direct ({data.directBookingCount || 0})</span>
-                                  <span>{Math.round(pDirect)}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000" style={{ width: `${pDirect}%` }}></div>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                  <span>Booking.com ({data.bookingComCount || 0})</span>
-                                  <span>{Math.round(pBookingCom)}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
-                                  <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: `${pBookingCom}%` }}></div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Discounts Segment */}
-                  {(breakdownTab === 'discounts' || window.matchMedia('print').matches) && (
-                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 items-center ${breakdownTab !== 'discounts' ? 'hidden print:block' : ''}`}>
-                      <div className="space-y-4 max-w-md">
-                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                          <Percent className="h-4 w-4 text-emerald-600" /> Discounts & Outstandings
-                        </h4>
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Approved Total:</span>
-                            <span className="text-rose-600 font-bold">{formatLKR(data.approvedDiscountTotal)}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Pending Requests:</span>
-                            <span className="text-amber-600 font-bold">{data.pendingDiscountRequestCount}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-slate-500">Remaining Balance:</span>
-                            <span className="text-slate-900 font-bold">{formatLKR(data.totalRemainingBalance)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Discounts Chart Visual */}
-                      <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100/50 space-y-4 max-w-xs mx-auto w-full">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Financial Balance Split</span>
-                        {(() => {
-                          const total = (data.approvedDiscountTotal || 0) + (data.totalAdvancePayments || 0) + (data.totalRemainingBalance || 0);
-                          const pDisc = total > 0 ? ((data.approvedDiscountTotal || 0) / total) * 100 : 0;
-                          const pAdv = total > 0 ? ((data.totalAdvancePayments || 0) / total) * 100 : 0;
-                          const pRem = total > 0 ? ((data.totalRemainingBalance || 0) / total) * 100 : 0;
-                          return (
-                            <div className="space-y-3">
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                  <span>Discounts ({formatLKR(data.approvedDiscountTotal || 0)})</span>
-                                  <span>{Math.round(pDisc)}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
-                                  <div className="h-full bg-rose-500 rounded-full transition-all duration-1000" style={{ width: `${pDisc}%` }}></div>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                  <span>Advance Payments ({formatLKR(data.totalAdvancePayments || 0)})</span>
-                                  <span>{Math.round(pAdv)}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000" style={{ width: `${pAdv}%` }}></div>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                  <span>Remaining Balance ({formatLKR(data.totalRemainingBalance || 0)})</span>
-                                  <span>{Math.round(pRem)}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
-                                  <div className="h-full bg-slate-500 rounded-full transition-all duration-1000" style={{ width: `${pRem}%` }}></div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 2. LEDGER VIEW */}
-          {activeMainTab === 'ledger' && (
-            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-              <div className="p-5 border-b border-slate-100 flex items-center justify-between no-print">
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Ledger & Transaction Log</h3>
-                <span className="bg-slate-50 border border-slate-100 rounded-full px-3 py-1 text-[10px] font-bold text-slate-500">
-                  {data.rows.length} Transactions
-                </span>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
-                  <thead>
-                    <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
-                      <th className="p-4">Receipt</th>
-                      <th className="p-4">Booking</th>
-                      <th className="p-4">Guest</th>
-                      <th className="p-4">Room</th>
-                      <th className="p-4">Stay Dates</th>
-                      <th className="p-4">Method</th>
-                      <th className="p-4">Paid Currency</th>
-                      <th className="p-4 text-right">LKR Paid</th>
-                      <th className="p-4 text-right">Remaining</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
-                    {data.rows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/20 transition">
-                        <td className="p-4 font-bold text-slate-900">{row.invoiceNumber}</td>
-                        <td className="p-4">{row.bookingNumber}</td>
-                        <td className="p-4">
-                          <div>
-                            <p className="font-bold text-slate-800">{row.guestName}</p>
-                            <p className="text-[10px] text-slate-400">{row.passportNumber}</p>
-                          </div>
-                        </td>
-                        <td className="p-4">{row.roomName}</td>
-                        <td className="p-4">
-                          {row.checkInDate} to {row.checkOutDate}
-                          <span className="text-[10px] text-slate-400 block font-normal">{row.numberOfNights} Nights ({row.bookingSource})</span>
-                        </td>
-                        <td className="p-4">
-                          <span className="bg-slate-50 text-slate-600 border border-slate-100 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">
-                            {row.paymentMethod}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          {row.currencyCode} {row.paidAmount} 
-                          {row.currencyCode !== 'LKR' && (
-                            <span className="text-[10px] text-slate-405 block">Rate: {row.exchangeRate}</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-right font-mono font-bold text-slate-900">
-                          {formatLKR(row.convertedAmount)}
-                        </td>
-                        <td className="p-4 text-right font-mono text-slate-500">
-                          {formatLKR(row.remainingBalance)}
-                        </td>
-                      </tr>
-                    ))}
-
-                    {data.rows.length === 0 && (
-                      <tr>
-                        <td colSpan="9" className="p-8 text-center text-slate-400 font-bold">
-                          No transactions recorded for the selected period.
-                        </td>
-                      </tr>
-                    )}
-
-                    <tr className="bg-slate-50/30 font-bold border-t border-slate-100">
-                      <td colSpan="7" className="p-4 text-slate-400 text-right uppercase">Total Revenue (Settled):</td>
-                      <td className="p-4 text-right font-mono text-emerald-700 text-sm">{formatLKR(data.totalRevenue)}</td>
-                      <td></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-          </div>
-
-          {/* Professional Print Only Report (Stunning Corporate Design) */}
-          <div className="hidden print:block space-y-5 text-slate-900 font-sans print:p-2 bg-white w-full">
-            {/* Professional Letterhead */}
-            <div className="flex justify-between items-center border-b-2 border-emerald-800 pb-3">
-              <div className="flex items-center gap-3">
-                <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain rounded-lg border border-slate-100" />
-                <div className="space-y-0.5">
-                  <h1 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    <span className="text-emerald-700">SERENE VILLA</span>
-                    <span className="text-slate-300 font-normal">|</span>
-                    <span className="text-slate-550 text-xs font-bold tracking-wider">HIRIKETIYA</span>
-                  </h1>
-                  <p className="text-[8px] text-slate-500 font-medium leading-relaxed">
-                    Hiriketiya Beach Road, Dikwella, Sri Lanka | info@serenevillahiriketiya.com | +94 77 123 4567
-                  </p>
-                </div>
-              </div>
-              <div className="text-right space-y-0.5">
-                <span className="bg-emerald-50 text-emerald-800 text-[8px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border border-emerald-100/50">
-                  Financial Audit Document
-                </span>
-                <p className="text-[8px] text-slate-400 font-semibold">
-                  Registration No: SV-2026-PVT
+        <div 
+          ref={printAreaRef}
+          id="financial-statement-canvas"
+          className="bg-white border border-slate-200/90 rounded-2xl p-6 md:p-8 shadow-sm print:shadow-none print:border-none print:p-2 space-y-6 text-slate-800"
+        >
+          {/* 1. Header / Letterhead */}
+          <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-4">
+            <div className="flex items-center gap-3.5">
+              <img src={logoImg} alt="Serene Villa Logo" className="h-12 w-12 object-contain rounded-xl border border-slate-100" />
+              <div className="space-y-0.5">
+                <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <span className="text-emerald-800">SERENE VILLA</span>
+                  <span className="text-slate-300 font-normal">|</span>
+                  <span className="text-slate-600 text-xs font-bold tracking-wider">HIRIKETIYA</span>
+                </h1>
+                <p className="text-[9px] text-slate-500 font-medium">
+                  Hiriketiya Beach Road, Dikwella, Sri Lanka | info@serenevillahiriketiya.com | +94 77 123 4567
                 </p>
               </div>
             </div>
-
-            {/* Title & Scope */}
-            <div className="text-center space-y-1 py-1">
-              <h2 className="text-base font-black uppercase tracking-wider text-slate-800">
-                Financial & Operational Statement
-              </h2>
-              <p className="text-[10px] text-slate-500 font-medium">
-                Scope: <strong className="text-slate-700 capitalize">{reportType} Statement</strong> &nbsp;|&nbsp; 
-                Reconciliation Date: <strong>{getReportPeriod()}</strong>
+            <div className="text-right space-y-1">
+              <span className="bg-emerald-50 text-emerald-800 text-[9px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider border border-emerald-200 inline-block">
+                Official Statement
+              </span>
+              <p className="text-[9px] text-slate-400 font-semibold">
+                Doc Ref: SV-{reportType.toUpperCase()}-{new Date().getFullYear()}
               </p>
             </div>
+          </div>
 
-            {/* Section 1 & 2: Executive Summary & Revenue Breakdown Side-by-Side */}
-            <div className="grid grid-cols-2 gap-6">
-              {/* Left Column: Executive Summary */}
+          {/* Title & Prominent Date Header */}
+          <div className="text-center space-y-1 py-1 bg-slate-50/70 border border-slate-100 rounded-xl p-3 print:bg-transparent print:border-none print:py-0">
+            <h2 className="text-base md:text-lg font-black uppercase tracking-wider text-slate-900">
+              {getReportTitle()}
+            </h2>
+            <div className="flex items-center justify-center gap-3 text-xs font-semibold text-slate-600">
+              <span className="bg-white px-2.5 py-0.5 rounded-md border border-slate-200 text-slate-800 font-bold">
+                Date / Period: <strong className="text-emerald-800">{getReportPeriod()}</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* VIEW TYPE 1: DAILY CHECK-IN SUMMARY                                      */}
+          {/* ========================================================================= */}
+          {reportType === 'DailyCheckIn' && (
+            <div className="space-y-6">
+              {/* Daily Check-in Table */}
               <div className="space-y-2">
-                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                  <span className="w-1 h-2.5 bg-emerald-600 rounded-xs"></span>
-                  1. Executive Summary
-                </h3>
-                <table className="w-full text-left text-[10px] border border-slate-200 rounded-lg overflow-hidden">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
-                      <th className="p-2">Performance Indicator</th>
-                      <th className="p-2 text-right">Value (LKR / Qty)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium">
-                    <tr>
-                      <td className="p-2 font-bold text-slate-700">Total Revenue (Settled)</td>
-                      <td className="p-2 text-right font-mono font-bold text-emerald-700">{formatLKR(data.totalRevenue)}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2 font-bold text-slate-700">Bookings Volume</td>
-                      <td className="p-2 text-right font-mono text-slate-700">{data.totalBookings}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2 font-bold text-slate-700">Invoices Count</td>
-                      <td className="p-2 text-right font-mono text-slate-700">{data.totalInvoices}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2 font-bold text-slate-700">Outstanding Balance</td>
-                      <td className="p-2 text-right font-mono font-bold text-rose-600">{formatLKR(data.totalOutstandingAmount)}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2 font-bold text-slate-700">Approved Discounts</td>
-                      <td className="p-2 text-right font-mono text-slate-700">{formatLKR(data.approvedDiscountTotal || 0)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <UserCheck className="h-4 w-4 text-emerald-700" />
+                    Guest Check-in Records
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-500">
+                    Total Check-ins: <strong className="text-slate-900">{(data.checkIns || []).length}</strong> | Total Pax: <strong className="text-emerald-700">{data.totalGuests || 0}</strong>
+                  </span>
+                </div>
 
-              {/* Right Column: Revenue Breakdown */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                    <thead>
+                      <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[9px]">
+                        <th className="p-2.5 text-center w-8">#</th>
+                        <th className="p-2.5">Guest Name (වෙන් කළ කෙනාගේ නම)</th>
+                        <th className="p-2.5 text-center">Room No (කාමරය)</th>
+                        <th className="p-2.5 text-center">Pax (පුද්ගලයන්) *</th>
+                        <th className="p-2.5 text-right">Amount / Booking Value (මුදල)</th>
+                        <th className="p-2.5 text-center">Channel</th>
+                        <th className="p-2.5 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                      {(data.checkIns || []).map((checkIn, idx) => (
+                        <tr key={checkIn.id || idx} className="hover:bg-slate-50/50 transition">
+                          <td className="p-2.5 text-center text-slate-400 font-mono text-[10px]">{idx + 1}</td>
+                          <td className="p-2.5 font-bold text-slate-900">
+                            <div>
+                              <span>{checkIn.guestName}</span>
+                              {checkIn.passportNumber && checkIn.passportNumber !== 'N/A' && (
+                                <span className="text-[9px] text-slate-400 font-normal block font-mono">ID: {checkIn.passportNumber}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-2.5 text-center font-bold text-slate-800">
+                            <span className="bg-slate-100 px-2 py-0.5 rounded text-[11px] font-mono border border-slate-200">
+                              {checkIn.roomNumber || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-center">
+                            <span className="bg-emerald-50 text-emerald-800 font-black px-2.5 py-0.5 rounded-full text-[10px] border border-emerald-200 inline-flex items-center gap-1">
+                              <Users className="h-3 w-3 inline" />
+                              {checkIn.pax} Pax
+                              <span className="text-[8px] font-normal text-slate-500">
+                                ({checkIn.adults}A{checkIn.children ? ` + ${checkIn.children}C` : ''})
+                              </span>
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-right font-mono font-bold text-slate-900">
+                            {formatLKR(checkIn.amount)}
+                          </td>
+                          <td className="p-2.5 text-center">
+                            <span className="text-[9px] font-bold uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-slate-600">
+                              {checkIn.bookingSource || 'Direct'}
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-center">
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                              checkIn.paymentStatus === 'Paid' 
+                                ? 'bg-emerald-100 text-emerald-800' 
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {checkIn.paymentStatus || 'Pending'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+
+                      {(!data.checkIns || data.checkIns.length === 0) && (
+                        <tr>
+                          <td colSpan="7" className="p-8 text-center text-slate-400 font-bold">
+                            No guest check-ins recorded for {date}.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot className="bg-slate-50/90 font-bold border-t-2 border-slate-200 text-slate-900">
+                      <tr>
+                        <td colSpan="3" className="p-2.5 text-right uppercase text-[10px] text-slate-500">
+                          Total Check-ins Summary:
+                        </td>
+                        <td className="p-2.5 text-center font-black text-emerald-800 font-mono text-xs">
+                          {data.totalGuests || 0} Pax
+                        </td>
+                        <td className="p-2.5 text-right font-mono font-black text-emerald-800 text-xs">
+                          {formatLKR((data.checkIns || []).reduce((sum, c) => sum + (c.amount || 0), 0))}
+                        </td>
+                        <td colSpan="2"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VIEW TYPE 2: INCOME SUMMARIES (Daily, Weekly, Monthly, Custom Range)      */}
+          {/* Layout Order: Section 3 (Top) -> Section 1 (Bottom) -> Section 2 (Bottom) */}
+          {/* ========================================================================= */}
+          {reportType !== 'DailyCheckIn' && (
+            <div className="space-y-6">
+              
+              {/* ------------------------------------------------------------------- */}
+              {/* SECTION 3 (MOVED TO TOP): Detailed Transactions Table               */}
+              {/* ------------------------------------------------------------------- */}
               <div className="space-y-2">
-                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                  <span className="w-1 h-2.5 bg-emerald-600 rounded-xs"></span>
-                  2. Payment Methods
-                </h3>
-                <table className="w-full text-left text-[10px] border border-slate-200 rounded-lg overflow-hidden">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
-                      <th className="p-2">Channel</th>
-                      <th className="p-2 text-right">Amount (LKR)</th>
-                      <th className="p-2 text-right">Share</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {(() => {
-                      const total = (data.cashRevenue || 0) + (data.cardRevenue || 0) + (data.bankTransferRevenue || 0);
-                      const getPct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) + '%' : '0.0%';
-                      return (
-                        <>
-                          <tr>
-                            <td className="p-2 font-bold flex items-center gap-1.5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Cash
-                            </td>
-                            <td className="p-2 text-right font-mono font-bold">{formatLKR(data.cashRevenue)}</td>
-                            <td className="p-2 text-right font-mono text-slate-500">{getPct(data.cashRevenue)}</td>
-                          </tr>
-                          <tr>
-                            <td className="p-2 font-bold flex items-center gap-1.5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span> Card
-                            </td>
-                            <td className="p-2 text-right font-mono font-bold">{formatLKR(data.cardRevenue)}</td>
-                            <td className="p-2 text-right font-mono text-slate-500">{getPct(data.cardRevenue)}</td>
-                          </tr>
-                          <tr>
-                            <td className="p-2 font-bold flex items-center gap-1.5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Transfer
-                            </td>
-                            <td className="p-2 text-right font-mono font-bold">{formatLKR(data.bankTransferRevenue)}</td>
-                            <td className="p-2 text-right font-mono text-slate-500">{getPct(data.bankTransferRevenue)}</td>
-                          </tr>
-                          <tr className="bg-slate-50/80 font-bold border-t border-slate-200 text-slate-900">
-                            <td className="p-2">Total Settled</td>
-                            <td className="p-2 text-right font-mono text-emerald-800">{formatLKR(total)}</td>
-                            <td className="p-2 text-right font-mono">100.0%</td>
-                          </tr>
-                        </>
-                      );
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <span className="w-1.5 h-3 bg-emerald-700 rounded-xs"></span>
+                    Detailed Transactions Table (ගනුදෙනු විස්තරය)
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-500">
+                    Settled Transactions: <strong className="text-slate-800">{data.rows?.length || 0}</strong>
+                  </span>
+                </div>
 
-            {/* Section 3: Detailed Transaction Ledger */}
-            <div className="space-y-2">
-              <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                <span className="w-1 h-2.5 bg-emerald-600 rounded-xs"></span>
-                3. Detailed Transaction Ledger
-              </h3>
-              <table className="w-full text-left text-[10px] border border-slate-200 rounded-lg overflow-hidden">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[8px]">
-                    <th className="p-2">Date / Time</th>
-                    <th className="p-2">Guest / Client</th>
-                    <th className="p-2">Booking Ref</th>
-                    <th className="p-2">Room</th>
-                    <th className="p-2">Method</th>
-                    <th className="p-2 text-right">Invoice (LKR)</th>
-                    <th className="p-2 text-right font-bold">Paid (LKR)</th>
-                    <th className="p-2 text-right font-bold text-slate-500">Balance (LKR)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {data.rows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/20">
-                      <td className="p-2 whitespace-nowrap">{getReportPeriod()}</td>
-                      <td className="p-2 font-bold text-slate-850 max-w-[120px] truncate">{row.guestName}</td>
-                      <td className="p-2 font-mono">{row.bookingNumber}</td>
-                      <td className="p-2">{row.roomName || 'N/A'}</td>
-                       <td className="p-2">
-                        <span className="text-[9px] font-extrabold uppercase bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 text-slate-600">
-                          {row.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="p-2 text-right font-mono">{formatLKR(row.invoiceTotal)}</td>
-                      <td className="p-2 text-right font-mono font-bold text-emerald-800">{formatLKR(row.convertedAmount)}</td>
-                      <td className="p-2 text-right font-mono text-slate-500">{formatLKR(row.remainingBalance)}</td>
-                    </tr>
-                  ))}
-                  {data.rows.length === 0 && (
-                    <tr>
-                      <td colSpan="8" className="p-4 text-center text-slate-400 font-bold">
-                        No transactions recorded for the selected period.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                    <thead>
+                      <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[8px] md:text-[9px]">
+                        <th className="p-2.5">Invoice #</th>
+                        <th className="p-2.5">Booking Ref</th>
+                        <th className="p-2.5">Room</th>
+                        <th className="p-2.5 text-right">Cash (LKR)</th>
+                        <th className="p-2.5 text-right">Visa / Card (LKR)</th>
+                        <th className="p-2.5 text-right">Bank Transfer (LKR)</th>
+                        <th className="p-2.5 text-right font-black text-emerald-900">Total Amount (LKR)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                      {(data.rows || []).map((row, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50 transition">
+                          <td className="p-2.5 font-bold text-slate-900 font-mono text-[10px]">
+                            {row.invoiceNumber}
+                          </td>
+                          <td className="p-2.5 text-slate-700 font-mono text-[10px]">
+                            <div>
+                              <span>{row.bookingNumber}</span>
+                              <span className="text-[8px] text-slate-400 block">{row.bookingSource || 'Direct'}</span>
+                            </div>
+                          </td>
+                          <td className="p-2.5 font-bold text-slate-800">
+                            {row.roomName || 'N/A'}
+                          </td>
+                          <td className="p-2.5 text-right font-mono text-slate-700">
+                            {row.cashAmount > 0 ? (
+                              <span className="font-bold text-emerald-700">{formatLKR(row.cashAmount)}</span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+                          <td className="p-2.5 text-right font-mono text-slate-700">
+                            {row.cardAmount > 0 ? (
+                              <span className="font-bold text-blue-700">{formatLKR(row.cardAmount)}</span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+                          <td className="p-2.5 text-right font-mono text-slate-700">
+                            {row.bankTransferAmount > 0 ? (
+                              <span className="font-bold text-amber-700">{formatLKR(row.bankTransferAmount)}</span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+                          <td className="p-2.5 text-right font-mono font-black text-emerald-900 bg-emerald-50/30">
+                            {formatLKR(row.convertedAmount)}
+                          </td>
+                        </tr>
+                      ))}
 
-            {/* Section 4: Audit Sign-off */}
-            <div className="pt-6 grid grid-cols-3 gap-6 text-[10px] uppercase font-bold text-slate-600">
-              <div className="space-y-6 text-center">
-                <div className="border-b border-slate-300 pb-1"></div>
-                <p className="text-slate-700 tracking-wider">Prepared By</p>
-                <p className="text-slate-400 text-[8px] font-normal lowercase italic">(Front Office / Accountant Signature)</p>
+                      {(!data.rows || data.rows.length === 0) && (
+                        <tr>
+                          <td colSpan="7" className="p-8 text-center text-slate-400 font-bold">
+                            No financial transactions recorded for the selected period.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    {/* Subtotals for each payment type and grand total */}
+                    <tfoot className="bg-slate-100/90 font-black border-t-2 border-slate-300 text-slate-900 text-xs">
+                      <tr>
+                        <td colSpan="3" className="p-2.5 text-right uppercase text-[10px] text-slate-600">
+                          Subtotals / Totals:
+                        </td>
+                        <td className="p-2.5 text-right font-mono text-emerald-800">
+                          {formatLKR(totalCashRows)}
+                        </td>
+                        <td className="p-2.5 text-right font-mono text-blue-800">
+                          {formatLKR(totalCardRows)}
+                        </td>
+                        <td className="p-2.5 text-right font-mono text-amber-800">
+                          {formatLKR(totalBankRows)}
+                        </td>
+                        <td className="p-2.5 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-sm">
+                          {formatLKR(totalConvertedRows)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
-              <div className="space-y-6 text-center">
-                <div className="border-b border-slate-300 pb-1"></div>
-                <p className="text-slate-700 tracking-wider">Checked By</p>
-                <p className="text-slate-400 text-[8px] font-normal lowercase italic">(Finance Manager Signature)</p>
-              </div>
-              <div className="space-y-6 text-center">
-                <div className="border-b border-slate-300 pb-1"></div>
-                <p className="text-slate-700 tracking-wider">Approved By</p>
-                <p className="text-slate-400 text-[8px] font-normal lowercase italic">(General Manager Signature)</p>
-              </div>
-            </div>
 
-            {/* Report Footer */}
-            <div className="text-center pt-8 border-t border-slate-100 text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-              Confidential Document - Serene Villa Pvt Ltd Hiriketiya © {new Date().getFullYear()}
+              {/* ------------------------------------------------------------------- */}
+              {/* BOTTOM HALF: Section 1 (Executive Summary) & Section 2 (Payments)  */}
+              {/* ------------------------------------------------------------------- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-200">
+                
+                {/* ----------------------------------------------------------------- */}
+                {/* SECTION 1 (BOTTOM): Executive Summary & Booking Channel Breakdown */}
+                {/* ----------------------------------------------------------------- */}
+                <div className="space-y-2.5">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 flex items-center gap-1.5">
+                    <span className="w-1.5 h-3 bg-emerald-700 rounded-xs"></span>
+                    1. Executive Summary & Channels (විධායක සාරාංශය)
+                  </h3>
+                  
+                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                    <thead>
+                      <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[8px]">
+                        <th className="p-2.5">Booking Channel / Metric</th>
+                        <th className="p-2.5 text-center">Bookings</th>
+                        <th className="p-2.5 text-right">Revenue (LKR)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      <tr>
+                        <td className="p-2 font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-blue-600 inline-block"></span> Booking.com
+                        </td>
+                        <td className="p-2 text-center font-mono font-bold text-slate-700">{data.bookingComCount || 0}</td>
+                        <td className="p-2 text-right font-mono font-bold text-slate-900">{formatLKR(data.bookingComAmount || 0)}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-2 font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-purple-600 inline-block"></span> Web Booking
+                        </td>
+                        <td className="p-2 text-center font-mono font-bold text-slate-700">{data.webBookingCount || 0}</td>
+                        <td className="p-2 text-right font-mono font-bold text-slate-900">{formatLKR(data.webBookingAmount || 0)}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-2 font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-rose-500 inline-block"></span> Airbnb
+                        </td>
+                        <td className="p-2 text-center font-mono font-bold text-slate-700">{data.airbnbCount || 0}</td>
+                        <td className="p-2 text-right font-mono font-bold text-slate-900">{formatLKR(data.airbnbAmount || 0)}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-2 font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-emerald-600 inline-block"></span> Direct Booking
+                        </td>
+                        <td className="p-2 text-center font-mono font-bold text-slate-700">{data.directBookingCount || 0}</td>
+                        <td className="p-2 text-right font-mono font-bold text-slate-900">{formatLKR(data.directBookingAmount || 0)}</td>
+                      </tr>
+                      <tr className="bg-slate-50/80 font-bold border-t border-slate-200">
+                        <td className="p-2 text-slate-600">Total Bookings Volume</td>
+                        <td className="p-2 text-center font-mono font-black text-slate-900">{data.totalBookings || 0}</td>
+                        <td className="p-2 text-right font-mono font-black text-slate-900">
+                          {formatLKR((data.bookingComAmount || 0) + (data.webBookingAmount || 0) + (data.airbnbAmount || 0) + (data.directBookingAmount || 0))}
+                        </td>
+                      </tr>
+                      <tr className="bg-slate-50/80 font-bold">
+                        <td className="p-2 text-slate-600">Outstanding Balance</td>
+                        <td className="p-2 text-center text-slate-400">-</td>
+                        <td className="p-2 text-right font-mono font-bold text-rose-600">{formatLKR(data.totalOutstandingAmount || 0)}</td>
+                      </tr>
+                      <tr className="bg-slate-50/80 font-bold">
+                        <td className="p-2 text-slate-600">Approved Discounts</td>
+                        <td className="p-2 text-center text-slate-400">-</td>
+                        <td className="p-2 text-right font-mono font-bold text-slate-700">{formatLKR(data.approvedDiscountTotal || 0)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ----------------------------------------------------------------- */}
+                {/* SECTION 2 (BOTTOM): Payment Methods Breakdown                     */}
+                {/* ----------------------------------------------------------------- */}
+                <div className="space-y-2.5">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 flex items-center gap-1.5">
+                    <span className="w-1.5 h-3 bg-emerald-700 rounded-xs"></span>
+                    2. Payment Methods Breakdown (ගෙවීම් ක්‍රම)
+                  </h3>
+
+                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                    <thead>
+                      <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[8px]">
+                        <th className="p-2.5">Payment Channel</th>
+                        <th className="p-2.5 text-right">Amount (LKR)</th>
+                        <th className="p-2.5 text-right">Share (%)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {(() => {
+                        const totalSettled = (data.cashRevenue || 0) + (data.cardRevenue || 0) + (data.bankTransferRevenue || 0);
+                        const getPct = (val) => totalSettled > 0 ? ((val / totalSettled) * 100).toFixed(1) + '%' : '0.0%';
+                        return (
+                          <>
+                            <tr>
+                              <td className="p-2 font-bold flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500"></span> Cash
+                              </td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900">{formatLKR(data.cashRevenue)}</td>
+                              <td className="p-2 text-right font-mono text-slate-500 text-[10px]">{getPct(data.cashRevenue)}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-amber-500"></span> Bank Transfer
+                              </td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900">{formatLKR(data.bankTransferRevenue)}</td>
+                              <td className="p-2 text-right font-mono text-slate-500 text-[10px]">{getPct(data.bankTransferRevenue)}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-blue-500"></span> Visa / Card
+                              </td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900">{formatLKR(data.cardRevenue)}</td>
+                              <td className="p-2 text-right font-mono text-slate-500 text-[10px]">{getPct(data.cardRevenue)}</td>
+                            </tr>
+                            <tr className="bg-emerald-50/70 font-black border-t-2 border-emerald-200 text-slate-900">
+                              <td className="p-2 text-emerald-950 uppercase text-xs">Total Settled Revenue</td>
+                              <td className="p-2 text-right font-mono font-black text-emerald-900 text-sm">
+                                {formatLKR(totalSettled)}
+                              </td>
+                              <td className="p-2 text-right font-mono font-black text-emerald-900">100.0%</td>
+                            </tr>
+                          </>
+                        );
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+
             </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* SIGNATURES & VERIFICATION (COMMON TO ALL REPORT VIEWS)                     */}
+          {/* ========================================================================= */}
+          <div className="pt-8 border-t-2 border-slate-200 grid grid-cols-3 gap-6 text-[10px] uppercase font-bold text-slate-700">
+            <div className="space-y-8 text-center">
+              <div className="border-b border-slate-400 pb-1"></div>
+              <div>
+                <p className="text-slate-900 font-extrabold tracking-wider">Prepared By (අත්සන)</p>
+                <p className="text-slate-400 text-[8px] font-normal lowercase italic mt-0.5">Front Officer / Accountant</p>
+              </div>
+            </div>
+            <div className="space-y-8 text-center">
+              <div className="border-b border-slate-400 pb-1"></div>
+              <div>
+                <p className="text-slate-900 font-extrabold tracking-wider">Checked By / Supervisory (සුපරීක්ෂණ අත්සන)</p>
+                <p className="text-slate-400 text-[8px] font-normal lowercase italic mt-0.5">Finance Manager / Operations</p>
+              </div>
+            </div>
+            <div className="space-y-8 text-center">
+              <div className="border-b border-slate-400 pb-1"></div>
+              <div>
+                <p className="text-slate-900 font-extrabold tracking-wider">Approved By</p>
+                <p className="text-slate-400 text-[8px] font-normal lowercase italic mt-0.5">General Manager / Director</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Report Footer */}
+          <div className="text-center pt-4 border-t border-slate-100 text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+            Confidential Document - Serene Villa Pvt Ltd Hiriketiya © {new Date().getFullYear()}
           </div>
 
         </div>

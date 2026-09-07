@@ -26,14 +26,26 @@ public class ReportSummaryDTO {
     private double cardRevenue;
     private double bankTransferRevenue;
 
-    // Booking source counts
+    // Booking source counts & amounts (Executive Summary channel breakdown)
     private long directBookingCount;
+    private double directBookingAmount;
+    
     private long bookingComCount;
+    private double bookingComAmount;
+
+    private long airbnbCount;
+    private double airbnbAmount;
+
+    private long webBookingCount;
+    private double webBookingAmount;
 
     // Discount summaries
     private double approvedDiscountTotal;
     private long pendingDiscountRequestCount;
     
+    // Check-in Summary List for Daily Check-in view
+    private List<DailyCheckInDTO> checkIns;
+
     // Details
     private List<ReportRowDTO> rows;
 }

@@ -30,4 +30,10 @@ public class ReportRowDTO {
     private double discountAmount;
     private String discountStatus;
     private String createdByFrontOfficer;
+    
+    // Categorized Payment Method Amounts for line-item reporting
+    private double cashAmount;
+    private double cardAmount;
+    private double bankTransferAmount;
+    private int pax;
 }
