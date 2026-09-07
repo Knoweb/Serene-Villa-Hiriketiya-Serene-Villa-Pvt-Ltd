@@ -3521,6 +3521,12 @@ Serene Villa Hiriketiya`;
                       <span className="font-mono font-bold text-slate-800">{receiptData.receiptNumber}</span>
                     </div>
                     <div className="flex gap-3 justify-between">
+                      <span className="text-slate-500 font-semibold">Payment Method:</span>
+                      <span className="font-bold text-emerald-800 uppercase tracking-wide">
+                        {selectedPaymentForReceipt?.paymentMethod || receiptData?.paymentMethod || 'Cash'}
+                      </span>
+                    </div>
+                    <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Date:</span>
                       <span className="font-bold text-slate-800">{(() => {
                         const rawD = selectedPaymentForReceipt?.paymentDate || receiptData?.generatedAt || receiptData?.paymentDate || selectedPaymentForReceipt?.createdAt;
@@ -3647,6 +3653,12 @@ Serene Villa Hiriketiya`;
                 <div className="border border-dashed border-slate-200 rounded-lg p-2.5 text-slate-500 flex flex-col justify-between print:border-slate-300">
                   <div>
                     <p className="font-bold text-[8px] uppercase tracking-wider mb-0.5 text-slate-400">Payment Reference</p>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-semibold text-slate-600">Method:</span>
+                      <span className="font-bold font-mono text-emerald-800 uppercase px-1.5 py-0.5 bg-emerald-50 border border-emerald-200 rounded text-[10px]">
+                        {selectedPaymentForReceipt?.paymentMethod || receiptData?.paymentMethod || 'Cash'}
+                      </span>
+                    </div>
                     <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
                     {selectedPaymentForReceipt.remarks && (
                       <p className="mt-1 text-[10px] leading-snug">
