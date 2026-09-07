@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toPng } from 'html-to-image';
-import { Building, Upload, Calendar, Send, CheckCircle2, User, FileText, Phone, Globe, Users, ChevronLeft, ChevronDown, Loader, MapPin, CreditCard, Receipt, Printer, Share2, X, Search, AlertCircle, Camera, RefreshCw } from 'lucide-react';
+import { Building, Upload, Calendar, Send, CheckCircle2, User, FileText, Phone, Globe, Users, ChevronLeft, ChevronDown, Loader, MapPin, CreditCard, Receipt, Printer, Share2, X, Search, AlertCircle, Camera, RefreshCw, Download } from 'lucide-react';
 import logoImg from '../assets/logo.jpeg';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';

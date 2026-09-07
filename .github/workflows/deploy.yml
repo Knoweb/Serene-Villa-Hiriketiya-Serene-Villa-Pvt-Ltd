@@ -20,10 +20,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Test Frontend Build
+      - name: Verify Code References & Syntax (Lint)
         run: |
           cd frontend
           npm install
+          npm run lint
+
+      - name: Test Frontend Build
+        run: |
+          cd frontend
           npm run build
 
   deploy:

@@ -2615,7 +2615,7 @@ const Reservations = () => {
                             </div>
 
                             {paymentForm.paymentMethod === 'Card' && (() => {
-                              const payCurr = paymentForm.currencyCode || bookingCurrency || 'EUR';
+                              const payCurr = paymentForm.currencyCode || bCurr || 'USD';
                               const rawAmt = parseFloat(paymentForm.amount) || 0;
                               const calc3Pct = (rawAmt * 0.03).toFixed(2);
                               return (
