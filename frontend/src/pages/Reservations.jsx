@@ -159,6 +159,28 @@ const getBankKeyForCurrency = (curr) => {
   return 'USD_PB';
 };
 
+const getBookingCurrency = (booking) => {
+  if (!booking) return 'USD';
+  // 1. Check direct booking.currency
+  if (booking.currency) {
+    const c = booking.currency.toUpperCase();
+    if (['LKR', 'USD', 'EUR', 'AUD', 'GBP'].includes(c)) return c;
+  }
+  // 2. Check roomPrices JSON table currency or prices
+  if (booking.roomPrices) {
+    try {
+      const parsed = typeof booking.roomPrices === 'string' ? JSON.parse(booking.roomPrices) : booking.roomPrices;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const itemWithCurr = parsed.find(item => item.currency);
+        if (itemWithCurr && itemWithCurr.currency) return itemWithCurr.currency.toUpperCase();
+      }
+    } catch (e) {}
+  }
+  // 3. If tableCurrency is present
+  if (booking.tableCurrency) return booking.tableCurrency.toUpperCase();
+  return 'USD';
+};
+
 const Reservations = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -707,7 +729,7 @@ const Reservations = () => {
     let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
     
     if (associatedBooking) {
-      const bCurr = (associatedBooking.currency || 'USD').toUpperCase();
+      const bCurr = getBookingCurrency(associatedBooking);
       let defaultRate = 1;
       if (bCurr === 'USD') defaultRate = 300;
       else if (bCurr === 'EUR') defaultRate = 325;
@@ -770,13 +792,6 @@ const Reservations = () => {
       setAdvancePayments([]);
     }
     setBookingSuccess(false);
-  };
-
-  const getBookingCurrency = (booking) => {
-    if (!booking) return 'USD';
-    if (booking.currency && booking.currency !== 'LKR') return booking.currency;
-    // For all channels (Airbnb, Booking.com, Web, Direct), default past invoices to USD
-    return 'USD';
   };
 
   const getRoomsForBooking = (booking) => {
@@ -2525,20 +2540,18 @@ const Reservations = () => {
                           <div className="grid grid-cols-2 gap-2.5">
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                Currency <span className="text-[9px] text-slate-400 font-normal">(Synced to Booking)</span>
+                                Currency
                               </label>
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  readOnly
-                                  disabled
-                                  value={paymentForm.currencyCode || bCurr}
-                                  className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold font-mono text-slate-700 cursor-not-allowed text-xs"
-                                />
-                                <span className="absolute right-2 top-2 text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
-                                  Locked
-                                </span>
-                              </div>
+                              <select
+                                value={paymentForm.currencyCode || bCurr}
+                                onChange={handlePaymentCurrencyChange}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold font-mono text-slate-700 text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
+                              >
+                                <option value="LKR">LKR (Sri Lankan Rupee)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="AUD">AUD (A$)</option>
+                              </select>
                             </div>
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
