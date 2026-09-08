@@ -488,9 +488,19 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
           const dispPriorAdvancePaid = forceLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
 
+          // If this is a final payment and other charges were adjusted, ensure the base settlement paid amount reflects net paid
+          let basePaidInBookingCurr = rawPaid;
+          const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
+          if (pLkrAmount > 0 && exRate > 0 && (currencyCode !== 'LKR' || bCurr !== 'LKR')) {
+            const derivedBookingCurr = pLkrAmount / exRate;
+            if (Math.abs(derivedBookingCurr - (rawPaid - otherVal)) < 0.05 || Math.abs(derivedBookingCurr - rawPaid) < 0.05) {
+              basePaidInBookingCurr = derivedBookingCurr;
+            }
+          }
+
           const paidDisplayAmt = forceLkr 
-            ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
-            : rawPaid;
+            ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (basePaidInBookingCurr * exRate))
+            : basePaidInBookingCurr;
 
           let remBal = 0;
           if (isFinalPayment) {
@@ -506,8 +516,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           }
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           
-          // Converted amount in LKR is calculated based on the actual settled payment amount
-          const convertedAmountLkr = (paidDisplayAmt * exRate);
+          // Converted amount in LKR is calculated on the net amount after discount deduction (if applicable)
+          const convertedAmountLkr = (netTotAmt * (displayCurrency === 'LKR' ? 1 : exRate));
 
           return (
             <div className="border border-slate-700/60 rounded-lg p-3 space-y-1.5 bg-white shadow-2xs">

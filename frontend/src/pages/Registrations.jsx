@@ -3840,9 +3840,18 @@ Serene Villa Hiriketiya`;
 
                   const dispPriorAdvancePaid = forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
 
+                  let basePaidInBookingCurr = rawPaid;
+                  const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
+                  if (pLkrAmount > 0 && exRate > 0 && (dispCurr !== 'LKR' || bCurr !== 'LKR')) {
+                    const derivedBookingCurr = pLkrAmount / exRate;
+                    if (Math.abs(derivedBookingCurr - (rawPaid - otherVal)) < 0.05 || Math.abs(derivedBookingCurr - rawPaid) < 0.05) {
+                      basePaidInBookingCurr = derivedBookingCurr;
+                    }
+                  }
+
                   const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
-                    ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
-                    : rawPaid;
+                    ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (basePaidInBookingCurr * exRate))
+                    : basePaidInBookingCurr;
 
                   let remBal = 0;
                   if (isFinalPayment) {
@@ -3860,8 +3869,8 @@ Serene Villa Hiriketiya`;
                     remBal = Math.max(0, dispGrossTotAmt - totalPaidBCurr);
                   }
                   
-                  // Converted Amount in LKR is calculated based on the actual settled payment amount in LKR
-                  const convertedAmountLkr = (paidAmt * exRate);
+                  // Converted Amount in LKR is calculated AFTER deducting the discount (if applicable)
+                  const convertedAmountLkr = (netTotAmt * (bCurr === 'LKR' ? 1 : exRate));
 
                   return (
                     <div className="border border-slate-700/60 rounded-lg p-3 bg-white space-y-1.5 shadow-2xs print:border-slate-400">

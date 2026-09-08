@@ -3664,9 +3664,22 @@ Serene Villa Hiriketiya`;
 
                       const totAmt = forceReceiptLkr && bCurr !== 'LKR' ? (associatedBooking.totalAmount || 0) * exRate : (associatedBooking.totalAmount || 0);
                       const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+                      
+                      const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                      const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
+
+                      let basePaidInBookingCurr = rawPaid;
+                      const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
+                      if (pLkrAmount > 0 && exRate > 0 && (dispCurr !== 'LKR' || bCurr !== 'LKR')) {
+                        const derivedBookingCurr = pLkrAmount / exRate;
+                        if (Math.abs(derivedBookingCurr - (rawPaid - otherVal)) < 0.05 || Math.abs(derivedBookingCurr - rawPaid) < 0.05) {
+                          basePaidInBookingCurr = derivedBookingCurr;
+                        }
+                      }
+
                       const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
-                        ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
-                        : rawPaid;
+                        ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (basePaidInBookingCurr * exRate))
+                        : basePaidInBookingCurr;
 
                       // Compute prior advance payments received prior to this payment
                       const allVisiblePays = advancePayments || [];
