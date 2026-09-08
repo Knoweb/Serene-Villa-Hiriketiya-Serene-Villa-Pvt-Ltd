@@ -3860,8 +3860,8 @@ Serene Villa Hiriketiya`;
                     remBal = Math.max(0, dispGrossTotAmt - totalPaidBCurr);
                   }
                   
-                  // Converted Amount in LKR is calculated AFTER deducting the discount (if applicable)
-                  const convertedAmountLkr = (netTotAmt * (bCurr === 'LKR' ? 1 : exRate));
+                  // Converted Amount in LKR is calculated based on the actual settled payment amount in LKR
+                  const convertedAmountLkr = (paidAmt * exRate);
 
                   return (
                     <div className="border border-slate-700/60 rounded-lg p-3 bg-white space-y-1.5 shadow-2xs print:border-slate-400">
