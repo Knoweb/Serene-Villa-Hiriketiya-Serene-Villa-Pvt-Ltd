@@ -198,6 +198,81 @@ const Reservations = () => {
   // State
   const [registrations, setRegistrations] = useState([]);
   const [bookings, setBookings] = useState([]);
+
+  // Cross-reference booking for row display with candidate ranking (prioritizes real manual reservations over auto-drafts)
+  const getBookingForReg = (regId) => {
+    if (!regId) return null;
+    const targetReg = registrations.find(r => r.id === regId) || (selectedReg?.id === regId ? selectedReg : null);
+    if (!targetReg) return null;
+
+    const cleanRegName = (targetReg.guestName || '')
+      .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+      .replace(/^mr\s*\/\s*mrs\s*/i, '')
+      .trim().toLowerCase();
+
+    const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
+    const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
+
+    // 1. If registration already has a specific bookingNumber, prioritize exact match (excluding sub-bookings with '/')
+    if (targetReg.bookingNumber && !targetReg.bookingNumber.includes('/')) {
+      const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
+      const directMatch = bookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/') && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
+      if (directMatch) return directMatch;
+    }
+
+    // Find all matching candidate bookings (strictly base bookings only)
+    const candidates = bookings.filter(b => {
+      // Never match a sub-booking (/DISC, /1N, /1P) as a base reservation
+      if (b.bookingNumber && (b.bookingNumber.includes('/') || b.bookingNumber.includes('DISC') || b.bookingNumber.includes('1N') || b.bookingNumber.includes('1P') || parseFloat(b.totalAmount || b.amount || 0) < 0)) {
+        return false;
+      }
+
+      if (b.guestRegistrationId === regId) return true;
+
+      const cleanBName = (b.guestName || '')
+        .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+        .replace(/^mr\s*\/\s*mrs\s*/i, '')
+        .trim().toLowerCase();
+
+      if (cleanRegName && cleanRegName.length >= 2 && (cleanBName === cleanRegName || cleanBName.includes(cleanRegName) || cleanRegName.includes(cleanBName))) return true;
+      if (cleanRegEmail && b.email && b.email.trim().toLowerCase() === cleanRegEmail) return true;
+      if (cleanRegPhone && cleanRegPhone.length >= 7) {
+        const bPhone = (b.contactNumber || b.phone || b.whatsappNumber || '').replace(/\D/g, '');
+        if (bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone))) return true;
+      }
+
+      return false;
+    });
+
+    if (candidates.length === 0) return null;
+
+    // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
+    // Strictly filter out sub-bookings (bookings with "/" in bookingNumber, discount, or extra-night rows)
+    const isRootBooking = (b) => {
+      if (!b.bookingNumber) return true;
+      const bNum = b.bookingNumber;
+      return !bNum.includes('/') && !bNum.includes('-DISC') && !bNum.includes('1N') && !bNum.includes('1P');
+    };
+
+    const primaryCandidates = candidates.filter(b => isRootBooking(b) && (parseFloat(b.totalAmount || b.amount || 0) >= 0));
+    const nonSubCandidates = candidates.filter(b => isRootBooking(b));
+    const finalCandidates = primaryCandidates.length > 0 ? primaryCandidates : (nonSubCandidates.length > 0 ? nonSubCandidates : candidates);
+
+    finalCandidates.sort((a, b) => {
+      const aAmt = parseFloat(a.totalAmount || a.amount || 0);
+      const bAmt = parseFloat(b.totalAmount || b.amount || 0);
+      if (aAmt > 0 && bAmt <= 0) return -1;
+      if (aAmt <= 0 && bAmt > 0) return 1;
+
+      const aIsReal = a.bookingNumber && (a.bookingNumber.startsWith('D-789') || (!a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11')));
+      const bIsReal = b.bookingNumber && (b.bookingNumber.startsWith('D-789') || (!b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11')));
+      if (aIsReal && !bIsReal) return -1;
+      if (!aIsReal && bIsReal) return 1;
+      return (b.id || 0) - (a.id || 0);
+    });
+
+    return finalCandidates[0];
+  };
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(''); // Empty means 'All'
@@ -1413,80 +1488,7 @@ const Reservations = () => {
     }
   };
 
-  // Cross-reference booking for row display with candidate ranking (prioritizes real manual reservations over auto-drafts)
-  const getBookingForReg = (regId) => {
-    if (!regId) return null;
-    const targetReg = registrations.find(r => r.id === regId) || (selectedReg?.id === regId ? selectedReg : null);
-    if (!targetReg) return null;
 
-    const cleanRegName = (targetReg.guestName || '')
-      .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
-      .replace(/^mr\s*\/\s*mrs\s*/i, '')
-      .trim().toLowerCase();
-
-    const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
-    const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
-
-    // 1. If registration already has a specific bookingNumber, prioritize exact match (excluding sub-bookings with '/')
-    if (targetReg.bookingNumber && !targetReg.bookingNumber.includes('/')) {
-      const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
-      const directMatch = bookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/') && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
-      if (directMatch) return directMatch;
-    }
-
-    // Find all matching candidate bookings (strictly base bookings only)
-    const candidates = bookings.filter(b => {
-      // Never match a sub-booking (/DISC, /1N, /1P) as a base reservation
-      if (b.bookingNumber && (b.bookingNumber.includes('/') || b.bookingNumber.includes('DISC') || b.bookingNumber.includes('1N') || b.bookingNumber.includes('1P') || parseFloat(b.totalAmount || b.amount || 0) < 0)) {
-        return false;
-      }
-
-      if (b.guestRegistrationId === regId) return true;
-
-      const cleanBName = (b.guestName || '')
-        .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
-        .replace(/^mr\s*\/\s*mrs\s*/i, '')
-        .trim().toLowerCase();
-
-      if (cleanRegName && cleanRegName.length >= 2 && (cleanBName === cleanRegName || cleanBName.includes(cleanRegName) || cleanRegName.includes(cleanBName))) return true;
-      if (cleanRegEmail && b.email && b.email.trim().toLowerCase() === cleanRegEmail) return true;
-      if (cleanRegPhone && cleanRegPhone.length >= 7) {
-        const bPhone = (b.contactNumber || b.phone || b.whatsappNumber || '').replace(/\D/g, '');
-        if (bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone))) return true;
-      }
-
-      return false;
-    });
-
-    if (candidates.length === 0) return null;
-
-    // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
-    // Strictly filter out sub-bookings (bookings with "/" in bookingNumber, discount, or extra-night rows)
-    const isRootBooking = (b) => {
-      if (!b.bookingNumber) return true;
-      const bNum = b.bookingNumber;
-      return !bNum.includes('/') && !bNum.includes('-DISC') && !bNum.includes('1N') && !bNum.includes('1P');
-    };
-
-    const primaryCandidates = candidates.filter(b => isRootBooking(b) && (parseFloat(b.totalAmount || b.amount || 0) >= 0));
-    const nonSubCandidates = candidates.filter(b => isRootBooking(b));
-    const finalCandidates = primaryCandidates.length > 0 ? primaryCandidates : (nonSubCandidates.length > 0 ? nonSubCandidates : candidates);
-
-    finalCandidates.sort((a, b) => {
-      const aAmt = parseFloat(a.totalAmount || a.amount || 0);
-      const bAmt = parseFloat(b.totalAmount || b.amount || 0);
-      if (aAmt > 0 && bAmt <= 0) return -1;
-      if (aAmt <= 0 && bAmt > 0) return 1;
-
-      const aIsReal = a.bookingNumber && (a.bookingNumber.startsWith('D-789') || (!a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11')));
-      const bIsReal = b.bookingNumber && (b.bookingNumber.startsWith('D-789') || (!b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11')));
-      if (aIsReal && !bIsReal) return -1;
-      if (!aIsReal && bIsReal) return 1;
-      return (b.id || 0) - (a.id || 0);
-    });
-
-    return finalCandidates[0];
-  };
 
   const qrPort = window.location.port ? `:${window.location.port}` : '';
   const qrUrl = `${window.location.protocol}//${customHost}${qrPort}/qr-register`;
