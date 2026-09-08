@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Check, X, Send, CreditCard, ChevronDown, ChevronRight, Layers, FileText, DollarSign, Calendar, User, Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { 
+  Check, X, Send, CreditCard, ChevronDown, ChevronUp, Layers, FileText, 
+  DollarSign, Calendar, User, Search, RefreshCw, AlertCircle, Sparkles, CheckCircle2,
+  Clock, ArrowUpRight, BedDouble, Tag, ShieldCheck
+} from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -15,7 +19,7 @@ const Handover = () => {
   const [bookings, setBookings] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [selectedBookingRefs, setSelectedBookingRefs] = useState([]);
-  const [expandedRows, setExpandedRows] = useState(new Set());
+  const [expandedCards, setExpandedCards] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -70,7 +74,6 @@ const Handover = () => {
 
     payments.forEach(p => {
       let rawRef = p.bookingRef || '';
-      // If booking ref has a sub-suffix like W-12345/EN or W-12345/1P, map to base ref
       let baseRef = rawRef;
       if (rawRef.includes('/')) {
         baseRef = rawRef.split('/')[0].trim();
@@ -80,7 +83,6 @@ const Handover = () => {
       }
 
       if (!groups[baseRef]) {
-        // Find matching base booking and registration
         const matchedBaseBooking = bookings.find(b => {
           const bNum = (b.bookingNumber || '').trim().toLowerCase();
           return bNum === baseRef.toLowerCase() || bNum.startsWith(baseRef.toLowerCase() + '/');
@@ -89,7 +91,6 @@ const Handover = () => {
         const regId = matchedBaseBooking?.guestRegistrationId || p.guestRegistrationId;
         const matchedReg = registrations.find(r => r.id === regId) || {};
 
-        // Find all sub-bookings for this booking / guest
         const relatedBookings = bookings.filter(b => {
           if (!b.bookingNumber) return false;
           const bNum = b.bookingNumber.trim().toLowerCase();
@@ -97,14 +98,12 @@ const Handover = () => {
           return bNum === targetBase || bNum.startsWith(targetBase + '/') || (regId && b.guestRegistrationId === regId);
         });
 
-        // Determine Room Details & Guest Name
         const roomNumbers = matchedBaseBooking?.roomNumber || matchedReg?.roomNumber || '-';
         const guestName = p.guestName || matchedReg?.guestName || matchedBaseBooking?.guestName || 'Guest';
         const checkIn = matchedBaseBooking?.checkInDate || matchedReg?.checkInDate || '-';
         const checkOut = matchedBaseBooking?.checkOutDate || matchedReg?.checkOutDate || '-';
         const currency = matchedBaseBooking?.currency || p.currencyCode || p.currency || 'USD';
 
-        // Calculate Extra Nights, Extra Persons, Discounts, Base Room Price
         let baseRoomPrice = 0;
         let extraNightsPrice = 0;
         let extraPersonsPrice = 0;
@@ -127,7 +126,6 @@ const Handover = () => {
           }
         });
 
-        // Fallback for base room price if not strictly broken down
         if (baseRoomPrice === 0 && matchedBaseBooking) {
           baseRoomPrice = parseFloat(matchedBaseBooking.totalAmount || matchedBaseBooking.amount || 0);
         }
@@ -153,7 +151,6 @@ const Handover = () => {
         };
       }
 
-      // Add payment to this consolidated booking
       groups[baseRef].payments.push(p);
       if (p.paymentMethod || p.method) {
         groups[baseRef].paymentMethods.add(p.paymentMethod || p.method);
@@ -166,7 +163,6 @@ const Handover = () => {
         groups[baseRef].date = pDate;
       }
 
-      // Track Overall Handover Status
       if (p.accountantTransferStatus === 'REJECTED') {
         groups[baseRef].status = 'REJECTED';
       } else if (p.accountantTransferStatus === 'PENDING' && groups[baseRef].status !== 'REJECTED') {
@@ -183,13 +179,11 @@ const Handover = () => {
       }
     });
 
-    // Compute aggregated financial summaries for each group
     return Object.values(groups).map(g => {
       const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
       const grossBillValue = g.baseRoomPrice + extrasSubtotal;
       const netPayable = Math.max(0, grossBillValue - g.discountVal);
 
-      // Separate Advance and Final Payments
       let advancePaid = 0;
       let finalPaid = 0;
       let totalPaidInCurrency = 0;
@@ -261,8 +255,8 @@ const Handover = () => {
     );
   };
 
-  const toggleExpandRow = (ref) => {
-    setExpandedRows(prev => {
+  const toggleExpandCard = (ref) => {
+    setExpandedCards(prev => {
       const next = new Set(prev);
       if (next.has(ref)) next.delete(ref);
       else next.add(ref);
@@ -281,7 +275,7 @@ const Handover = () => {
         body: JSON.stringify({ invoiceIds: allPaymentIdsSelected })
       });
       if (response.ok) {
-        setMessage(`Successfully handed over ${selectedBookingRefs.length} guest booking(s) to the Accountant.`);
+        setMessage(`Successfully sent ${selectedBookingRefs.length} guest handover(s) to the Accountant.`);
         setSelectedBookingRefs([]);
         fetchData();
       } else {
@@ -362,323 +356,307 @@ const Handover = () => {
   }, [filteredBookings, selectedBookingRefs]);
 
   return (
-    <div className="space-y-5 pb-10">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
-              <Layers size={20} />
-            </span>
-            <div>
-              <h2 className="text-lg font-black text-slate-900 tracking-tight">Consolidated Guest Settlement Handover</h2>
-              <p className="text-xs text-slate-500 font-medium">
-                {isFrontOfficer 
-                  ? 'Batch & handover complete guest settlements (Advances, Extras, Discounts & Final Payments) to Accountant' 
-                  : 'Audit, verify, and reconcile consolidated guest billing packages submitted by Front Office'}
-              </p>
-            </div>
+    <div className="space-y-6 pb-12">
+      {/* Top Header Card */}
+      <div className="bg-white/95 backdrop-blur-md p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+            <ShieldCheck size={24} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-slate-900 tracking-tight">Shift Reconciliation Handover</h2>
+            <p className="text-xs text-slate-500 font-medium">
+              {isFrontOfficer 
+                ? 'Review complete guest billing cards & submit batch handovers to the Accountant' 
+                : 'Audit and approve consolidated guest billing cards submitted by Front Office'}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
             <input 
               type="text"
-              placeholder="Search booking, guest or room..."
+              placeholder="Search by Guest, Room, Booking #..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 w-60"
+              className="pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 w-64 transition font-medium"
             />
           </div>
           <button 
             onClick={fetchData}
-            title="Refresh"
-            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition cursor-pointer"
+            title="Refresh Data"
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition cursor-pointer"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {message && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between shadow-xs">
-          <span>{message}</span>
-          <button onClick={() => setMessage('')} className="text-emerald-600 hover:text-emerald-800">✕</button>
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-emerald-600" />
+            <span>{message}</span>
+          </div>
+          <button onClick={() => setMessage('')} className="text-emerald-700 hover:text-emerald-950 cursor-pointer font-bold">✕</button>
         </div>
       )}
 
-      {/* Main Table Container */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
-        {/* Action Header */}
-        <div className="p-4 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/50 gap-3">
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input 
-                type="checkbox"
-                checked={filteredBookings.length > 0 && selectedBookingRefs.length === filteredBookings.length}
-                onChange={toggleSelectAll}
-                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
-              />
-              <span className="text-xs font-bold text-slate-700">
-                Select All ({selectedBookingRefs.length}/{filteredBookings.length} Bookings)
-              </span>
-            </label>
-            {selectedBookingRefs.length > 0 && (
-              <span className="text-[11px] font-bold bg-emerald-100/70 text-emerald-800 px-2.5 py-0.5 rounded-full">
-                Selected Total: LKR {selectedTotalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            )}
-          </div>
+      {/* Action Control Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200/80 transition">
+            <input 
+              type="checkbox"
+              checked={filteredBookings.length > 0 && selectedBookingRefs.length === filteredBookings.length}
+              onChange={toggleSelectAll}
+              className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+            />
+            <span className="text-xs font-bold text-slate-700">
+              Select All ({selectedBookingRefs.length} / {filteredBookings.length} Cards)
+            </span>
+          </label>
 
           {selectedBookingRefs.length > 0 && (
             <div className="flex items-center gap-2">
-              {isAccountant && (
-                <button
-                  onClick={() => setShowRejectModal(true)}
-                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-3.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer"
-                >
-                  <X size={14} /> Reject Handover ({selectedBookingRefs.length})
-                </button>
-              )}
-              <button
-                onClick={isFrontOfficer ? handleSendToAccountant : handleAcceptTransactions}
-                disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
-              >
-                {isFrontOfficer ? <Send size={14} /> : <Check size={14} />}
-                {isFrontOfficer ? `Submit Batch Handover to Accountant (${selectedBookingRefs.length})` : `Accept & Reconcile Batch (${selectedBookingRefs.length})`}
-              </button>
+              <span className="text-xs text-slate-400 font-bold">•</span>
+              <span className="text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
+                Total Handover: LKR {selectedTotalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Consolidated Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[11px]">
-            <thead>
-              <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                <th className="p-3 w-10 text-center">Select</th>
-                <th className="p-3">Booking Details</th>
-                <th className="p-3 text-right">Extra Nights</th>
-                <th className="p-3 text-right">Extra Persons</th>
-                <th className="p-3 text-right">Extras Total</th>
-                <th className="p-3 text-right">Gross Bill</th>
-                <th className="p-3 text-right">Discount</th>
-                <th className="p-3 text-right">Net Payable</th>
-                <th className="p-3 text-right">Advance Paid</th>
-                <th className="p-3 text-right">Final Settlement</th>
-                <th className="p-3 text-center">Status</th>
-                <th className="p-3 text-right">LKR Equivalent</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              {filteredBookings.map((b) => {
-                const isSelected = selectedBookingRefs.includes(b.bookingRef);
-                const isExpanded = expandedRows.has(b.bookingRef);
+        {selectedBookingRefs.length > 0 && (
+          <div className="flex items-center gap-2">
+            {isAccountant && (
+              <button
+                onClick={() => setShowRejectModal(true)}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-rose-600/10 cursor-pointer"
+              >
+                <X size={15} /> Reject Selected ({selectedBookingRefs.length})
+              </button>
+            )}
+            <button
+              onClick={isFrontOfficer ? handleSendToAccountant : handleAcceptTransactions}
+              disabled={loading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-5 rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+            >
+              {isFrontOfficer ? <Send size={15} /> : <Check size={15} />}
+              {isFrontOfficer 
+                ? `Send ${selectedBookingRefs.length} Booking(s) to Accountant` 
+                : `Approve & Reconcile ${selectedBookingRefs.length} Booking(s)`}
+            </button>
+          </div>
+        )}
+      </div>
 
-                return (
-                  <React.Fragment key={b.bookingRef}>
-                    <tr className={`hover:bg-slate-50/80 transition ${isSelected ? 'bg-emerald-50/40' : ''}`}>
-                      {/* Checkbox */}
-                      <td className="p-3 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectBooking(b.bookingRef)}
-                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
-                        />
-                      </td>
+      {/* Modern Card Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {filteredBookings.map((b) => {
+          const isSelected = selectedBookingRefs.includes(b.bookingRef);
+          const isExpanded = expandedCards.has(b.bookingRef);
 
-                      {/* Booking No / Guest / Room / Dates */}
-                      <td className="p-3">
-                        <div className="flex items-start gap-2">
-                          <button 
-                            onClick={() => toggleExpandRow(b.bookingRef)}
-                            className="text-slate-400 hover:text-slate-700 pt-0.5"
-                            title="Toggle Transaction Details"
-                          >
-                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                          </button>
+          return (
+            <div 
+              key={b.bookingRef}
+              className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-xs hover:shadow-md ${
+                isSelected 
+                  ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-500/5' 
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              {/* Card Header */}
+              <div className="p-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelectBooking(b.bookingRef)}
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-black text-sm text-emerald-800 tracking-tight">{b.bookingRef}</span>
+                      <span className="text-[10px] font-bold bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs">
+                        Room {b.roomNumbers}
+                      </span>
+                    </div>
+                    <h3 className="text-xs font-black text-slate-800 mt-0.5">{b.guestName}</h3>
+                  </div>
+                </div>
+
+                <div className="text-right flex flex-col items-end gap-1">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                    b.status === 'ACCEPTED' 
+                      ? 'bg-emerald-100 text-emerald-800' 
+                      : b.status === 'PENDING' 
+                      ? 'bg-amber-100 text-amber-800' 
+                      : b.status === 'REJECTED' 
+                      ? 'bg-rose-100 text-rose-800' 
+                      : 'bg-blue-50 text-blue-800 border border-blue-100'
+                  }`}>
+                    {b.status === 'NONE' ? (isFrontOfficer ? '● Ready for Handover' : 'Pending FO') : `● ${b.status}`}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 font-medium">
+                    {b.checkIn} → {b.checkOut}
+                  </span>
+                </div>
+              </div>
+
+              {/* Card Body: Financial Summary Tiles */}
+              <div className="p-4 space-y-3.5">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                  {/* Gross Value */}
+                  <div className="p-2.5 bg-slate-50/70 border border-slate-100 rounded-xl">
+                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Gross Total</p>
+                    <p className="font-mono font-bold text-xs text-slate-800 mt-0.5">
+                      {b.currency} {b.grossBillValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+
+                  {/* Net Payable */}
+                  <div className="p-2.5 bg-emerald-50/40 border border-emerald-100/60 rounded-xl">
+                    <p className="text-[9px] uppercase font-bold text-emerald-700 tracking-wider">Net Payable</p>
+                    <p className="font-mono font-black text-xs text-emerald-900 mt-0.5">
+                      {b.currency} {b.netPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+
+                  {/* Advance Paid */}
+                  <div className="p-2.5 bg-amber-50/40 border border-amber-100/60 rounded-xl">
+                    <p className="text-[9px] uppercase font-bold text-amber-700 tracking-wider">Advance Paid</p>
+                    <p className="font-mono font-bold text-xs text-amber-800 mt-0.5">
+                      {b.currency} {b.advancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+
+                  {/* Final Settlement */}
+                  <div className="p-2.5 bg-blue-50/40 border border-blue-100/60 rounded-xl">
+                    <p className="text-[9px] uppercase font-bold text-blue-700 tracking-wider">Final Settlement</p>
+                    <p className="font-mono font-bold text-xs text-blue-800 mt-0.5">
+                      {b.currency} {b.finalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Sub-Charges / Discounts Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  {b.extraNightsPrice > 0 && (
+                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                      <BedDouble size={11} /> Extra Night: {b.currency} {b.extraNightsPrice.toLocaleString()}
+                    </span>
+                  )}
+                  {b.extraPersonsPrice > 0 && (
+                    <span className="text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                      <User size={11} /> Extra Person: {b.currency} {b.extraPersonsPrice.toLocaleString()}
+                    </span>
+                  )}
+                  {b.discountVal > 0 && (
+                    <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                      <Tag size={11} /> Discount: -{b.currency} {b.discountVal.toLocaleString()}
+                    </span>
+                  )}
+                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg ml-auto">
+                    Method: {Array.from(b.paymentMethods).join(', ') || 'Direct'}
+                  </span>
+                </div>
+
+                {/* Rejection notice if present */}
+                {b.status === 'REJECTED' && b.rejectionReasons.length > 0 && (
+                  <div className="p-2.5 bg-rose-50/80 border border-rose-200 rounded-xl text-xs text-rose-800 font-medium">
+                    <p className="font-bold flex items-center gap-1 text-[11px] text-rose-900">
+                      <AlertCircle size={13} /> Rejection Reason from Accountant:
+                    </p>
+                    <p className="mt-0.5 text-[11px]">{b.rejectionReasons.join(', ')}</p>
+                  </div>
+                )}
+
+                {/* Card Footer: LKR Total & Expand Button */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-slate-400">Total Handover LKR</span>
+                    <p className="font-mono font-black text-sm text-slate-900">
+                      LKR {b.totalLkrEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+
+                  <button 
+                    onClick={() => toggleExpandCard(b.bookingRef)}
+                    className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-emerald-700 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/80 transition cursor-pointer"
+                  >
+                    {isExpanded ? (
+                      <>Hide Slips <ChevronUp size={13} /></>
+                    ) : (
+                      <>View {b.payments.length} Slip(s) <ChevronDown size={13} /></>
+                    )}
+                  </button>
+                </div>
+
+                {/* Expanded Individual Receipts & Slips */}
+                {isExpanded && (
+                  <div className="pt-2 space-y-2 border-t border-slate-100 bg-slate-50/60 p-3 rounded-xl">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Payment Transaction Receipts</p>
+                    <div className="space-y-1.5">
+                      {b.payments.map((p, pIdx) => (
+                        <div key={p.id || pIdx} className="bg-white p-2.5 rounded-lg border border-slate-200/70 flex items-center justify-between text-xs">
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-emerald-700 font-mono text-xs">{b.bookingRef}</span>
-                              <span className="text-[10px] bg-slate-100 text-slate-600 font-semibold px-1.5 py-0.2 rounded">
-                                Rm: {b.roomNumbers}
+                              <span className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded ${
+                                p.paymentType === 'FINAL' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {p.paymentType === 'FINAL' ? 'Final Payment' : 'Advance'}
+                              </span>
+                              <span className="font-mono font-bold text-slate-700 text-[10px]">
+                                {p.receiptNumber || p.referenceNumber || 'Receipt'}
                               </span>
                             </div>
-                            <p className="font-bold text-slate-900 mt-0.5">{b.guestName}</p>
-                            <p className="text-[10px] text-slate-400 font-mono">
-                              {b.checkIn} → {b.checkOut}
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              Method: {p.paymentMethod || 'Cash'} • Date: {p.paymentDate || p.date || '-'}
                             </p>
                           </div>
-                        </div>
-                      </td>
 
-                      {/* Extra Nights Amount */}
-                      <td className="p-3 text-right font-mono font-semibold">
-                        {b.extraNightsPrice > 0 ? (
-                          <span className="text-indigo-700 bg-indigo-50/60 px-1.5 py-0.5 rounded">
-                            {b.currency} {b.extraNightsPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
-                      </td>
-
-                      {/* Extra Person Amount */}
-                      <td className="p-3 text-right font-mono font-semibold">
-                        {b.extraPersonsPrice > 0 ? (
-                          <span className="text-purple-700 bg-purple-50/60 px-1.5 py-0.5 rounded">
-                            {b.currency} {b.extraPersonsPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
-                      </td>
-
-                      {/* Subtotal (Extra Nights + Extra Persons) */}
-                      <td className="p-3 text-right font-mono font-bold">
-                        {b.extrasSubtotal > 0 ? (
-                          <span className="text-slate-800">
-                            {b.currency} {b.extrasSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">0.00</span>
-                        )}
-                      </td>
-
-                      {/* Gross Booking / Final Bill Value */}
-                      <td className="p-3 text-right font-mono font-bold text-slate-900">
-                        {b.currency} {b.grossBillValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-
-                      {/* Discount Deductions */}
-                      <td className="p-3 text-right font-mono font-semibold">
-                        {b.discountVal > 0 ? (
-                          <span className="text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded font-bold" title={b.discountRemarks}>
-                            -{b.currency} {b.discountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
-                      </td>
-
-                      {/* Net Payable Amount (Post-Discount) */}
-                      <td className="p-3 text-right font-mono font-black text-slate-900 bg-slate-50/40">
-                        {b.currency} {b.netPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-
-                      {/* Advance Payments Paid */}
-                      <td className="p-3 text-right font-mono font-semibold">
-                        {b.advancePaid > 0 ? (
-                          <span className="text-amber-700 font-bold">
-                            {b.currency} {b.advancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">0.00</span>
-                        )}
-                      </td>
-
-                      {/* Final Settlement Amount Paid */}
-                      <td className="p-3 text-right font-mono font-bold">
-                        {b.finalPaid > 0 ? (
-                          <span className="text-emerald-700">
-                            {b.currency} {b.finalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">0.00</span>
-                        )}
-                        <div className="text-[9px] text-slate-400 font-sans font-medium">
-                          {Array.from(b.paymentMethods).join(', ') || 'Direct'}
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="p-3 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                          b.status === 'ACCEPTED' 
-                            ? 'bg-emerald-100 text-emerald-800' 
-                            : b.status === 'PENDING' 
-                            ? 'bg-amber-100 text-amber-800' 
-                            : b.status === 'REJECTED'
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {b.status === 'NONE' ? (isFrontOfficer ? 'Ready' : 'Pending FO') : b.status}
-                        </span>
-                        {b.status === 'REJECTED' && b.rejectionReasons.length > 0 && (
-                          <p className="text-[9px] text-rose-600 font-bold mt-1 max-w-[120px] mx-auto truncate" title={b.rejectionReasons.join(', ')}>
-                            {b.rejectionReasons.join(', ')}
-                          </p>
-                        )}
-                      </td>
-
-                      {/* LKR Converted Equivalent */}
-                      <td className="p-3 text-right font-mono font-black text-slate-900">
-                        LKR {b.totalLkrEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-
-                    {/* Expandable Breakdown of Individual Payment Slips / Receipts */}
-                    {isExpanded && (
-                      <tr className="bg-slate-50/70 border-b border-slate-100">
-                        <td colSpan="12" className="p-4 pl-12">
-                          <div className="bg-white rounded-xl p-3 border border-slate-200/70 shadow-2xs space-y-2">
-                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                              <FileText size={12} className="text-emerald-600" /> Transaction & Receipt Receipts for {b.bookingRef}
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                              {b.payments.map((p, idx) => (
-                                <div key={p.id || idx} className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex justify-between items-center text-xs">
-                                  <div>
-                                    <div className="flex items-center gap-1.5">
-                                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded ${
-                                        p.paymentType === 'FINAL' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
-                                      }`}>
-                                        {p.paymentType === 'FINAL' ? 'Final Payment' : 'Advance'}
-                                      </span>
-                                      <span className="font-mono text-[10px] text-slate-500">{p.receiptNumber || p.referenceNumber || 'N/A'}</span>
-                                    </div>
-                                    <p className="font-bold text-slate-800 mt-1">
-                                      {p.currencyCode || p.currency || 'USD'} {(parseFloat(p.amount || p.amountInCurrency || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </p>
-                                    <p className="text-[9px] text-slate-400 font-medium">Method: {p.paymentMethod || 'Cash'} • {p.paymentDate || p.date || '-'}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <span className="text-[10px] font-mono font-bold text-slate-700">
-                                      LKR {(parseFloat(p.amountLkr || p.convertedAmountLkr || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </span>
-                                    {p.slipPath && (
-                                      <div className="mt-1">
-                                        <a href={p.slipPath} target="_blank" rel="noopener noreferrer" className="text-[9px] text-emerald-600 hover:underline font-bold">
-                                          View Slip
-                                        </a>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                          <div className="text-right">
+                            <p className="font-mono font-bold text-slate-800 text-xs">
+                              {p.currencyCode || p.currency || 'USD'} {(parseFloat(p.amount || p.amountInCurrency || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-[10px] font-mono text-slate-500">
+                              LKR {(parseFloat(p.amountLkr || p.convertedAmountLkr || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </p>
+                            {p.slipPath && (
+                              <a 
+                                href={p.slipPath} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-[9px] text-emerald-600 hover:underline font-bold inline-block mt-0.5"
+                              >
+                                View Attached Slip ↗
+                              </a>
+                            )}
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
 
-              {filteredBookings.length === 0 && (
-                <tr>
-                  <td colSpan="12" className="p-10 text-center text-slate-400 font-semibold">
-                    No transactions or settled bookings waiting for handover.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {filteredBookings.length === 0 && (
+          <div className="col-span-full bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-2">
+            <div className="h-12 w-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+              <CheckCircle2 size={24} />
+            </div>
+            <h4 className="text-sm font-bold text-slate-800">All caught up!</h4>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              No pending guest settlements waiting for handover or accountant approval.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Reject Reason Modal */}
@@ -702,7 +680,7 @@ const Handover = () => {
             
             <div className="space-y-3">
               <p className="text-[11px] font-semibold text-slate-500">
-                Please enter a reason for rejecting the selected {selectedBookingRefs.length} booking package(s). The Front Office staff will review and correct the amounts.
+                Please enter a reason for rejecting the selected {selectedBookingRefs.length} booking package(s). Front Office staff will review and make corrections.
               </p>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Rejection Reason</label>
@@ -711,7 +689,7 @@ const Handover = () => {
                   rows="3"
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="e.g. Extra night charges do not match room rate or payment reference slip is missing."
+                  placeholder="e.g. Extra night rate does not match or bank slip reference is missing."
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-700 focus:outline-none focus:border-rose-500 min-h-[80px]"
                 />
               </div>
