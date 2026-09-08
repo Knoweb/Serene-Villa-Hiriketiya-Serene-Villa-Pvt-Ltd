@@ -5,7 +5,28 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   if (!receiptData || !selectedPaymentForReceipt || !selectedReg || !passedAssociatedBooking) return null;
 
   const associatedBooking = bookings.find(b => b.id === selectedPaymentForReceipt.bookingId) || passedAssociatedBooking;
-  const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : 'USD';
+  const bCurr = (() => {
+    // 1. Direct booking currency
+    if (associatedBooking?.currency) {
+      const c = associatedBooking.currency.toUpperCase();
+      if (['LKR', 'USD', 'EUR', 'AUD', 'GBP'].includes(c)) return c;
+    }
+    // 2. Room prices JSON table currency
+    if (associatedBooking?.roomPrices) {
+      try {
+        const parsed = typeof associatedBooking.roomPrices === 'string' ? JSON.parse(associatedBooking.roomPrices) : associatedBooking.roomPrices;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const itemWithCurr = parsed.find(item => item.currency);
+          if (itemWithCurr && itemWithCurr.currency) return itemWithCurr.currency.toUpperCase();
+        }
+      } catch (e) {}
+    }
+    // 3. Table currency or payment currency
+    if (associatedBooking?.tableCurrency) return associatedBooking.tableCurrency.toUpperCase();
+    if (selectedPaymentForReceipt?.currencyCode) return selectedPaymentForReceipt.currencyCode.toUpperCase();
+    if (selectedReg?.currency) return selectedReg.currency.toUpperCase();
+    return 'USD';
+  })();
   const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
   const displayCurrency = forceLkr ? 'LKR' : bCurr;
   const convFactor = forceLkr ? exRate : 1;

@@ -3250,7 +3250,7 @@ const Reservations = () => {
         const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
-          const bCurr = (associatedBooking.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking.tableCurrency || 'USD');
+          const bCurr = getBookingCurrency(associatedBooking);
           const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
           const totalBookingAmountLkr = bCurr === 'LKR' ? (associatedBooking.totalAmount || 0) : ((associatedBooking.totalAmount || 0) * exRate);
           
@@ -5081,7 +5081,7 @@ Serene Villa Hiriketiya`;
             
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               {(() => {
-                const draftBookingCurr = isCreatingNewReservation ? (confirmationData.currency || 'USD') : ((associatedBooking?.currency && associatedBooking?.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking?.tableCurrency || 'USD'));
+                const draftBookingCurr = isCreatingNewReservation ? (confirmationData.currency || 'USD') : getBookingCurrency(associatedBooking);
                 return (
                   <>
                     <button
