@@ -756,9 +756,15 @@ const Registrations = () => {
 
     const guestCurrency = getBookingCurrency(associatedBooking, reg);
     let guestExRate = 1;
-    if (guestCurrency === 'USD') guestExRate = 300;
-    else if (guestCurrency === 'EUR') guestExRate = 325;
-    else if (guestCurrency === 'AUD') guestExRate = 220;
+    if (associatedBooking?.exchangeRate && parseFloat(associatedBooking.exchangeRate) > 0) {
+      guestExRate = parseFloat(associatedBooking.exchangeRate);
+    } else if (guestCurrency === 'USD') {
+      guestExRate = 300;
+    } else if (guestCurrency === 'EUR') {
+      guestExRate = 325;
+    } else if (guestCurrency === 'AUD') {
+      guestExRate = 220;
+    }
 
     setPaymentForm(prev => ({
       ...prev,
@@ -884,10 +890,17 @@ const Registrations = () => {
 
   const handlePaymentCurrencyChange = (e) => {
     const curr = e.target.value;
+    const booking = getBookingForReg(selectedReg?.id);
     let rate = 1;
-    if (curr === 'USD') rate = 300;
-    else if (curr === 'EUR') rate = 325;
-    else if (curr === 'AUD') rate = 220;
+    if (booking?.exchangeRate && parseFloat(booking.exchangeRate) > 0 && curr === (booking.currency || 'USD')) {
+      rate = parseFloat(booking.exchangeRate);
+    } else if (curr === 'USD') {
+      rate = 300;
+    } else if (curr === 'EUR') {
+      rate = 325;
+    } else if (curr === 'AUD') {
+      rate = 220;
+    }
     setPaymentForm(prev => ({ ...prev, currencyCode: curr, exchangeRate: rate }));
   };
 
@@ -2636,9 +2649,15 @@ const Registrations = () => {
                     const handleTabChange = (tab) => {
                       setPaymentTab(tab);
                       let rate = 1;
-                      if (bookingCurrency === 'USD') rate = 300;
-                      else if (bookingCurrency === 'EUR') rate = 325;
-                      else if (bookingCurrency === 'AUD') rate = 220;
+                      if (associatedBooking?.exchangeRate && parseFloat(associatedBooking.exchangeRate) > 0 && bookingCurrency === (associatedBooking.currency || 'USD')) {
+                        rate = parseFloat(associatedBooking.exchangeRate);
+                      } else if (bookingCurrency === 'USD') {
+                        rate = 300;
+                      } else if (bookingCurrency === 'EUR') {
+                        rate = 325;
+                      } else if (bookingCurrency === 'AUD') {
+                        rate = 220;
+                      }
                       if (tab === 'FULL') {
                         setPaymentForm(prev => ({ ...prev, amount: remainingBal.toFixed(2), currencyCode: bookingCurrency, exchangeRate: rate }));
                       } else {

@@ -1326,10 +1326,17 @@ const Reservations = () => {
 
   const handlePaymentCurrencyChange = (e) => {
     const curr = e.target.value;
+    const booking = getBookingForReg(selectedReg?.id);
     let rate = 1;
-    if (curr === 'USD') rate = 300;
-    else if (curr === 'EUR') rate = 325;
-    else if (curr === 'AUD') rate = 220;
+    if (booking?.exchangeRate && parseFloat(booking.exchangeRate) > 0 && curr === (booking.currency || 'USD')) {
+      rate = parseFloat(booking.exchangeRate);
+    } else if (curr === 'USD') {
+      rate = 300;
+    } else if (curr === 'EUR') {
+      rate = 325;
+    } else if (curr === 'AUD') {
+      rate = 220;
+    }
     setPaymentForm(prev => ({ ...prev, currencyCode: curr, exchangeRate: rate }));
   };
 
