@@ -159,15 +159,12 @@ const getBankKeyForCurrency = (curr) => {
   return 'USD_PB';
 };
 
-const getBookingCurrency = (booking) => {
-  if (!booking) return 'USD';
-  // 1. Check direct booking.currency
-  if (booking.currency) {
+const getBookingCurrency = (booking, reg = null, form = null) => {
+  if (booking?.currency) {
     const c = booking.currency.toUpperCase();
     if (['LKR', 'USD', 'EUR', 'AUD', 'GBP'].includes(c)) return c;
   }
-  // 2. Check roomPrices JSON table currency or prices
-  if (booking.roomPrices) {
+  if (booking?.roomPrices) {
     try {
       const parsed = typeof booking.roomPrices === 'string' ? JSON.parse(booking.roomPrices) : booking.roomPrices;
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -176,9 +173,11 @@ const getBookingCurrency = (booking) => {
       }
     } catch (e) {}
   }
-  // 3. If tableCurrency is present
-  if (booking.tableCurrency) return booking.tableCurrency.toUpperCase();
-  return 'USD';
+  if (booking?.tableCurrency) return booking.tableCurrency.toUpperCase();
+  if (form?.currencyCode) return form.currencyCode.toUpperCase();
+  if (reg?.currency) return reg.currency.toUpperCase();
+  const isForeign = (reg?.country && reg.country.toLowerCase() !== 'sri lanka') || (reg?.nationality && reg.nationality.toLowerCase() !== 'sri lankan');
+  return isForeign ? 'USD' : 'LKR';
 };
 
 const Reservations = () => {
@@ -2023,7 +2022,7 @@ const Reservations = () => {
                           const baseBookingItem = associatedBooking;
 
                           let parsedItems = [];
-                          const currency = bookingForm.currencyCode || baseBookingItem?.currency || selectedReg?.currency || 'USD';
+                          const currency = getBookingCurrency(baseBookingItem, selectedReg, bookingForm);
                           const totalAmt = parseFloat(bookingForm.amount || baseBookingItem?.totalAmount || selectedReg?.totalAmount || 0);
 
                           if (baseBookingItem?.roomPrices) {

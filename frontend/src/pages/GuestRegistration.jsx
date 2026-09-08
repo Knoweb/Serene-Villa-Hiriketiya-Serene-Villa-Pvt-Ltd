@@ -755,8 +755,8 @@ Serene Villa Hiriketiya`;
                       <tr className="bg-emerald-800 text-white uppercase text-[8px] tracking-wider print:bg-slate-100 print:text-slate-900">
                         <th className="border border-emerald-800/30 px-2 py-1 text-center w-12 print:border-slate-400">Qty</th>
                         <th className="border border-emerald-800/30 px-3 py-1 text-left print:border-slate-400">Description</th>
-                        <th className="border border-emerald-800/30 px-3 py-1 text-right w-24 print:border-slate-400">Rate (LKR)</th>
-                        <th className="border border-emerald-800/30 px-3 py-1 text-right w-28 print:border-slate-400">Amount (LKR)</th>
+                        <th className="border border-emerald-800/30 px-3 py-1 text-right w-24 print:border-slate-400">Rate ({associatedBookingData?.currency || formData?.currency || 'LKR'})</th>
+                        <th className="border border-emerald-800/30 px-3 py-1 text-right w-28 print:border-slate-400">Amount ({associatedBookingData?.currency || formData?.currency || 'LKR'})</th>
                       </tr>
                     </thead>
                     <tbody className="font-medium text-slate-700">
@@ -804,18 +804,18 @@ Serene Villa Hiriketiya`;
                   <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
                     <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
                       <span className="text-slate-550 font-semibold">Total Booking Amount:</span>
-                      <span className="font-bold text-slate-800">LKR {(associatedBookingData.totalAmount || 0).toLocaleString()}</span>
+                      <span className="font-bold text-slate-800">{associatedBookingData?.currency || formData?.currency || 'LKR'} {(associatedBookingData.totalAmount || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
                       <span className="text-slate-550 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
                       <span className="font-bold text-emerald-850 print:text-slate-900">
-                        {selectedPaymentForReceipt.amount} LKR
+                        {selectedPaymentForReceipt.amount} {selectedPaymentForReceipt.currency || associatedBookingData?.currency || formData?.currency || 'LKR'}
                       </span>
                     </div>
                     <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">
                       <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>
                       <span className="font-mono text-emerald-800 print:text-slate-900 text-xs">
-                        LKR {Math.max(0, (associatedBookingData.totalAmount || 0) - (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0)).toLocaleString()}
+                        {associatedBookingData?.currency || formData?.currency || 'LKR'} {Math.max(0, (associatedBookingData.totalAmount || 0) - (selectedPaymentForReceipt.amount || 0)).toLocaleString()}
                       </span>
                     </div>
                   </div>
