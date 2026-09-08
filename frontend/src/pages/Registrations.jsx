@@ -3783,7 +3783,7 @@ Serene Villa Hiriketiya`;
                     <p className="font-mono text-slate-700 font-bold">{selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
                     {selectedPaymentForReceipt.remarks && (
                       <p className="mt-1 text-[10px] leading-snug">
-                        <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks.replace(/\[(?:Bank )?Charges: [\d.]+\]/g, '').trim()}
+                        <span className="font-bold">Remarks:</span> {selectedPaymentForReceipt.remarks.replace(/\[(?:Bank )?Charges: [\d.]+\]/g, '').replace(/\[Other Charges: [\d.]+\]/g, '').trim()}
                       </p>
                     )}
                   </div>
@@ -3812,6 +3812,10 @@ Serene Villa Hiriketiya`;
                   const dispNetTotAmt = forceReceiptLkr && bCurr !== 'LKR' ? netTotAmt * exRate : netTotAmt;
 
                   const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+                  
+                  // Parse Other Charges from remarks
+                  const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                  const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
                   
                   // Compute prior advance payments received prior to this payment (or marked as Advance)
                   const allVisiblePays = getVisiblePayments(advancePayments);

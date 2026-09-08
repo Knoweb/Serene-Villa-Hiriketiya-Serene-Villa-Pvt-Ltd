@@ -438,7 +438,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             <p className="font-mono text-slate-800 font-semibold mb-2">Ref: {selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
             {selectedPaymentForReceipt.remarks && (
               <p className="text-[10px] leading-tight text-slate-750">
-                {selectedPaymentForReceipt.remarks.replace(/\[(?:Bank )?Charges: [\d.]+\]/g, '').trim()}
+                {selectedPaymentForReceipt.remarks.replace(/\[(?:Bank )?Charges: [\d.]+\]/g, '').replace(/\[Other Charges: [\d.]+\]/g, '').trim()}
               </p>
             )}
           </div>
@@ -464,6 +464,10 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
           const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
           
+          // Parse Other Charges from remarks
+          const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+          const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
+
           // Compute prior advance payments received prior to this payment (or marked as Advance)
           const priorAdvancePays = payments.filter(p => {
             if (p.id === selectedPaymentForReceipt.id) return false;
@@ -560,6 +564,15 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 }
                 return null;
               })()}
+
+              {otherVal > 0 && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-semibold">OTHER CHARGES:</span>
+                  <span className="font-bold text-amber-700">
+                    {displayCurrency} {(displayCurrency === 'LKR' ? (currencyCode === 'LKR' ? otherVal : otherVal * exRate) : otherVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
 
               {!forceLkr && (currencyCode !== 'LKR') && (associatedBooking?.showExchangeRateOnBill || selectedPaymentForReceipt?.showExchangeRateOnBill) && (
                 <>
