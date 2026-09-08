@@ -49,7 +49,7 @@ const Layout = ({ children }) => {
     { name: 'Bookings', path: '/bookings', roles: ['ADMIN'] },
     { name: 'Payments', path: '/payments', roles: ['ADMIN', 'ACCOUNTANT'] },
     { name: 'Discounts', path: '/discounts', roles: ['ADMIN'] },
-    { name: 'Reports', path: '/reports', roles: ['ADMIN', 'ACCOUNTANT'] },
+    { name: 'Reports', path: '/reports', roles: ['ADMIN', 'ACCOUNTANT', 'FRONT_OFFICER'] },
     { name: 'Hide Details', path: '/hide-details', roles: ['ADMIN'] },
     { name: 'Users', path: '/users', roles: ['ADMIN'] },
   ];
