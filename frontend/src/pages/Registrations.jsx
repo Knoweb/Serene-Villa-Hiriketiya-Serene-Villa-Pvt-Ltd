@@ -189,6 +189,7 @@ const Registrations = () => {
   // State
   const [registrations, setRegistrations] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [selectedReg, setSelectedReg] = useState(null);
 
   // Cross-reference booking for row display with candidate ranking (prioritizes real manual reservations over auto-drafts)
   const getBookingForReg = (regId) => {
@@ -341,9 +342,6 @@ const Registrations = () => {
     return null;
   };
 
-  // Selected Guest for Details Panel
-  const [selectedReg, setSelectedReg] = useState(null);
-  
   // Booking Form State for selected guest
   const [bookingForm, setBookingForm] = useState({
     roomType: defaultRoomType,
