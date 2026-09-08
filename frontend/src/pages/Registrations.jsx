@@ -2242,34 +2242,41 @@ const Registrations = () => {
                                       {extraB.bookingNumber}
                                     </span>
 
-                                    {/* Interactive Payment Status Badge (Click to Toggle Paid / Unpaid) */}
+                                    {/* Payment Status Badge: Click to Mark as Paid (Locked once Paid) */}
                                     {!isDiscount && (
-                                      <button
-                                        type="button"
-                                        title="Click to toggle Paid / Unpaid status"
-                                        onClick={async () => {
-                                          const newStatus = isBillPaid ? 'Pending' : 'Paid';
-                                          try {
-                                            const res = await fetch(`${API_BASE}/bookings/${extraB.id}/payment-status?paymentStatus=${newStatus}`, {
-                                              method: 'PUT'
-                                            });
-                                            if (res.ok) {
-                                              const updated = await res.json();
-                                              setBookings(prev => prev.map(b => b.id === extraB.id ? { ...b, paymentStatus: newStatus } : b));
+                                      isBillPaid ? (
+                                        <span
+                                          title="This bill is marked as Paid (Locked)"
+                                          className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border bg-emerald-100 text-emerald-800 border-emerald-300 select-none shadow-2xs"
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                          ✓ Paid
+                                        </span>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          title="Click to mark as Paid"
+                                          onClick={async () => {
+                                            if (!window.confirm(`Are you sure you want to mark ${badgeTitle} (${extraB.bookingNumber}) as PAID? Once marked as Paid, it cannot be undone.`)) {
+                                              return;
                                             }
-                                          } catch (err) {
-                                            console.error('Failed to toggle extra bill payment status:', err);
-                                          }
-                                        }}
-                                        className={`inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border transition cursor-pointer shadow-2xs ${
-                                          isBillPaid 
-                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200' 
-                                            : 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
-                                        }`}
-                                      >
-                                        <span className={`w-1.5 h-1.5 rounded-full ${isBillPaid ? 'bg-emerald-600' : 'bg-amber-600'}`}></span>
-                                        {isBillPaid ? 'Paid' : 'Unpaid / Pending'}
-                                      </button>
+                                            try {
+                                              const res = await fetch(`${API_BASE}/bookings/${extraB.id}/payment-status?paymentStatus=Paid`, {
+                                                method: 'PUT'
+                                              });
+                                              if (res.ok) {
+                                                setBookings(prev => prev.map(b => b.id === extraB.id ? { ...b, paymentStatus: 'Paid' } : b));
+                                              }
+                                            } catch (err) {
+                                              console.error('Failed to update extra bill payment status:', err);
+                                            }
+                                          }}
+                                          className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border transition cursor-pointer shadow-2xs bg-amber-100 text-amber-800 border-amber-300 hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300"
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                          Unpaid / Pending (Mark Paid)
+                                        </button>
+                                      )
                                     )}
                                   </div>
                                   <p className="text-[10px] text-slate-500 font-medium">
