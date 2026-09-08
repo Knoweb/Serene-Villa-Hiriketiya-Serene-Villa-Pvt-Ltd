@@ -38,19 +38,6 @@ const Reports = () => {
   const { user } = useAuth();
   const printAreaRef = useRef(null);
 
-  // Guard access - Front Officer cannot access reports
-  if (user && user.role === 'FRONT_OFFICER') {
-    return (
-      <div className="bg-white border border-slate-100 rounded-2xl p-8 text-center text-rose-600 shadow-sm space-y-3">
-        <AlertCircle className="h-10 w-10 mx-auto" />
-        <h3 className="text-base font-bold text-slate-800">Access Denied</h3>
-        <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-          Front Office users are restricted from viewing financial analytics, profit margins, and reports.
-        </p>
-      </div>
-    );
-  }
-
   // Report states: 'DailyCheckIn', 'Daily', 'Weekly', 'Monthly', 'Custom'
   const [reportType, setReportType] = useState('DailyCheckIn');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -65,6 +52,9 @@ const Reports = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // Guard access - Front Officer cannot access reports
+  const isFrontOfficer = user && user.role === 'FRONT_OFFICER';
 
   const getReportPeriod = () => {
     if (reportType === 'DailyCheckIn' || reportType === 'Daily') return date;
@@ -329,6 +319,18 @@ const Reports = () => {
   const totalCardRows = data?.rows?.reduce((sum, r) => sum + (r.cardAmount || 0), 0) || 0;
   const totalBankRows = data?.rows?.reduce((sum, r) => sum + (r.bankTransferAmount || 0), 0) || 0;
   const totalConvertedRows = data?.rows?.reduce((sum, r) => sum + (r.convertedAmount || 0), 0) || 0;
+
+  if (isFrontOfficer) {
+    return (
+      <div className="bg-white border border-slate-100 rounded-2xl p-8 text-center text-rose-600 shadow-sm space-y-3">
+        <AlertCircle className="h-10 w-10 mx-auto" />
+        <h3 className="text-base font-bold text-slate-800">Access Denied</h3>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+          Front Office users are restricted from viewing financial analytics, profit margins, and reports.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

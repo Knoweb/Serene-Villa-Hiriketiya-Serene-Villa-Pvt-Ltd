@@ -8,17 +8,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.
 const Users = () => {
   const { user } = useAuth();
 
-  if (user.role !== 'ADMIN') {
-    return (
-      <div className="bg-white border border-slate-100 rounded-2xl p-8 text-center text-rose-600 shadow-sm space-y-3">
-        <h3 className="text-base font-bold text-slate-800">Access Denied</h3>
-        <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-          Only Admin users can manage roles and view staff activity logs.
-        </p>
-      </div>
-    );
-  }
-
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
@@ -44,8 +33,21 @@ const Users = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (user.role === 'ADMIN') {
+      fetchUsers();
+    }
+  }, [user.role]);
+
+  if (user.role !== 'ADMIN') {
+    return (
+      <div className="bg-white border border-slate-100 rounded-2xl p-8 text-center text-rose-600 shadow-sm space-y-3">
+        <h3 className="text-base font-bold text-slate-800">Access Denied</h3>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+          Only Admin users can manage roles and view staff activity logs.
+        </p>
+      </div>
+    );
+  }
 
   const handleAddUser = async (e) => {
     e.preventDefault();

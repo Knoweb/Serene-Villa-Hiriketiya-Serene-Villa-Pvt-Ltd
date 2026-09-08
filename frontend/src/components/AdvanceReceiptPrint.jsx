@@ -491,7 +491,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           // If this is a final payment and other charges were adjusted, ensure the base settlement paid amount reflects net paid
           let basePaidInBookingCurr = rawPaid;
           const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
-          if (pLkrAmount > 0 && exRate > 0 && (currencyCode !== 'LKR' || bCurr !== 'LKR')) {
+          if (pLkrAmount > 0 && exRate > 0 && bCurr !== 'LKR') {
             const derivedBookingCurr = pLkrAmount / exRate;
             if (Math.abs(derivedBookingCurr - (rawPaid - otherVal)) < 0.05 || Math.abs(derivedBookingCurr - rawPaid) < 0.05) {
               basePaidInBookingCurr = derivedBookingCurr;
