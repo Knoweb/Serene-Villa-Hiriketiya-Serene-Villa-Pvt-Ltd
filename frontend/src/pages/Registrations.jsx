@@ -2241,22 +2241,29 @@ const Registrations = () => {
                             const isBillPaid = extraB.paymentStatus === 'Paid';
 
                             return (
-                              <div key={extraB.id} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
-                                <div>
-                                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${badgeColor}`}>
-                                      {badgeTitle}
-                                    </span>
-                                    <span className="font-mono font-bold text-slate-800 text-[11px]">
-                                      {extraB.bookingNumber}
-                                    </span>
+                              <div key={extraB.id} className="relative p-3 bg-white border border-slate-200/90 rounded-xl shadow-2xs hover:shadow-xs transition">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${badgeColor}`}>
+                                        {badgeTitle}
+                                      </span>
+                                      <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                        {extraB.bookingNumber}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 font-medium">
+                                      Room: <span className="font-bold text-slate-700">{extraB.roomNumber || 'N/A'}</span> • Amount: <span className="font-bold text-emerald-700">{getBookingCurrency(extraB, selectedReg, bookingForm)} {parseFloat(extraB.totalAmount || extraB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                    </p>
+                                  </div>
 
-                                    {/* Payment Status Badge: Click to Mark as Paid (Locked once Paid) */}
+                                  {/* Top Corner Paid/Unpaid Status & Invoice Actions */}
+                                  <div className="flex items-center gap-1.5 flex-shrink-0">
                                     {!isDiscount && (
                                       isBillPaid ? (
                                         <span
-                                          title="This bill is marked as Paid (Locked)"
-                                          className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border bg-emerald-100 text-emerald-800 border-emerald-300 select-none shadow-2xs"
+                                          title="This bill is marked as Paid (Locked & Handed Over to Accountant)"
+                                          className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border bg-emerald-50 text-emerald-800 border-emerald-300 select-none shadow-2xs"
                                         >
                                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                                           ✓ Paid
@@ -2264,107 +2271,149 @@ const Registrations = () => {
                                       ) : (
                                         <button
                                           type="button"
-                                          title="Click to mark as Paid"
+                                          title="Click to mark as Paid & Handover to Accountant"
                                           onClick={async () => {
-                                            if (!window.confirm(`Are you sure you want to mark ${badgeTitle} (${extraB.bookingNumber}) as PAID? Once marked as Paid, it cannot be undone.`)) {
+                                            if (!window.confirm(`Are you sure you want to mark ${badgeTitle} (${extraB.bookingNumber}) as PAID?\n\nThis will record the payment, hand it over to the Accountant, and permanently lock the bill.`)) {
                                               return;
                                             }
                                             try {
+                                              // 1. Update Booking Payment Status to Paid
                                               const res = await fetch(`${API_BASE}/bookings/${extraB.id}/payment-status?paymentStatus=Paid`, {
                                                 method: 'PUT'
                                               });
-                                              if (res.ok) {
-                                                setBookings(prev => prev.map(b => b.id === extraB.id ? { ...b, paymentStatus: 'Paid' } : b));
+                                              if (!res.ok) throw new Error('Failed to update booking status');
+                                              
+                                              // 2. Automatically create a Payment record submitted to Accountant
+                                              const bCurr = getBookingCurrency(extraB, selectedReg, bookingForm);
+                                              const exRate = parseFloat(associatedBooking?.exchangeRate || bookingForm.exchangeRate || 335);
+                                              const extraAmount = parseFloat(extraB.totalAmount || extraB.amount || 0);
+                                              const extraAmountLkr = bCurr === 'LKR' ? extraAmount : (extraAmount * exRate);
+                                              
+                                              let detectedMethod = extraB.paymentMethod;
+                                              if (!detectedMethod && extraB.remarks) {
+                                                const m = extraB.remarks.match(/Payment Method:\s*([A-Za-z\s/]+)/i);
+                                                if (m && m[1]) detectedMethod = m[1].trim();
                                               }
+                                              if (!detectedMethod) detectedMethod = 'Cash';
+
+                                              const paymentPayload = {
+                                                bookingId: extraB.id,
+                                                guestRegistrationId: selectedReg.id,
+                                                amount: extraAmount,
+                                                amountInCurrency: extraAmount,
+                                                currency: bCurr,
+                                                currencyCode: bCurr,
+                                                exchangeRate: exRate,
+                                                amountLkr: extraAmountLkr,
+                                                convertedAmountLkr: extraAmountLkr,
+                                                paymentMethod: detectedMethod,
+                                                paymentType: 'ADVANCE',
+                                                isAdvancePayment: false,
+                                                referenceNumber: extraB.bookingNumber,
+                                                receiptNumber: `REC-${extraB.bookingNumber.replace('/', '-')}`,
+                                                remarks: extraB.remarks || `${badgeTitle} Settled`,
+                                                accountantTransferStatus: 'PENDING',
+                                                sentToAccountantAt: new Date().toISOString()
+                                              };
+
+                                              await fetch(`${API_BASE}/payments/advance`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify(paymentPayload)
+                                              });
+
+                                              // Synchronize local state
+                                              setBookings(prev => prev.map(b => b.id === extraB.id ? { ...b, paymentStatus: 'Paid' } : b));
+                                              fetchAdvancePayments(associatedBooking?.id || selectedReg.id);
+                                              fetchRegistrations();
+                                              alert(`${badgeTitle} (${extraB.bookingNumber}) marked as PAID and handed over to Accountant!`);
                                             } catch (err) {
                                               console.error('Failed to update extra bill payment status:', err);
+                                              alert('Error updating payment status: ' + err.message);
                                             }
                                           }}
-                                          className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border transition cursor-pointer shadow-2xs bg-amber-100 text-amber-800 border-amber-300 hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300"
+                                          className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border transition cursor-pointer shadow-2xs bg-amber-50 text-amber-800 border-amber-300 hover:bg-emerald-600 hover:text-white hover:border-emerald-600"
                                         >
-                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                          Unpaid / Pending (Mark Paid)
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                          Unpaid (Click to Pay)
                                         </button>
                                       )
                                     )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (isDiscount) {
+                                          const baseB = bookings.find(b => b.guestRegistrationId === selectedReg.id && (!b.bookingNumber || !b.bookingNumber.includes('/'))) || associatedBooking;
+                                          const detectedCurr = getBookingCurrency(baseB || associatedBooking || extraB, selectedReg, bookingForm);
+                                          const detectedExRate = parseFloat(baseB?.exchangeRate || associatedBooking?.exchangeRate || bookingForm?.exchangeRate || 335);
+
+                                          const discPaymentMock = {
+                                            id: `disc-${extraB.id}`,
+                                            bookingId: baseB?.id || selectedReg.id,
+                                            amount: 0,
+                                            amountInCurrency: 0,
+                                            currencyCode: detectedCurr,
+                                            currency: detectedCurr,
+                                            exchangeRate: detectedExRate,
+                                            paymentMethod: 'Discount Adjusted',
+                                            paymentDate: new Date().toISOString().split('T')[0],
+                                            paymentType: 'DISCOUNT_ADJUSTED',
+                                            referenceNumber: `${baseB?.bookingNumber || selectedReg.bookingNumber || 'SV'}-DISC`,
+                                            remarks: extraB.remarks || 'Discount Applied Invoice'
+                                          };
+                                          setSelectedPaymentForReceipt(discPaymentMock);
+                                          setReceiptData({
+                                            receiptNumber: `INV-${(baseB?.bookingNumber || selectedReg.bookingNumber || 'SV').replace('/', '-')}-ADJ`,
+                                            generatedAt: new Date().toISOString(),
+                                            guestName: selectedReg.guestName,
+                                            bookingRef: baseB?.bookingNumber || selectedReg.bookingNumber,
+                                            roomNumber: baseB?.roomNumber || selectedReg.roomNumber,
+                                            totalAmount: parseFloat(baseB?.totalAmount || selectedReg.totalAmount || bookingForm.amount || 0),
+                                            bookingCurrency: detectedCurr
+                                          });
+                                        } else {
+                                          let detectedMethod = extraB.paymentMethod;
+                                          if (!detectedMethod && extraB.remarks) {
+                                            const m = extraB.remarks.match(/Payment Method:\s*([A-Za-z\s/]+)/i);
+                                            if (m && m[1]) detectedMethod = m[1].trim();
+                                          }
+                                          if (!detectedMethod) detectedMethod = 'Cash';
+
+                                          const subPaymentMock = {
+                                            id: `extra-${extraB.id}`,
+                                            bookingId: extraB.id,
+                                            amount: extraB.totalAmount || extraB.amount || 0,
+                                            amountInCurrency: extraB.totalAmount || extraB.amount || 0,
+                                            currencyCode: getBookingCurrency(extraB, selectedReg, bookingForm),
+                                            currency: getBookingCurrency(extraB, selectedReg, bookingForm),
+                                            paymentMethod: detectedMethod,
+                                            paymentDate: new Date().toISOString().split('T')[0],
+                                            paymentType: 'ADVANCE',
+                                            referenceNumber: extraB.bookingNumber,
+                                            remarks: extraB.remarks || `${badgeTitle} Bill`
+                                          };
+                                          setSelectedPaymentForReceipt(subPaymentMock);
+                                          setReceiptData({
+                                            receiptNumber: `REC-${extraB.bookingNumber.replace('/', '-')}`,
+                                            generatedAt: new Date().toISOString(),
+                                            guestName: selectedReg.guestName,
+                                            bookingRef: extraB.bookingNumber,
+                                            roomNumber: extraB.roomNumber,
+                                            paymentMethod: detectedMethod,
+                                            paymentStatus: extraB.paymentStatus || 'Unpaid',
+                                            totalAmount: extraB.totalAmount || extraB.amount || 0,
+                                            bookingCurrency: getBookingCurrency(extraB, selectedReg, bookingForm)
+                                          });
+                                        }
+                                        setShowReceiptModal(true);
+                                      }}
+                                      className="text-emerald-700 hover:text-emerald-800 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs text-[11px]"
+                                    >
+                                      <Receipt className="h-3.5 w-3.5" /> {isDiscount ? 'Adjusted Invoice' : 'Invoice'}
+                                    </button>
                                   </div>
-                                  <p className="text-[10px] text-slate-500 font-medium">
-                                    Room: <span className="font-bold text-slate-700">{extraB.roomNumber || 'N/A'}</span> • Amount: <span className="font-bold text-emerald-700">{getBookingCurrency(extraB, selectedReg, bookingForm)} {parseFloat(extraB.totalAmount || extraB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                  </p>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (isDiscount) {
-                                      // Discount clicked -> Open the New Consolidated Invoice with Discount Deducted
-                                      const baseB = bookings.find(b => b.guestRegistrationId === selectedReg.id && (!b.bookingNumber || !b.bookingNumber.includes('/'))) || associatedBooking;
-                                      const detectedCurr = getBookingCurrency(baseB || associatedBooking || extraB, selectedReg, bookingForm);
-                                      const detectedExRate = parseFloat(baseB?.exchangeRate || associatedBooking?.exchangeRate || bookingForm?.exchangeRate || 335);
-
-                                      const discPaymentMock = {
-                                        id: `disc-${extraB.id}`,
-                                        bookingId: baseB?.id || selectedReg.id,
-                                        amount: 0,
-                                        amountInCurrency: 0,
-                                        currencyCode: detectedCurr,
-                                        currency: detectedCurr,
-                                        exchangeRate: detectedExRate,
-                                        paymentMethod: 'Discount Adjusted',
-                                        paymentDate: new Date().toISOString().split('T')[0],
-                                        paymentType: 'DISCOUNT_ADJUSTED',
-                                        referenceNumber: `${baseB?.bookingNumber || selectedReg.bookingNumber || 'SV'}-DISC`,
-                                        remarks: extraB.remarks || 'Discount Applied Invoice'
-                                      };
-                                      setSelectedPaymentForReceipt(discPaymentMock);
-                                      setReceiptData({
-                                        receiptNumber: `INV-${(baseB?.bookingNumber || selectedReg.bookingNumber || 'SV').replace('/', '-')}-ADJ`,
-                                        generatedAt: new Date().toISOString(),
-                                        guestName: selectedReg.guestName,
-                                        bookingRef: baseB?.bookingNumber || selectedReg.bookingNumber,
-                                        roomNumber: baseB?.roomNumber || selectedReg.roomNumber,
-                                        totalAmount: parseFloat(baseB?.totalAmount || selectedReg.totalAmount || bookingForm.amount || 0),
-                                        bookingCurrency: detectedCurr
-                                      });
-                                    } else {
-                                      let detectedMethod = extraB.paymentMethod;
-                                      if (!detectedMethod && extraB.remarks) {
-                                        const m = extraB.remarks.match(/Payment Method:\s*([A-Za-z\s/]+)/i);
-                                        if (m && m[1]) detectedMethod = m[1].trim();
-                                      }
-                                      if (!detectedMethod) detectedMethod = 'Cash';
-
-                                      const subPaymentMock = {
-                                        id: `extra-${extraB.id}`,
-                                        bookingId: extraB.id,
-                                        amount: extraB.totalAmount || extraB.amount || 0,
-                                        amountInCurrency: extraB.totalAmount || extraB.amount || 0,
-                                        currencyCode: getBookingCurrency(extraB, selectedReg, bookingForm),
-                                        currency: getBookingCurrency(extraB, selectedReg, bookingForm),
-                                        paymentMethod: detectedMethod,
-                                        paymentDate: new Date().toISOString().split('T')[0],
-                                        paymentType: 'ADVANCE',
-                                        referenceNumber: extraB.bookingNumber,
-                                        remarks: extraB.remarks || `${badgeTitle} Bill`
-                                      };
-                                      setSelectedPaymentForReceipt(subPaymentMock);
-                                      setReceiptData({
-                                        receiptNumber: `REC-${extraB.bookingNumber.replace('/', '-')}`,
-                                        generatedAt: new Date().toISOString(),
-                                        guestName: selectedReg.guestName,
-                                        bookingRef: extraB.bookingNumber,
-                                        roomNumber: extraB.roomNumber,
-                                        paymentMethod: detectedMethod,
-                                        paymentStatus: extraB.paymentStatus || 'Paid',
-                                        totalAmount: extraB.totalAmount || extraB.amount || 0,
-                                        bookingCurrency: getBookingCurrency(extraB, selectedReg, bookingForm)
-                                      });
-                                    }
-                                    setShowReceiptModal(true);
-                                  }}
-                                  className="text-emerald-700 hover:text-emerald-800 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs text-[11px]"
-                                >
-                                  <Receipt className="h-3.5 w-3.5" /> {isDiscount ? 'Adjusted Invoice' : 'Invoice'}
-                                </button>
                               </div>
                             );
                           })}
@@ -4391,7 +4440,7 @@ Serene Villa Hiriketiya`;
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
                   <select
@@ -4403,17 +4452,6 @@ Serene Villa Hiriketiya`;
                     <option value="Card">Card</option>
                     <option value="Online">Online / Bank Transfer</option>
                     <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Status</label>
-                  <select
-                    value={extraNightForm.paymentStatus || 'Paid'}
-                    onChange={(e) => setExtraNightForm({ ...extraNightForm, paymentStatus: e.target.value })}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
-                  >
-                    <option value="Paid">🟢 Paid</option>
-                    <option value="Pending">🟡 Unpaid / Pending</option>
                   </select>
                 </div>
                 <div>
@@ -4690,7 +4728,7 @@ Serene Villa Hiriketiya`;
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
                   <select
@@ -4702,17 +4740,6 @@ Serene Villa Hiriketiya`;
                     <option value="Card">Card</option>
                     <option value="Online">Online / Bank Transfer</option>
                     <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Status</label>
-                  <select
-                    value={extraPersonForm.paymentStatus || 'Paid'}
-                    onChange={(e) => setExtraPersonForm({ ...extraPersonForm, paymentStatus: e.target.value })}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer"
-                  >
-                    <option value="Paid">🟢 Paid</option>
-                    <option value="Pending">🟡 Unpaid / Pending</option>
                   </select>
                 </div>
                 <div>
