@@ -516,8 +516,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           }
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           
-          // Converted amount in LKR is calculated on the net amount after discount deduction (if applicable)
-          const convertedAmountLkr = (netTotAmt * (displayCurrency === 'LKR' ? 1 : exRate));
+          // Converted amount in LKR for this receipt payment (paid room settlement * exchange rate)
+          const convertedAmountLkr = selectedPaymentForReceipt.convertedAmountLkr || (paidDisplayAmt * (displayCurrency === 'LKR' ? 1 : exRate));
 
           return (
             <div className="border border-slate-700/60 rounded-lg p-3 space-y-1.5 bg-white shadow-2xs">
