@@ -25,7 +25,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
     if (associatedBooking?.tableCurrency) return associatedBooking.tableCurrency.toUpperCase();
     if (selectedPaymentForReceipt?.currencyCode) return selectedPaymentForReceipt.currencyCode.toUpperCase();
     if (selectedReg?.currency) return selectedReg.currency.toUpperCase();
-    return 'USD';
+    const isForeign = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+    return isForeign ? 'USD' : 'LKR';
   })();
   const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
   const displayCurrency = forceLkr ? 'LKR' : bCurr;

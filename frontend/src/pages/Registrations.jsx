@@ -149,6 +149,27 @@ const getBankKeyForCurrency = (curr) => {
   return 'USD_PB';
 };
 
+const getBookingCurrency = (booking, reg = null, form = null) => {
+  if (booking?.currency) {
+    const c = booking.currency.toUpperCase();
+    if (['LKR', 'USD', 'EUR', 'AUD', 'GBP'].includes(c)) return c;
+  }
+  if (booking?.roomPrices) {
+    try {
+      const parsed = typeof booking.roomPrices === 'string' ? JSON.parse(booking.roomPrices) : booking.roomPrices;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const itemWithCurr = parsed.find(item => item.currency);
+        if (itemWithCurr && itemWithCurr.currency) return itemWithCurr.currency.toUpperCase();
+      }
+    } catch (e) {}
+  }
+  if (booking?.tableCurrency) return booking.tableCurrency.toUpperCase();
+  if (form?.currencyCode) return form.currencyCode.toUpperCase();
+  if (reg?.currency) return reg.currency.toUpperCase();
+  const isForeign = (reg?.country && reg.country.toLowerCase() !== 'sri lanka') || (reg?.nationality && reg.nationality.toLowerCase() !== 'sri lankan');
+  return isForeign ? 'USD' : 'LKR';
+};
+
 const Registrations = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -677,8 +698,7 @@ const Registrations = () => {
       setAdvancePayments([]);
     }
 
-    const isForeign = (reg?.country && reg.country.toLowerCase() !== 'sri lanka') || (reg?.nationality && reg.nationality.toLowerCase() !== 'sri lankan');
-    const guestCurrency = associatedBooking?.currency || reg.currency || (isForeign ? 'USD' : 'LKR');
+    const guestCurrency = getBookingCurrency(associatedBooking, reg);
     let guestExRate = 1;
     if (guestCurrency === 'USD') guestExRate = 300;
     else if (guestCurrency === 'EUR') guestExRate = 325;
@@ -689,6 +709,10 @@ const Registrations = () => {
       currencyCode: guestCurrency,
       exchangeRate: guestExRate,
       amount: ''
+    }));
+    setBankSlipForm(prev => ({
+      ...prev,
+      bankKey: getBankKeyForCurrency(guestCurrency)
     }));
     setBookingSuccess(false);
     setIsEditingBooking(false);
@@ -823,8 +847,7 @@ const Registrations = () => {
       alert('Please enter a valid exchange rate.'); return;
     }
 
-    const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-    const bookingCurrency = booking.currency || selectedReg?.currency || (isForeignGuest ? 'USD' : 'LKR');
+    const bookingCurrency = getBookingCurrency(booking, selectedReg, bookingForm);
 
     const enteredAmount = parseFloat(paymentForm.amount);
     const enteredCurrency = paymentForm.currencyCode || bookingCurrency;
@@ -1481,9 +1504,7 @@ const Registrations = () => {
                     {/* Room Details Table (Room Number & Price ONLY) */}
                     <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2.5 mt-1">
                       {(() => {
-                        const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-                        const defaultCurrency = isForeignGuest ? 'USD' : 'LKR';
-                        const currency = associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : defaultCurrency));
+                        const currency = getBookingCurrency(associatedBooking, selectedReg, bookingForm);
                         const totalAmt = parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
                         let parsedItems = [];
 
@@ -1573,10 +1594,7 @@ const Registrations = () => {
                     <div className="space-y-1 col-span-2 flex justify-between items-center border-t border-slate-100/80 pt-2">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
                       <span className="font-extrabold text-emerald-700 font-mono text-xs">
-                        {(() => {
-                          const isForeign = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-                          return associatedBooking?.currency || (selectedReg?.currency && selectedReg.currency !== 'LKR' ? selectedReg.currency : (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR' ? bookingForm.currencyCode : (isForeign ? 'USD' : 'LKR')));
-                        })()} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {getBookingCurrency(associatedBooking, selectedReg, bookingForm)} {parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
 
@@ -2167,7 +2185,7 @@ const Registrations = () => {
                                 </span>
                               </div>
                               <p className="text-[10px] text-slate-500 font-medium">
-                                Total: <span className="font-bold text-blue-700">{baseB.currency || 'USD'} {parseFloat(baseB.totalAmount || baseB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> (Before Discount)
+                                Total: <span className="font-bold text-blue-700">{getBookingCurrency(baseB, selectedReg, bookingForm)} {parseFloat(baseB.totalAmount || baseB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> (Before Discount)
                               </p>
                             </div>
                             <button
@@ -2178,8 +2196,8 @@ const Registrations = () => {
                                   bookingId: baseB.id,
                                   amount: 0,
                                   amountInCurrency: 0,
-                                  currencyCode: baseB.currency || 'USD',
-                                  currency: baseB.currency || 'USD',
+                                  currencyCode: getBookingCurrency(baseB, selectedReg, bookingForm),
+                                  currency: getBookingCurrency(baseB, selectedReg, bookingForm),
                                   paymentMethod: 'Original Bill',
                                   paymentDate: new Date().toISOString().split('T')[0],
                                   paymentType: 'ORIGINAL_BILL',
@@ -2194,7 +2212,7 @@ const Registrations = () => {
                                   bookingRef: baseB.bookingNumber,
                                   roomNumber: baseB.roomNumber,
                                   totalAmount: baseB.totalAmount || baseB.amount || 0,
-                                  bookingCurrency: baseB.currency || 'USD'
+                                  bookingCurrency: getBookingCurrency(baseB, selectedReg, bookingForm)
                                 });
                                 setShowReceiptModal(true);
                               }}
@@ -2255,7 +2273,7 @@ const Registrations = () => {
                                     )}
                                   </div>
                                   <p className="text-[10px] text-slate-500 font-medium">
-                                    Room: <span className="font-bold text-slate-700">{extraB.roomNumber || 'N/A'}</span> • Amount: <span className="font-bold text-emerald-700">{extraB.currency || 'USD'} {parseFloat(extraB.totalAmount || extraB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                    Room: <span className="font-bold text-slate-700">{extraB.roomNumber || 'N/A'}</span> • Amount: <span className="font-bold text-emerald-700">{getBookingCurrency(extraB, selectedReg, bookingForm)} {parseFloat(extraB.totalAmount || extraB.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                                   </p>
                                 </div>
                                 <button
@@ -2264,11 +2282,7 @@ const Registrations = () => {
                                     if (isDiscount) {
                                       // Discount clicked -> Open the New Consolidated Invoice with Discount Deducted
                                       const baseB = bookings.find(b => b.guestRegistrationId === selectedReg.id && (!b.bookingNumber || !b.bookingNumber.includes('/'))) || associatedBooking;
-                                      const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-                                      let detectedCurr = baseB?.currency || associatedBooking?.currency || selectedReg?.currency || bookingForm?.currencyCode || extraB?.currency;
-                                      if (!detectedCurr || detectedCurr === 'LKR') {
-                                        detectedCurr = isForeignGuest ? 'USD' : 'LKR';
-                                      }
+                                      const detectedCurr = getBookingCurrency(baseB || associatedBooking || extraB, selectedReg, bookingForm);
                                       const detectedExRate = parseFloat(baseB?.exchangeRate || associatedBooking?.exchangeRate || bookingForm?.exchangeRate || 335);
 
                                       const discPaymentMock = {
@@ -2308,8 +2322,8 @@ const Registrations = () => {
                                         bookingId: extraB.id,
                                         amount: extraB.totalAmount || extraB.amount || 0,
                                         amountInCurrency: extraB.totalAmount || extraB.amount || 0,
-                                        currencyCode: extraB.currency || 'USD',
-                                        currency: extraB.currency || 'USD',
+                                        currencyCode: getBookingCurrency(extraB, selectedReg, bookingForm),
+                                        currency: getBookingCurrency(extraB, selectedReg, bookingForm),
                                         paymentMethod: detectedMethod,
                                         paymentDate: new Date().toISOString().split('T')[0],
                                         paymentType: 'ADVANCE',
@@ -2326,7 +2340,7 @@ const Registrations = () => {
                                         paymentMethod: detectedMethod,
                                         paymentStatus: extraB.paymentStatus || 'Paid',
                                         totalAmount: extraB.totalAmount || extraB.amount || 0,
-                                        bookingCurrency: extraB.currency || 'USD'
+                                        bookingCurrency: getBookingCurrency(extraB, selectedReg, bookingForm)
                                       });
                                     }
                                     setShowReceiptModal(true);
@@ -2379,13 +2393,7 @@ const Registrations = () => {
                     const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
 
                     // Smartly detect booking currency
-                    let bookingCurrency = associatedBooking?.currency || baseBookingItem?.currency;
-                    if (!bookingCurrency || bookingCurrency === 'LKR') {
-                      if (selectedReg?.currency && selectedReg.currency !== 'LKR') bookingCurrency = selectedReg.currency;
-                      else if (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR') bookingCurrency = bookingForm.currencyCode;
-                      else if (baseAmount > 0 && baseAmount < 10000) bookingCurrency = 'USD';
-                      else bookingCurrency = isForeignGuest ? 'USD' : 'LKR';
-                    }
+                    const bookingCurrency = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
 
                     const visiblePays = getVisiblePayments(advancePayments);
                     const bookingExRate = parseFloat(associatedBooking?.exchangeRate || bookingForm.exchangeRate || 1);
@@ -2579,14 +2587,8 @@ const Registrations = () => {
                     
                     const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
 
-                    // Smart currency detection: if associatedBooking has no explicit non-LKR currency, infer from amount
-                    let bookingCurrency = associatedBooking?.currency || baseBookingItem?.currency;
-                    if (!bookingCurrency || bookingCurrency === 'LKR') {
-                      if (selectedReg?.currency && selectedReg.currency !== 'LKR') bookingCurrency = selectedReg.currency;
-                      else if (bookingForm.currencyCode && bookingForm.currencyCode !== 'LKR') bookingCurrency = bookingForm.currencyCode;
-                      else if (baseAmount > 0 && baseAmount < 10000) bookingCurrency = 'USD';
-                      else bookingCurrency = isForeignGuest ? 'USD' : 'LKR';
-                    }
+                    // Smart currency detection
+                    const bookingCurrency = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
                     const bookingExRate = parseFloat(associatedBooking?.exchangeRate || bookingForm.exchangeRate || 1);
 
                     const visiblePays = getVisiblePayments(advancePayments);
@@ -2834,8 +2836,7 @@ const Registrations = () => {
                   {(() => {
                     const bId = associatedBooking.id || selectedReg?.id;
                     const bookingSlips = allBankSlips[bId] || [];
-                    const isForeign = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
-                    const bCurr = (associatedBooking?.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking?.tableCurrency || (isForeign ? 'USD' : 'LKR'));
+                    const bCurr = getBookingCurrency(associatedBooking, selectedReg, bookingForm);
                     const activeBank = BANK_ACCOUNTS[bankSlipForm.bankKey] || BANK_ACCOUNTS[getBankKeyForCurrency(bCurr)] || BANK_ACCOUNTS.USD_PB;
 
                     return (
@@ -3262,7 +3263,7 @@ const Registrations = () => {
                     : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
-          const bCurr = (associatedBooking?.currency && associatedBooking.currency !== 'LKR') ? associatedBooking.currency : (associatedBooking?.tableCurrency || 'USD');
+          const bCurr = getBookingCurrency(associatedBooking, selectedReg, bookingForm);
           const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking?.exchangeRate) || 335;
           const totalBookingAmountLkr = bCurr === 'LKR' ? (associatedBooking?.totalAmount || 0) : ((associatedBooking?.totalAmount || 0) * exRate);
           
@@ -3272,7 +3273,7 @@ const Registrations = () => {
           const remainingBalLkr = isFinalPayment ? 0 : Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
           const remainingBalInBookingCurr = isFinalPayment ? 0 : (bCurr === 'LKR' ? remainingBalLkr : (remainingBalLkr / exRate));
 
-          const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
+          const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || bCurr;
           const isLkr = currencyCode === 'LKR';
           const paidAmtLkr = selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0;
           const paidAmtOrig = selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || paidAmtLkr;
@@ -3405,14 +3406,7 @@ Serene Villa Hiriketiya`;
         const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
 
         // Robust currency detection matching the payment card
-        let bCurrRender = associatedBooking?.currency || baseBookingItem?.currency || selectedReg?.currency || bookingForm?.currencyCode || selectedPaymentForReceipt?.currencyCode;
-        if (!bCurrRender || bCurrRender === 'LKR') {
-          if (selectedReg?.currency && selectedReg.currency !== 'LKR') bCurrRender = selectedReg.currency;
-          else if (bookingForm?.currencyCode && bookingForm.currencyCode !== 'LKR') bCurrRender = bookingForm.currencyCode;
-          else if (selectedPaymentForReceipt?.currencyCode && selectedPaymentForReceipt.currencyCode !== 'LKR') bCurrRender = selectedPaymentForReceipt.currencyCode;
-          else if (associatedBooking?.tableCurrency) bCurrRender = associatedBooking.tableCurrency;
-          else bCurrRender = isForeignGuest ? 'USD' : 'LKR';
-        }
+        const bCurrRender = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
 
         const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking?.exchangeRate) || parseFloat(bookingForm?.exchangeRate) || 335;
         const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
