@@ -68,7 +68,17 @@ public class BillingController {
             .filter(payment -> {
                 if (payment.getBookingId() == null) return false;
                 return bookingRepository.findById(payment.getBookingId())
-                    .map(booking -> "Paid".equalsIgnoreCase(booking.getPaymentStatus()))
+                    .map(booking -> {
+                        // If booking is directly marked Paid
+                        if ("Paid".equalsIgnoreCase(booking.getPaymentStatus())) return true;
+                        // Or if it is a sub-booking (/EN, /1P, /DISC), check parent booking status
+                        if (booking.getBookingNumber() != null && booking.getBookingNumber().contains("/")) {
+                            String parentRef = booking.getBookingNumber().substring(0, booking.getBookingNumber().indexOf('/'));
+                            return bookingRepository.findAll().stream()
+                                .anyMatch(b -> parentRef.equalsIgnoreCase(b.getBookingNumber()) && "Paid".equalsIgnoreCase(b.getPaymentStatus()));
+                        }
+                        return false;
+                    })
                     .orElse(false);
             })
             .collect(Collectors.toList());
