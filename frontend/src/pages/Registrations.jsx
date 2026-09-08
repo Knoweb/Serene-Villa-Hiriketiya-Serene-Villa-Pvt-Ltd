@@ -957,11 +957,9 @@ const Registrations = () => {
     });
     const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
     const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
-    const extraItems = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/') && !b.bookingNumber.includes('/DISC'));
     const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(booking.totalAmount || 0);
     const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-    const netBookingAmount = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+    const netBookingAmount = Math.max(0, baseAmount - totalDiscountDeduction);
 
     const newTotalInBookingCurrency = currentPaidInBookingCurrency + amountInBookingCurrency;
     const isFull = tab === 'FULL' || newTotalInBookingCurrency >= (netBookingAmount - 0.01);
@@ -1002,9 +1000,7 @@ const Registrations = () => {
       if (!res.ok) throw new Error('Failed to save payment');
       const savedPayment = await res.json();
 
-    const totalBookingAmount = baseAmount + totalExtraCharges;
-
-    // Determine new payment status
+      // Determine new payment status
     let newPaymentStatus = 'Unpaid';
     if (isFull || newTotalInBookingCurrency >= (netBookingAmount - 0.01)) newPaymentStatus = 'Paid';
     else if (newTotalInBookingCurrency > 0) newPaymentStatus = 'Partially Paid';
@@ -1027,7 +1023,7 @@ const Registrations = () => {
       guestName: selectedReg.guestName,
       bookingRef: realBooking?.bookingNumber || bookingForm.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, ''),
       roomNumber: realBooking?.roomNumber || bookingForm.room,
-      totalAmount: totalBookingAmount,
+      totalAmount: baseAmount,
       bookingCurrency: bookingCurrency
     });
     setShowReceiptModal(true);
@@ -2410,7 +2406,8 @@ const Registrations = () => {
                     const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
                     const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
                     
-                    const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+                    // Base Net Total is strictly Base Amount minus Discount
+                    const baseNetAmt = Math.max(0, baseAmount - totalDiscountDeduction);
 
                     // Smartly detect booking currency
                     const bookingCurrency = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
@@ -2447,10 +2444,10 @@ const Registrations = () => {
                     });
 
                     let pStatus = associatedBooking?.paymentStatus || selectedReg?.paymentStatus || 'Unpaid';
-                    if (totalPaidInBookingCurrency >= (totalAmt - 0.01) && totalAmt > 0) pStatus = 'Paid';
+                    if (totalPaidInBookingCurrency >= (baseNetAmt - 0.01) && baseNetAmt > 0) pStatus = 'Paid';
                     else if (totalPaidInBookingCurrency > 0 && pStatus !== 'Paid') pStatus = 'Partially Paid';
 
-                    const bal = pStatus === 'Paid' ? 0 : Math.max(0, totalAmt - totalPaidInBookingCurrency);
+                    const bal = pStatus === 'Paid' ? 0 : Math.max(0, baseNetAmt - totalPaidInBookingCurrency);
 
                     return (
                       <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-2.5 text-xs">
@@ -2479,7 +2476,7 @@ const Registrations = () => {
                           </span>
                         </div>
 
-                        {/* Approved Discount Item */}
+                        {/* Approved Discount Item (Applies strictly to Base Final Bill) */}
                         {totalDiscountDeduction > 0 && (
                           <div className="flex justify-between items-center text-rose-700 bg-rose-50/70 px-3 py-1.5 rounded-xl border border-rose-100">
                             <span className="flex items-center gap-1.5 font-semibold text-[11px]">
@@ -2492,25 +2489,12 @@ const Registrations = () => {
                           </div>
                         )}
 
-                        {/* Extra Options Item */}
-                        {totalExtraCharges > 0 && (
-                          <div className="flex justify-between items-center text-purple-800 bg-purple-50/70 px-3 py-1.5 rounded-xl border border-purple-100">
-                            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
-                              <Plus size={13} className="text-purple-600 stroke-[2.5]" />
-                              Additional Bookings & Extras
-                            </span>
-                            <span className="font-mono font-black text-purple-800">
-                              +{totalExtraCharges.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Net Total / Adjusted Total */}
-                        {(totalDiscountDeduction > 0 || totalExtraCharges > 0) && (
+                        {/* Net Base Total */}
+                        {totalDiscountDeduction > 0 && (
                           <div className="flex justify-between items-center font-bold text-slate-800 border-t border-dashed border-slate-200/80 pt-2">
-                            <span className="text-[11px] font-bold text-slate-700">Net Payable Total:</span>
+                            <span className="text-[11px] font-bold text-slate-700">Net Base Payable:</span>
                             <span className="font-mono font-extrabold text-slate-900 text-[13px]">
-                              {totalAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                              {baseNetAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                             </span>
                           </div>
                         )}
@@ -2530,7 +2514,7 @@ const Registrations = () => {
 
                         {/* Total Paid Record */}
                         <div className="flex justify-between items-center text-slate-500 py-0.5 text-[11px] font-medium">
-                          <span>Total Amount Received:</span>
+                          <span>Total Base Amount Received:</span>
                           <span className="font-mono font-bold text-emerald-700">
                             +{totalPaidInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                           </span>
@@ -2538,7 +2522,7 @@ const Registrations = () => {
 
                         {/* Outstanding Balance Banner */}
                         <div className="flex justify-between items-center font-extrabold border-t border-slate-100 pt-2.5 bg-slate-50 -mx-4 -mb-4 px-4 py-3 rounded-b-2xl">
-                          <span className="text-slate-800 text-[11px] uppercase tracking-wider font-extrabold">Outstanding Balance:</span>
+                          <span className="text-slate-800 text-[11px] uppercase tracking-wider font-extrabold">Base Outstanding Balance:</span>
                           <span className={`font-mono text-sm font-black ${Math.max(0, bal) > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
                             {Math.max(0, bal).toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                           </span>
@@ -2603,9 +2587,9 @@ const Registrations = () => {
                       : parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
 
                     const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-                    const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
                     
-                    const totalAmt = Math.max(0, baseAmount + totalExtraCharges - totalDiscountDeduction);
+                    // Base Net Total is strictly Base Amount minus Discount
+                    const baseNetAmt = Math.max(0, baseAmount - totalDiscountDeduction);
 
                     // Smart currency detection
                     const bookingCurrency = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
@@ -2636,12 +2620,12 @@ const Registrations = () => {
                       totalPaidInBookingCurrency += convertedAmt;
                     });
 
-                    const remainingBal = (associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid') ? 0 : Math.max(0, totalAmt - totalPaidInBookingCurrency);
+                    const remainingBal = (associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid') ? 0 : Math.max(0, baseNetAmt - totalPaidInBookingCurrency);
                     const isFullyPaid = remainingBal <= 0.001 || associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid';
 
                     if (isFullyPaid) return (
                       <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700 font-bold">
-                        <CheckCircle className="h-4 w-4" /> Payment fully settled
+                        <CheckCircle className="h-4 w-4" /> Base payment fully settled
                       </div>
                     );
 
