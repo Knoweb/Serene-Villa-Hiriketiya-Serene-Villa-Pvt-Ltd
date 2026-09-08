@@ -465,9 +465,12 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
           
           // Compute prior advance payments received prior to this payment (or marked as Advance)
-          const priorAdvancePays = isFinalPayment
-            ? payments.filter(p => p.id !== selectedPaymentForReceipt.id && (p.paymentType === 'ADVANCE' || p.isAdvancePayment || p.id < selectedPaymentForReceipt.id))
-            : [];
+          const priorAdvancePays = payments.filter(p => {
+            if (p.id === selectedPaymentForReceipt.id) return false;
+            const thisIdx = payments.findIndex(item => item.id === selectedPaymentForReceipt.id);
+            const pIdx = payments.findIndex(item => item.id === p.id);
+            return pIdx !== -1 && thisIdx !== -1 ? pIdx < thisIdx : (p.id < selectedPaymentForReceipt.id);
+          });
           
           const priorAdvancePaidBCurr = priorAdvancePays.reduce((sum, p) => {
             const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
@@ -516,8 +519,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 </div>
               )}
 
-              {/* Advance Payments Received earlier (Shown on Final Receipt) */}
-              {isFinalPayment && dispPriorAdvancePaid > 0 && (
+              {/* Advance Payments Received earlier (Shown whenever prior advance exists) */}
+              {dispPriorAdvancePaid > 0 && (
                 <div className="flex justify-between pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
                   <span className="font-semibold">Advance Paid Earlier:</span>
                   <span className="font-bold font-mono">-{displayCurrency} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -526,7 +529,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               
               {paidDisplayAmt > 0 && (
                 <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Settlement Paid:' : 'Advance Paid:'}</span>
+                  <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Settlement Paid:' : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')}</span>
                   <span className="font-bold text-slate-900">
                     {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>

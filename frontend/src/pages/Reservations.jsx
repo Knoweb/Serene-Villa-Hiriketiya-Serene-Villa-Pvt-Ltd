@@ -3663,10 +3663,32 @@ Serene Villa Hiriketiya`;
                       const dispCurr = forceReceiptLkr ? 'LKR' : bCurr;
 
                       const totAmt = forceReceiptLkr && bCurr !== 'LKR' ? (associatedBooking.totalAmount || 0) * exRate : (associatedBooking.totalAmount || 0);
+                      const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
                       const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
-                        ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0) 
-                        : (selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
-                      const remBal = Math.max(0, totAmt - paidAmt);
+                        ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (rawPaid * exRate))
+                        : rawPaid;
+
+                      // Compute prior advance payments received prior to this payment
+                      const allVisiblePays = advancePayments || [];
+                      const priorAdvancePays = allVisiblePays.filter(p => {
+                        if (p.id === selectedPaymentForReceipt.id) return false;
+                        const thisIdx = allVisiblePays.findIndex(item => item.id === selectedPaymentForReceipt.id);
+                        const pIdx = allVisiblePays.findIndex(item => item.id === p.id);
+                        return pIdx !== -1 && thisIdx !== -1 ? pIdx < thisIdx : (p.id < selectedPaymentForReceipt.id);
+                      });
+                      
+                      const priorAdvancePaidBCurr = priorAdvancePays.reduce((sum, p) => {
+                        const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+                        const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
+                        const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                        const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+                        if (pCurr === bCurr.toUpperCase()) return sum + pAmt;
+                        if (bCurr.toUpperCase() === 'LKR') return sum + (pLkr > 0 ? pLkr : (pAmt * pExRate));
+                        return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
+                      }, 0);
+
+                      const dispPriorAdvancePaid = forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
+                      const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - (dispPriorAdvancePaid + paidAmt));
 
                       return (
                         <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
@@ -3674,9 +3696,17 @@ Serene Villa Hiriketiya`;
                             <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
                             <span className="font-bold text-slate-800">{dispCurr} {totAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
+
+                          {/* Advance Payments Received earlier (Shown whenever prior advance exists) */}
+                          {dispPriorAdvancePaid > 0 && (
+                            <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
+                              <span className="font-semibold">Advance Paid Earlier:</span>
+                              <span className="font-bold font-mono">-{dispCurr} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          )}
                           
                           <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                            <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : 'Advance Paid:'}</span>
+                            <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')}</span>
                             <span className="font-bold text-emerald-850 print:text-slate-900">
                               {dispCurr} {parseFloat(paidAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>

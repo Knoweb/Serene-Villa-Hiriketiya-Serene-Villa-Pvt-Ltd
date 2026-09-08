@@ -3815,9 +3815,14 @@ Serene Villa Hiriketiya`;
                   
                   // Compute prior advance payments received prior to this payment (or marked as Advance)
                   const allVisiblePays = getVisiblePayments(advancePayments);
-                  const priorAdvancePays = isFinalPayment
-                    ? allVisiblePays.filter(p => p.id !== selectedPaymentForReceipt.id && (p.paymentType === 'ADVANCE' || p.isAdvancePayment || p.id < selectedPaymentForReceipt.id))
-                    : [];
+                  // For any payment (Advance, Final, etc.), find all payments completed BEFORE this specific payment
+                  const priorAdvancePays = allVisiblePays.filter(p => {
+                    if (p.id === selectedPaymentForReceipt.id) return false;
+                    // Keep prior payments strictly before this payment by ID or index
+                    const thisIdx = allVisiblePays.findIndex(item => item.id === selectedPaymentForReceipt.id);
+                    const pIdx = allVisiblePays.findIndex(item => item.id === p.id);
+                    return pIdx !== -1 && thisIdx !== -1 ? pIdx < thisIdx : (p.id < selectedPaymentForReceipt.id);
+                  });
                   
                   const priorAdvancePaidBCurr = priorAdvancePays.reduce((sum, p) => {
                     const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
@@ -3868,8 +3873,8 @@ Serene Villa Hiriketiya`;
                         </div>
                       )}
 
-                      {/* Advance Payments Received earlier (Shown on Final Receipt) */}
-                      {isFinalPayment && dispPriorAdvancePaid > 0 && (
+                      {/* Advance Payments Received earlier (Shown whenever prior advance exists) */}
+                      {dispPriorAdvancePaid > 0 && (
                         <div className="flex justify-between pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
                           <span className="font-semibold">Advance Paid Earlier:</span>
                           <span className="font-bold font-mono">-{dispCurr} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -3879,7 +3884,7 @@ Serene Villa Hiriketiya`;
                       {/* Current Payment Amount */}
                       {paidAmt > 0 && (
                         <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                          <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Settlement Paid:' : 'Advance Paid:'}</span>
+                          <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Settlement Paid:' : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')}</span>
                           <span className="font-bold text-slate-900">{dispCurr} {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
