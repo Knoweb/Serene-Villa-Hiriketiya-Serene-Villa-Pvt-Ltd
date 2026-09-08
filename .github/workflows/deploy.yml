@@ -49,10 +49,11 @@ jobs:
           script: |
             echo "Starting Clean Deployment..."
             cd ~/Serene-Villa-Hiriketiya-Serene-Villa-Pvt-Ltd
-            git reset --hard HEAD
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             docker compose down --remove-orphans
-            docker compose build --no-cache --pull
+            docker compose build --no-cache frontend
+            docker compose build backend
             docker compose up -d --force-recreate
-            docker system prune -af --volumes=false
+            docker system prune -f --volumes=false
             echo "Clean Deployment Completed Successfully!"
