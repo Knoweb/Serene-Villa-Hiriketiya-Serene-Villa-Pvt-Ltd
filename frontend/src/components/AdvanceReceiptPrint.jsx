@@ -52,7 +52,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
   const remainingBalLkr = Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
 
-  const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' && remainingBalLkr <= 10;
+  const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' || selectedPaymentForReceipt.isFinalPayment;
   const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
   const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
   const isConsolidatedBill = isFinalPayment || isDiscountAdjusted || isOriginalBill;
