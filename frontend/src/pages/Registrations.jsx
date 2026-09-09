@@ -2380,16 +2380,19 @@ const Registrations = () => {
                                           }
                                           if (!detectedMethod) detectedMethod = 'Cash';
 
+                                          const isPaidSub = extraB.paymentStatus === 'Paid';
+                                          const subTotal = parseFloat(extraB.totalAmount || extraB.amount || 0);
                                           const subPaymentMock = {
                                             id: `extra-${extraB.id}`,
                                             bookingId: extraB.id,
-                                            amount: extraB.totalAmount || extraB.amount || 0,
-                                            amountInCurrency: extraB.totalAmount || extraB.amount || 0,
+                                            amount: isPaidSub ? subTotal : 0,
+                                            amountInCurrency: isPaidSub ? subTotal : 0,
                                             currencyCode: getBookingCurrency(extraB, selectedReg, bookingForm),
                                             currency: getBookingCurrency(extraB, selectedReg, bookingForm),
                                             paymentMethod: detectedMethod,
                                             paymentDate: new Date().toISOString().split('T')[0],
                                             paymentType: 'ADVANCE',
+                                            paymentStatus: extraB.paymentStatus || 'Unpaid',
                                             referenceNumber: extraB.bookingNumber,
                                             remarks: extraB.remarks || `${badgeTitle} Bill`
                                           };
@@ -2402,7 +2405,7 @@ const Registrations = () => {
                                             roomNumber: extraB.roomNumber,
                                             paymentMethod: detectedMethod,
                                             paymentStatus: extraB.paymentStatus || 'Unpaid',
-                                            totalAmount: extraB.totalAmount || extraB.amount || 0,
+                                            totalAmount: subTotal,
                                             bookingCurrency: getBookingCurrency(extraB, selectedReg, bookingForm)
                                           });
                                         }
@@ -3684,6 +3687,21 @@ Serene Villa Hiriketiya`;
                 <div className="text-right space-y-1">
                   <h1 className={`text-base font-black tracking-wide uppercase ${isFinalPayment ? 'text-blue-700' : 'text-emerald-800'}`}>{receiptTitle}</h1>
                   {isFinalPayment && <span className="inline-block bg-blue-100 text-blue-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">✓ Fully Settled</span>}
+                  {(() => {
+                    const isSubExtra = !!(associatedBooking?.bookingNumber && associatedBooking.bookingNumber.includes('/') && !associatedBooking.bookingNumber.includes('/DISC'));
+                    const statusVal = selectedPaymentForReceipt?.paymentStatus || receiptData?.paymentStatus || associatedBooking?.paymentStatus;
+                    if (isSubExtra && statusVal) {
+                      const isPaid = statusVal === 'Paid';
+                      return (
+                        <span className={`inline-block text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider mb-1 ${
+                          isPaid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                        }`}>
+                          {isPaid ? '✓ PAID' : '⚠ PAYMENT PENDING / UNPAID'}
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
                   <div className="inline-block border border-emerald-800/30 rounded-lg px-2.5 py-1.5 bg-emerald-50/20 text-[10px] text-left space-y-0.5 mt-1 print:bg-transparent">
                     <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Booking No:</span>
@@ -3699,6 +3717,21 @@ Serene Villa Hiriketiya`;
                         {selectedPaymentForReceipt?.paymentMethod || receiptData?.paymentMethod || 'Cash'}
                       </span>
                     </div>
+                    {(() => {
+                      const isSubExtra = !!(associatedBooking?.bookingNumber && associatedBooking.bookingNumber.includes('/') && !associatedBooking.bookingNumber.includes('/DISC'));
+                      const statusVal = selectedPaymentForReceipt?.paymentStatus || receiptData?.paymentStatus || associatedBooking?.paymentStatus;
+                      if (isSubExtra && statusVal) {
+                        return (
+                          <div className="flex gap-3 justify-between">
+                            <span className="text-slate-500 font-semibold">Status:</span>
+                            <span className={`font-black uppercase tracking-wide ${statusVal === 'Paid' ? 'text-emerald-800' : 'text-amber-800'}`}>
+                              {statusVal === 'Paid' ? 'PAID' : 'UNPAID'}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     <div className="flex gap-3 justify-between">
                       <span className="text-slate-500 font-semibold">Date:</span>
                       <span className="font-bold text-slate-800">{(() => {
@@ -3863,7 +3896,13 @@ Serene Villa Hiriketiya`;
                   const netTotAmt = Math.max(0, grossTotAmt - totalDiscountVal);
                   const dispNetTotAmt = forceReceiptLkr && bCurr !== 'LKR' ? netTotAmt * exRate : netTotAmt;
 
-                  const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+                  const isExtraSubBooking = isExtraNight || isExtraPerson;
+                  const isExtraPaid = selectedPaymentForReceipt.paymentStatus === 'Paid' || associatedBooking?.paymentStatus === 'Paid';
+
+                  let rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+                  if (isExtraSubBooking && !isExtraPaid && selectedPaymentForReceipt.id && String(selectedPaymentForReceipt.id).startsWith('extra-')) {
+                    rawPaid = 0;
+                  }
                   
                   // Parse Other Charges from remarks
                   const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
@@ -3890,7 +3929,7 @@ Serene Villa Hiriketiya`;
                     return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
                   }, 0);
 
-                  const dispPriorAdvancePaid = forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
+                  const dispPriorAdvancePaid = isExtraSubBooking ? 0 : (forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr);
 
                   let basePaidInBookingCurr = rawPaid;
                   const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);

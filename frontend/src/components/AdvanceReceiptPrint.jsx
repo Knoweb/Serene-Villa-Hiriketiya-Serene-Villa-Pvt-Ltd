@@ -462,7 +462,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           const netTotAmt = Math.max(0, grossTotAmt - totalDiscountVal);
           const dispNetTotAmt = forceLkr ? netTotAmt * exRate : netTotAmt;
 
-          const rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+          const isExtraSubBooking = isExtraNight || isExtraPerson;
+          const isExtraPaid = selectedPaymentForReceipt.paymentStatus === 'Paid' || receiptData?.paymentStatus === 'Paid' || associatedBooking?.paymentStatus === 'Paid';
+
+          let rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+          if (isExtraSubBooking && !isExtraPaid && selectedPaymentForReceipt.id && String(selectedPaymentForReceipt.id).startsWith('extra-')) {
+            rawPaid = 0;
+          }
           
           // Parse Other Charges from remarks
           const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
@@ -486,7 +492,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
           }, 0);
 
-          const dispPriorAdvancePaid = forceLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
+          const dispPriorAdvancePaid = isExtraSubBooking ? 0 : (forceLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr);
 
           // If this is a final payment and other charges were adjusted, ensure the base settlement paid amount reflects net paid
           let basePaidInBookingCurr = rawPaid;
