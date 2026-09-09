@@ -66,20 +66,11 @@ public class BillingController {
         
         List<Payment> eligiblePayments = nonePayments.stream()
             .filter(payment -> {
-                if (payment.getBookingId() == null) return false;
-                return bookingRepository.findById(payment.getBookingId())
-                    .map(booking -> {
-                        // If booking is directly marked Paid
-                        if ("Paid".equalsIgnoreCase(booking.getPaymentStatus())) return true;
-                        // Or if it is a sub-booking (/EN, /1P, /DISC), check parent booking status
-                        if (booking.getBookingNumber() != null && booking.getBookingNumber().contains("/")) {
-                            String parentRef = booking.getBookingNumber().substring(0, booking.getBookingNumber().indexOf('/'));
-                            return bookingRepository.findAll().stream()
-                                .anyMatch(b -> parentRef.equalsIgnoreCase(b.getBookingNumber()) && "Paid".equalsIgnoreCase(b.getPaymentStatus()));
-                        }
-                        return false;
-                    })
-                    .orElse(false);
+                if (payment.getBookingId() == null && payment.getGuestRegistrationId() == null) return false;
+                if (payment.getBookingId() != null) {
+                    return bookingRepository.existsById(payment.getBookingId());
+                }
+                return guestRegistrationRepository.existsById(payment.getGuestRegistrationId());
             })
             .collect(Collectors.toList());
             
