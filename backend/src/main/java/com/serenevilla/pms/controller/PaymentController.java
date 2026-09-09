@@ -24,7 +24,7 @@ public class PaymentController {
     @PostMapping
     public ResponseEntity<Payment> recordPayment(@RequestBody Payment payment) {
         if (payment.getAccountantTransferStatus() == null) {
-            payment.setAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.NONE);
+            payment.setAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.PENDING);
         }
         // Compute LKR equivalent at standard rate or custom rate
         double rate = 1.0;
@@ -60,7 +60,7 @@ public class PaymentController {
             payment.setPaymentType("ADVANCE");
         }
         if (payment.getAccountantTransferStatus() == null) {
-            payment.setAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.NONE);
+            payment.setAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.PENDING);
         }
         
         // Sync duplicate fields
