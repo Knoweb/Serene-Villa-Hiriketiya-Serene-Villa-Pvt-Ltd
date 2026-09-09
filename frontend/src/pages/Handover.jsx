@@ -617,9 +617,15 @@ const Handover = () => {
                         const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'One Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
                         const itemBadgeColor = isExtraNight ? 'bg-indigo-100 text-indigo-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : isFinal ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800';
                         
+                        const paidTimestamp = p.paymentDate 
+                          ? `${p.paymentDate} ${p.createdAt ? (new Date(p.createdAt)).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : ''}`.trim()
+                          : (p.createdAt ? new Date(p.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : '-');
+
                         const handoverTimestamp = p.sentToAccountantAt 
                           ? new Date(p.sentToAccountantAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })
-                          : (p.createdAt ? new Date(p.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : (p.paymentDate || p.date || '-'));
+                          : (p.accountantTransferStatus === 'PENDING' || p.accountantTransferStatus === 'ACCEPTED'
+                              ? (p.createdAt ? new Date(p.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : '-')
+                              : 'Pending Handover');
 
                         return (
                           <div key={p.id || pIdx} className="bg-white p-2.5 rounded-lg border border-slate-200/70 flex items-center justify-between text-xs hover:border-slate-300 transition">
@@ -632,13 +638,22 @@ const Handover = () => {
                                   {p.receiptNumber || p.referenceNumber || `Item #${p.id}`}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium">
+                              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium flex-wrap">
                                 <span>Method: <strong className="text-slate-700">{p.paymentMethod || 'Cash'}</strong></span>
                                 <span>•</span>
-                                <span className="flex items-center gap-1 text-slate-500">
-                                  <Clock size={10} className="text-emerald-600" />
-                                  Handover: <strong className="text-slate-700">{handoverTimestamp}</strong>
+                                <span className="flex items-center gap-1 text-slate-600">
+                                  <Calendar size={10} className="text-blue-600" />
+                                  Paid: <strong className="text-slate-800">{paidTimestamp}</strong>
                                 </span>
+                                {handoverTimestamp !== 'Pending Handover' && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1 text-slate-600">
+                                      <Clock size={10} className="text-emerald-600" />
+                                      Handover: <strong className="text-slate-800">{handoverTimestamp}</strong>
+                                    </span>
+                                  </>
+                                )}
                               </div>
                             </div>
 
