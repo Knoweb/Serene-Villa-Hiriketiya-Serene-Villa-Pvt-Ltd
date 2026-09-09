@@ -56,6 +56,14 @@ const getPhotoUrl = (path) => {
   return `${baseUrl}${cleanPath}`;
 };
 
+const cleanRoomNumber = (val) => {
+  if (!val) return '';
+  return String(val)
+    .replace(/^Room\s*-?/i, '')
+    .replace(/^-+/, '')
+    .trim();
+};
+
 const BANK_ACCOUNTS = {
   USD_PB: {
     key: 'USD_PB',
@@ -2049,8 +2057,8 @@ const Registrations = () => {
                               const p = typeof associatedBooking.roomPrices === 'string' ? JSON.parse(associatedBooking.roomPrices) : associatedBooking.roomPrices;
                               if (Array.isArray(p) && p.length > 0) {
                                 initialAllocated = p.map(item => {
-                                  const rNum = String(item.roomNumber || item.roomNum || '').replace(/^Room\s*/i, '').trim();
-                                  const rType = item.roomType || rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room';
+                                  const rNum = cleanRoomNumber(item.roomNumber || item.roomNum || '');
+                                  const rType = item.roomType || rooms.find(r => cleanRoomNumber(r.roomNumber) === rNum)?.roomType || 'Deluxe Room';
                                   const parentNights = parseFloat(associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1) || 1;
                                   const rawPrice = parseFloat(item.price || item.rate || 0);
                                   const perNightRate = (item.rate != null && item.rate !== '' && !isNaN(item.rate)) ? parseFloat(item.rate) : (rawPrice / parentNights);
@@ -2062,7 +2070,7 @@ const Registrations = () => {
                                     price: cleanRate, // 1 night = rate * 1
                                     selected: true
                                   };
-                                });
+                                }).filter(item => Boolean(item.roomNumber));
                               }
                             } catch(e) {}
                           }
@@ -2070,7 +2078,7 @@ const Registrations = () => {
                           if (initialAllocated.length === 0) {
                             const rawRoomNums = String(associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
                               .split(',')
-                              .map(r => r.replace(/^Room\s*/i, '').trim())
+                              .map(r => cleanRoomNumber(r))
                               .filter(Boolean);
                             const rawRoomTypes = String(associatedBooking?.roomType || selectedReg?.roomType || '')
                               .split(',')
@@ -2082,8 +2090,8 @@ const Registrations = () => {
                             const avgPerRoomPerNight = count > 0 && parentNights > 0 ? parseFloat((totalAmt / (count * parentNights)).toFixed(2)) : 0;
 
                             for (let i = 0; i < count; i++) {
-                              const rNum = rawRoomNums[i] || (rawRoomNums[0] || '101');
-                              const rType = rawRoomTypes[i] || (rawRoomTypes[0] || (rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room'));
+                              const rNum = cleanRoomNumber(rawRoomNums[i] || rawRoomNums[0] || '101');
+                              const rType = rawRoomTypes[i] || (rawRoomTypes[0] || (rooms.find(r => cleanRoomNumber(r.roomNumber) === rNum)?.roomType || 'Deluxe Room'));
                               initialAllocated.push({
                                 roomNumber: rNum,
                                 roomType: rType,
@@ -2126,8 +2134,8 @@ const Registrations = () => {
                               const p = typeof associatedBooking.roomPrices === 'string' ? JSON.parse(associatedBooking.roomPrices) : associatedBooking.roomPrices;
                               if (Array.isArray(p) && p.length > 0) {
                                 initialAllocated = p.map(item => {
-                                  const rNum = String(item.roomNumber || item.roomNum || '').replace(/^Room\s*/i, '').trim();
-                                  const rType = item.roomType || rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room';
+                                  const rNum = cleanRoomNumber(item.roomNumber || item.roomNum || '');
+                                  const rType = item.roomType || rooms.find(r => cleanRoomNumber(r.roomNumber) === rNum)?.roomType || 'Deluxe Room';
                                   const parentNights = parseFloat(associatedBooking?.numberOfNights || selectedReg?.numberOfNights || 1) || 1;
                                   const rawPrice = parseFloat(item.price || item.rate || 0);
                                   const perNightRate = (item.rate != null && item.rate !== '' && !isNaN(item.rate)) ? parseFloat(item.rate) : (rawPrice / parentNights);
@@ -2139,7 +2147,7 @@ const Registrations = () => {
                                     rate: cleanRate,
                                     selected: true
                                   };
-                                });
+                                }).filter(item => Boolean(item.roomNumber));
                               }
                             } catch(e) {}
                           }
@@ -2147,7 +2155,7 @@ const Registrations = () => {
                           if (initialAllocated.length === 0) {
                             const rawRoomNums = String(associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
                               .split(',')
-                              .map(r => r.replace(/^Room\s*/i, '').trim())
+                              .map(r => cleanRoomNumber(r))
                               .filter(Boolean);
                             const rawRoomTypes = String(associatedBooking?.roomType || selectedReg?.roomType || '')
                               .split(',')
@@ -2159,8 +2167,8 @@ const Registrations = () => {
                             const avgPerRoomPerNight = count > 0 && parentNights > 0 ? parseFloat((totalAmt / (count * parentNights)).toFixed(2)) : 0;
 
                             for (let i = 0; i < count; i++) {
-                              const rNum = rawRoomNums[i] || (rawRoomNums[0] || '101');
-                              const rType = rawRoomTypes[i] || (rawRoomTypes[0] || (rooms.find(r => String(r.roomNumber) === rNum)?.roomType || 'Deluxe Room'));
+                              const rNum = cleanRoomNumber(rawRoomNums[i] || rawRoomNums[0] || '101');
+                              const rType = rawRoomTypes[i] || (rawRoomTypes[0] || (rooms.find(r => cleanRoomNumber(r.roomNumber) === rNum)?.roomType || 'Deluxe Room'));
                               initialAllocated.push({
                                 roomNumber: rNum,
                                 roomType: rType,
@@ -4372,7 +4380,7 @@ Serene Villa Hiriketiya`;
                 </div>
               </div>
 
-              {/* Room Number(s) Multi-Select Dropdown (Screenshot 3) */}
+              {/* Room Number(s) Multi-Select Dropdown */}
               <div className="space-y-1.5 relative">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">ROOM NUMBER(S)</label>
                 <div className="relative">
@@ -4394,8 +4402,10 @@ Serene Villa Hiriketiya`;
                       <div className="fixed inset-0 z-10" onClick={() => setIsExtraNightRoomDropdownOpen(false)}></div>
                       <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto p-1.5 space-y-0.5 select-none">
                         {rooms.map((room) => {
-                          const roomNumbers = extraNightForm.room ? extraNightForm.room.split(',').map(r => r.trim()).filter(Boolean) : [];
-                          const isChecked = roomNumbers.includes(String(room.roomNumber));
+                          const cleanTarget = cleanRoomNumber(room.roomNumber);
+                          const currentAllocated = extraNightForm.allocatedRooms || [];
+                          const isChecked = currentAllocated.some(r => cleanRoomNumber(r.roomNumber) === cleanTarget);
+
                           return (
                             <label 
                               key={room.id || room.roomNumber} 
@@ -4405,29 +4415,26 @@ Serene Villa Hiriketiya`;
                                 type="checkbox"
                                 checked={isChecked}
                                 onChange={() => {
-                                  let newRooms;
+                                  let newAllocated;
                                   if (isChecked) {
-                                    newRooms = roomNumbers.filter(r => r !== String(room.roomNumber));
+                                    newAllocated = currentAllocated.filter(r => cleanRoomNumber(r.roomNumber) !== cleanTarget);
                                   } else {
-                                    newRooms = [...roomNumbers, String(room.roomNumber)];
+                                    const defaultRate = parseFloat(room.price || 0);
+                                    const totalNights = parseInt(extraNightForm.numberOfNights, 10) || 1;
+                                    const calculatedPrice = (defaultRate * totalNights).toFixed(2);
+                                    newAllocated = [
+                                      ...currentAllocated,
+                                      {
+                                        roomType: room.roomType || 'Deluxe Room',
+                                        roomNumber: cleanTarget,
+                                        rate: defaultRate,
+                                        price: calculatedPrice,
+                                        selected: true
+                                      }
+                                    ];
                                   }
-                                  const roomString = newRooms.join(', ');
-                                  
-                                  const currentAllocated = extraNightForm.allocatedRooms || [];
-                                  const newAllocated = newRooms.map(rNum => {
-                                    const existing = currentAllocated.find(ca => String(ca.roomNumber) === String(rNum));
-                                    const matchedR = rooms.find(rm => String(rm.roomNumber) === String(rNum));
-                                    const defaultRate = matchedR ? parseFloat(matchedR.price || 0) : 0;
-                                    const currentPrice = existing ? existing.price : defaultRate;
-                                    return {
-                                      roomType: matchedR ? (matchedR.roomType || 'Deluxe Room') : (existing?.roomType || 'Deluxe Room'),
-                                      roomNumber: rNum,
-                                      rate: currentPrice,
-                                      price: currentPrice,
-                                      selected: true
-                                    };
-                                  });
 
+                                  const roomString = newAllocated.map(r => r.roomNumber).join(', ');
                                   const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
 
                                   setExtraNightForm(prev => ({
@@ -4439,7 +4446,7 @@ Serene Villa Hiriketiya`;
                                 }}
                                 className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
                               />
-                              <span>{room.roomNumber} - {room.roomType} ({room.status})</span>
+                              <span>{cleanTarget} - {room.roomType} ({room.status})</span>
                             </label>
                           );
                         })}
@@ -4692,8 +4699,10 @@ Serene Villa Hiriketiya`;
                       <div className="fixed inset-0 z-10" onClick={() => setIsExtraPersonRoomDropdownOpen(false)}></div>
                       <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto p-1.5 space-y-0.5 select-none">
                         {rooms.map((room) => {
-                          const roomNumbers = extraPersonForm.room ? extraPersonForm.room.split(',').map(r => r.trim()).filter(Boolean) : [];
-                          const isChecked = roomNumbers.includes(String(room.roomNumber));
+                          const cleanTarget = cleanRoomNumber(room.roomNumber);
+                          const currentAllocated = extraPersonForm.allocatedRooms || [];
+                          const isChecked = currentAllocated.some(r => cleanRoomNumber(r.roomNumber) === cleanTarget);
+
                           return (
                             <label 
                               key={room.id || room.roomNumber} 
@@ -4703,27 +4712,22 @@ Serene Villa Hiriketiya`;
                                 type="checkbox"
                                 checked={isChecked}
                                 onChange={() => {
-                                  let newRooms;
+                                  let newAllocated;
                                   if (isChecked) {
-                                    newRooms = roomNumbers.filter(r => r !== String(room.roomNumber));
+                                    newAllocated = currentAllocated.filter(r => cleanRoomNumber(r.roomNumber) !== cleanTarget);
                                   } else {
-                                    newRooms = [...roomNumbers, String(room.roomNumber)];
+                                    newAllocated = [
+                                      ...currentAllocated,
+                                      {
+                                        roomType: room.roomType || 'Deluxe Room',
+                                        roomNumber: cleanTarget,
+                                        price: '',
+                                        selected: true
+                                      }
+                                    ];
                                   }
-                                  const roomString = newRooms.join(', ');
-                                  
-                                  const currentAllocated = extraPersonForm.allocatedRooms || [];
-                                  const newAllocated = newRooms.map(rNum => {
-                                    const existing = currentAllocated.find(ca => String(ca.roomNumber) === String(rNum));
-                                    const matchedR = rooms.find(rm => String(rm.roomNumber) === String(rNum));
-                                    const currentPrice = existing ? existing.price : '';
-                                    return {
-                                      roomType: matchedR ? (matchedR.roomType || 'Deluxe Room') : (existing?.roomType || 'Deluxe Room'),
-                                      roomNumber: rNum,
-                                      price: currentPrice,
-                                      selected: true
-                                    };
-                                  });
 
+                                  const roomString = newAllocated.map(r => r.roomNumber).join(', ');
                                   const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
 
                                   setExtraPersonForm(prev => ({
@@ -4735,7 +4739,7 @@ Serene Villa Hiriketiya`;
                                 }}
                                 className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
                               />
-                              <span>{room.roomNumber} - {room.roomType} ({room.status})</span>
+                              <span>{cleanTarget} - {room.roomType} ({room.status})</span>
                             </label>
                           );
                         })}
