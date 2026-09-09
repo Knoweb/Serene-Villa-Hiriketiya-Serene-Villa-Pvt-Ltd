@@ -60,11 +60,11 @@ public class BillingController {
 
     @GetMapping("/fo-pending")
     public ResponseEntity<List<Payment>> getFoPendingTransactions() {
-        List<Payment> nonePayments = new java.util.ArrayList<>(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.NONE));
-        List<Payment> rejectedPayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.REJECTED);
-        nonePayments.addAll(rejectedPayments);
+        List<Payment> allActivePayments = new java.util.ArrayList<>(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.PENDING));
+        allActivePayments.addAll(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.NONE));
+        allActivePayments.addAll(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.REJECTED));
         
-        List<Payment> eligiblePayments = nonePayments.stream()
+        List<Payment> eligiblePayments = allActivePayments.stream()
             .filter(payment -> {
                 if (payment.getBookingId() == null && payment.getGuestRegistrationId() == null) return false;
                 if (payment.getBookingId() != null) {

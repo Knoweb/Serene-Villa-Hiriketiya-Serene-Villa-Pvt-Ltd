@@ -1009,8 +1009,8 @@ const Registrations = () => {
       receiptNumber: paymentForm.referenceNumber,
       remarks: finalRemarks,
       createdBy: user.username,
-      slipPath: paymentForm.slipPath || '/uploads/dummy_slip.png',
-      paymentSlipUrl: paymentForm.slipPath || '/uploads/dummy_slip.png',
+      slipPath: paymentForm.slipPath || '',
+      paymentSlipUrl: paymentForm.slipPath || '',
       isAdvancePayment: !isFull
     };
 

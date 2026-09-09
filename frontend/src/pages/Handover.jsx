@@ -655,9 +655,9 @@ const Handover = () => {
                               <p className="text-[10px] font-mono font-semibold text-emerald-800">
                                 LKR {(parseFloat(p.amountLkr || p.convertedAmountLkr || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </p>
-                              {p.slipPath && (
+                              {p.slipPath && !p.slipPath.includes('dummy_slip.png') && p.slipPath.trim() !== '' && (
                                 <a 
-                                  href={p.slipPath} 
+                                  href={p.slipPath.startsWith('http') || p.slipPath.startsWith('data:') ? p.slipPath : `${API_BASE.replace('/api', '')}${p.slipPath.startsWith('/') ? '' : '/'}${p.slipPath}`} 
                                   target="_blank" 
                                   rel="noopener noreferrer" 
                                   className="text-[9px] text-emerald-600 hover:underline font-bold inline-block mt-0.5"

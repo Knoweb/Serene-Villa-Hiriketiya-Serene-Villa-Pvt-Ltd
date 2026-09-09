@@ -432,8 +432,8 @@ const GuestRegistration = () => {
           receiptNumber: formData.referenceNumber || `REC-${Date.now().toString().slice(-6)}`,
           remarks: formData.remarks || '',
           createdBy: 'Public QR Code',
-          slipPath: paymentSlipBase64 || '/uploads/dummy_slip.png',
-          paymentSlipUrl: paymentSlipBase64 || '/uploads/dummy_slip.png',
+          slipPath: paymentSlipBase64 || '',
+          paymentSlipUrl: paymentSlipBase64 || '',
           isAdvancePayment: !isFull
         };
 
