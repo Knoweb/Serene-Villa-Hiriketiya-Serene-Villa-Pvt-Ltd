@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ModalProvider } from './context/ModalContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import GuestRegistration from './pages/GuestRegistration';
@@ -30,6 +31,7 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
+      <ModalProvider>
       <Toaster position="top-right" toastOptions={{
         duration: 4000,
         style: {
@@ -155,6 +157,7 @@ function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
+      </ModalProvider>
     </AuthProvider>
   );
 }

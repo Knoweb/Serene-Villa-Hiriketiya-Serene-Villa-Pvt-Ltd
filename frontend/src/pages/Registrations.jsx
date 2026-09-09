@@ -172,6 +172,7 @@ const getBookingCurrency = (booking, reg = null, form = null) => {
 
 const Registrations = () => {
   const { user } = useAuth();
+  const { showConfirm, showAlert } = useModal();
   const navigate = useNavigate();
   const isAdmin = user.role === 'ADMIN';
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
@@ -2273,9 +2274,14 @@ const Registrations = () => {
                                           type="button"
                                           title="Click to mark as Paid & Handover to Accountant"
                                           onClick={async () => {
-                                            if (!window.confirm(`Are you sure you want to mark ${badgeTitle} (${extraB.bookingNumber}) as PAID?\n\nThis will record the payment, hand it over to the Accountant, and permanently lock the bill.`)) {
-                                              return;
-                                            }
+                                            const confirmed = await showConfirm({
+                                              title: `Mark ${badgeTitle} as PAID?`,
+                                              message: `Are you sure you want to mark ${badgeTitle} (${extraB.bookingNumber}) as PAID?\n\nThis will record the payment, hand it over to the Accountant, and permanently lock the bill.`,
+                                              confirmText: 'Yes, Mark as Paid',
+                                              cancelText: 'Cancel',
+                                              type: 'confirm'
+                                            });
+                                            if (!confirmed) return;
                                             try {
                                               // 1. Update Booking Payment Status to Paid
                                               const res = await fetch(`${API_BASE}/bookings/${extraB.id}/payment-status?paymentStatus=Paid`, {
@@ -2326,10 +2332,18 @@ const Registrations = () => {
                                               setBookings(prev => prev.map(b => b.id === extraB.id ? { ...b, paymentStatus: 'Paid' } : b));
                                               fetchAdvancePayments(associatedBooking?.id || selectedReg.id);
                                               fetchRegistrations();
-                                              alert(`${badgeTitle} (${extraB.bookingNumber}) marked as PAID and handed over to Accountant!`);
+                                              await showAlert({
+                                                title: 'Payment Recorded',
+                                                message: `${badgeTitle} (${extraB.bookingNumber}) marked as PAID and handed over to Accountant successfully!`,
+                                                type: 'success'
+                                              });
                                             } catch (err) {
                                               console.error('Failed to update extra bill payment status:', err);
-                                              alert('Error updating payment status: ' + err.message);
+                                              await showAlert({
+                                                title: 'Update Failed',
+                                                message: 'Error updating payment status: ' + err.message,
+                                                type: 'danger'
+                                              });
                                             }
                                           }}
                                           className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border transition cursor-pointer shadow-2xs bg-amber-50 text-amber-800 border-amber-300 hover:bg-emerald-600 hover:text-white hover:border-emerald-600"
@@ -4275,12 +4289,20 @@ Serene Villa Hiriketiya`;
                   return [...filtered, createdBooking];
                 });
                 
-                alert('Extra Night booking added successfully!');
                 setShowExtraNightModal(false);
                 setExtraNightForm({ amount: '', currencyCode: 'USD', remarks: '', room: '', allocatedRooms: [], checkInDate: '', checkOutDate: '', numberOfNights: 1 });
                 fetchRegistrations();
+                await showAlert({
+                  title: 'Extra Night Added',
+                  message: 'Extra Night booking added successfully!',
+                  type: 'success'
+                });
               } catch(err) {
-                alert(err.message);
+                await showAlert({
+                  title: 'Action Failed',
+                  message: err.message,
+                  type: 'danger'
+                });
               }
             }} className="space-y-3.5 text-xs">
               
@@ -4606,12 +4628,20 @@ Serene Villa Hiriketiya`;
                   return [...filtered, createdBooking];
                 });
                 
-                alert('Extra Person booking added successfully!');
                 setShowExtraPersonModal(false);
                 setExtraPersonForm({ amount: '', currencyCode: 'USD', remarks: '', room: '', allocatedRooms: [] });
                 fetchRegistrations();
+                await showAlert({
+                  title: 'Extra Person Added',
+                  message: 'Extra Person booking added successfully!',
+                  type: 'success'
+                });
               } catch(err) {
-                alert(err.message);
+                await showAlert({
+                  title: 'Action Failed',
+                  message: err.message,
+                  type: 'danger'
+                });
               }
             }} className="space-y-3.5 text-xs">
               
@@ -4867,7 +4897,14 @@ Serene Villa Hiriketiya`;
                     throw new Error(errorText || 'Failed to apply discount');
                   }
                   
-                  alert('Discount applied successfully to booking!');
+                  setShowDiscountModal(false);
+                  setDiscountForm({ amount: '', currencyCode: 'USD', remarks: '' });
+                  fetchRegistrations();
+                  await showAlert({
+                    title: 'Discount Applied',
+                    message: 'Discount applied successfully to booking!',
+                    type: 'success'
+                  });
                 } else {
                   // Front Office staff request -> Saved for Admin Approval
                   const saved = localStorage.getItem('pms_discounts');
@@ -4887,14 +4924,21 @@ Serene Villa Hiriketiya`;
 
                   existingDiscounts.unshift(newRequest);
                   localStorage.setItem('pms_discounts', JSON.stringify(existingDiscounts));
-                  alert('Discount approval request sent to Admin successfully! The discount will be applied to the final bill once approved.');
+                  setShowDiscountModal(false);
+                  setDiscountForm({ amount: '', currencyCode: 'USD', remarks: '' });
+                  fetchRegistrations();
+                  await showAlert({
+                    title: 'Discount Request Submitted',
+                    message: 'Discount approval request sent to Admin successfully! The discount will be applied to the final bill once approved.',
+                    type: 'info'
+                  });
                 }
-
-                setShowDiscountModal(false);
-                setDiscountForm({ amount: '', currencyCode: 'USD', remarks: '' });
-                fetchRegistrations();
               } catch(err) {
-                alert(err.message);
+                await showAlert({
+                  title: 'Action Failed',
+                  message: err.message,
+                  type: 'danger'
+                });
               }
             }} className="space-y-3.5 text-xs">
               
