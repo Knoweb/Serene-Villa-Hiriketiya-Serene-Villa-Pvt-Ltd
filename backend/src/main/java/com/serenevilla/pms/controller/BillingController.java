@@ -82,13 +82,24 @@ public class BillingController {
         for (Payment payment : payments) {
             if (payment.getBookingId() != null) {
                 bookingRepository.findById(payment.getBookingId()).ifPresent(booking -> {
-                    payment.setBookingRef(booking.getBookingNumber());
+                    if (payment.getBookingRef() == null || payment.getBookingRef().trim().isEmpty()) {
+                        payment.setBookingRef(booking.getBookingNumber());
+                    }
+                    if (booking.getGuestRegistrationId() != null && payment.getGuestRegistrationId() == null) {
+                        payment.setGuestRegistrationId(booking.getGuestRegistrationId());
+                    }
                     if (booking.getGuestRegistrationId() != null) {
                         guestRegistrationRepository.findById(booking.getGuestRegistrationId()).ifPresent(guest -> {
                             payment.setGuestName(guest.getGuestName());
                         });
                     }
                 });
+            }
+            if ((payment.getBookingRef() == null || payment.getBookingRef().trim().isEmpty()) && payment.getGuestRegistrationId() != null) {
+                bookingRepository.findByGuestRegistrationId(payment.getGuestRegistrationId()).stream()
+                    .filter(b -> b.getBookingNumber() != null && !b.getBookingNumber().contains("/"))
+                    .findFirst()
+                    .ifPresent(b -> payment.setBookingRef(b.getBookingNumber()));
             }
             if (payment.getGuestName() == null && payment.getGuestRegistrationId() != null) {
                 guestRegistrationRepository.findById(payment.getGuestRegistrationId()).ifPresent(guest -> {

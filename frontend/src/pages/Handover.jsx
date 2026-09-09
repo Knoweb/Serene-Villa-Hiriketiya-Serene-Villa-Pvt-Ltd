@@ -614,12 +614,18 @@ const Handover = () => {
                         const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
                         const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
                         
-                        const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'One Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
+                        const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'Extra Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
                         const itemBadgeColor = isExtraNight ? 'bg-indigo-100 text-indigo-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : isFinal ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800';
                         
-                        const paidTimestamp = p.paymentDate 
-                          ? `${p.paymentDate} ${p.createdAt ? (new Date(p.createdAt)).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : ''}`.trim()
-                          : (p.createdAt ? new Date(p.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : '-');
+                        let paidTimestamp = '-';
+                        if (p.createdAt) {
+                          const dateObj = new Date(p.createdAt);
+                          const datePart = dateObj.toLocaleDateString('en-CA'); // YYYY-MM-DD
+                          const timePart = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                          paidTimestamp = `${p.paymentDate || datePart} ${timePart}`;
+                        } else if (p.paymentDate) {
+                          paidTimestamp = p.paymentDate;
+                        }
 
                         return (
                           <div key={p.id || pIdx} className="bg-white p-2.5 rounded-lg border border-slate-200/70 flex items-center justify-between text-xs hover:border-slate-300 transition">
