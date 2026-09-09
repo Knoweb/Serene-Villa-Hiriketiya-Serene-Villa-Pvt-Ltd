@@ -6,6 +6,7 @@ import suiteRoomImg from '../assets/suite_room.png';
 import standardRoomImg from '../assets/standard_room.png';
 import budgetRoomImg from '../assets/budget_room.png';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 import { 
   Eye, 
   EyeOff, 
@@ -182,6 +183,7 @@ const getBookingCurrency = (booking, reg = null, form = null) => {
 
 const Reservations = () => {
   const { user } = useAuth();
+  const { showConfirm, showAlert } = useModal();
   const navigate = useNavigate();
   const isAdmin = user.role === 'ADMIN';
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
@@ -347,18 +349,27 @@ const Reservations = () => {
 
   const [selectedSlipPreview, setSelectedSlipPreview] = useState(null);
 
-  const handleSaveBankSlip = (e, bookingId) => {
+  const handleSaveBankSlip = async (e, bookingKey) => {
     e.preventDefault();
-    if (!bookingId) {
-      alert('Please select a booking to upload slip.');
+    if (!bookingKey) {
+      await showAlert({
+        title: 'Selection Required',
+        message: 'Please select a reservation or booking first.',
+        type: 'warning'
+      });
       return;
     }
     if (!bankSlipForm.slipUrl) {
-      alert('Please select a payment slip file to upload.');
+      await showAlert({
+        title: 'File Required',
+        message: 'Please select a payment slip file (Image / PDF) to upload.',
+        type: 'warning'
+      });
       return;
     }
 
-    const currentSlips = allBankSlips[bookingId] || [];
+    const keyStr = String(bookingKey);
+    const currentSlips = allBankSlips[keyStr] || [];
     const newSlip = {
       id: Date.now(),
       bankKey: bankSlipForm.bankKey,
@@ -371,7 +382,7 @@ const Reservations = () => {
 
     const updated = {
       ...allBankSlips,
-      [bookingId]: [newSlip, ...currentSlips]
+      [keyStr]: [newSlip, ...currentSlips]
     };
 
     setAllBankSlips(updated);
@@ -388,16 +399,29 @@ const Reservations = () => {
       slipUrl: '',
       fileName: ''
     });
-    alert('Bank Payment Slip uploaded and saved successfully!');
+    await showAlert({
+      title: 'Slip Uploaded',
+      message: 'Bank Payment Slip uploaded and saved successfully!',
+      type: 'success'
+    });
   };
 
-  const handleDeleteBankSlip = (bookingId, slipId) => {
-    if (!window.confirm('Are you sure you want to remove this bank slip?')) return;
-    const currentSlips = allBankSlips[bookingId] || [];
+  const handleDeleteBankSlip = async (bookingKey, slipId) => {
+    const confirmed = await showConfirm({
+      title: 'Delete Bank Slip?',
+      message: 'Are you sure you want to remove this attached bank slip?',
+      confirmText: 'Yes, Remove',
+      cancelText: 'Cancel',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
+    const keyStr = String(bookingKey);
+    const currentSlips = allBankSlips[keyStr] || [];
     const updatedSlips = currentSlips.filter(s => s.id !== slipId);
     const updated = {
       ...allBankSlips,
-      [bookingId]: updatedSlips
+      [keyStr]: updatedSlips
     };
     setAllBankSlips(updated);
     try {
@@ -2743,8 +2767,10 @@ const Reservations = () => {
 
               {/* BANK PAYMENT SLIP & RECEIPT UPLOAD SECTION */}
               {associatedBooking && (() => {
-                const bId = associatedBooking.id || selectedReg?.id;
-                const bookingSlips = allBankSlips[bId] || [];
+                const bKey = associatedBooking.bookingNumber 
+                  ? String(associatedBooking.bookingNumber).trim() 
+                  : String(associatedBooking.id || selectedReg?.id);
+                const bookingSlips = allBankSlips[bKey] || allBankSlips[String(associatedBooking.id)] || allBankSlips[String(selectedReg?.id)] || [];
                 const bCurr = getBookingCurrency(associatedBooking);
                 const activeBank = BANK_ACCOUNTS[bankSlipForm.bankKey] || BANK_ACCOUNTS[getBankKeyForCurrency(bCurr)] || BANK_ACCOUNTS.USD_PB;
 
@@ -2798,7 +2824,7 @@ const Reservations = () => {
                       </div>
                     </div>
 
-                    <form onSubmit={(e) => handleSaveBankSlip(e, bId)} className="space-y-2.5 text-xs">
+                    <form onSubmit={(e) => handleSaveBankSlip(e, bKey)} className="space-y-2.5 text-xs">
                       {/* Bank Account Selection Dropdown */}
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -2920,7 +2946,7 @@ const Reservations = () => {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteBankSlip(bId, slip.id)}
+                                    onClick={() => handleDeleteBankSlip(bKey, slip.id)}
                                     className="bg-rose-50 hover:bg-rose-100 text-rose-600 p-1 rounded-md transition cursor-pointer"
                                   >
                                     <Trash2 size={11} />
