@@ -6,6 +6,7 @@ import suiteRoomImg from '../assets/suite_room.png';
 import standardRoomImg from '../assets/standard_room.png';
 import budgetRoomImg from '../assets/budget_room.png';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 import { 
   Eye, 
   EyeOff, 
