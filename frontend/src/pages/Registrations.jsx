@@ -64,6 +64,19 @@ const cleanRoomNumber = (val) => {
     .trim();
 };
 
+const getSlipStorageKey = (booking, registration) => {
+  if (booking?.bookingNumber && String(booking.bookingNumber).trim() !== '') {
+    return `booking_${String(booking.bookingNumber).trim()}`;
+  }
+  if (booking?.id) {
+    return `booking_id_${booking.id}`;
+  }
+  if (registration?.id) {
+    return `reg_${registration.id}`;
+  }
+  return '';
+};
+
 const BANK_ACCOUNTS = {
   USD_PB: {
     key: 'USD_PB',
@@ -372,11 +385,61 @@ const Registrations = () => {
   const [allBankSlips, setAllBankSlips] = useState(() => {
     try {
       const saved = localStorage.getItem('serene_bank_slips');
-      return saved ? JSON.parse(saved) : {};
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      // Clean legacy raw integer keys (like "1", "2") that cause cross-contamination
+      const cleaned = {};
+      Object.keys(parsed).forEach(k => {
+        if (k.startsWith('booking_') || k.startsWith('reg_')) {
+          cleaned[k] = parsed[k];
+        }
+      });
+      return cleaned;
     } catch (e) {
       return {};
     }
   });
+
+  // Fetch bank slips from Backend DB on mount / focus
+  const fetchDbBankSlips = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/bank-slips`);
+      if (res.ok) {
+        const dbSlips = await res.json();
+        const grouped = {};
+        dbSlips.forEach(s => {
+          if (!s.bookingKey) return;
+          if (!grouped[s.bookingKey]) grouped[s.bookingKey] = [];
+          grouped[s.bookingKey].push({
+            id: s.id,
+            dbId: s.id,
+            bankKey: s.bankKey,
+            paidDate: s.paidDate,
+            paymentType: s.paymentType,
+            slipUrl: s.slipUrl,
+            fileName: s.fileName || 'bank_slip.png',
+            createdAt: s.createdAt
+          });
+        });
+        setAllBankSlips(prev => {
+          const merged = { ...prev };
+          Object.keys(grouped).forEach(k => {
+            merged[k] = grouped[k];
+          });
+          try {
+            localStorage.setItem('serene_bank_slips', JSON.stringify(merged));
+          } catch (e) {}
+          return merged;
+        });
+      }
+    } catch (e) {
+      console.warn('Could not fetch slips from DB, using cached', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchDbBankSlips();
+  }, []);
 
   // Bank Slip Upload state
   const [bankSlipForm, setBankSlipForm] = useState({
@@ -387,7 +450,7 @@ const Registrations = () => {
     fileName: ''
   });
 
-  const handleSaveBankSlip = async (e, bookingKey) => {
+  const handleSaveBankSlip = async (e, bookingKey, assocBooking, assocReg) => {
     e.preventDefault();
     if (!bookingKey) {
       await showAlert({
@@ -408,8 +471,36 @@ const Registrations = () => {
 
     const keyStr = String(bookingKey);
     const currentSlips = allBankSlips[keyStr] || [];
+    
+    // Save to Backend DB
+    let savedDbId = Date.now();
+    try {
+      const dbPayload = {
+        bookingKey: keyStr,
+        bookingId: assocBooking?.id || null,
+        guestRegistrationId: assocReg?.id || null,
+        bankKey: bankSlipForm.bankKey,
+        paidDate: bankSlipForm.paidDate,
+        paymentType: bankSlipForm.paymentType,
+        slipUrl: bankSlipForm.slipUrl,
+        fileName: bankSlipForm.fileName || 'bank_slip.png'
+      };
+      const dbRes = await fetch(`${API_BASE}/bank-slips`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dbPayload)
+      });
+      if (dbRes.ok) {
+        const savedData = await dbRes.json();
+        if (savedData?.id) savedDbId = savedData.id;
+      }
+    } catch (dbErr) {
+      console.warn('DB Bank Slip save fallback to local:', dbErr);
+    }
+
     const newSlip = {
-      id: Date.now(),
+      id: savedDbId,
+      dbId: savedDbId,
       bankKey: bankSlipForm.bankKey,
       paidDate: bankSlipForm.paidDate,
       paymentType: bankSlipForm.paymentType,
@@ -454,9 +545,14 @@ const Registrations = () => {
     });
     if (!confirmed) return;
 
+    // Delete from DB if valid id
+    try {
+      await fetch(`${API_BASE}/bank-slips/${slipId}`, { method: 'DELETE' });
+    } catch (e) {}
+
     const keyStr = String(bookingKey);
     const currentSlips = allBankSlips[keyStr] || [];
-    const updatedSlips = currentSlips.filter(s => s.id !== slipId);
+    const updatedSlips = currentSlips.filter(s => s.id !== slipId && s.dbId !== slipId);
     const updated = {
       ...allBankSlips,
       [keyStr]: updatedSlips
@@ -472,7 +568,17 @@ const Registrations = () => {
     const loadSlips = () => {
       try {
         const saved = localStorage.getItem('serene_bank_slips');
-        if (saved) setAllBankSlips(JSON.parse(saved));
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const cleaned = {};
+          Object.keys(parsed).forEach(k => {
+            if (k.startsWith('booking_') || k.startsWith('reg_')) {
+              cleaned[k] = parsed[k];
+            }
+          });
+          setAllBankSlips(cleaned);
+        }
+        fetchDbBankSlips();
       } catch (e) {}
     };
     window.addEventListener('focus', loadSlips);
@@ -482,6 +588,7 @@ const Registrations = () => {
       window.removeEventListener('storage', loadSlips);
     };
   }, []);
+
 
   // Unified Payment State
   const [advancePayments, setAdvancePayments] = useState([]);
@@ -2941,10 +3048,8 @@ const Registrations = () => {
 
                   {/* Bank Slip Upload & Official Account Details */}
                   {(() => {
-                    const bKey = associatedBooking.bookingNumber 
-                      ? String(associatedBooking.bookingNumber).trim() 
-                      : String(associatedBooking.id || selectedReg?.id);
-                    const bookingSlips = allBankSlips[bKey] || allBankSlips[String(associatedBooking.id)] || allBankSlips[String(selectedReg?.id)] || [];
+                    const bKey = getSlipStorageKey(associatedBooking, selectedReg);
+                    const bookingSlips = allBankSlips[bKey] || [];
                     const bCurr = getBookingCurrency(associatedBooking, selectedReg, bookingForm);
                     const activeBank = BANK_ACCOUNTS[bankSlipForm.bankKey] || BANK_ACCOUNTS[getBankKeyForCurrency(bCurr)] || BANK_ACCOUNTS.USD_PB;
 
@@ -2998,7 +3103,8 @@ const Registrations = () => {
                           </div>
                         </div>
 
-                        <form onSubmit={(e) => handleSaveBankSlip(e, bKey)} className="space-y-2.5 text-xs">
+                        <form onSubmit={(e) => handleSaveBankSlip(e, bKey, associatedBooking, selectedReg)} className="space-y-2.5 text-xs">
+
                           {/* Bank Account Selection Dropdown */}
                           <div>
                             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
