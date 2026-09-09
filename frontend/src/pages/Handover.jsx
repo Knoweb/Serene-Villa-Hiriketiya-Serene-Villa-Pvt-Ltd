@@ -185,6 +185,8 @@ const Handover = () => {
       const netPayable = Math.max(0, grossBillValue - g.discountVal);
 
       let advancePaid = 0;
+      let extraNightsPaid = 0;
+      let extraPersonsPaid = 0;
       let finalPaid = 0;
       let totalPaidInCurrency = 0;
       let totalLkrEquivalent = 0;
@@ -196,14 +198,24 @@ const Handover = () => {
         totalPaidInCurrency += pAmt;
         totalLkrEquivalent += pLkr;
 
-        if (p.paymentType === 'FINAL' || (!p.isAdvancePayment && p.paymentType !== 'ADVANCE')) {
+        const ref = (p.referenceNumber || p.receiptNumber || p.bookingRef || '').toUpperCase();
+        const rem = (p.remarks || '').toUpperCase();
+        const isExtraNight = ref.includes('/1N') || ref.includes('/EN') || rem.includes('EXTRA NIGHT');
+        const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
+        const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
+
+        if (isExtraNight) {
+          extraNightsPaid += pAmt;
+        } else if (isExtraPerson) {
+          extraPersonsPaid += pAmt;
+        } else if (isFinal) {
           finalPaid += pAmt;
         } else {
           advancePaid += pAmt;
         }
       });
 
-      const remainingBalance = Math.max(0, netPayable - (advancePaid + finalPaid));
+      const remainingBalance = Math.max(0, netPayable - (advancePaid + extraNightsPaid + extraPersonsPaid + finalPaid));
 
       return {
         ...g,
@@ -211,6 +223,8 @@ const Handover = () => {
         grossBillValue,
         netPayable,
         advancePaid,
+        extraNightsPaid,
+        extraPersonsPaid,
         finalPaid,
         totalPaidInCurrency,
         totalLkrEquivalent,
@@ -594,10 +608,12 @@ const Handover = () => {
                     </div>
                     <div className="space-y-1.5">
                       {b.payments.map((p, pIdx) => {
-                        const isFinal = p.paymentType === 'FINAL';
-                        const isSubExtra = p.referenceNumber && p.referenceNumber.includes('/');
-                        const isExtraNight = isSubExtra && (p.referenceNumber.includes('/1N') || p.referenceNumber.includes('/EN'));
-                        const isExtraPerson = isSubExtra && p.referenceNumber.includes('/1P');
+                        const ref = (p.referenceNumber || p.receiptNumber || p.bookingRef || '').toUpperCase();
+                        const rem = (p.remarks || '').toUpperCase();
+                        const isExtraNight = ref.includes('/1N') || ref.includes('/EN') || rem.includes('EXTRA NIGHT');
+                        const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
+                        const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
+                        
                         const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'One Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
                         const itemBadgeColor = isExtraNight ? 'bg-indigo-100 text-indigo-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : isFinal ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800';
                         
