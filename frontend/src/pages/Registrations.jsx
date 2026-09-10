@@ -4061,6 +4061,11 @@ const Registrations = () => {
                       </p>
                     )}
                   </div>
+                  {(!isFinalPayment && !isExtraNight && !isExtraPerson && !isDiscountAdjusted && !isOriginalBill) && (
+                    <div className="text-[10px] font-bold text-rose-600 tracking-wide mt-2">
+                      * No refunds will be provided.
+                    </div>
+                  )}
                   <div className="text-[9px] text-slate-400 mt-2">
                     {isFinalPayment ? '* This is the final payment receipt. Account fully settled.' : '* Please preserve this receipt for final checkout subtraction.'}
                   </div>

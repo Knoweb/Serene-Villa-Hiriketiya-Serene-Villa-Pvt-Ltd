@@ -3451,15 +3451,21 @@ const Reservations = () => {
         if (!associatedBooking) return null;
         
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
+        const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
+        const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
         const isExtraNight = associatedBooking?.bookingNumber?.includes('/1N') || associatedBooking?.bookingNumber?.includes('/EN') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1N') || (selectedPaymentForReceipt.referenceNumber || '').includes('/EN') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA NIGHT') || selectedPaymentForReceipt.paymentType === 'EXTRA_NIGHT';
         const isExtraPerson = associatedBooking?.bookingNumber?.includes('/1P') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1P') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('ONE PERSON') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA PERSON') || selectedPaymentForReceipt.paymentType === 'EXTRA_PERSON';
-        const receiptTitle = isFinalPayment 
-          ? 'Final Payment Receipt' 
-          : isExtraNight 
-            ? 'Extra Night Receipt' 
-            : isExtraPerson 
-              ? 'One Person Receipt' 
-              : 'Advance Payment Receipt';
+        const receiptTitle = isDiscountAdjusted
+          ? 'Discount Adjusted Invoice'
+          : isOriginalBill
+            ? 'Original Reservation Invoice'
+            : isFinalPayment 
+              ? 'Final Payment Receipt' 
+              : isExtraNight 
+                ? 'Extra Night Receipt' 
+                : isExtraPerson 
+                  ? 'One Person Receipt' 
+                  : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
           const bCurr = getBookingCurrency(associatedBooking);
@@ -3863,6 +3869,11 @@ const Reservations = () => {
                           </p>
                         )}
                       </div>
+                      {(!isFinalPayment && !isExtraNight && !isExtraPerson && !isDiscountAdjusted && !isOriginalBill) && (
+                        <div className="text-[10px] font-bold text-rose-600 tracking-wide mt-2">
+                          * No refunds will be provided.
+                        </div>
+                      )}
                       <div className="text-[9px] text-slate-400 mt-2">
                         {isFinalPayment
                           ? '* This is the final payment receipt. Account fully settled.'
