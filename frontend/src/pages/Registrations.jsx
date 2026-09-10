@@ -4157,7 +4157,14 @@ Serene Villa Hiriketiya`;
                       {/* Current Payment Amount */}
                       {paidAmt > 0 && (
                         <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                          <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Settlement Paid:' : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')}</span>
+                          <span className="text-slate-500 font-semibold">
+                            {isFinalPayment 
+                              ? 'Final Settlement Paid:' 
+                              : (isExtraNight || isExtraPerson)
+                              ? 'Paid:'
+                              : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')
+                            }
+                          </span>
                           <span className="font-bold text-slate-900">{dispCurr} {paidAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}

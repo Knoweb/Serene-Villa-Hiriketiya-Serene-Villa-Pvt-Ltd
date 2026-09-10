@@ -3425,13 +3425,20 @@ const Reservations = () => {
       </div>
 
       {/* Receipt Modal */}
-{/* Receipt Modal */}
       {showReceiptModal && receiptData && selectedPaymentForReceipt && (() => {
         const associatedBooking = getBookingForReg(selectedReg.id);
         if (!associatedBooking) return null;
         
         const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
-        const receiptTitle = isFinalPayment ? 'Final Payment Receipt' : 'Advance Payment Receipt';
+        const isExtraNight = associatedBooking?.bookingNumber?.includes('/1N') || associatedBooking?.bookingNumber?.includes('/EN') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1N') || (selectedPaymentForReceipt.referenceNumber || '').includes('/EN') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA NIGHT') || selectedPaymentForReceipt.paymentType === 'EXTRA_NIGHT';
+        const isExtraPerson = associatedBooking?.bookingNumber?.includes('/1P') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1P') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('ONE PERSON') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA PERSON') || selectedPaymentForReceipt.paymentType === 'EXTRA_PERSON';
+        const receiptTitle = isFinalPayment 
+          ? 'Final Payment Receipt' 
+          : isExtraNight 
+            ? 'Extra Night Receipt' 
+            : isExtraPerson 
+              ? 'One Person Receipt' 
+              : 'Advance Payment Receipt';
 
         const handleWhatsAppShare = () => {
           const bCurr = getBookingCurrency(associatedBooking);
@@ -3904,7 +3911,14 @@ Serene Villa Hiriketiya`;
                           )}
                           
                           <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                            <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Payment:' : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')}</span>
+                            <span className="text-slate-500 font-semibold">
+                              {isFinalPayment 
+                                ? 'Final Payment:' 
+                                : (isExtraNight || isExtraPerson)
+                                ? 'Paid:'
+                                : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')
+                              }
+                            </span>
                             <span className="font-bold text-emerald-850 print:text-slate-900">
                               {dispCurr} {parseFloat(paidAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
