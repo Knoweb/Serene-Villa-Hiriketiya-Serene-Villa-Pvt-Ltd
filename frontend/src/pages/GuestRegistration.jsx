@@ -505,25 +505,23 @@ const GuestRegistration = () => {
         ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
 
-    const text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴
+    const formatPrettyDate = (dStr) => {
+      if (!dStr) return '';
+      const d = new Date(dStr);
+      if (isNaN(d.getTime())) return dStr;
+      const day = String(d.getDate()).padStart(2, '0');
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${day} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+    };
 
-Dear *${formData.guestName || 'Guest'}*,
+    const checkInOutFormatted = `${formatPrettyDate(formData.checkInDate)} – ${formatPrettyDate(formData.checkOutDate)}`;
 
-Thank you for your payment! Here is your official payment receipt:
-
-📄 *Receipt No:* ${receiptData.receiptNumber}
-🔖 *Booking Ref:* ${associatedBookingData.bookingNumber}
-🗓 *Check-in - Check-out:* ${formData.checkInDate} to ${formData.checkOutDate} (${nights} ${nights === 1 ? 'Night' : 'Nights'})
-
-💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}
-💵 *Amount Paid:* ${amountPaidStr}
-💰 *Remaining Balance:* ${balanceStr}
-
-We look forward to welcoming you to Serene Villa! 😊
-
-Best regards,
-*Reservation Department*
-Serene Villa Hiriketiya`;
+    let text = '';
+    if (isFinalPayment) {
+      text = `🌴 SERENE VILLA – FINAL PAYMENT RECEIPT 🌴\n\nDear, Mr./Mrs., ${formData.guestName || 'Guest'}\n\nThank you for your payment! 😊\nPlease find your official payment receipt below:\n\n📄 Receipt No: ${receiptData.receiptNumber}\n🔖 Booking Ref: ${associatedBookingData.bookingNumber}\n🗓 Check-in & Check-out: ${checkInOutFormatted}\n🌙 Stay: ${nights} ${nights === 1 ? 'Night' : 'Nights'}\n\n💳 Payment Method: ${selectedPaymentForReceipt.paymentMethod}\n💵 Amount Paid: ${amountPaidStr}\n💰 Remaining Balance: ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa Hiriketiya! 🌴😊\n\nBest regards,\nReservation Department\nSerene Villa Hiriketiya`;
+    } else {
+      text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴\n\nDear Mr./Mrs. *${formData.guestName || 'Guest'}*,\n\nThank you for your payment! Here is your official payment receipt:\n\n📄 *Receipt No:* ${receiptData.receiptNumber}\n🔖 *Booking Ref:* ${associatedBookingData.bookingNumber}\n🗓 *Check-in - Check-out:* ${formData.checkInDate} to ${formData.checkOutDate} (${nights} ${nights === 1 ? 'Night' : 'Nights'})\n\n💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}\n💵 *Amount Paid:* ${amountPaidStr}\n💰 *Remaining Balance:* ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\n*Reservation Department*\nSerene Villa Hiriketiya`;
+    }
 
     let rawPhone = formData?.mobileNumber || formData?.whatsappNumber || formData?.whatsAppNumber || formData?.phone || associatedBookingData?.contactNumber || associatedBookingData?.phone || '';
     const cleanedPhone = rawPhone.replace(/\D/g, '');

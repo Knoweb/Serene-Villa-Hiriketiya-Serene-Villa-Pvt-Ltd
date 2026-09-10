@@ -2373,13 +2373,19 @@ const Reservations = () => {
                     if (formattedPhone.startsWith('0')) {
                       formattedPhone = '94' + formattedPhone.substring(1);
                     }
-                    const guestName = selectedReg.guestName || '';
+                    const guestName = selectedReg.guestName || 'Guest';
                     const booking = getBookingForReg(selectedReg.id);
                     const bookingNumber = booking?.bookingNumber || ('SV-' + (1000 + selectedReg.id));
                     const checkIn = selectedReg.checkInDate || '';
                     const checkOut = selectedReg.checkOutDate || '';
+                    const roomType = booking?.roomType || selectedReg.roomType || 'Standard Room';
+                    const adults = selectedReg.adults || booking?.adults || 1;
+                    const children = selectedReg.children || booking?.children || 0;
+                    const guestsStr = `${adults} Adult${adults > 1 ? 's' : ''}${children > 0 ? `, ${children} Child${children > 1 ? 'ren' : ''}` : ''}`;
+                    const bCurr = getBookingCurrency(booking || selectedReg);
+                    const totalPrice = parseFloat(booking?.totalAmount || selectedReg.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     
-                    const message = `Welcome to Serene Villa - Hiriketiya 🌴\n\nHello Mr / Mrs ${guestName},\n\nWe are pleased to confirm your reservation at Serene Villa Hiriketiya!\n\nHere are your reservation details:\n- Booking Ref: ${bookingNumber}\n- Check-in: ${checkIn}\n- Check-out: ${checkOut}\n\nHow are you? Could we know what time you are planning to check-in please?\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nThank you.\n\nBest regards,\nReservation department\nSerene Villa Hiriketiya`;
+                    const message = `Hi ${guestName}  how are you? 😊 😊\n\nCould you please let us know what time you’re planning to arrive for check-in? We’ll be happy to welcome you! 🌴\n\n*Reservation Details:*\n• Booking Reference: ${bookingNumber}\n• Check-in Date: ${checkIn}\n• Check-out Date: ${checkOut}\n• Room Type: ${roomType}\n• Number of Guests: ${guestsStr}\n• Total Price: ${bCurr} ${totalPrice}\n\nOnce you arrive at the hotel, please enter your *Booking Reference number* in the *Auto Fill section of the QR Check-in Form*, and then complete the remaining details. It will make the check-in process easier for you. 😊\n*Remark* Foreign currency will be converted to LKR using the *exchange rate on the day of payment*.\n\nThank you, and we look forward to welcoming you to *Serene Villa Hiriketiya*! 🌺\n\n*Reservation Department*\nSerene Villa Hiriketiya`;
                     
                     window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`, '_blank');
                   }}
@@ -3477,33 +3483,24 @@ const Reservations = () => {
             ? `LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : `${currencyCode} ${(parseFloat(paidAmtOrig) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
 
-          const balanceStr = isFinalPayment
-            ? (bCurr === 'LKR' ? 'LKR 0.00 (Fully Settled)' : `${bCurr} 0.00 (LKR 0.00) (Fully Settled)`)
-            : (bCurr === 'LKR'
-              ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
+          const formatPrettyDate = (dStr) => {
+            if (!dStr) return '';
+            const d = new Date(dStr);
+            if (isNaN(d.getTime())) return dStr;
+            const day = String(d.getDate()).padStart(2, '0');
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${day} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+          };
 
+          const checkInOutFormatted = `${formatPrettyDate(selectedReg.checkInDate)} – ${formatPrettyDate(selectedReg.checkOutDate)}`;
           const nightsCount = selectedReg.numberOfNights || selectedReg.nights || 1;
 
-          const text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴
-
-Dear *${selectedReg.guestName || 'Guest'}*,
-
-Thank you for your payment! Here is your official payment receipt:
-
-📄 *Receipt No:* ${receiptData.receiptNumber}
-🔖 *Booking Ref:* ${associatedBooking.bookingNumber}
-🗓 *Check-in - Check-out:* ${selectedReg.checkInDate} to ${selectedReg.checkOutDate} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'})
-
-💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}
-💵 *Amount Paid:* ${amountPaidStr}
-💰 *Remaining Balance:* ${balanceStr}
-
-We look forward to welcoming you to Serene Villa! 😊
-
-Best regards,
-*Reservation Department*
-Serene Villa Hiriketiya`;
+          let text = '';
+          if (isFinalPayment) {
+            text = `🌴 SERENE VILLA – FINAL PAYMENT RECEIPT 🌴\n\nDear, Mr./Mrs., ${selectedReg.guestName || 'Guest'}\n\nThank you for your payment! 😊\nPlease find your official payment receipt below:\n\n📄 Receipt No: ${receiptData.receiptNumber}\n🔖 Booking Ref: ${associatedBooking.bookingNumber}\n🗓 Check-in & Check-out: ${checkInOutFormatted}\n🌙 Stay: ${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'}\n\n💳 Payment Method: ${selectedPaymentForReceipt.paymentMethod}\n💵 Amount Paid: ${amountPaidStr}\n💰 Remaining Balance: ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa Hiriketiya! 🌴😊\n\nBest regards,\nReservation Department\nSerene Villa Hiriketiya`;
+          } else {
+            text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴\n\nDear Mr./Mrs. *${selectedReg.guestName || 'Guest'}*,\n\nThank you for your payment! Here is your official payment receipt:\n\n📄 *Receipt No:* ${receiptData.receiptNumber}\n🔖 *Booking Ref:* ${associatedBooking.bookingNumber}\n🗓 *Check-in - Check-out:* ${selectedReg.checkInDate} to ${selectedReg.checkOutDate} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'})\n\n💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}\n💵 *Amount Paid:* ${amountPaidStr}\n💰 *Remaining Balance:* ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\n*Reservation Department*\nSerene Villa Hiriketiya`;
+          }
 
           let rawPhone = selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || selectedReg?.mobileNumber || selectedReg?.phone || associatedBooking?.contactNumber || associatedBooking?.phone || '';
           const cleanedPhone = rawPhone.replace(/\D/g, '');
@@ -4168,7 +4165,7 @@ Serene Villa Hiriketiya`;
           const balAmt = Math.max(0, parseFloat(advanceFormData.totalAmount || 0) - parseFloat(advanceFormData.advanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           const bd = advanceFormData.bankDetails || BANK_ACCOUNTS.USD_PB;
 
-          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear Mr / Mrs *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank Name:* ${bd.bankName}\n• *Account Holder:* ${bd.accountHolder}\n• *Account Number:* ${bd.accountNumber}\n• *Branch:* ${bd.branch}${bd.swiftCode ? `\n• *Swift Code:* ${bd.swiftCode}` : ''}\n• *Contact Hotline:* ${bd.hotline || '+94 70 499 8787'}\n\nPlease send us the payment receipt/confirmation once the transfer is completed.\nThank you for choosing Serene Villa! 🙏`;
+          const text = `*SERENE VILLA - ADVANCE PAYMENT REQUEST* 🌴\n\nDear Mr / Mrs *${advanceFormData.guestName || 'Guest'}*,\n\nGreetings from Serene Villa - Hiriketiya!\nHere are your booking & advance payment request details:\n\n📋 *Booking Ref:* #${bookingNo}\n🗓 *Check-in:* ${advanceFormData.checkIn}\n🗓 *Check-out:* ${advanceFormData.checkOut} (${advanceFormData.nights} Nights)\n\n💰 *Total Booking Amount:* ${curr} ${totAmt}\n💳 *Required Advance Amount:* ${curr} ${advAmt}\n💵 *Balance Due Upon Arrival:* ${curr} ${balAmt}\n\n🏦 *BANK TRANSFER DETAILS:*\n• *Bank Name:* ${bd.bankName}\n• *Account Holder:* ${bd.accountHolder}\n• *Account Number:* ${bd.accountNumber}\n• *Branch:* ${bd.branch}${bd.swiftCode ? `\n• *Swift Code:* ${bd.swiftCode}` : ''}\n• *Contact Hotline:* ${bd.hotline || '+94 70 499 8787'}\n\nPlease send us the payment receipt/confirmation once the transfer is completed.                                                                             Special **No refunds will be provided.**\n\nThank you for choosing Serene Villa! 🙏`;
 
           const url = phone 
             ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
