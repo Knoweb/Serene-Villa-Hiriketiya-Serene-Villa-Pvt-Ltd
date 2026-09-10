@@ -41,6 +41,7 @@ import {
   FileDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
 import ReservationConfirmationPrint from '../components/ReservationConfirmationPrint';
 import AdvanceRequestPrint from '../components/AdvanceRequestPrint';
@@ -915,11 +916,39 @@ const Reservations = () => {
     }
   };
 
+  // Delete Request Modal State for Staff (Front Office / Accountant)
+  const [deleteRequestModal, setDeleteRequestModal] = useState({
+    isOpen: false,
+    registrationId: null,
+    guestName: '',
+    bookingRef: '',
+    reason: '',
+    submitting: false
+  });
+
   // Delete Guest Registration (Admin & Front Office)
-  const handleDeleteRegistration = async (id) => {
+  const handleDeleteRegistration = async (id, customReg = null) => {
+    const targetReg = customReg || registrations.find(r => r.id === id) || (selectedReg?.id === id ? selectedReg : null);
+    const guestName = targetReg?.guestName || 'Guest';
+    const bookingRef = (targetReg?.passportNumber || '').replace(/^SV-?/i, '') || `Reg #${id}`;
+
+    // If Front Office / Non-Admin user: Open Delete Request Modal
+    if (user.role !== 'ADMIN') {
+      setDeleteRequestModal({
+        isOpen: true,
+        registrationId: id,
+        guestName: guestName,
+        bookingRef: bookingRef,
+        reason: '',
+        submitting: false
+      });
+      return;
+    }
+
+    // If Admin: Direct Delete with confirmation
     const isConfirmed = await showConfirm({
       title: "Delete Guest Registration?",
-      message: "Are you sure you want to delete this guest registration and all associated bookings/payments? This action cannot be undone.",
+      message: `Are you sure you want to permanently delete registration for "${guestName}" (${bookingRef}) and all associated bookings/payments? This action cannot be undone.`,
       confirmText: "Yes, Delete",
       cancelText: "Cancel",
       isDanger: true
@@ -932,6 +961,7 @@ const Reservations = () => {
         method: 'DELETE'
       });
       if (response.ok) {
+        toast.success("Guest registration and bookings deleted successfully");
         fetchRegistrations();
         if (selectedReg && selectedReg.id === id) {
           setSelectedReg(null);
@@ -951,6 +981,51 @@ const Reservations = () => {
         message: "An error occurred while deleting the registration",
         type: "danger"
       });
+    }
+  };
+
+  const handleSubmitDeleteRequest = async (e) => {
+    e.preventDefault();
+    if (!deleteRequestModal.reason.trim()) {
+      toast.error('Please enter a reason for deletion');
+      return;
+    }
+
+    setDeleteRequestModal(prev => ({ ...prev, submitting: true }));
+    try {
+      const payload = {
+        registrationId: deleteRequestModal.registrationId,
+        guestName: deleteRequestModal.guestName,
+        bookingRef: deleteRequestModal.bookingRef,
+        reason: deleteRequestModal.reason.trim(),
+        requestedBy: user.username || 'Front Office'
+      };
+
+      const res = await fetch(`${API_BASE}/delete-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        toast.success('Delete request sent to Admin for approval!');
+        setDeleteRequestModal({
+          isOpen: false,
+          registrationId: null,
+          guestName: '',
+          bookingRef: '',
+          reason: '',
+          submitting: false
+        });
+      } else {
+        const data = await res.json();
+        toast.error(data.message || 'Failed to submit delete request');
+        setDeleteRequestModal(prev => ({ ...prev, submitting: false }));
+      }
+    } catch (err) {
+      console.error('Error submitting delete request:', err);
+      toast.error('Network error submitting delete request');
+      setDeleteRequestModal(prev => ({ ...prev, submitting: false }));
     }
   };
 
@@ -5386,6 +5461,73 @@ const Reservations = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Delete Request Modal */}
+      {deleteRequestModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-rose-50 border border-rose-100 text-rose-600">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Request Deletion</h3>
+                  <p className="text-[11px] text-slate-400 font-medium">Send deletion request to Admin for approval</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeleteRequestModal(prev => ({ ...prev, isOpen: false }))}
+                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
+              <p className="text-slate-500 font-medium">
+                Guest: <span className="font-bold text-slate-800">{deleteRequestModal.guestName}</span>
+              </p>
+              <p className="text-slate-500 font-medium">
+                Reservation Ref: <span className="font-mono font-bold text-slate-800">{deleteRequestModal.bookingRef}</span>
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmitDeleteRequest} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Reason for Deletion <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={deleteRequestModal.reason}
+                  onChange={(e) => setDeleteRequestModal(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="e.g. Guest cancelled booking, duplicate reservation, incorrect dates..."
+                  className="w-full p-3 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 placeholder-slate-400"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setDeleteRequestModal(prev => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deleteRequestModal.submitting}
+                  className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl transition flex items-center gap-1.5 shadow-sm shadow-rose-500/20 cursor-pointer"
+                >
+                  {deleteRequestModal.submitting ? 'Submitting...' : 'Send Request to Admin'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
