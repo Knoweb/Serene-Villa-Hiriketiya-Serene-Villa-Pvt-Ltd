@@ -33,10 +33,10 @@ public class ReportService {
     @Autowired
     private DiscountRequestRepository discountRequestRepository;
 
-    public ReportSummaryDTO generateReport(LocalDate startDate, LocalDate endDate) {
+    public ReportSummaryDTO generateReport(LocalDate startDate, LocalDate endDate, Long propertyId) {
         // Fetch all data
         List<GuestRegistration> allRegistrations = guestRegistrationRepository.findAll();
-        List<Booking> allBookings = bookingRepository.findAll();
+        List<Booking> allBookings = propertyId != null ? bookingRepository.findByPropertyId(propertyId) : bookingRepository.findAll();
         List<Payment> allPayments = paymentRepository.findAll();
         List<DiscountRequest> allDiscounts = discountRequestRepository.findAll();
 

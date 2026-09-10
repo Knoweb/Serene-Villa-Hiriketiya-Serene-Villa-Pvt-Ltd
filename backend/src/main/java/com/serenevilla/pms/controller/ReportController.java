@@ -19,30 +19,34 @@ public class ReportController {
 
     @GetMapping("/daily")
     public ResponseEntity<ReportSummaryDTO> getDailyReport(
-            @RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ResponseEntity.ok(reportService.generateReport(date, date));
+            @RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(name = "propertyId", required = false) Long propertyId) {
+        return ResponseEntity.ok(reportService.generateReport(date, date, propertyId));
     }
 
     @GetMapping("/weekly")
     public ResponseEntity<ReportSummaryDTO> getWeeklyReport(
             @RequestParam(name = "startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(name = "endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(reportService.generateReport(startDate, endDate));
+            @RequestParam(name = "endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(name = "propertyId", required = false) Long propertyId) {
+        return ResponseEntity.ok(reportService.generateReport(startDate, endDate, propertyId));
     }
 
     @GetMapping("/monthly")
     public ResponseEntity<ReportSummaryDTO> getMonthlyReport(
             @RequestParam(name = "year") int year,
-            @RequestParam(name = "month") int month) {
+            @RequestParam(name = "month") int month,
+            @RequestParam(name = "propertyId", required = false) Long propertyId) {
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-        return ResponseEntity.ok(reportService.generateReport(start, end));
+        return ResponseEntity.ok(reportService.generateReport(start, end, propertyId));
     }
 
     @GetMapping("/range")
     public ResponseEntity<ReportSummaryDTO> getRangeReport(
             @RequestParam(name = "startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(name = "endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(reportService.generateReport(startDate, endDate));
+            @RequestParam(name = "endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(name = "propertyId", required = false) Long propertyId) {
+        return ResponseEntity.ok(reportService.generateReport(startDate, endDate, propertyId));
     }
 }

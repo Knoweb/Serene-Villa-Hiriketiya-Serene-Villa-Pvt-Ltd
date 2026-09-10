@@ -79,9 +79,37 @@ public class BillingController {
     }
 
     private void populatePaymentDetails(List<Payment> payments) {
+        if (payments == null || payments.isEmpty()) return;
+
+        // Collect all distinct booking and registration IDs
+        java.util.Set<Long> bookingIds = payments.stream()
+                .map(Payment::getBookingId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        java.util.Set<Long> regIds = payments.stream()
+                .map(Payment::getGuestRegistrationId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // Batch load bookings and guest registrations
+        Map<Long, com.serenevilla.pms.model.Booking> bookingMap = bookingIds.isEmpty() ? Map.of() :
+                bookingRepository.findAllById(bookingIds).stream()
+                        .collect(Collectors.toMap(com.serenevilla.pms.model.Booking::getId, b -> b, (b1, b2) -> b1));
+
+        // Also add any guestRegistrationIds referenced from loaded bookings
+        bookingMap.values().forEach(b -> {
+            if (b.getGuestRegistrationId() != null) regIds.add(b.getGuestRegistrationId());
+        });
+
+        Map<Long, com.serenevilla.pms.model.GuestRegistration> guestMap = regIds.isEmpty() ? Map.of() :
+                guestRegistrationRepository.findAllById(regIds).stream()
+                        .collect(Collectors.toMap(com.serenevilla.pms.model.GuestRegistration::getId, g -> g, (g1, g2) -> g1));
+
         for (Payment payment : payments) {
             if (payment.getBookingId() != null) {
-                bookingRepository.findById(payment.getBookingId()).ifPresent(booking -> {
+                com.serenevilla.pms.model.Booking booking = bookingMap.get(payment.getBookingId());
+                if (booking != null) {
                     if (payment.getBookingRef() == null || payment.getBookingRef().trim().isEmpty()) {
                         payment.setBookingRef(booking.getBookingNumber());
                     }
@@ -89,11 +117,12 @@ public class BillingController {
                         payment.setGuestRegistrationId(booking.getGuestRegistrationId());
                     }
                     if (booking.getGuestRegistrationId() != null) {
-                        guestRegistrationRepository.findById(booking.getGuestRegistrationId()).ifPresent(guest -> {
+                        com.serenevilla.pms.model.GuestRegistration guest = guestMap.get(booking.getGuestRegistrationId());
+                        if (guest != null) {
                             payment.setGuestName(guest.getGuestName());
-                        });
+                        }
                     }
-                });
+                }
             }
             if ((payment.getBookingRef() == null || payment.getBookingRef().trim().isEmpty()) && payment.getGuestRegistrationId() != null) {
                 bookingRepository.findByGuestRegistrationId(payment.getGuestRegistrationId()).stream()
@@ -102,9 +131,10 @@ public class BillingController {
                     .ifPresent(b -> payment.setBookingRef(b.getBookingNumber()));
             }
             if (payment.getGuestName() == null && payment.getGuestRegistrationId() != null) {
-                guestRegistrationRepository.findById(payment.getGuestRegistrationId()).ifPresent(guest -> {
+                com.serenevilla.pms.model.GuestRegistration guest = guestMap.get(payment.getGuestRegistrationId());
+                if (guest != null) {
                     payment.setGuestName(guest.getGuestName());
-                });
+                }
             }
         }
     }

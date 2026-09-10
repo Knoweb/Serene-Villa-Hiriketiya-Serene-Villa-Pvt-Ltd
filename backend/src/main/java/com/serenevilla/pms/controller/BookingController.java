@@ -24,9 +24,14 @@ public class BookingController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getBookings(@RequestParam(name = "propertyId", required = false, defaultValue = "1") Long propertyId) {
+    public ResponseEntity<?> getBookings(@RequestParam(name = "propertyId", required = false) Long propertyId) {
         try {
-            List<Booking> bookings = bookingRepository.findAll();
+            List<Booking> bookings;
+            if (propertyId != null) {
+                bookings = bookingRepository.findByPropertyId(propertyId);
+            } else {
+                bookings = bookingRepository.findAll();
+            }
             return ResponseEntity.ok(bookings != null ? bookings : new java.util.ArrayList<>());
         } catch (Exception e) {
             e.printStackTrace();
