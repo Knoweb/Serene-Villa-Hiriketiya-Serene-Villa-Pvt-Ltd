@@ -107,9 +107,23 @@ const BANK_ACCOUNTS = {
     swiftCode: "PSBKLKLX",
     hotline: "+94 70 499 8787"
   },
+  LKR_SB: {
+    key: 'LKR_SB',
+    label: "LKR 2 - Sampath Bank (Acc: 521630000106)",
+    currency: 'LKR',
+    bankName: "Sampath Bank",
+    companyName: "Thasara Architectural Design and Construction",
+    accountHolder: "Thasara Architectural Design and Construction",
+    accountNumber: "521630000106",
+    branch: "Dickwella (216)",
+    bankCode: "7278",
+    branchCode: "216",
+    swiftCode: "BSAMLKLX",
+    hotline: "+94 70 499 8787"
+  },
   LKR_PB_PERSONAL: {
     key: 'LKR_PB_PERSONAL',
-    label: "LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)",
+    label: "LKR 3 - D.W.C Prasad (People's Bank - Acc: 288100186167023)",
     currency: 'LKR',
     bankName: "People's Bank",
     companyName: "Serene Villa",
@@ -2989,7 +3003,8 @@ const Reservations = () => {
                           <option value="USD_PB">USD ($) - People's Bank (Acc: 288402130016448)</option>
                           <option value="AUD_SB">AUD ($) - Sampath Bank (Acc: 521630000092)</option>
                           <option value="LKR_PB_COMPANY">LKR 1 - Serene Villa (pvt)LTD (People's Bank - Acc: 288100190017275)</option>
-                          <option value="LKR_PB_PERSONAL">LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)</option>
+                          <option value="LKR_SB">LKR 2 - Sampath Bank (Acc: 521630000106)</option>
+                          <option value="LKR_PB_PERSONAL">LKR 3 - D.W.C Prasad (People's Bank - Acc: 288100186167023)</option>
                         </select>
                       </div>
 
@@ -4268,7 +4283,8 @@ Serene Villa Hiriketiya`;
                       >
                         <option value="USD_PB">USD ($) - People's Bank (Acc: 288402130016448)</option>
                         <option value="LKR_PB_COMPANY">LKR 1 - Serene Villa (pvt)LTD (People's Bank - Acc: 288100190017275)</option>
-                        <option value="LKR_PB_PERSONAL">LKR 2 - D.W.C Prasad (People's Bank - Acc: 288100186167023)</option>
+                        <option value="LKR_SB">LKR 2 - Sampath Bank (Acc: 521630000106)</option>
+                        <option value="LKR_PB_PERSONAL">LKR 3 - D.W.C Prasad (People's Bank - Acc: 288100186167023)</option>
                         <option value="EUR_SB">EUR (€) - Sampath Bank (Acc: 521630000114)</option>
                         <option value="AUD_SB">AUD ($) - Sampath Bank (Acc: 521630000092)</option>
                       </select>
