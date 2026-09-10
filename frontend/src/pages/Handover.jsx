@@ -3,8 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Check, X, Send, CreditCard, ChevronDown, ChevronUp, Layers, FileText, 
   DollarSign, Calendar, User, Search, RefreshCw, AlertCircle, Sparkles, CheckCircle2,
-  Clock, ArrowUpRight, BedDouble, Tag, ShieldCheck
+  Clock, ArrowUpRight, BedDouble, Tag, ShieldCheck, Receipt, Printer, Download, Eye
 } from 'lucide-react';
+import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -25,6 +26,89 @@ const Handover = () => {
   const [message, setMessage] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Invoice / Receipt Preview Modal State
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptData, setReceiptData] = useState(null);
+  const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
+  const [selectedRegForReceipt, setSelectedRegForReceipt] = useState(null);
+  const [associatedBookingForReceipt, setAssociatedBookingForReceipt] = useState(null);
+  const [forceReceiptLkr, setForceReceiptLkr] = useState(false);
+  const receiptRef = React.useRef(null);
+
+  // Open Invoice Helper for Handover Items
+  const handleOpenInvoice = (p, group) => {
+    const matchedBaseBooking = bookings.find(b => {
+      const bNum = (b.bookingNumber || '').trim().toLowerCase();
+      return bNum === group.bookingRef.toLowerCase() || bNum.startsWith(group.bookingRef.toLowerCase() + '/');
+    });
+
+    const regId = matchedBaseBooking?.guestRegistrationId || p.guestRegistrationId;
+    const matchedReg = registrations.find(r => r.id === regId) || {
+      id: regId || Date.now(),
+      guestName: group.guestName,
+      roomNumber: group.roomNumbers,
+      checkInDate: group.checkIn,
+      checkOutDate: group.checkOut,
+      currency: group.currency,
+      country: 'Sri Lanka'
+    };
+
+    // Find specific sub-booking if this payment relates to Extra Night / Extra Person
+    const subBooking = bookings.find(b => {
+      if (p.bookingId && b.id === p.bookingId) return true;
+      if (!b.bookingNumber) return false;
+      const bNum = b.bookingNumber.trim().toUpperCase();
+      const ref = (p.referenceNumber || p.receiptNumber || '').trim().toUpperCase();
+      return bNum === ref || (ref && ref.includes(bNum));
+    }) || matchedBaseBooking || {
+      id: p.bookingId || Date.now(),
+      bookingNumber: group.bookingRef,
+      roomNumber: group.roomNumbers,
+      roomType: 'Deluxe Room',
+      currency: group.currency || 'USD',
+      totalAmount: group.grossBillValue || group.netPayable || 0,
+      checkInDate: group.checkIn,
+      checkOutDate: group.checkOut
+    };
+
+    const isFinalPayment = p.paymentType === 'FINAL' || (p.remarks || '').toUpperCase().includes('FINAL');
+    const isExtraNight = (p.referenceNumber || '').toUpperCase().includes('/1N') || (p.remarks || '').toUpperCase().includes('EXTRA NIGHT');
+    const isExtraPerson = (p.referenceNumber || '').toUpperCase().includes('/1P') || (p.remarks || '').toUpperCase().includes('EXTRA PERSON');
+
+    const paymentType = isFinalPayment ? 'FINAL' : isExtraNight ? 'EXTRA_NIGHT' : isExtraPerson ? 'EXTRA_PERSON' : 'ADVANCE';
+
+    const normalizedPayment = {
+      ...p,
+      paymentType,
+      amount: parseFloat(p.amount || p.amountInCurrency || 0),
+      amountLkr: parseFloat(p.amountLkr || p.convertedAmountLkr || 0),
+      currencyCode: p.currencyCode || p.currency || group.currency || 'USD',
+      exchangeRate: p.exchangeRate || 335,
+      receiptNumber: p.receiptNumber || p.referenceNumber || `REC-${p.id}`,
+      paymentDate: p.paymentDate || (p.createdAt ? p.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]),
+      paymentMethod: p.paymentMethod || 'Cash'
+    };
+
+    setSelectedPaymentForReceipt(normalizedPayment);
+    setSelectedRegForReceipt(matchedReg);
+    setAssociatedBookingForReceipt(subBooking);
+    setReceiptData({
+      id: p.id,
+      receiptNumber: normalizedPayment.receiptNumber,
+      paymentId: p.id,
+      paymentType,
+      generatedAt: p.createdAt || normalizedPayment.paymentDate,
+      generatedBy: p.createdBy || (isFrontOfficer ? 'Front Office' : 'Finance / Accounts'),
+      guestName: matchedReg.guestName || group.guestName,
+      bookingRef: subBooking.bookingNumber || group.bookingRef,
+      roomNumber: subBooking.roomNumber || group.roomNumbers,
+      totalAmount: parseFloat(subBooking.totalAmount || group.baseRoomPrice || 0),
+      bookingCurrency: normalizedPayment.currencyCode
+    });
+
+    setShowReceiptModal(true);
+  };
 
   // Fetch all required data
   const fetchData = async () => {
@@ -648,23 +732,32 @@ const Handover = () => {
                               </div>
                             </div>
 
-                            <div className="text-right">
+                            <div className="text-right flex flex-col items-end gap-1">
                               <p className="font-mono font-black text-slate-900 text-xs">
                                 {p.currencyCode || p.currency || 'USD'} {(parseFloat(p.amount || p.amountInCurrency || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </p>
                               <p className="text-[10px] font-mono font-semibold text-emerald-800">
                                 LKR {(parseFloat(p.amountLkr || p.convertedAmountLkr || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </p>
-                              {p.slipPath && !p.slipPath.includes('dummy_slip.png') && p.slipPath.trim() !== '' && (
-                                <a 
-                                  href={p.slipPath.startsWith('http') || p.slipPath.startsWith('data:') ? p.slipPath : `${API_BASE.replace('/api', '')}${p.slipPath.startsWith('/') ? '' : '/'}${p.slipPath}`} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-[9px] text-emerald-600 hover:underline font-bold inline-block mt-0.5"
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenInvoice(p, b)}
+                                  className="text-[10px] font-extrabold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2 py-0.5 rounded-md flex items-center gap-1 transition cursor-pointer shadow-2xs"
                                 >
-                                  View Attached Slip ↗
-                                </a>
-                              )}
+                                  <Receipt size={11} /> Invoice
+                                </button>
+                                {p.slipPath && !p.slipPath.includes('dummy_slip.png') && p.slipPath.trim() !== '' && (
+                                  <a 
+                                    href={p.slipPath.startsWith('http') || p.slipPath.startsWith('data:') ? p.slipPath : `${API_BASE.replace('/api', '')}${p.slipPath.startsWith('/') ? '' : '/'}${p.slipPath}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-[10px] text-blue-600 hover:underline font-bold inline-block"
+                                  >
+                                    Slip ↗
+                                  </a>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
@@ -689,6 +782,83 @@ const Handover = () => {
           </div>
         )}
       </div>
+
+      {/* Invoice / Receipt Preview Modal */}
+      {showReceiptModal && selectedPaymentForReceipt && receiptData && selectedRegForReceipt && associatedBookingForReceipt && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col p-6 space-y-4">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <Receipt size={18} className="text-emerald-600" /> 
+                <span>Invoice / Receipt Preview - <strong className="font-mono text-emerald-800">{receiptData.receiptNumber}</strong></span>
+              </h3>
+              <button
+                onClick={() => setShowReceiptModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl bg-slate-50 p-6 flex justify-center">
+              <div className="bg-white shadow-sm border border-slate-150 rounded-lg p-2 max-w-[760px] w-full">
+                <AdvanceReceiptPrint
+                  receiptData={receiptData}
+                  selectedPaymentForReceipt={selectedPaymentForReceipt}
+                  selectedReg={selectedRegForReceipt}
+                  associatedBooking={associatedBookingForReceipt}
+                  payments={payments}
+                  bookings={bookings}
+                  forceLkr={forceReceiptLkr}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center pt-2 border-t border-slate-100 flex-wrap gap-2">
+              <div className="text-xs text-slate-500 font-medium">
+                Guest: <strong className="text-slate-800">{selectedRegForReceipt.guestName}</strong> • Room: <strong className="text-slate-800">{selectedRegForReceipt.roomNumber}</strong>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForceReceiptLkr(true);
+                    setTimeout(() => {
+                      window.print();
+                      setForceReceiptLkr(false);
+                    }, 200);
+                  }}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm text-xs"
+                >
+                  <Printer size={13} /> Print in LKR
+                </button>
+                {receiptData.bookingCurrency !== 'LKR' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForceReceiptLkr(false);
+                      setTimeout(() => {
+                        window.print();
+                      }, 150);
+                    }}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm text-xs"
+                  >
+                    <Printer size={13} /> Print in {receiptData.bookingCurrency}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowReceiptModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer transition text-xs"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Reason Modal */}
       {showRejectModal && (
@@ -738,7 +908,7 @@ const Handover = () => {
                 Cancel
               </button>
               <button 
-                type="button"
+                type="button" 
                 onClick={handleRejectTransactions}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md shadow-rose-500/10 transition cursor-pointer"
               >
@@ -748,6 +918,22 @@ const Handover = () => {
           </div>
         </div>
       )}
+
+      {/* Print-only layout */}
+      <div className="print-only">
+        {showReceiptModal && selectedPaymentForReceipt && receiptData && selectedRegForReceipt && associatedBookingForReceipt && (
+          <AdvanceReceiptPrint
+            ref={receiptRef}
+            receiptData={receiptData}
+            selectedPaymentForReceipt={selectedPaymentForReceipt}
+            selectedReg={selectedRegForReceipt}
+            associatedBooking={associatedBookingForReceipt}
+            payments={payments}
+            bookings={bookings}
+            forceLkr={forceReceiptLkr}
+          />
+        )}
+      </div>
     </div>
   );
 };
