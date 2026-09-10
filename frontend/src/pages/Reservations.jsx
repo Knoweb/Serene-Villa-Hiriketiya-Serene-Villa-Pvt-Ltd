@@ -44,6 +44,7 @@ import { useNavigate } from 'react-router-dom';
 import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
 import ReservationConfirmationPrint from '../components/ReservationConfirmationPrint';
 import AdvanceRequestPrint from '../components/AdvanceRequestPrint';
+import { COUNTRIES } from '../data/countriesAndNationalities';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -4691,26 +4692,9 @@ Serene Villa Hiriketiya`;
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none cursor-pointer"
                       >
                         <option value="">Select Country</option>
-                        <option value="Sri Lanka">Sri Lanka</option>
-                        <option value="United Kingdom">United Kingdom</option>
-                        <option value="Germany">Germany</option>
-                        <option value="Russia">Russia</option>
-                        <option value="France">France</option>
-                        <option value="India">India</option>
-                        <option value="Australia">Australia</option>
-                        <option value="China">China</option>
-                        <option value="Maldives">Maldives</option>
-                        <option value="United States">United States</option>
-                        <option value="Canada">Canada</option>
-                        <option value="Italy">Italy</option>
-                        <option value="Switzerland">Switzerland</option>
-                        <option value="Netherlands">Netherlands</option>
-                        <option value="Sweden">Sweden</option>
-                        <option value="Japan">Japan</option>
-                        <option value="Ukraine">Ukraine</option>
-                        <option value="Poland">Poland</option>
-                        <option value="Spain">Spain</option>
-                        <option value="Other">Other</option>
+                        {COUNTRIES.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
                       </select>
                     </div>
 
