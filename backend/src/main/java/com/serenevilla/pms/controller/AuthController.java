@@ -4,6 +4,7 @@ import com.serenevilla.pms.model.User;
 import com.serenevilla.pms.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -16,10 +17,13 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
-        String password = credentials.get("password");
+        String rawPassword = credentials.get("password");
         
         java.util.Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
@@ -27,7 +31,25 @@ public class AuthController {
         }
         
         User user = userOpt.get();
-        if (!user.getPassword().equals(password)) {
+        
+        // Support both BCrypt hashes and legacy plaintext (with auto-upgrade to BCrypt)
+        boolean passwordMatches = false;
+        String storedPassword = user.getPassword();
+        if (storedPassword != null) {
+            if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
+                passwordMatches = passwordEncoder.matches(rawPassword, storedPassword);
+            } else {
+                // Legacy plaintext match
+                passwordMatches = storedPassword.equals(rawPassword);
+                if (passwordMatches) {
+                    // Auto upgrade legacy password to BCrypt hash
+                    user.setPassword(passwordEncoder.encode(rawPassword));
+                    userRepository.save(user);
+                }
+            }
+        }
+
+        if (!passwordMatches) {
             return ResponseEntity.status(401).body(Map.of("message", "Invalid password"));
         }
         
@@ -35,16 +57,39 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("message", "User account is inactive"));
         }
         
+        // Generate secure session token with property and role context
+        String secureToken = java.util.UUID.randomUUID().toString().replace("-", "");
+        
         return ResponseEntity.ok(Map.of(
             "username", user.getUsername(),
             "role", user.getRole().name(),
-            "token", "simulated-jwt-token-xyz",
+            "token", "sv-auth-" + secureToken,
             "propertyId", user.getPropertyId() != null ? user.getPropertyId() : 1L
         ));
     }
 
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Username is required"));
+        }
+        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Password is required"));
+        }
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Username already exists"));
+        }
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User saved = userRepository.save(user);
+        return ResponseEntity.ok(saved);
+    }
+
     @PostMapping("/users")
     public ResponseEntity<User> createUser(@RequestBody User user) {
+        if (user.getPassword() != null && !user.getPassword().startsWith("$2a$")) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
         return ResponseEntity.ok(userRepository.save(user));
     }
 
