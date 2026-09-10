@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 import { UserPlus, Shield, Activity, Loader, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -7,6 +8,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.
 
 const Users = () => {
   const { user } = useAuth();
+  const { showConfirm } = useModal();
 
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,17 +28,15 @@ const Users = () => {
         setStaff(data);
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
+      toast.error('Error fetching users: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user.role === 'ADMIN') {
-      fetchUsers();
-    }
-  }, [user.role]);
+    fetchUsers();
+  }, []);
 
   if (user.role !== 'ADMIN') {
     return (
@@ -51,35 +51,32 @@ const Users = () => {
 
   const handleAddUser = async (e) => {
     e.preventDefault();
-    if (!newUsername || !newPassword) return;
+    if (!newUsername || !newPassword) {
+      toast.error('Please provide both username and password.');
+      return;
+    }
 
     setAddingUser(true);
     try {
-      const payload = {
-        username: newUsername,
-        password: newPassword,
-        role: newRole,
-        propertyId: 1,
-        active: true
-      };
-
-      const res = await fetch(`${API_BASE}/auth/users`, {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: newUsername,
+          password: newPassword,
+          role: newRole
+        })
       });
 
       if (res.ok) {
-        const createdUser = await res.json();
-        setStaff(prev => [...prev, createdUser]);
-
+        toast.success(`User "${newUsername}" added successfully!`);
         setNewUsername('');
         setNewPassword('');
-        toast.success('User account successfully created in database!');
+        setNewRole('FRONT_OFFICER');
+        fetchUsers();
       } else {
-        toast.error('Failed to create user account. Username might already exist.');
+        const data = await res.json();
+        toast.error(data.message || 'Failed to create user.');
       }
     } catch (err) {
       toast.error('Error connecting to backend: ' + err.message);
@@ -94,7 +91,15 @@ const Users = () => {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete the user account "${username}"?`)) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete User Account?",
+      message: `Are you sure you want to delete the user account "${username}"? This user will no longer be able to log in.`,
+      confirmText: "Yes, Delete",
+      cancelText: "Cancel",
+      isDanger: true
+    });
+
+    if (!isConfirmed) return;
 
     try {
       const res = await fetch(`${API_BASE}/auth/users/${id}`, {

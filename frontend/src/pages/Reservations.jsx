@@ -903,24 +903,40 @@ const Reservations = () => {
 
   // Delete Guest Registration (Admin & Front Office)
   const handleDeleteRegistration = async (id) => {
-    if (window.confirm("Are you sure you want to delete this guest registration and all associated bookings/payments?")) {
-      try {
-        const response = await fetch(`${API_BASE}/guest-registrations/${id}`, {
-          method: 'DELETE'
-        });
-        if (response.ok) {
-          fetchRegistrations();
-          if (selectedReg && selectedReg.id === id) {
-            setSelectedReg(null);
-          }
-        } else {
-          const errData = await response.json();
-          alert(errData.message || "Failed to delete registration");
+    const isConfirmed = await showConfirm({
+      title: "Delete Guest Registration?",
+      message: "Are you sure you want to delete this guest registration and all associated bookings/payments? This action cannot be undone.",
+      confirmText: "Yes, Delete",
+      cancelText: "Cancel",
+      isDanger: true
+    });
+
+    if (!isConfirmed) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/guest-registrations/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        fetchRegistrations();
+        if (selectedReg && selectedReg.id === id) {
+          setSelectedReg(null);
         }
-      } catch (err) {
-        console.error('Failed to delete registration', err);
-        alert("An error occurred while deleting the registration");
+      } else {
+        const errData = await response.json();
+        showAlert({
+          title: "Delete Failed",
+          message: errData.message || "Failed to delete registration",
+          type: "danger"
+        });
       }
+    } catch (err) {
+      console.error('Failed to delete registration', err);
+      showAlert({
+        title: "Error",
+        message: "An error occurred while deleting the registration",
+        type: "danger"
+      });
     }
   };
 

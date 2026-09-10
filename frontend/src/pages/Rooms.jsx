@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle2, Trash2, Plus, X, ListPlus, ChevronLeft, ChevronRight, Image as ImageIcon, Pencil } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 
 
 const STANDARD_FACILITIES = [
@@ -162,6 +163,7 @@ const RoomCard = ({ room, isAdmin, onEdit, onDelete, onView }) => {
 
 const Rooms = () => {
   const { user } = useAuth();
+  const { showConfirm, showAlert } = useModal();
   const isAdmin = user?.role === 'ADMIN';
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
@@ -289,7 +291,11 @@ const Rooms = () => {
     if (!editRoomNumber || !editingRoom) return;
 
     if (rooms.some(r => r.roomNumber === editRoomNumber && r.id !== editingRoom.id)) {
-      alert('Room number already exists!');
+      showAlert({
+        title: "Room Number Exists",
+        message: `Room number ${editRoomNumber} is already registered! Please choose a different number.`,
+        type: "warning"
+      });
       return;
     }
 
@@ -319,9 +325,21 @@ const Rooms = () => {
         fetchRooms();
         setShowEditModal(false);
         setEditingRoom(null);
+      } else {
+        const errData = await res.json();
+        showAlert({
+          title: "Update Failed",
+          message: errData.message || 'Failed to update room details',
+          type: "danger"
+        });
       }
     } catch (err) {
       console.error('Error updating room:', err);
+      showAlert({
+        title: "Error",
+        message: 'Error updating room details: ' + err.message,
+        type: "danger"
+      });
     }
   };
 
@@ -331,7 +349,11 @@ const Rooms = () => {
 
     // Check if room number already exists
     if (rooms.some(r => r.roomNumber === roomNumber)) {
-      alert('Room number already exists!');
+      showAlert({
+        title: "Room Number Exists",
+        message: `Room number ${roomNumber} already exists in the inventory!`,
+        type: "warning"
+      });
       return;
     }
 
@@ -370,25 +392,53 @@ const Rooms = () => {
         setRoomImages([]);
       } else {
         const errData = await res.json();
-        alert(errData.message || 'Failed to add room');
+        showAlert({
+          title: "Failed to Add Room",
+          message: errData.message || 'Failed to add room to inventory',
+          type: "danger"
+        });
       }
     } catch (err) {
       console.error('Error adding room:', err);
+      showAlert({
+        title: "Error",
+        message: 'Error adding room: ' + err.message,
+        type: "danger"
+      });
     }
   };
 
   const handleDeleteRoom = async (roomId, e) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this room?')) return;
+    const isConfirmed = await showConfirm({
+      title: "Delete Room?",
+      message: "Are you sure you want to delete this room from the inventory? This action cannot be undone.",
+      confirmText: "Yes, Delete",
+      cancelText: "Cancel",
+      isDanger: true
+    });
+    if (!isConfirmed) return;
+
     try {
       const res = await fetch(`${API_BASE}/rooms/${roomId}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         fetchRooms();
+      } else {
+        showAlert({
+          title: "Delete Failed",
+          message: "Could not delete this room. It may be linked to active bookings.",
+          type: "danger"
+        });
       }
     } catch (err) {
       console.error('Error deleting room:', err);
+      showAlert({
+        title: "Error",
+        message: "An error occurred while deleting the room.",
+        type: "danger"
+      });
     }
   };
 
