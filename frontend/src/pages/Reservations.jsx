@@ -1844,29 +1844,7 @@ const Reservations = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
-                    {(() => {
-                      const map = new Map();
-                      registrations.forEach(reg => {
-                        const key = (reg.passportNumber || reg.bookingNumber || reg.guestName || '').toLowerCase().trim();
-                        if (!key) {
-                          map.set(`id-${reg.id}`, reg);
-                          return;
-                        }
-                        if (!map.has(key)) {
-                          map.set(key, reg);
-                        } else {
-                          const existing = map.get(key);
-                          const existingBooking = getBookingForReg(existing.id);
-                          const currentBooking = getBookingForReg(reg.id);
-                          const existingHasRoom = existingBooking?.roomNumber && existingBooking.roomNumber !== 'Unallocated';
-                          const currentHasRoom = currentBooking?.roomNumber && currentBooking.roomNumber !== 'Unallocated';
-                          if (!existingHasRoom && currentHasRoom) {
-                            map.set(key, reg);
-                          }
-                        }
-                      });
-                      return Array.from(map.values());
-                    })().map((reg) => {
+                    {registrations.map((reg) => {
                       const booking = getBookingForReg(reg.id);
                       const isSelected = selectedReg && selectedReg.id === reg.id;
                       
@@ -1905,8 +1883,8 @@ const Reservations = () => {
                             {reg.whatsappNumber || reg.whatsAppNumber}
                           </td>
                           <td className="p-4">
-                            <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {reg.checkInDate}</div>
-                            <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {reg.checkOutDate}</div>
+                            <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {booking?.checkInDate || reg.checkInDate}</div>
+                            <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {booking?.checkOutDate || reg.checkOutDate}</div>
                             <p className="text-slate-500 font-bold text-[11px] mt-1">
                               {booking ? (booking.roomNumber ? `Room ${booking.roomNumber}` : 'Unallocated') : 'Unallocated'}
                             </p>
