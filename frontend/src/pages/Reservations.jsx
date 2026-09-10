@@ -3483,6 +3483,12 @@ const Reservations = () => {
             ? `LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : `${currencyCode} ${(parseFloat(paidAmtOrig) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${paidAmtLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
 
+          const balanceStr = isFinalPayment
+            ? (bCurr === 'LKR' ? 'LKR 0.00 (Fully Settled)' : `${bCurr} 0.00 (LKR 0.00) (Fully Settled)`)
+            : (bCurr === 'LKR'
+              ? `LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : `${bCurr} ${remainingBalInBookingCurr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (LKR ${remainingBalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
+
           const formatPrettyDate = (dStr) => {
             if (!dStr) return '';
             const d = new Date(dStr);
@@ -3492,14 +3498,18 @@ const Reservations = () => {
             return `${day} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
           };
 
-          const checkInOutFormatted = `${formatPrettyDate(selectedReg.checkInDate)} – ${formatPrettyDate(selectedReg.checkOutDate)}`;
-          const nightsCount = selectedReg.numberOfNights || selectedReg.nights || 1;
+          const rawCheckIn = isExtraNight && associatedBooking?.checkInDate ? associatedBooking.checkInDate : (selectedReg?.checkInDate || associatedBooking?.checkInDate || '');
+          const rawCheckOut = isExtraNight && associatedBooking?.checkOutDate ? associatedBooking.checkOutDate : (selectedReg?.checkOutDate || associatedBooking?.checkOutDate || '');
+          const checkInOutFormatted = `${formatPrettyDate(rawCheckIn)} – ${formatPrettyDate(rawCheckOut)}`;
+          const nightsCount = isExtraNight ? (associatedBooking?.numberOfNights || 1) : (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1);
+          const shareCheckIn = rawCheckIn.replace(/-/g, '.');
+          const shareCheckOut = rawCheckOut.replace(/-/g, '.');
 
           let text = '';
           if (isFinalPayment) {
             text = `🌴 SERENE VILLA – FINAL PAYMENT RECEIPT 🌴\n\nDear, Mr./Mrs., ${selectedReg.guestName || 'Guest'}\n\nThank you for your payment! 😊\nPlease find your official payment receipt below:\n\n📄 Receipt No: ${receiptData.receiptNumber}\n🔖 Booking Ref: ${associatedBooking.bookingNumber}\n🗓 Check-in & Check-out: ${checkInOutFormatted}\n🌙 Stay: ${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'}\n\n💳 Payment Method: ${selectedPaymentForReceipt.paymentMethod}\n💵 Amount Paid: ${amountPaidStr}\n💰 Remaining Balance: ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa Hiriketiya! 🌴😊\n\nBest regards,\nReservation Department\nSerene Villa Hiriketiya`;
           } else {
-            text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴\n\nDear Mr./Mrs. *${selectedReg.guestName || 'Guest'}*,\n\nThank you for your payment! Here is your official payment receipt:\n\n📄 *Receipt No:* ${receiptData.receiptNumber}\n🔖 *Booking Ref:* ${associatedBooking.bookingNumber}\n🗓 *Check-in - Check-out:* ${selectedReg.checkInDate} to ${selectedReg.checkOutDate} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'})\n\n💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}\n💵 *Amount Paid:* ${amountPaidStr}\n💰 *Remaining Balance:* ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\n*Reservation Department*\nSerene Villa Hiriketiya`;
+            text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴\n\nDear Mr./Mrs. *${selectedReg.guestName || 'Guest'}*,\n\nThank you for your payment! Here is your official payment receipt:\n\n📄 *Receipt No:* ${receiptData.receiptNumber}\n🔖 *Booking Ref:* ${associatedBooking.bookingNumber}\n🗓 *Check-in - Check-out:* ${shareCheckIn} to ${shareCheckOut} (${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'}${isExtraNight ? ' - Extra Night' : ''})\n\n💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}\n💵 *Amount Paid:* ${amountPaidStr}\n💰 *Remaining Balance:* ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\n*Reservation Department*\nSerene Villa Hiriketiya`;
           }
 
           let rawPhone = selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || selectedReg?.mobileNumber || selectedReg?.phone || associatedBooking?.contactNumber || associatedBooking?.phone || '';
