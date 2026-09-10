@@ -57,6 +57,8 @@ const cleanPath = (path) => {
   return `${baseUrl}${cleanP}`;
 };
 
+const getPhotoUrl = cleanPath;
+
 const cleanRoomNumber = (val) => {
   if (!val) return '';
   return String(val)
