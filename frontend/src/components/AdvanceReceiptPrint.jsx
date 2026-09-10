@@ -56,8 +56,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
   const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
   const isConsolidatedBill = isFinalPayment || isDiscountAdjusted || isOriginalBill;
-  const isExtraNight = associatedBooking.bookingNumber?.includes('/1N');
-  const isExtraPerson = associatedBooking.bookingNumber?.includes('/1P');
+  const isExtraNight = associatedBooking.bookingNumber?.includes('/1N') || associatedBooking.bookingNumber?.includes('/EN') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1N') || (selectedPaymentForReceipt.referenceNumber || '').includes('/EN') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA NIGHT') || selectedPaymentForReceipt.paymentType === 'EXTRA_NIGHT';
+  const isExtraPerson = associatedBooking.bookingNumber?.includes('/1P') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1P') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('ONE PERSON') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA PERSON') || selectedPaymentForReceipt.paymentType === 'EXTRA_PERSON';
   const isDiscount = associatedBooking.bookingNumber?.includes('/DISC');
 
   const receiptTitle = isDiscountAdjusted
@@ -549,7 +549,14 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               
               {paidDisplayAmt > 0 && (
                 <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-semibold">{isFinalPayment ? 'Final Settlement Paid:' : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')}</span>
+                  <span className="text-slate-500 font-semibold">
+                    {isFinalPayment 
+                      ? 'Final Settlement Paid:' 
+                      : (isExtraNight || isExtraPerson)
+                      ? 'Paid:'
+                      : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')
+                    }
+                  </span>
                   <span className="font-bold text-slate-900">
                     {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
