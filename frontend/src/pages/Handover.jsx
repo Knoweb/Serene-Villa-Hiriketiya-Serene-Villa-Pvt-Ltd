@@ -9,6 +9,45 @@ import AdvanceReceiptPrint from '../components/AdvanceReceiptPrint';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
+const formatPaymentTimestamp = (rawCreatedAt, paymentDate) => {
+  if (!rawCreatedAt && !paymentDate) return '-';
+  if (!rawCreatedAt) return paymentDate;
+
+  try {
+    let dateObj;
+    if (typeof rawCreatedAt === 'string') {
+      const normalizedStr = rawCreatedAt.endsWith('Z') || rawCreatedAt.includes('+') 
+        ? rawCreatedAt 
+        : `${rawCreatedAt}+05:30`;
+      dateObj = new Date(normalizedStr);
+    } else {
+      dateObj = new Date(rawCreatedAt);
+    }
+
+    if (isNaN(dateObj.getTime())) {
+      return paymentDate || String(rawCreatedAt);
+    }
+
+    const dateFormatted = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Colombo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(dateObj);
+
+    const timeFormatted = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Colombo',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).format(dateObj);
+
+    return `${dateFormatted} ${timeFormatted}`;
+  } catch (err) {
+    return paymentDate || String(rawCreatedAt);
+  }
+};
+
 const Handover = () => {
   const { user } = useAuth();
   const isFrontOfficer = user?.role === 'FRONT_OFFICER';
@@ -701,15 +740,7 @@ const Handover = () => {
                         const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'Extra Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
                         const itemBadgeColor = isExtraNight ? 'bg-indigo-100 text-indigo-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : isFinal ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800';
                         
-                        let paidTimestamp = '-';
-                        if (p.createdAt) {
-                          const dateObj = new Date(p.createdAt);
-                          const datePart = dateObj.toLocaleDateString('en-CA'); // YYYY-MM-DD
-                          const timePart = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                          paidTimestamp = `${p.paymentDate || datePart} ${timePart}`;
-                        } else if (p.paymentDate) {
-                          paidTimestamp = p.paymentDate;
-                        }
+                        const paidTimestamp = formatPaymentTimestamp(p.createdAt, p.paymentDate);
 
                         return (
                           <div key={p.id || pIdx} className="bg-white p-2.5 rounded-lg border border-slate-200/70 flex items-center justify-between text-xs hover:border-slate-300 transition">
