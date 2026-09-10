@@ -20,6 +20,15 @@ public class GuestRegistrationController {
     @PostMapping("/api/public/guest-registrations")
     public ResponseEntity<?> registerGuestPublic(@RequestBody GuestRegistration registration) {
         try {
+            if (registration.getGuestName() != null && registration.getGuestName().length() > 200) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Guest name is too long"));
+            }
+            if (registration.getPassportNumber() != null && registration.getPassportNumber().length() > 50) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Passport / ID number is too long"));
+            }
+            if (registration.getPassportFrontPath() != null && registration.getPassportFrontPath().length() > 15_000_000) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Passport photo payload exceeds maximum allowable size"));
+            }
             return ResponseEntity.ok(guestRegistrationService.createPublicRegistration(registration));
         } catch (Exception e) {
             e.printStackTrace();
