@@ -47,14 +47,22 @@ import AdvanceRequestPrint from '../components/AdvanceRequestPrint';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
-const getPhotoUrl = (path) => {
+const cleanPath = (path) => {
   if (!path) return null;
   if (path.startsWith('data:') || path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
   const baseUrl = API_BASE.replace(/\/api\/?$/, '');
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${baseUrl}${cleanPath}`;
+  const cleanP = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${cleanP}`;
+};
+
+const cleanRoomNumber = (val) => {
+  if (!val) return '';
+  return String(val)
+    .replace(/^Room\s*-?/i, '')
+    .replace(/^-+/, '')
+    .trim();
 };
 
 const getSlipStorageKey = (booking, registration) => {
@@ -4501,53 +4509,42 @@ Serene Villa Hiriketiya`;
                            {isModalRoomDropdownOpen && (
                              <>
                                <div className="fixed inset-0 z-10" onClick={() => setIsModalRoomDropdownOpen(false)}></div>
-                               <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto p-1 space-y-0.5 select-none">
+                               <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto p-1.5 space-y-0.5 select-none">
                                  {rooms.map((room) => {
-                                   const roomNumbers = confirmationData.room ? confirmationData.room.split(',').map(r => r.trim()) : [];
-                                   const isChecked = roomNumbers.includes(room.roomNumber);
+                                   const cleanTarget = cleanRoomNumber(room.roomNumber);
+                                   const currentAllocated = confirmationData.allocatedRooms || [];
+                                   const isChecked = currentAllocated.some(r => cleanRoomNumber(r.roomNumber) === cleanTarget);
+
                                    return (
                                      <label 
-                                       key={room.id} 
-                                       className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium"
+                                       key={room.id || room.roomNumber} 
+                                       className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium transition"
                                      >
                                        <input 
                                          type="checkbox"
                                          checked={isChecked}
                                          onChange={() => {
-                                           let newRooms;
+                                           let newAllocated;
                                            if (isChecked) {
-                                             newRooms = roomNumbers.filter(r => r !== room.roomNumber);
+                                             newAllocated = currentAllocated.filter(r => cleanRoomNumber(r.roomNumber) !== cleanTarget);
                                            } else {
-                                             newRooms = [...roomNumbers, room.roomNumber];
+                                             const defaultPrice = parseFloat(room.price || 0) > 0 ? parseFloat(room.price).toFixed(2) : '0.00';
+                                             newAllocated = [
+                                               ...currentAllocated,
+                                               {
+                                                 roomType: room.roomType || 'Deluxe Room',
+                                                 roomNumber: cleanTarget,
+                                                 price: defaultPrice
+                                               }
+                                             ];
                                            }
-                                           const roomString = newRooms.join(', ');
-                                           
-                                           // Re-build allocatedRooms and recalculate price sum
-                                           const currentAllocated = confirmationData.allocatedRooms || [];
-                                           const newAllocated = newRooms.map(rNum => {
-                                             const existing = currentAllocated.find(ca => ca.roomNumber === rNum);
-                                             const matchedR = rooms.find(rm => rm.roomNumber === rNum);
-                                             return {
-                                               roomType: matchedR ? matchedR.roomType : (confirmationData.roomType || 'Deluxe Room'),
-                                               roomNumber: rNum,
-                                               price: existing ? existing.price : '0.00'
-                                             };
-                                           });
 
+                                           const roomString = newAllocated.map(r => r.roomNumber).join(', ');
                                            const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
                                            const rate = parseFloat(confirmationData.exchangeRate) || 1;
 
-                                           const firstSelectedRoomNum = newRooms[0];
-                                           const matchedRoom = rooms.find(r => r.roomNumber === firstSelectedRoomNum);
-                                           let newRoomType = '';
-                                           if (matchedRoom) {
-                                             let mappedType = matchedRoom.roomType;
-                                             if (mappedType.toLowerCase().includes('deluxe')) mappedType = 'Deluxe Room';
-                                             else if (mappedType.toLowerCase().includes('suite')) mappedType = 'Suite Room';
-                                             else if (mappedType.toLowerCase().includes('standard')) mappedType = 'Standard Room';
-                                             else if (mappedType.toLowerCase().includes('budget')) mappedType = 'Budget Room';
-                                             newRoomType = mappedType;
-                                           }
+                                           const firstSelectedRoom = newAllocated[0];
+                                           let newRoomType = firstSelectedRoom ? firstSelectedRoom.roomType : '';
 
                                            setConfirmationData({
                                              ...confirmationData,
@@ -4557,9 +4554,9 @@ Serene Villa Hiriketiya`;
                                              totalPrice: (totalSum * rate).toFixed(2)
                                            });
                                          }}
-                                         className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                                         className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
                                        />
-                                       <span>{room.roomNumber} - {room.roomType} ({room.status})</span>
+                                       <span>{cleanTarget} - {room.roomType} ({room.status})</span>
                                      </label>
                                    );
                                  })}
@@ -4931,83 +4928,76 @@ Serene Villa Hiriketiya`;
                      </select>
                    </div>
 
-                   {/* Room Name Dropdown (Multiple-Select) */}
-                   <div className="space-y-1.5 relative col-span-2">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Number(s)</label>
-                     <div className="relative">
-                       <button
-                         type="button"
-                         onClick={() => setIsModalRoomNameDropdownOpen(!isModalRoomNameDropdownOpen)}
-                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer"
-                       >
-                         <span className="truncate">{confirmationData.room ? (confirmationData.room.startsWith('Room') ? confirmationData.room : `Room ${confirmationData.room}`) : 'Select Rooms...'}</span>
-                         <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
-                       </button>
+                    {/* Room Name Dropdown (Multiple-Select by Room Number & Room Name) */}
+                    <div className="space-y-1.5 relative col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Room Number(s)</label>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setIsModalRoomNameDropdownOpen(!isModalRoomNameDropdownOpen)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer"
+                        >
+                          <span className="truncate">{confirmationData.room ? (confirmationData.room.startsWith('Room') ? confirmationData.room : `Room ${confirmationData.room}`) : 'Select Rooms...'}</span>
+                          <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
+                        </button>
 
-                       {isModalRoomNameDropdownOpen && (
-                         <>
-                           <div className="fixed inset-0 z-10" onClick={() => setIsModalRoomNameDropdownOpen(false)}></div>
-                           <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto p-1 space-y-0.5 select-none">
-                             {uniqueRoomTypes.map((type, idx) => {
-                               const selectedTypes = confirmationData.roomType ? confirmationData.roomType.split(',').map(t => t.trim()) : [];
-                               const isChecked = selectedTypes.includes(type);
-                               return (
-                                 <div
-                                   key={idx}
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     let newTypes;
-                                     if (isChecked) {
-                                       newTypes = selectedTypes.filter(t => t !== type);
-                                     } else {
-                                       newTypes = [...selectedTypes, type];
-                                     }
-                                     const typeString = newTypes.join(', ');
-                                     
-                                     // Automatically calculate corresponding room numbers
-                                     const matchedRooms = rooms.filter(r => newTypes.includes(r.roomType));
-                                     const roomNumbers = matchedRooms.map(r => r.roomNumber);
-                                     const uniqueRoomNumbers = Array.from(new Set(roomNumbers));
-                                     const roomString = uniqueRoomNumbers.join(', ');
+                        {isModalRoomNameDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setIsModalRoomNameDropdownOpen(false)}></div>
+                            <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto p-1.5 space-y-0.5 select-none">
+                              {rooms.map((room) => {
+                                const cleanTarget = cleanRoomNumber(room.roomNumber);
+                                const currentAllocated = confirmationData.allocatedRooms || [];
+                                const isChecked = currentAllocated.some(r => cleanRoomNumber(r.roomNumber) === cleanTarget);
 
-                                     // Build/update allocatedRooms array with prices preserved
-                                     const currentAllocated = confirmationData.allocatedRooms || [];
-                                     const newAllocated = matchedRooms.map(r => {
-                                       const existing = currentAllocated.find(ca => ca.roomNumber === r.roomNumber);
-                                       return {
-                                         roomType: r.roomType,
-                                         roomNumber: r.roomNumber,
-                                         price: existing ? existing.price : '0.00'
-                                       };
-                                     });
-                                     
-                                     const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
-                                     
-                                     setConfirmationData({
-                                       ...confirmationData,
-                                       roomType: typeString,
-                                       room: roomString,
-                                       allocatedRooms: newAllocated,
-                                       totalPrice: totalSum.toFixed(2)
-                                     });
-                                   }}
-                                   className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium"
-                                 >
-                                   <input
-                                     type="checkbox"
-                                     checked={isChecked}
-                                     readOnly
-                                     className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 pointer-events-none"
-                                   />
-                                   <span>{type}</span>
-                                 </div>
-                               );
-                             })}
-                           </div>
-                         </>
-                       )}
-                     </div>
-                   </div>
+                                return (
+                                  <label
+                                    key={room.id || room.roomNumber}
+                                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer text-xs text-slate-700 font-medium transition"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => {
+                                        let newAllocated;
+                                        if (isChecked) {
+                                          newAllocated = currentAllocated.filter(r => cleanRoomNumber(r.roomNumber) !== cleanTarget);
+                                        } else {
+                                          const defaultPrice = parseFloat(room.price || 0) > 0 ? parseFloat(room.price).toFixed(2) : '0.00';
+                                          newAllocated = [
+                                            ...currentAllocated,
+                                            {
+                                              roomType: room.roomType || 'Deluxe Room',
+                                              roomNumber: cleanTarget,
+                                              price: defaultPrice
+                                            }
+                                          ];
+                                        }
+
+                                        const roomString = newAllocated.map(r => r.roomNumber).join(', ');
+                                        const typeString = Array.from(new Set(newAllocated.map(r => r.roomType))).join(', ');
+                                        const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                                        const rate = parseFloat(confirmationData.exchangeRate) || 1;
+
+                                        setConfirmationData({
+                                          ...confirmationData,
+                                          roomType: typeString,
+                                          room: roomString,
+                                          allocatedRooms: newAllocated,
+                                          totalPrice: (totalSum * rate).toFixed(2)
+                                        });
+                                      }}
+                                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
+                                    />
+                                    <span>{cleanTarget} - {room.roomType} ({room.status})</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
 
                    {/* Room Price Breakdown Table */}
                    {confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 && (
