@@ -679,6 +679,8 @@ const Reservations = () => {
   const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
   const [isModalRoomDropdownOpen, setIsModalRoomDropdownOpen] = useState(false);
   const [isModalRoomNameDropdownOpen, setIsModalRoomNameDropdownOpen] = useState(false);
+  const [isSidebarRoomDropdownOpen, setIsSidebarRoomDropdownOpen] = useState(false);
+  const [sidebarAllocatedRooms, setSidebarAllocatedRooms] = useState([]);
   const [showDraftPreviewModal, setShowDraftPreviewModal] = useState(false);
   const [forceLkr, setForceLkr] = useState(false);
   const [forceReceiptLkr, setForceReceiptLkr] = useState(false);
@@ -1043,93 +1045,6 @@ const Reservations = () => {
     }
   };
 
-  // Select Guest and Populate Booking Form
-  const handleSelectGuest = async (reg) => {
-    setSelectedReg(reg);
-    setIsEditingBooking(false);
-
-    // Fetch full registration details containing base64 images in the background
-    try {
-      const detailRes = await fetch(`${API_BASE}/guest-registrations/${reg.id}`);
-      if (detailRes.ok) {
-        const fullReg = await detailRes.json();
-        setSelectedReg(fullReg);
-      }
-    } catch (err) {
-      console.error('Error fetching full registration details in reservations:', err);
-    }
-
-    const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
-    const primaryCandidate = allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && !b.bookingNumber?.includes('-DISC') && !b.bookingNumber?.includes('1N') && !b.bookingNumber?.includes('1P') && (parseFloat(b.totalAmount || b.amount || 0) >= 0))
-      || allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && !b.bookingNumber?.includes('-DISC') && !b.bookingNumber?.includes('1N') && !b.bookingNumber?.includes('1P'));
-    let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
-    
-    if (associatedBooking) {
-      const bCurr = getBookingCurrency(associatedBooking);
-      let defaultRate = 1;
-      if (bCurr === 'USD') defaultRate = 300;
-      else if (bCurr === 'EUR') defaultRate = 325;
-      else if (bCurr === 'AUD') defaultRate = 220;
-      else if (bCurr === 'LKR') defaultRate = 1;
-
-      setBookingForm({
-        roomType: associatedBooking.roomType || defaultRoomType,
-        room: associatedBooking.roomNumber || '',
-        bookingType: associatedBooking.bookingType || 'Direct Booking',
-        bookingNumber: associatedBooking.bookingNumber || '',
-        boardBasis: associatedBooking.boardBasis || 'Room Only',
-        remarks: associatedBooking.remarks || '',
-        amount: associatedBooking.totalAmount || '',
-        paymentStatus: reg.paymentStatus || 'Pending',
-        registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: associatedBooking.checkInDate || reg.checkInDate || '',
-        checkOutDate: associatedBooking.checkOutDate || reg.checkOutDate || '',
-        whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || '',
-        adults: reg.adults || 1,
-        children: reg.children || 0
-      });
-      setPaymentForm(prev => ({
-        ...prev,
-        currencyCode: bCurr,
-        exchangeRate: parseFloat(associatedBooking.exchangeRate) || defaultRate
-      }));
-      setBankSlipForm(prev => ({
-        ...prev,
-        bankKey: getBankKeyForCurrency(bCurr)
-      }));
-      fetchAdvancePayments(associatedBooking.id);
-    } else {
-      // Default blank/pre-filled values fallback
-      setBookingForm({
-        roomType: defaultRoomType,
-        room: '',
-        bookingType: 'Direct Booking',
-        bookingNumber: `D-${1000 + reg.id}`,
-        boardBasis: 'Room Only',
-        remarks: '',
-        amount: '',
-        paymentStatus: reg.paymentStatus || 'Pending',
-        registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: reg.checkInDate || '',
-        checkOutDate: reg.checkOutDate || '',
-        whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || '',
-        adults: reg.adults || 1,
-        children: reg.children || 0
-      });
-      setPaymentForm(prev => ({
-        ...prev,
-        currencyCode: 'USD',
-        exchangeRate: 300
-      }));
-      setBankSlipForm(prev => ({
-        ...prev,
-        bankKey: 'USD_PB'
-      }));
-      setAdvancePayments([]);
-    }
-    setBookingSuccess(false);
-  };
-
   const getRoomsForBooking = (booking) => {
     if (!booking) return [];
     if (booking.roomPrices) {
@@ -1159,6 +1074,97 @@ const Reservations = () => {
       });
     }
     return [];
+  };
+
+  // Select Guest and Populate Booking Form
+  const handleSelectGuest = async (reg) => {
+    setSelectedReg(reg);
+    setIsEditingBooking(false);
+
+    // Fetch full registration details containing base64 images in the background
+    try {
+      const detailRes = await fetch(`${API_BASE}/guest-registrations/${reg.id}`);
+      if (detailRes.ok) {
+        const fullReg = await detailRes.json();
+        setSelectedReg(fullReg);
+      }
+    } catch (err) {
+      console.error('Error fetching full registration details in reservations:', err);
+    }
+
+    const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
+    const primaryCandidate = allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && !b.bookingNumber?.includes('-DISC') && !b.bookingNumber?.includes('1N') && !b.bookingNumber?.includes('1P') && (parseFloat(b.totalAmount || b.amount || 0) >= 0))
+      || allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && !b.bookingNumber?.includes('-DISC') && !b.bookingNumber?.includes('1N') && !b.bookingNumber?.includes('1P'));
+    let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
+    
+    if (associatedBooking) {
+      const bCurr = getBookingCurrency(associatedBooking);
+      let defaultRate = 1;
+      if (bCurr === 'USD') defaultRate = 300;
+      else if (bCurr === 'EUR') defaultRate = 325;
+      else if (bCurr === 'AUD') defaultRate = 220;
+      else if (bCurr === 'LKR') defaultRate = 1;
+
+      const initialAllocatedRooms = getRoomsForBooking(associatedBooking);
+      setSidebarAllocatedRooms(initialAllocatedRooms);
+
+      setBookingForm({
+        roomType: associatedBooking.roomType || defaultRoomType,
+        room: associatedBooking.roomNumber || '',
+        bookingType: associatedBooking.bookingType || 'Direct Booking',
+        bookingNumber: associatedBooking.bookingNumber || '',
+        boardBasis: associatedBooking.boardBasis || 'Room Only',
+        remarks: associatedBooking.remarks || '',
+        amount: associatedBooking.totalAmount || '',
+        paymentStatus: reg.paymentStatus || 'Pending',
+        registrationStatus: reg.registrationStatus || 'Pending',
+        checkInDate: associatedBooking.checkInDate || reg.checkInDate || '',
+        checkOutDate: associatedBooking.checkOutDate || reg.checkOutDate || '',
+        whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || '',
+        adults: reg.adults || 1,
+        children: reg.children || 0
+      });
+      setPaymentForm(prev => ({
+        ...prev,
+        currencyCode: bCurr,
+        exchangeRate: parseFloat(associatedBooking.exchangeRate) || defaultRate
+      }));
+      setBankSlipForm(prev => ({
+        ...prev,
+        bankKey: getBankKeyForCurrency(bCurr)
+      }));
+      fetchAdvancePayments(associatedBooking.id);
+    } else {
+      setSidebarAllocatedRooms([]);
+      // Default blank/pre-filled values fallback
+      setBookingForm({
+        roomType: defaultRoomType,
+        room: '',
+        bookingType: 'Direct Booking',
+        bookingNumber: `D-${1000 + reg.id}`,
+        boardBasis: 'Room Only',
+        remarks: '',
+        amount: '',
+        paymentStatus: reg.paymentStatus || 'Pending',
+        registrationStatus: reg.registrationStatus || 'Pending',
+        checkInDate: reg.checkInDate || '',
+        checkOutDate: reg.checkOutDate || '',
+        whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || '',
+        adults: reg.adults || 1,
+        children: reg.children || 0
+      });
+      setPaymentForm(prev => ({
+        ...prev,
+        currencyCode: 'USD',
+        exchangeRate: 300
+      }));
+      setBankSlipForm(prev => ({
+        ...prev,
+        bankKey: 'USD_PB'
+      }));
+      setAdvancePayments([]);
+    }
+    setBookingSuccess(false);
   };
 
   const handlePreviewDraftSlip = () => {
@@ -1555,7 +1561,9 @@ const Reservations = () => {
 
       // 1. Determine Room Prices JSON
       let finalRoomPrices = '';
-      if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
+      if (sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0) {
+        finalRoomPrices = JSON.stringify(sidebarAllocatedRooms);
+      } else if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
         finalRoomPrices = JSON.stringify(confirmationData.allocatedRooms);
       } else if (associated?.roomPrices) {
         finalRoomPrices = associated.roomPrices;
@@ -1567,15 +1575,27 @@ const Reservations = () => {
       // 3. Determine Total Price / Amount
       let finalAmount = bookingForm.amount;
       if (!finalAmount || parseFloat(finalAmount) <= 0) {
-        if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
+        if (sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0) {
+          finalAmount = sidebarAllocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+        } else if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
           finalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
         } else if (associated?.totalAmount || associated?.amount) {
           finalAmount = associated.totalAmount || associated.amount;
         }
       }
 
+      // 4. Determine Room & RoomType
+      let finalRoom = bookingForm.room;
+      let finalRoomType = bookingForm.roomType;
+      if (sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0) {
+        finalRoom = sidebarAllocatedRooms.map(r => r.roomNumber).join(', ');
+        finalRoomType = sidebarAllocatedRooms.map(r => r.roomType).join(', ');
+      }
+
       const payload = {
         ...bookingForm,
+        room: finalRoom,
+        roomType: finalRoomType,
         amount: finalAmount,
         currency: finalCurrency,
         tableCurrency: finalCurrency,
@@ -2271,24 +2291,147 @@ const Reservations = () => {
                     </span>
                   </div>
                   {/* Allocated Rooms & Price Breakdown */}
-                  <div className="col-span-2 space-y-1.5 py-2 border-b border-slate-100/40">
+                  <div className="col-span-2 space-y-2 py-2 border-b border-slate-100/40">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
-                        {isEditingBooking ? 'Room Type:' : 'Allocated Rooms & Prices:'}
+                        Allocated Rooms & Prices:
                       </span>
                     </div>
 
                     {isEditingBooking ? (
-                      <select 
-                        value={bookingForm.roomType}
-                        onChange={(e) => setBookingForm({...bookingForm, roomType: e.target.value})}
-                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:border-emerald-500"
-                      >
-                        <option value="Standard Room">Standard Room</option>
-                        <option value="Deluxe Room">Deluxe Room</option>
-                        <option value="Suite Room">Suite Room</option>
-                        <option value="Budget Room">Budget Room</option>
-                      </select>
+                      <div className="space-y-3">
+                        {/* Multi-room Selector Dropdown */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setIsSidebarRoomDropdownOpen(!isSidebarRoomDropdownOpen)}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-bold text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer shadow-2xs hover:border-emerald-500 transition"
+                          >
+                            <span className="truncate">
+                              {sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0
+                                ? sidebarAllocatedRooms.map(r => r.roomNumber.startsWith('Room') ? r.roomNumber : `Room ${r.roomNumber}`).join(', ')
+                                : 'Select Rooms to Allocate...'}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
+                          </button>
+
+                          {isSidebarRoomDropdownOpen && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setIsSidebarRoomDropdownOpen(false)}></div>
+                              <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-56 overflow-y-auto p-1.5 space-y-0.5 select-none animate-in fade-in zoom-in-95 duration-100">
+                                {rooms.map((room) => {
+                                  const cleanTarget = cleanRoomNumber(room.roomNumber);
+                                  const currentAllocated = sidebarAllocatedRooms || [];
+                                  const isChecked = currentAllocated.some(r => cleanRoomNumber(r.roomNumber) === cleanTarget);
+
+                                  return (
+                                    <label 
+                                      key={room.id || room.roomNumber} 
+                                      className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-emerald-50/60 rounded-lg cursor-pointer text-xs text-slate-700 font-medium transition"
+                                    >
+                                      <input 
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => {
+                                          let newAllocated;
+                                          if (isChecked) {
+                                            newAllocated = currentAllocated.filter(r => cleanRoomNumber(r.roomNumber) !== cleanTarget);
+                                          } else {
+                                            const defaultPrice = parseFloat(room.price || 0) > 0 ? parseFloat(room.price).toFixed(2) : '0.00';
+                                            newAllocated = [
+                                              ...currentAllocated,
+                                              {
+                                                roomType: room.roomType || 'Standard Room',
+                                                roomNumber: cleanTarget,
+                                                price: defaultPrice
+                                              }
+                                            ];
+                                          }
+
+                                          const roomString = newAllocated.map(r => r.roomNumber).join(', ');
+                                          const roomTypeString = newAllocated.map(r => r.roomType).join(', ');
+                                          const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+
+                                          setSidebarAllocatedRooms(newAllocated);
+                                          setBookingForm(prev => ({
+                                            ...prev,
+                                            room: roomString,
+                                            roomType: roomTypeString || prev.roomType,
+                                            amount: totalSum > 0 ? totalSum.toFixed(2) : prev.amount
+                                          }));
+                                        }}
+                                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
+                                      />
+                                      <span className="font-mono font-bold text-slate-900">{cleanTarget}</span>
+                                      <span className="text-slate-500 font-normal">- {room.roomType}</span>
+                                      {room.status && (
+                                        <span className="text-[10px] text-slate-400 font-medium ml-auto">({room.status})</span>
+                                      )}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Editable Room Allocation & Price Table in Edit Mode */}
+                        {sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0 ? (
+                          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs">
+                            <table className="w-full text-left text-xs border-collapse">
+                              <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
+                                  <th className="py-2 px-3 font-extrabold">Room</th>
+                                  <th className="py-2 px-3 font-extrabold">Type</th>
+                                  <th className="py-2 px-3 font-extrabold text-right">Price ({getBookingCurrency(associatedBooking, selectedReg, bookingForm)})</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
+                                {sidebarAllocatedRooms.map((item, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-50/50 transition">
+                                    <td className="py-2 px-3 font-mono font-black text-slate-900">
+                                      <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                                        {item.roomNumber.startsWith('Room') ? item.roomNumber : `Room ${item.roomNumber}`}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 px-3 font-medium text-slate-600 text-xs truncate max-w-[100px]">
+                                      {item.roomType || 'Room'}
+                                    </td>
+                                    <td className="py-1.5 px-3 text-right">
+                                      <div className="inline-flex items-center gap-1 justify-end">
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={item.price != null ? item.price : ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            const updatedAllocated = [...sidebarAllocatedRooms];
+                                            updatedAllocated[idx] = {
+                                              ...updatedAllocated[idx],
+                                              price: val
+                                            };
+                                            const totalSum = updatedAllocated.reduce((sum, itm) => sum + (parseFloat(itm.price) || 0), 0);
+                                            setSidebarAllocatedRooms(updatedAllocated);
+                                            setBookingForm(prev => ({
+                                              ...prev,
+                                              amount: totalSum > 0 ? totalSum.toFixed(2) : prev.amount
+                                            }));
+                                          }}
+                                          className="w-20 bg-white border border-slate-200 rounded-md px-1.5 py-1 text-right text-slate-800 focus:outline-none focus:border-emerald-500 font-bold font-mono text-xs"
+                                        />
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-amber-50/60 border border-amber-200/60 rounded-xl text-center">
+                            <p className="text-[11px] text-amber-800 font-medium">No rooms allocated yet. Please select room(s) from the dropdown above.</p>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div>
                         {(() => {
@@ -2400,7 +2543,7 @@ const Reservations = () => {
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Price:</span>
                         {isEditingBooking ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-slate-400 font-bold text-xs">{getBookingCurrency(associatedBooking)}</span>
+                            <span className="text-slate-400 font-bold text-xs">{getBookingCurrency(associatedBooking, selectedReg, bookingForm)}</span>
                             <input 
                               type="number"
                               step="any"
@@ -2412,27 +2555,13 @@ const Reservations = () => {
                         ) : (
                           <div className="text-right">
                             <span className="font-extrabold text-slate-855 text-sm font-mono">
-                              {getBookingCurrency(associatedBooking)} {baseAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              {getBookingCurrency(associatedBooking, selectedReg, bookingForm)} {baseAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </span>
                           </div>
                         )}
                       </div>
                     );
                   })()}
-
-                  {/* Room No input field (Only displayed in Edit Mode) */}
-                  {isEditingBooking && (
-                    <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-100/40">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Room No:</span>
-                      <input 
-                        type="text"
-                        placeholder="e.g. 101 or 101, 102"
-                        value={bookingForm.room}
-                        onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
-                        className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 text-xs text-right focus:outline-none focus:border-emerald-500 font-mono"
-                      />
-                    </div>
-                  )}
 
                 </div>
               </div>
@@ -2580,7 +2709,13 @@ const Reservations = () => {
                     <>
                       <button
                         type="button"
-                        onClick={() => setIsEditingBooking(true)}
+                        onClick={() => {
+                          if (associatedBooking) {
+                            const currentAllocated = getRoomsForBooking(associatedBooking);
+                            setSidebarAllocatedRooms(currentAllocated);
+                          }
+                          setIsEditingBooking(true);
+                        }}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                       >
                         <svg className="h-4 w-4 fill-white" viewBox="0 0 24 24">
@@ -2621,6 +2756,7 @@ const Reservations = () => {
                         onClick={() => {
                           setIsEditingBooking(false);
                           if (associatedBooking) {
+                            setSidebarAllocatedRooms(getRoomsForBooking(associatedBooking));
                             setBookingForm({
                               roomType: associatedBooking.roomType || defaultRoomType,
                               room: associatedBooking.roomNumber || '',
