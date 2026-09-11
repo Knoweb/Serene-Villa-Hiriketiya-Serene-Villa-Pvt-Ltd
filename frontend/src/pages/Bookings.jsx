@@ -67,54 +67,34 @@ const Bookings = () => {
     setAllocationForm(null);
   };
 
-  const handleRequestDiscount = (e) => {
+  const handleRequestDiscount = async (e) => {
     e.preventDefault();
     const { bookingId, amount, reason } = discountRequestForm;
     const targetBooking = bookings.find(b => b.id === bookingId);
     
     if (targetBooking) {
-      const newRequest = {
-        id: Date.now(),
+      const payload = {
+        bookingId: targetBooking.id,
         bookingRef: targetBooking.bookingNumber,
         guestName: targetBooking.guestName,
         totalAmount: targetBooking.totalAmount,
+        discountAmount: parseFloat(amount) || 0,
         requestedDiscount: `LKR ${parseFloat(amount).toLocaleString()}`,
+        currency: targetBooking.currency || 'LKR',
         reason: reason,
-        status: 'Pending',
         requestedBy: user?.username || 'fo_user'
       };
 
-      const saved = localStorage.getItem('pms_discounts');
-      let currentDiscounts = [];
-      if (saved) {
-        currentDiscounts = JSON.parse(saved);
-      } else {
-        currentDiscounts = [
-          {
-            id: 1,
-            bookingRef: 'SV-2026-0002',
-            guestName: 'Hiroshi Tanaka',
-            totalAmount: 180000,
-            requestedDiscount: 'LKR 15,000',
-            reason: 'Loyalty guest request',
-            status: 'Pending',
-            requestedBy: 'fo_user',
-          },
-          {
-            id: 2,
-            bookingRef: 'SV-2026-0001',
-            guestName: 'Liam Johnson',
-            totalAmount: 140000,
-            requestedDiscount: '10%',
-            reason: 'Slight air conditioning issue reported during first night',
-            status: 'Approved',
-            requestedBy: 'fo_user',
-            approvedBy: 'admin_user'
-          }
-        ];
+      try {
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
+        await fetch(`${API_BASE}/discount-requests`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error('Failed to submit discount request to server:', err);
       }
-      currentDiscounts.push(newRequest);
-      localStorage.setItem('pms_discounts', JSON.stringify(currentDiscounts));
     }
 
     setBookings(prev => prev.map(b => {

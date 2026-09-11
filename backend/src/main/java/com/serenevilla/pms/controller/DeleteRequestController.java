@@ -90,4 +90,18 @@ public class DeleteRequestController {
             return ResponseEntity.ok(updated);
         }).orElse(ResponseEntity.notFound().build());
     }
+
+    // Delete single delete request
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteRequest(@PathVariable(name = "id") Long id) {
+        deleteRequestRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "Delete request removed"));
+    }
+
+    // Clear all delete requests (Admin Only)
+    @DeleteMapping("/clear-all")
+    public ResponseEntity<?> clearAllDeleteRequests() {
+        deleteRequestRepository.deleteAll();
+        return ResponseEntity.ok(Map.of("message", "All delete requests cleared successfully"));
+    }
 }
