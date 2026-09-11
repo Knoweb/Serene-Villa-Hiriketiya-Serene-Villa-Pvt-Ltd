@@ -271,6 +271,10 @@ public class GuestRegistrationService {
                 booking = new Booking();
                 booking.setStatus("Confirmed");
                 booking.setPropertyId(1L);
+                booking.setCheckInDate(savedReg.getCheckInDate());
+                booking.setCheckOutDate(savedReg.getCheckOutDate());
+                booking.setNumberOfNights(savedReg.getNumberOfNights());
+                booking.setGuestName(savedReg.getGuestName());
             }
 
             booking.setGuestRegistrationId(id);

@@ -383,6 +383,9 @@ const GuestRegistration = () => {
         exchangeRate: finalExchangeRate,
         roomPrices: finalRoomPrices,
         unitPrice: finalUnitPrice,
+        checkInDate: formData.checkInDate || lookedUpBooking?.checkInDate || savedReg.checkInDate,
+        checkOutDate: formData.checkOutDate || lookedUpBooking?.checkOutDate || savedReg.checkOutDate,
+        numberOfNights: nights || savedReg.numberOfNights || 1,
         paymentStatus: formData.paymentType !== 'NONE' 
           ? (formData.paymentType === 'FULL' ? 'Paid' : 'Paid Advance') 
           : (lookedUpBooking?.paymentStatus || 'Confirm'),
