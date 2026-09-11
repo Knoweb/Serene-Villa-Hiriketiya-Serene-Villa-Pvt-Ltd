@@ -1551,23 +1551,38 @@ const Reservations = () => {
     setBookingSuccess(false);
 
     try {
-      const tableSum = confirmationData.allocatedRooms 
-        ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0)
-        : (parseFloat(confirmationData.totalPrice) || 0);
+      const associated = getBookingForReg(selectedReg.id);
 
-      const selCurr = confirmationData.tableCurrency || confirmationData.currency || 'USD';
+      // 1. Determine Room Prices JSON
+      let finalRoomPrices = '';
+      if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
+        finalRoomPrices = JSON.stringify(confirmationData.allocatedRooms);
+      } else if (associated?.roomPrices) {
+        finalRoomPrices = associated.roomPrices;
+      }
+
+      // 2. Determine Currency
+      const finalCurrency = bookingForm.currency || associated?.currency || confirmationData.tableCurrency || confirmationData.currency || 'USD';
+
+      // 3. Determine Total Price / Amount
+      let finalAmount = bookingForm.amount;
+      if (!finalAmount || parseFloat(finalAmount) <= 0) {
+        if (confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0) {
+          finalAmount = confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+        } else if (associated?.totalAmount || associated?.amount) {
+          finalAmount = associated.totalAmount || associated.amount;
+        }
+      }
 
       const payload = {
         ...bookingForm,
-        amount: tableSum,
-        currency: selCurr,
-        tableCurrency: selCurr,
-        exchangeRate: confirmationData.exchangeRate || '1.00',
-        showExchangeRateOnBill: !!confirmationData.showExchangeRateOnBill,
+        amount: finalAmount,
+        currency: finalCurrency,
+        tableCurrency: finalCurrency,
+        exchangeRate: associated?.exchangeRate || confirmationData.exchangeRate || '1.00',
+        showExchangeRateOnBill: associated?.showExchangeRateOnBill ?? confirmationData.showExchangeRateOnBill ?? false,
         unitPrice: '0.00',
-        roomPrices: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0 
-          ? JSON.stringify(confirmationData.allocatedRooms) 
-          : '',
+        roomPrices: finalRoomPrices,
         guestName: selectedReg ? selectedReg.guestName : ''
       };
 
