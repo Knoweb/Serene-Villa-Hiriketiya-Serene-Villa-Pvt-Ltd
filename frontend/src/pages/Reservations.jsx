@@ -2468,7 +2468,7 @@ const Reservations = () => {
 
                 <button
                   type="button"
-                  onClick={handlePrintPDFClick}
+                  onClick={() => handleOpenConfirmationModal(selectedReg)}
                   className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2 px-1 rounded-xl text-[10px] transition flex flex-col items-center justify-center gap-1 cursor-pointer shadow-xs"
                 >
                   <Printer className="h-4 w-4 text-blue-700" />

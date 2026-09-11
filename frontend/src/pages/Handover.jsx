@@ -83,12 +83,20 @@ const Handover = () => {
     });
 
     const regId = matchedBaseBooking?.guestRegistrationId || p.guestRegistrationId;
-    const matchedReg = registrations.find(r => r.id === regId) || {
+    const matchedReg = registrations.find(r => {
+      if (regId && r.id === regId) return true;
+      const cleanRef = group.bookingRef.replace(/^SV-?/i, '').toLowerCase();
+      const cleanPass = (r.passportNumber || '').replace(/^SV-?/i, '').toLowerCase();
+      if (cleanPass && cleanPass === cleanRef) return true;
+      if (group.guestName && r.guestName && r.guestName.trim().toLowerCase() === group.guestName.trim().toLowerCase()) return true;
+      if (matchedBaseBooking?.guestName && r.guestName && r.guestName.trim().toLowerCase() === matchedBaseBooking.guestName.trim().toLowerCase()) return true;
+      return false;
+    }) || {
       id: regId || Date.now(),
       guestName: group.guestName,
       roomNumber: group.roomNumbers,
-      checkInDate: group.checkIn,
-      checkOutDate: group.checkOut,
+      checkInDate: group.checkIn !== '-' ? group.checkIn : '',
+      checkOutDate: group.checkOut !== '-' ? group.checkOut : '',
       currency: group.currency,
       country: 'Sri Lanka'
     };
@@ -107,8 +115,8 @@ const Handover = () => {
       roomType: 'Deluxe Room',
       currency: group.currency || 'USD',
       totalAmount: group.grossBillValue || group.netPayable || 0,
-      checkInDate: group.checkIn,
-      checkOutDate: group.checkOut
+      checkInDate: group.checkIn !== '-' ? group.checkIn : (matchedReg.checkInDate || ''),
+      checkOutDate: group.checkOut !== '-' ? group.checkOut : (matchedReg.checkOutDate || '')
     };
 
     const isFinalPayment = p.paymentType === 'FINAL' || (p.remarks || '').toUpperCase().includes('FINAL');
@@ -160,7 +168,7 @@ const Handover = () => {
       const [payRes, bookRes, regRes] = await Promise.all([
         fetch(endpoint),
         fetch(`${API_BASE}/bookings`),
-        fetch(`${API_BASE}/registrations`)
+        fetch(`${API_BASE}/guest-registrations?size=1000&role=ADMIN`)
       ]);
 
       if (payRes.ok) {
@@ -177,7 +185,7 @@ const Handover = () => {
 
       if (regRes.ok) {
         const regData = await regRes.json();
-        setRegistrations(regData || []);
+        setRegistrations(regData?.content || regData || []);
       }
     } catch (err) {
       console.error('Error fetching handover data:', err);
@@ -212,7 +220,15 @@ const Handover = () => {
         });
 
         const regId = matchedBaseBooking?.guestRegistrationId || p.guestRegistrationId;
-        const matchedReg = registrations.find(r => r.id === regId) || {};
+        const matchedReg = registrations.find(r => {
+          if (regId && r.id === regId) return true;
+          const cleanRef = baseRef.replace(/^SV-?/i, '').toLowerCase();
+          const cleanPass = (r.passportNumber || '').replace(/^SV-?/i, '').toLowerCase();
+          if (cleanPass && cleanPass === cleanRef) return true;
+          if (p.guestName && r.guestName && r.guestName.trim().toLowerCase() === p.guestName.trim().toLowerCase()) return true;
+          if (matchedBaseBooking?.guestName && r.guestName && r.guestName.trim().toLowerCase() === matchedBaseBooking.guestName.trim().toLowerCase()) return true;
+          return false;
+        }) || {};
 
         const relatedBookings = bookings.filter(b => {
           if (!b.bookingNumber) return false;
@@ -223,8 +239,8 @@ const Handover = () => {
 
         const roomNumbers = matchedBaseBooking?.roomNumber || matchedReg?.roomNumber || '-';
         const guestName = p.guestName || matchedReg?.guestName || matchedBaseBooking?.guestName || 'Guest';
-        const checkIn = matchedBaseBooking?.checkInDate || matchedReg?.checkInDate || '-';
-        const checkOut = matchedBaseBooking?.checkOutDate || matchedReg?.checkOutDate || '-';
+        const checkIn = (matchedBaseBooking?.checkInDate && matchedBaseBooking.checkInDate !== '-') ? matchedBaseBooking.checkInDate : (matchedReg?.checkInDate || '-');
+        const checkOut = (matchedBaseBooking?.checkOutDate && matchedBaseBooking.checkOutDate !== '-') ? matchedBaseBooking.checkOutDate : (matchedReg?.checkOutDate || '-');
         const currency = matchedBaseBooking?.currency || p.currencyCode || p.currency || 'USD';
 
         let baseRoomPrice = 0;
