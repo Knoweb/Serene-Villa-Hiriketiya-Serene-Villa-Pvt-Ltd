@@ -1082,8 +1082,8 @@ const Reservations = () => {
         amount: associatedBooking.totalAmount || '',
         paymentStatus: reg.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: reg.checkInDate || '',
-        checkOutDate: reg.checkOutDate || '',
+        checkInDate: associatedBooking.checkInDate || reg.checkInDate || '',
+        checkOutDate: associatedBooking.checkOutDate || reg.checkOutDate || '',
         whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || '',
         adults: reg.adults || 1,
         children: reg.children || 0
@@ -1161,7 +1161,7 @@ const Reservations = () => {
     return [];
   };
 
-  const handlePrintPDFClick = () => {
+  const handlePreviewDraftSlip = () => {
     if (!selectedReg) return;
     let booking = getBookingForReg(selectedReg.id);
     if (!booking) {
@@ -1182,8 +1182,8 @@ const Reservations = () => {
     setConfirmationData({
       guestName: selectedReg.guestName || '',
       bookingNumber: booking.bookingNumber || '',
-      checkInDate: selectedReg.checkInDate || '',
-      checkOutDate: selectedReg.checkOutDate || '',
+      checkInDate: booking.checkInDate || selectedReg.checkInDate || '',
+      checkOutDate: booking.checkOutDate || selectedReg.checkOutDate || '',
       nights: nightsVal,
       adults: selectedReg.adults || 1,
       children: selectedReg.children || 0,
@@ -1234,6 +1234,8 @@ const Reservations = () => {
       vatNo: '',
       whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || 'N/A',
       nationality: reg?.nationality || 'N/A',
+      checkInDate: booking.checkInDate || reg.checkInDate || '',
+      checkOutDate: booking.checkOutDate || reg.checkOutDate || '',
       roomType: booking.roomType || 'Deluxe Room',
       nights: nightsCount,
       reservationDate: new Date().toISOString().split('T')[0],
@@ -1278,6 +1280,8 @@ const Reservations = () => {
       vatNo: '',
       whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || 'N/A',
       nationality: reg?.nationality || 'N/A',
+      checkInDate: booking.checkInDate || reg.checkInDate || '',
+      checkOutDate: booking.checkOutDate || reg.checkOutDate || '',
       roomType: booking.roomType || 'Deluxe Room',
       nights: nightsCount,
       reservationDate: new Date().toISOString().split('T')[0],
@@ -1447,6 +1451,9 @@ const Reservations = () => {
         const newBooking = {
           guestRegistrationId: savedGuest.id,
           bookingNumber: confirmationData.bookingNumber,
+          checkInDate: confirmationData.checkInDate || null,
+          checkOutDate: confirmationData.checkOutDate || null,
+          numberOfNights: parseInt(confirmationData.nights) || 1,
           roomNumber: confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0
             ? confirmationData.allocatedRooms.map(r => r.roomNumber).join(', ')
             : (confirmationData.room || 'Unallocated'),
@@ -2174,7 +2181,7 @@ const Reservations = () => {
                       />
                     ) : (
                       <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkInDate}
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.checkInDate || selectedReg.checkInDate}
                       </p>
                     )}
                   </div>
@@ -2191,7 +2198,7 @@ const Reservations = () => {
                       />
                     ) : (
                       <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkOutDate}
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.checkOutDate || selectedReg.checkOutDate}
                       </p>
                     )}
                   </div>
