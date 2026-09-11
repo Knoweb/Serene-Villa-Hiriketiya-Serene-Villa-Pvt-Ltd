@@ -62,9 +62,11 @@ const Users = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: newUsername,
+          username: newUsername.trim(),
           password: newPassword,
-          role: newRole
+          role: newRole,
+          active: true,
+          propertyId: 1
         })
       });
 
@@ -75,8 +77,15 @@ const Users = () => {
         setNewRole('FRONT_OFFICER');
         fetchUsers();
       } else {
-        const data = await res.json();
-        toast.error(data.message || 'Failed to create user.');
+        let errorMsg = 'Failed to create user.';
+        try {
+          const data = await res.json();
+          errorMsg = data.message || data.error || errorMsg;
+        } catch (e) {
+          const text = await res.text();
+          if (text) errorMsg = text;
+        }
+        toast.error(errorMsg);
       }
     } catch (err) {
       toast.error('Error connecting to backend: ' + err.message);

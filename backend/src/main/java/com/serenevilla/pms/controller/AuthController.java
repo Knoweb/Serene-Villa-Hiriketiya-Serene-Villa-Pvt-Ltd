@@ -70,27 +70,37 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
-        if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Username is required"));
-        }
-        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Password is required"));
-        }
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Username already exists"));
-        }
+        try {
+            if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Username is required"));
+            }
+            if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Password is required"));
+            }
+            if (userRepository.findByUsername(user.getUsername().trim()).isPresent()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Username already exists"));
+            }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        User saved = userRepository.save(user);
-        return ResponseEntity.ok(saved);
+            user.setUsername(user.getUsername().trim());
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            if (user.getRole() == null) {
+                user.setRole(com.serenevilla.pms.model.Role.FRONT_OFFICER);
+            }
+            if (user.getPropertyId() == null) {
+                user.setPropertyId(1L);
+            }
+            user.setActive(true);
+
+            User saved = userRepository.save(user);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Failed to create user: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/users")
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        if (user.getPassword() != null && !user.getPassword().startsWith("$2a$")) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
-        return ResponseEntity.ok(userRepository.save(user));
+    public ResponseEntity<?> createUser(@RequestBody User user) {
+        return registerUser(user);
     }
 
     @GetMapping("/users")
