@@ -1,5 +1,6 @@
 package com.serenevilla.pms.controller;
 
+import com.serenevilla.pms.handler.RegistrationWebSocketHandler;
 import com.serenevilla.pms.model.Booking;
 import com.serenevilla.pms.model.DiscountRequest;
 import com.serenevilla.pms.model.GuestRegistration;
@@ -29,6 +30,9 @@ public class DiscountRequestController {
     @Autowired
     private GuestRegistrationRepository guestRegistrationRepository;
 
+    @Autowired
+    private RegistrationWebSocketHandler webSocketHandler;
+
     // Get all discount requests
     @GetMapping
     public ResponseEntity<List<DiscountRequest>> getAllDiscountRequests(
@@ -49,6 +53,9 @@ public class DiscountRequestController {
             request.setStatus("Pending");
             request.setRequestedAt(LocalDateTime.now());
             DiscountRequest saved = discountRequestRepository.save(request);
+            if (webSocketHandler != null) {
+                webSocketHandler.broadcast("update");
+            }
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             e.printStackTrace();
@@ -120,6 +127,9 @@ public class DiscountRequestController {
                 req.setApprovedBy(approvedBy);
                 req.setApprovedAt(LocalDateTime.now());
                 DiscountRequest updated = discountRequestRepository.save(req);
+                if (webSocketHandler != null) {
+                    webSocketHandler.broadcast("update");
+                }
                 return ResponseEntity.ok(updated);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -138,6 +148,9 @@ public class DiscountRequestController {
             req.setApprovedBy(rejectedBy);
             req.setApprovedAt(LocalDateTime.now());
             DiscountRequest updated = discountRequestRepository.save(req);
+            if (webSocketHandler != null) {
+                webSocketHandler.broadcast("update");
+            }
             return ResponseEntity.ok(updated);
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -146,12 +159,18 @@ public class DiscountRequestController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteDiscountRequest(@PathVariable(name = "id") Long id) {
         discountRequestRepository.deleteById(id);
+        if (webSocketHandler != null) {
+            webSocketHandler.broadcast("update");
+        }
         return ResponseEntity.ok(Map.of("message", "Discount request removed"));
     }
 
     @DeleteMapping("/clear-all")
     public ResponseEntity<?> clearAllDiscountRequests() {
         discountRequestRepository.deleteAll();
+        if (webSocketHandler != null) {
+            webSocketHandler.broadcast("update");
+        }
         return ResponseEntity.ok(Map.of("message", "All discount requests cleared successfully"));
     }
 }

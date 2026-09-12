@@ -65,6 +65,34 @@ const Discounts = () => {
     fetchStaff();
     fetchDiscountRequests();
     fetchDeleteRequests();
+
+    // Setup live WebSocket sync
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = window.location.hostname;
+    const wsPort = import.meta.env.VITE_API_BASE_URL ? '' : ':8080';
+    const wsUrl = `${wsProtocol}//${wsHost}${wsPort}/ws/registrations`;
+
+    let ws;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = () => {
+        fetchDiscountRequests();
+        fetchDeleteRequests();
+      };
+    } catch (e) {
+      console.warn('WebSocket connection not supported or failed', e);
+    }
+
+    // Interval fallback to keep requests fresh
+    const interval = setInterval(() => {
+      fetchDiscountRequests();
+      fetchDeleteRequests();
+    }, 10000);
+
+    return () => {
+      if (ws) ws.close();
+      clearInterval(interval);
+    };
   }, []);
 
   const handleAction = async (id, status) => {
@@ -236,8 +264,8 @@ const Discounts = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="p-4 font-mono">LKR {req.totalAmount ? req.totalAmount.toLocaleString() : '0'}</td>
-                    <td className="p-4 text-emerald-700 font-extrabold font-mono">{req.requestedDiscount || (req.discountAmount ? `LKR ${req.discountAmount.toLocaleString()}` : '')}</td>
+                    <td className="p-4 font-mono">{req.currency || 'USD'} {req.totalAmount ? Number(req.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</td>
+                    <td className="p-4 text-emerald-700 font-extrabold font-mono">{req.requestedDiscount || (req.discountAmount ? `${req.currency || 'USD'} ${Number(req.discountAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '')}</td>
                     <td className="p-4 text-slate-500 font-normal">{req.reason}</td>
                     <td className="p-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${

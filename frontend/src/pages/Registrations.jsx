@@ -5164,24 +5164,30 @@ const Registrations = () => {
                     type: 'success'
                   });
                 } else {
-                  // Front Office staff request -> Saved for Admin Approval
-                  const saved = localStorage.getItem('pms_discounts');
-                  const existingDiscounts = saved ? JSON.parse(saved) : [];
-                  const newRequest = {
-                    id: Date.now(),
-                    bookingRef: associatedBooking.bookingNumber,
-                    guestName: selectedReg.guestName,
-                    totalAmount: associatedBooking.totalAmount || selectedReg.totalAmount || 0,
+                  // Front Office staff request -> Send to backend database for Admin Approval
+                  const discountPayload = {
+                    bookingId: associatedBooking?.id || null,
+                    bookingRef: associatedBooking?.bookingNumber || selectedReg?.passportNumber || 'N/A',
+                    guestName: selectedReg?.guestName || associatedBooking?.guestName || 'Guest',
+                    totalAmount: associatedBooking?.totalAmount || selectedReg?.totalAmount || 0,
                     requestedDiscount: `${discountForm.currencyCode} ${discountVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                    discountAmount: discountVal,
                     currency: discountForm.currencyCode,
                     reason: discountForm.remarks || 'Front Office guest discount request',
-                    status: 'Pending',
-                    requestedBy: user.username || 'Front Office',
-                    createdAt: new Date().toISOString()
+                    requestedBy: user?.username || user?.name || 'Front Office'
                   };
 
-                  existingDiscounts.unshift(newRequest);
-                  localStorage.setItem('pms_discounts', JSON.stringify(existingDiscounts));
+                  const response = await fetch(`${API_BASE}/discount-requests`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(discountPayload)
+                  });
+
+                  if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || 'Failed to submit discount request to server');
+                  }
+
                   setShowDiscountModal(false);
                   setDiscountForm({ amount: '', currencyCode: 'USD', remarks: '' });
                   fetchRegistrations();

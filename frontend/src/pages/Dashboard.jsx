@@ -50,38 +50,19 @@ const Dashboard = () => {
     };
     fetchRoomsCount();
 
-    // Load discount requests
-    const savedDiscounts = localStorage.getItem('pms_discounts');
-    if (savedDiscounts) {
-      const parsed = JSON.parse(savedDiscounts);
-      setPendingDiscounts(parsed.filter(r => r.status === 'Pending'));
-    } else {
-      const defaultDiscounts = [
-        {
-          id: 1,
-          bookingRef: 'SV-2026-0002',
-          guestName: 'Hiroshi Tanaka',
-          totalAmount: 180000,
-          requestedDiscount: 'LKR 15,000',
-          reason: 'Loyalty guest request',
-          status: 'Pending',
-          requestedBy: 'fo_user',
-        },
-        {
-          id: 2,
-          bookingRef: 'SV-2026-0001',
-          guestName: 'Liam Johnson',
-          totalAmount: 140000,
-          requestedDiscount: '10%',
-          reason: 'Slight air conditioning issue reported during first night',
-          status: 'Approved',
-          requestedBy: 'fo_user',
-          approvedBy: 'admin_user'
+    // Load discount requests from server database
+    const fetchDiscountRequests = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/discount-requests?status=Pending`);
+        if (res.ok) {
+          const data = await res.json();
+          setPendingDiscounts(data);
         }
-      ];
-      localStorage.setItem('pms_discounts', JSON.stringify(defaultDiscounts));
-      setPendingDiscounts(defaultDiscounts.filter(r => r.status === 'Pending'));
-    }
+      } catch (err) {
+        console.error('Error fetching pending discounts:', err);
+      }
+    };
+    fetchDiscountRequests();
   }, []);
 
   useEffect(() => {
