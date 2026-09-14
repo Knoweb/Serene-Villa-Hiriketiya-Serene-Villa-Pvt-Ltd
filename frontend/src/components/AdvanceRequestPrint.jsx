@@ -37,13 +37,14 @@ const AdvanceRequestPrint = React.forwardRef(({ advanceData, selectedReg, associ
   return (
     <div 
       ref={ref} 
-      className="advance-request-print-area text-black font-sans bg-white p-6"
+      className="advance-request-print-area text-black font-sans bg-white"
       style={{ 
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         color: '#1e293b',
         backgroundColor: '#ffffff',
-        padding: '32px',
-        width: '720px',
+        padding: '24px 28px',
+        width: '100%',
+        maxWidth: '720px',
         margin: '0 auto',
         boxSizing: 'border-box',
         lineHeight: '1.5'

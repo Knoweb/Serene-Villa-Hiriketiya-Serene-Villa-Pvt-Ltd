@@ -714,7 +714,7 @@ const Reservations = () => {
     if (!selectedReg) return;
     const associatedB = getBookingForReg(selectedReg.id);
     const baseCurr = (associatedB?.currency || confirmationData?.currency || 'USD').toUpperCase();
-    const exRate = parseFloat(associatedB?.exchangeRate || confirmationData?.exchangeRate) || 335;
+    const exRate = parseFloat(associatedB?.exchangeRate || confirmationData?.exchangeRate) || 300;
     const baseTotal = parseFloat(associatedB?.totalAmount || confirmationData?.totalPrice || 0);
     const baseAdvance = Math.round(baseTotal * 0.5 * 100) / 100;
 
@@ -723,7 +723,29 @@ const Reservations = () => {
     else if (baseCurr === 'EUR') initialBankKey = 'EUR_SB';
     else if (baseCurr === 'AUD') initialBankKey = 'AUD_SB';
 
-    const selectedBank = BANK_ACCOUNTS[initialBankKey];
+    const selectedBank = BANK_ACCOUNTS[initialBankKey] || BANK_ACCOUNTS.USD_PB;
+    const bankCurrency = selectedBank.currency;
+
+    let calculatedTotal = baseTotal;
+    let calculatedAdvance = baseAdvance;
+
+    if (baseCurr === 'USD' || baseCurr === 'EUR' || baseCurr === 'AUD') {
+      if (bankCurrency === 'LKR') {
+        calculatedTotal = baseTotal * exRate;
+        calculatedAdvance = baseAdvance * exRate;
+      } else {
+        calculatedTotal = baseTotal;
+        calculatedAdvance = baseAdvance;
+      }
+    } else if (baseCurr === 'LKR') {
+      if (bankCurrency === 'LKR') {
+        calculatedTotal = baseTotal;
+        calculatedAdvance = baseAdvance;
+      } else {
+        calculatedTotal = exRate > 0 ? baseTotal / exRate : baseTotal;
+        calculatedAdvance = exRate > 0 ? baseAdvance / exRate : baseAdvance;
+      }
+    }
 
     setAdvanceFormData({
       guestName: selectedReg.guestName || confirmationData?.guestName || '',
@@ -736,9 +758,9 @@ const Reservations = () => {
       exchangeRate: exRate,
       baseCurrency: baseCurr,
       bankKey: initialBankKey,
-      currency: selectedBank.currency,
-      totalAmount: selectedBank.currency === 'LKR' ? baseTotal * exRate : baseTotal,
-      advanceAmount: selectedBank.currency === 'LKR' ? Math.round(baseAdvance * exRate * 100) / 100 : baseAdvance,
+      currency: bankCurrency,
+      totalAmount: Math.round(calculatedTotal * 100) / 100,
+      advanceAmount: Math.round(calculatedAdvance * 100) / 100,
       bankDetails: selectedBank
     });
     setShowAdvanceModal(true);
@@ -749,19 +771,30 @@ const Reservations = () => {
     if (!selectedBank) return;
 
     const newCurrency = selectedBank.currency;
-    const exRate = parseFloat(advanceFormData.exchangeRate) || 335;
+    const exRate = parseFloat(advanceFormData.exchangeRate) || 300;
     const baseTotal = parseFloat(advanceFormData.baseTotalAmount || 0);
     const baseAdvance = parseFloat(advanceFormData.baseAdvanceAmount || 0);
+    const baseCurr = (advanceFormData.baseCurrency || 'USD').toUpperCase();
 
     let newTotal = baseTotal;
     let newAdvance = baseAdvance;
 
-    if (newCurrency === 'LKR') {
-      newTotal = baseTotal * exRate;
-      newAdvance = baseAdvance * exRate;
-    } else if (newCurrency === 'USD' || newCurrency === 'EUR' || newCurrency === 'AUD') {
-      newTotal = baseTotal;
-      newAdvance = baseAdvance;
+    if (baseCurr === 'USD' || baseCurr === 'EUR' || baseCurr === 'AUD') {
+      if (newCurrency === 'LKR') {
+        newTotal = baseTotal * exRate;
+        newAdvance = baseAdvance * exRate;
+      } else {
+        newTotal = baseTotal;
+        newAdvance = baseAdvance;
+      }
+    } else if (baseCurr === 'LKR') {
+      if (newCurrency === 'LKR') {
+        newTotal = baseTotal;
+        newAdvance = baseAdvance;
+      } else {
+        newTotal = exRate > 0 ? baseTotal / exRate : baseTotal;
+        newAdvance = exRate > 0 ? baseAdvance / exRate : baseAdvance;
+      }
     }
 
     setAdvanceFormData({
@@ -4560,14 +4593,20 @@ const Reservations = () => {
                 </div>
 
                 {/* Right Column: Live Printable Document Preview */}
-                <div className="lg:col-span-7 flex flex-col justify-between">
-                  <div id="printable-advance-modal-content" className="bg-white border border-slate-200 rounded-xl p-2 shadow-sm overflow-x-auto">
-                    <AdvanceRequestPrint 
-                      ref={advancePrintRef}
-                      advanceData={advanceFormData}
-                      selectedReg={selectedReg}
-                      associatedBooking={associatedB}
-                    />
+                <div className="lg:col-span-7 flex flex-col justify-start">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex justify-between items-center">
+                    <span>Live Document Preview</span>
+                    <span className="text-[9px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded font-mono">Letter / A4 Standard</span>
+                  </div>
+                  <div id="printable-advance-modal-content" className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex justify-center p-2">
+                    <div className="w-full max-w-[680px]">
+                      <AdvanceRequestPrint 
+                        ref={advancePrintRef}
+                        advanceData={advanceFormData}
+                        selectedReg={selectedReg}
+                        associatedBooking={associatedB}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
