@@ -13,6 +13,9 @@ import java.time.LocalDate;
         @Index(name = "idx_booking_reg_id", columnList = "guest_registration_id"),
         @Index(name = "idx_booking_room_num", columnList = "roomNumber"),
         @Index(name = "idx_booking_property", columnList = "property_id")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_property_booking_number", columnNames = {"property_id", "bookingNumber"})
     }
 )
 @Data
@@ -24,7 +27,7 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String bookingNumber;
 
     @Column(name = "guest_registration_id")

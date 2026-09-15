@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
     indexes = {
         @Index(name = "idx_bank_slip_key", columnList = "bookingKey"),
         @Index(name = "idx_bank_slip_booking_id", columnList = "booking_id"),
-        @Index(name = "idx_bank_slip_reg_id", columnList = "guest_registration_id")
+        @Index(name = "idx_bank_slip_reg_id", columnList = "guest_registration_id"),
+        @Index(name = "idx_bank_slip_property", columnList = "property_id")
     }
 )
 @Data
@@ -24,6 +25,9 @@ public class BankSlip {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "property_id")
+    private Long propertyId = 1L;
 
     @Column(nullable = false)
     private String bookingKey; // e.g. "booking_D-7892023" or "reg_123"

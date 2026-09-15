@@ -17,6 +17,9 @@ public class DiscountRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "property_id")
+    private Long propertyId = 1L;
+
     @Column(name = "booking_id")
     private Long bookingId;
 

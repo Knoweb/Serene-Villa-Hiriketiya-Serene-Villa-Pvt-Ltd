@@ -40,5 +40,16 @@ services:
     ports:
       - "80:80"
 
+  frontend_hiriketiya:
+    build:
+      context: ./frontend-hiriketiya
+      dockerfile: Dockerfile
+    container_name: serene_villa_frontend_hiriketiya
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "81:80"
+
 volumes:
   mysql_data:

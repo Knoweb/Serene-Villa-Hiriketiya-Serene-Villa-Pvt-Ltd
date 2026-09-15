@@ -1,0 +1,660 @@
+import React from 'react';
+import logoImg from '../assets/logo.jpeg';
+
+const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForReceipt, selectedReg, associatedBooking: passedAssociatedBooking, payments = [], bookings = [], forceLkr = false }, ref) => {
+  if (!receiptData || !selectedPaymentForReceipt || !selectedReg || !passedAssociatedBooking) return null;
+
+  const associatedBooking = bookings.find(b => b.id === selectedPaymentForReceipt.bookingId) || passedAssociatedBooking;
+  const bCurr = (() => {
+    // 1. Direct booking currency
+    if (associatedBooking?.currency) {
+      const c = associatedBooking.currency.toUpperCase();
+      if (['LKR', 'USD', 'EUR', 'AUD', 'GBP'].includes(c)) return c;
+    }
+    // 2. Room prices JSON table currency
+    if (associatedBooking?.roomPrices) {
+      try {
+        const parsed = typeof associatedBooking.roomPrices === 'string' ? JSON.parse(associatedBooking.roomPrices) : associatedBooking.roomPrices;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const itemWithCurr = parsed.find(item => item.currency);
+          if (itemWithCurr && itemWithCurr.currency) return itemWithCurr.currency.toUpperCase();
+        }
+      } catch (e) {}
+    }
+    // 3. Table currency or payment currency
+    if (associatedBooking?.tableCurrency) return associatedBooking.tableCurrency.toUpperCase();
+    if (selectedPaymentForReceipt?.currencyCode) return selectedPaymentForReceipt.currencyCode.toUpperCase();
+    if (selectedReg?.currency) return selectedReg.currency.toUpperCase();
+    const isForeign = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
+    return isForeign ? 'USD' : 'LKR';
+  })();
+  const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
+  const displayCurrency = forceLkr ? 'LKR' : bCurr;
+  const convFactor = forceLkr ? exRate : 1;
+
+  const baseBNum = associatedBooking?.bookingNumber || selectedReg?.bookingNumber;
+  const siblingBookings = bookings.length > 0 
+    ? bookings.filter(b => {
+        if (b.guestRegistrationId === selectedReg.id) return true;
+        if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) return true;
+        return false;
+      })
+    : [associatedBooking];
+
+  const totalBookingAmount = siblingBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+  const totalBookingAmountLkr = bCurr === 'LKR' ? totalBookingAmount : (totalBookingAmount * exRate);
+
+  // Calculate correct total paid up to this payment to find the correct balance
+  const paymentsList = payments && payments.length > 0 ? payments : [];
+  const paymentsUpToThis = paymentsList.length > 0 
+    ? paymentsList.filter(p => p.id <= selectedPaymentForReceipt.id)
+    : [selectedPaymentForReceipt];
+  const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+  const remainingBalLkr = Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
+
+  const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' || selectedPaymentForReceipt.isFinalPayment;
+  const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
+  const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
+  const isConsolidatedBill = isFinalPayment || isDiscountAdjusted || isOriginalBill;
+  const isExtraNight = associatedBooking.bookingNumber?.includes('/1N') || associatedBooking.bookingNumber?.includes('/EN') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1N') || (selectedPaymentForReceipt.referenceNumber || '').includes('/EN') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA NIGHT') || selectedPaymentForReceipt.paymentType === 'EXTRA_NIGHT';
+  const isExtraPerson = associatedBooking.bookingNumber?.includes('/1P') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1P') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('ONE PERSON') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA PERSON') || selectedPaymentForReceipt.paymentType === 'EXTRA_PERSON';
+  const isDiscount = associatedBooking.bookingNumber?.includes('/DISC');
+
+  const receiptTitle = isDiscountAdjusted
+    ? 'Discount Adjusted Invoice'
+    : isOriginalBill
+      ? 'Original Reservation Invoice'
+      : isFinalPayment 
+        ? 'Final Payment Receipt' 
+        : isExtraNight 
+          ? 'Extra Night Receipt' 
+          : isExtraPerson 
+            ? 'One Person Receipt' 
+            : isDiscount 
+              ? 'Discount Receipt' 
+              : 'Advance Payment Receipt';
+
+  const baseBookingItem = siblingBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
+
+  // Filter top itemized rows to show only room nights (clean layout matching Image 1)
+  let targetBookings = [];
+  if (isExtraNight || isExtraPerson) {
+    // For Extra Night or Extra Person sub-bills, target strictly the sub-booking!
+    targetBookings = [associatedBooking];
+  } else {
+    // For Final Invoices, Discount Adjusted Invoices, Original Bills, and standard Advance Receipts:
+    // Keep extra nights and extra persons separate! Only target the base booking!
+    targetBookings = [baseBookingItem || associatedBooking];
+  }
+
+  if (targetBookings.length === 0 && selectedReg) {
+    targetBookings = [{
+      roomNumber: selectedReg.roomNumber,
+      roomType: selectedReg.roomType,
+      roomPrices: selectedReg.roomPrices,
+      totalAmount: selectedReg.totalAmount || 0,
+      numberOfNights: selectedReg.numberOfNights || selectedReg.nights || 1
+    }];
+  }
+
+  let itemizedRows = [];
+  let roomChargesTotal = 0;
+
+  // Robust split helper for room types and room numbers
+  const parseList = (str) => {
+    if (!str) return [];
+    return String(str).split(',').map(s => s.trim()).filter(Boolean);
+  };
+
+  const globalRoomsList = parseList(selectedReg?.roomNumber || associatedBooking?.roomNumber || '');
+  const globalRoomTypesList = parseList(selectedReg?.roomType || associatedBooking?.roomType || '');
+  let globalParsedPrices = null;
+  if (selectedReg?.roomPrices || associatedBooking?.roomPrices) {
+    try {
+      const p = typeof (selectedReg?.roomPrices || associatedBooking?.roomPrices) === 'string'
+        ? JSON.parse(selectedReg?.roomPrices || associatedBooking?.roomPrices)
+        : (selectedReg?.roomPrices || associatedBooking?.roomPrices);
+      if (Array.isArray(p) && p.length > 0) globalParsedPrices = p;
+    } catch(e) {}
+  }
+
+  targetBookings.forEach((book) => {
+    const isSubBooking = !!(book.bookingNumber && book.bookingNumber.includes('/'));
+    
+    let roomsList = parseList(book.roomNumber);
+    let roomTypesList = parseList(book.roomType);
+
+    let parsedRoomPrices = null;
+    if (book.roomPrices) {
+      try {
+        const p = typeof book.roomPrices === 'string' ? JSON.parse(book.roomPrices) : book.roomPrices;
+        if (Array.isArray(p) && p.length > 0) parsedRoomPrices = p;
+      } catch(e) {}
+    }
+
+    if (!isSubBooking || book === baseBookingItem) {
+      if (roomsList.length === 0) roomsList = globalRoomsList;
+      if (roomTypesList.length === 0) roomTypesList = globalRoomTypesList;
+      if (!parsedRoomPrices) parsedRoomPrices = globalParsedPrices;
+    }
+
+    const countRooms = Math.max(
+      roomsList.length,
+      roomTypesList.length,
+      parsedRoomPrices ? parsedRoomPrices.length : 0,
+      1
+    );
+
+    let bookTotalAmount = Math.abs(parseFloat(book.totalAmount || book.amount || 0));
+    if (bookTotalAmount === 0 && (!isSubBooking || book === baseBookingItem)) {
+      bookTotalAmount = Math.abs(parseFloat(selectedReg?.totalAmount || associatedBooking?.totalAmount || 0));
+    }
+
+    if (parsedRoomPrices && parsedRoomPrices.length > 0) {
+      const sumPrices = parsedRoomPrices.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+      if (sumPrices > 0) {
+        bookTotalAmount = sumPrices;
+      }
+    }
+
+    const bookDispTotal = bookTotalAmount * convFactor;
+    const bookTotalCents = Math.round(bookDispTotal * 100);
+    const nightsVal = book.numberOfNights || (isSubBooking ? 1 : (selectedReg?.numberOfNights || selectedReg?.nights || associatedBooking?.numberOfNights || 1));
+
+    let suffixLabel = "";
+    if (book.bookingNumber?.includes('/1N')) suffixLabel = " (Extra Night)";
+    else if (book.bookingNumber?.includes('/1P')) suffixLabel = " (Extra Person)";
+
+    for (let idx = 0; idx < countRooms; idx++) {
+      let rowAmount = 0;
+      let explicitRate = null;
+      let explicitRoomNum = null;
+      let explicitRoomType = null;
+
+      const currentRoomNumFromList = roomsList[idx] || (roomsList.length === 1 && idx === 0 ? roomsList[0] : '');
+      const cleanRoomNumFromList = currentRoomNumFromList ? String(currentRoomNumFromList).replace(/^Room\s*/i, '').trim() : '';
+
+      // Exact room matching by room number if available, else by index
+      let matchedPriceItem = null;
+      if (parsedRoomPrices && parsedRoomPrices.length > 0) {
+        if (cleanRoomNumFromList) {
+          matchedPriceItem = parsedRoomPrices.find(p => {
+            const pNum = String(p.roomNumber || p.roomNum || '').replace(/^Room\s*/i, '').trim();
+            return pNum === cleanRoomNumFromList;
+          });
+        }
+        if (!matchedPriceItem && parsedRoomPrices[idx]) {
+          matchedPriceItem = parsedRoomPrices[idx];
+        }
+      }
+
+      if (matchedPriceItem) {
+        if (matchedPriceItem.price != null && !isNaN(matchedPriceItem.price)) {
+          rowAmount = (parseFloat(matchedPriceItem.price) || 0) * convFactor;
+        }
+        if (matchedPriceItem.rate != null && !isNaN(matchedPriceItem.rate)) {
+          explicitRate = (parseFloat(matchedPriceItem.rate) || 0) * convFactor;
+        }
+        if (matchedPriceItem.roomNumber || matchedPriceItem.roomNum) {
+          explicitRoomNum = String(matchedPriceItem.roomNumber || matchedPriceItem.roomNum).replace(/^Room\s*/i, '').trim();
+        }
+        if (matchedPriceItem.roomType) {
+          explicitRoomType = matchedPriceItem.roomType;
+        }
+      }
+
+      if (rowAmount === 0 && !parsedRoomPrices) {
+        const currentCentsSum = Math.round((bookTotalCents / countRooms) * (idx + 1));
+        const prevCentsSum = Math.round((bookTotalCents / countRooms) * idx);
+        const rowCents = currentCentsSum - prevCentsSum;
+        rowAmount = rowCents / 100;
+      }
+
+      const rateAmount = explicitRate != null ? explicitRate : (rowAmount / (nightsVal || 1));
+      const currentRoomType = explicitRoomType || roomTypesList[idx] || (roomTypesList.length === 1 ? roomTypesList[0] : (selectedReg?.roomType || associatedBooking?.roomType || 'Room'));
+      const rNum = explicitRoomNum || cleanRoomNumFromList || '';
+
+      let desc = rNum
+        ? `Night - ${currentRoomType} (Room ${rNum})${suffixLabel}`
+        : `Night - ${currentRoomType}${suffixLabel}`;
+
+      const amountVal = Math.floor(rowAmount);
+      const amountCts = Math.round((rowAmount - amountVal) * 100).toString().padStart(2, '0');
+
+      itemizedRows.push({
+        roomNumber: rNum,
+        description: desc,
+        rate: rateAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        amountVal: amountVal.toLocaleString(),
+        amountCts: amountCts,
+        rawAmount: rowAmount,
+        isExtra: !!(book.bookingNumber && book.bookingNumber.includes('/'))
+      });
+      roomChargesTotal += rowAmount;
+    }
+  });
+
+  const dispTotalAmount = roomChargesTotal;
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString();
+  };
+
+  return (
+    <div ref={ref} className="receipt-print-area text-black font-sans bg-white p-4">
+      <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-3 mb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <img src={logoImg} alt="Serene Villa Logo" className="h-12 w-12 object-contain" />
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">Serene Villa</h1>
+              <p className="text-xs text-slate-500 font-semibold">(PVT) LTD - HIRIKETIYA</p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-600">Pehembiya Road, Hiriketiya, Dickwella.</p>
+          <p className="text-xs text-slate-600">Email: Serenehiriketiya@gmail.com</p>
+          <p className="text-xs text-slate-600">Hotline: +94 41 225 5204 / +94 70 499 8787</p>
+        </div>
+
+        <div className="text-right space-y-1">
+          <h2 className="text-lg font-black text-emerald-800 tracking-wide uppercase">{receiptTitle}</h2>
+          {isFinalPayment && <span className="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-1">✓ FULLY SETTLED</span>}
+          {(() => {
+            const isSubExtra = !!(associatedBooking.bookingNumber && associatedBooking.bookingNumber.includes('/') && !associatedBooking.bookingNumber.includes('/DISC'));
+            const statusVal = selectedPaymentForReceipt?.paymentStatus || receiptData?.paymentStatus || associatedBooking?.paymentStatus;
+            if (isSubExtra && statusVal) {
+              const isPaid = statusVal === 'Paid';
+              return (
+                <span className={`inline-block text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider mb-1 ${
+                  isPaid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                }`}>
+                  {isPaid ? '✓ PAID' : '⚠ PAYMENT PENDING / UNPAID'}
+                </span>
+              );
+            }
+            return null;
+          })()}
+          <div className="border border-emerald-800/30 rounded px-3 py-1.5 bg-emerald-50/20 text-xs text-left space-y-0.5">
+            <div className="flex gap-4 justify-between">
+              <span className="text-slate-500 font-semibold">Booking No:</span>
+              <span className="font-mono font-bold text-emerald-800">{associatedBooking.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '') || `D-${1000 + selectedReg.id}`}</span>
+            </div>
+            <div className="flex gap-4 justify-between">
+              <span className="text-slate-500 font-semibold">Receipt No:</span>
+              <span className="font-mono font-bold text-slate-800">{receiptData.receiptNumber}</span>
+            </div>
+            <div className="flex gap-4 justify-between">
+              <span className="text-slate-500 font-semibold">Payment Method:</span>
+              <span className="font-bold text-emerald-800 uppercase tracking-wide">
+                {selectedPaymentForReceipt?.paymentMethod || receiptData?.paymentMethod || 'Cash'}
+              </span>
+            </div>
+            {(() => {
+              const isSubExtra = !!(associatedBooking.bookingNumber && associatedBooking.bookingNumber.includes('/') && !associatedBooking.bookingNumber.includes('/DISC'));
+              const statusVal = selectedPaymentForReceipt?.paymentStatus || receiptData?.paymentStatus || associatedBooking?.paymentStatus;
+              if (isSubExtra && statusVal) {
+                return (
+                  <div className="flex gap-4 justify-between">
+                    <span className="text-slate-500 font-semibold">Status:</span>
+                    <span className={`font-black uppercase tracking-wide ${statusVal === 'Paid' ? 'text-emerald-800' : 'text-amber-800'}`}>
+                      {statusVal === 'Paid' ? 'PAID' : 'UNPAID'}
+                    </span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            <div className="flex gap-4 justify-between">
+              <span className="text-slate-500 font-semibold">Date:</span>
+              <span className="font-bold text-slate-800">{(() => {
+                const rawD = selectedPaymentForReceipt?.paymentDate || receiptData?.generatedAt || receiptData?.paymentDate || selectedPaymentForReceipt?.createdAt;
+                if (!rawD) return new Date().toLocaleDateString();
+                const parsed = new Date(rawD);
+                return isNaN(parsed.getTime()) ? String(rawD).split('T')[0] : parsed.toLocaleDateString();
+              })()}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {(() => {
+        const guestName = selectedReg?.guestName || associatedBooking?.guestName || '';
+        const bookingChannel = associatedBooking?.bookingType || 'Direct Booking';
+        
+        let checkInDate = associatedBooking?.checkInDate || selectedReg?.checkInDate || '';
+        let checkOutDate = associatedBooking?.checkOutDate || selectedReg?.checkOutDate || '';
+        let nights = associatedBooking?.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || 1;
+
+        if (isConsolidatedBill) {
+          const validCheckIns = siblingBookings.map(b => b.checkInDate).filter(Boolean);
+          const validCheckOuts = siblingBookings.map(b => b.checkOutDate).filter(Boolean);
+          if (validCheckIns.length > 0) checkInDate = validCheckIns.reduce((min, d) => d < min ? d : min, validCheckIns[0]);
+          if (validCheckOuts.length > 0) checkOutDate = validCheckOuts.reduce((max, d) => d > max ? d : max, validCheckOuts[0]);
+          if (checkInDate && checkOutDate) {
+            const inD = new Date(checkInDate);
+            const outD = new Date(checkOutDate);
+            const diffDays = Math.round((outD.getTime() - inD.getTime()) / (1000 * 3600 * 24));
+            if (diffDays > 0) nights = diffDays;
+          }
+        } else if (isExtraNight && associatedBooking?.checkInDate && associatedBooking?.checkOutDate) {
+          nights = associatedBooking.numberOfNights || 1;
+        }
+
+        const boardBasis = associatedBooking?.boardBasis || 'Bed & Breakfast';
+        const adults = selectedReg?.adults || associatedBooking?.adults || 1;
+        const children = selectedReg?.children || associatedBooking?.children || 0;
+        const formatDateDots = (dStr) => dStr ? dStr.replace(/-/g, '.') : '';
+
+        return (
+          <>
+            <div style={{ fontSize: '9px', fontWeight: '800', color: '#065f46', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>
+              RESERVATION DETAILS
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 24px', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px', marginBottom: '20px', backgroundColor: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Guest Name</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{guestName}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Channel</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{bookingChannel}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Check - in</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{formatDateDots(checkInDate)}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Check - out</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{formatDateDots(checkOutDate)}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Nights</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                  {String(nights).padStart(2, '0')} nights
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Basis</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{boardBasis}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Adults</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                  {isExtraPerson ? '01 (Extra One Person)' : String(adults).padStart(2, '0')}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Children</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                  {isExtraPerson ? '00' : String(children).padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
+      {/* Main Breakdown Table */}
+      <table className="w-full text-xs border border-slate-300 mb-6">
+        <thead>
+          <tr className="bg-emerald-800 text-white font-bold">
+            <th className="p-2 text-left border-r border-emerald-700 w-2/3">DESCRIPTION</th>
+            <th colSpan="2" className="p-2 text-center">AMOUNT</th>
+          </tr>
+          <tr className="bg-slate-100 text-slate-700 text-[10px] font-semibold border-b border-slate-300">
+            <th className="border-r border-slate-300"></th>
+            <th className="p-1 border-r border-slate-300 text-center w-24">{displayCurrency === 'LKR' ? 'RS.' : displayCurrency}</th>
+            <th className="p-1 text-center w-12">CTS.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {itemizedRows.map((row, idx) => (
+            <tr key={idx} className="border-b border-slate-200">
+              <td className="p-2 border-r border-slate-200">{row.description}</td>
+              <td className="p-2 text-right border-r border-slate-200 font-mono">{row.amountVal}</td>
+              <td className="p-2 text-center font-mono">{row.amountCts}</td>
+            </tr>
+          ))}
+          <tr className="font-bold bg-slate-50 border-t border-slate-300">
+            <td className="p-2 border-r border-slate-300">TOTAL VALUE</td>
+            <td className="p-2 text-right border-r border-slate-300 font-mono text-emerald-800">{Math.floor(dispTotalAmount).toLocaleString()}</td>
+            <td className="p-2 text-center font-mono text-emerald-800">{Math.round((dispTotalAmount - Math.floor(dispTotalAmount)) * 100).toString().padStart(2, '0')}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Bottom Section: Payment Reference & Totals Box (Matching User Image 2) */}
+      <div className="grid grid-cols-2 gap-4 text-xs mb-8">
+        {/* Left Column: Reference & Notes */}
+        <div className="border border-slate-250 border-dashed rounded p-3 flex flex-col justify-between">
+          <div>
+            <span className="font-bold text-[8px] uppercase tracking-wider block mb-1 text-slate-400">PAYMENT REFERENCE / REMARKS</span>
+            <div className="flex justify-between items-center mb-1">
+              <span className="font-semibold text-slate-600">Method:</span>
+              <span className="font-bold font-mono text-emerald-800 uppercase px-1.5 py-0.5 bg-emerald-50 border border-emerald-200 rounded text-[10px]">
+                {selectedPaymentForReceipt?.paymentMethod || receiptData?.paymentMethod || 'Cash'}
+              </span>
+            </div>
+            <p className="font-mono text-slate-800 font-semibold mb-2">Ref: {selectedPaymentForReceipt.referenceNumber || 'N/A'}</p>
+            {selectedPaymentForReceipt.remarks && (
+              <p className="text-[10px] leading-tight text-slate-750">
+                {selectedPaymentForReceipt.remarks.replace(/\[(?:Bank )?Charges: [\d.]+\]/g, '').replace(/\[Other Charges: [\d.]+\]/g, '').trim()}
+              </p>
+            )}
+          </div>
+          {(!isFinalPayment && !isExtraNight && !isExtraPerson && !isDiscountAdjusted && !isOriginalBill) && (
+            <div className="text-[10px] font-bold text-rose-600 tracking-wide mt-2">
+              * No refunds will be provided.
+            </div>
+          )}
+          <div className="text-[9px] text-slate-400 italic mt-2">
+            {isFinalPayment
+              ? '* This is the final payment receipt. Account fully settled.'
+              : '* Please preserve this receipt for final checkout subtraction.'}
+          </div>
+        </div>
+
+        {/* Right Column: Numeric breakdown */}
+        {(() => {
+          const discBookings = siblingBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
+          // Discounts must ONLY be deducted on Discount Adjusted Invoices or Final Payment Receipts
+          const shouldApplyDiscount = (isDiscountAdjusted || isFinalPayment) && !isOriginalBill;
+          const totalDiscountVal = shouldApplyDiscount ? discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0) : 0;
+
+          const grossTotAmt = roomChargesTotal / convFactor;
+          const dispGrossTotAmt = forceLkr ? grossTotAmt * exRate : grossTotAmt;
+
+          const netTotAmt = Math.max(0, grossTotAmt - totalDiscountVal);
+          const dispNetTotAmt = forceLkr ? netTotAmt * exRate : netTotAmt;
+
+          const isExtraSubBooking = isExtraNight || isExtraPerson;
+          const isExtraPaid = selectedPaymentForReceipt.paymentStatus === 'Paid' || receiptData?.paymentStatus === 'Paid' || associatedBooking?.paymentStatus === 'Paid';
+
+          let rawPaid = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+          if (isExtraSubBooking && !isExtraPaid && selectedPaymentForReceipt.id && String(selectedPaymentForReceipt.id).startsWith('extra-')) {
+            rawPaid = 0;
+          }
+          
+          // Parse Other Charges from remarks
+          const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+          const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
+
+          // Compute prior advance payments received prior to this payment (or marked as Advance)
+          const priorAdvancePays = payments.filter(p => {
+            if (p.id === selectedPaymentForReceipt.id) return false;
+            const thisIdx = payments.findIndex(item => item.id === selectedPaymentForReceipt.id);
+            const pIdx = payments.findIndex(item => item.id === p.id);
+            return pIdx !== -1 && thisIdx !== -1 ? pIdx < thisIdx : (p.id < selectedPaymentForReceipt.id);
+          });
+          
+          const priorAdvancePaidBCurr = priorAdvancePays.reduce((sum, p) => {
+            const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+            const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
+            const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+            const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+            if (pCurr === bCurr.toUpperCase()) return sum + pAmt;
+            if (bCurr.toUpperCase() === 'LKR') return sum + (pLkr > 0 ? pLkr : (pAmt * pExRate));
+            return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
+          }, 0);
+
+          const dispPriorAdvancePaid = isExtraSubBooking ? 0 : (forceLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr);
+
+          // If this is a final payment and other charges were adjusted, ensure the base settlement paid amount reflects net paid
+          let basePaidInBookingCurr = rawPaid;
+          const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
+          if (pLkrAmount > 0 && exRate > 0 && bCurr !== 'LKR') {
+            const derivedBookingCurr = pLkrAmount / exRate;
+            if (Math.abs(derivedBookingCurr - (rawPaid - otherVal)) < 0.05 || Math.abs(derivedBookingCurr - rawPaid) < 0.05) {
+              basePaidInBookingCurr = derivedBookingCurr;
+            }
+          }
+
+          const paidDisplayAmt = forceLkr 
+            ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (basePaidInBookingCurr * exRate))
+            : basePaidInBookingCurr;
+
+          let remBal = 0;
+          if (isFinalPayment) {
+            remBal = 0;
+          } else if (isExtraNight || isExtraPerson) {
+            remBal = Math.max(0, dispNetTotAmt - paidDisplayAmt);
+          } else if (isDiscountAdjusted) {
+            const totalPaidUpToThisDisplay = forceLkr ? totalPaidUpToThis : (totalPaidUpToThis / exRate);
+            remBal = Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay);
+          } else {
+            const totalPaidUpToThisDisplay = forceLkr ? totalPaidUpToThis : (totalPaidUpToThis / exRate);
+            remBal = Math.max(0, dispGrossTotAmt - totalPaidUpToThisDisplay);
+          }
+          const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
+          
+          // Converted amount in LKR for this receipt payment (paid room settlement * exchange rate)
+          const convertedAmountLkr = selectedPaymentForReceipt.convertedAmountLkr || (paidDisplayAmt * (displayCurrency === 'LKR' ? 1 : exRate));
+
+          return (
+            <div className="border border-slate-700/60 rounded-lg p-3 space-y-1.5 bg-white shadow-2xs">
+              <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
+                <span className="font-bold text-slate-800">{displayCurrency} {dispGrossTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+
+              {totalDiscountVal > 0 && shouldApplyDiscount && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-rose-600 bg-rose-50/50 px-1 py-0.5 rounded">
+                  <span className="font-semibold">Discount Deducted:</span>
+                  <span className="font-bold font-mono">-{displayCurrency} {(forceLkr ? totalDiscountVal * exRate : totalDiscountVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
+
+              {/* Advance Payments Received earlier (Shown whenever prior advance exists) */}
+              {dispPriorAdvancePaid > 0 && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
+                  <span className="font-semibold">Advance Paid Earlier:</span>
+                  <span className="font-bold font-mono">-{displayCurrency} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              
+              {paidDisplayAmt > 0 && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-semibold">
+                    {isFinalPayment 
+                      ? 'Final Settlement Paid:' 
+                      : (isExtraNight || isExtraPerson)
+                      ? 'Paid:'
+                      : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')
+                    }
+                  </span>
+                  <span className="font-bold text-slate-900">
+                    {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+
+              {(() => {
+                const cardFeeMatch = selectedPaymentForReceipt.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/);
+                const cardFeeRaw = cardFeeMatch ? parseFloat(cardFeeMatch[1]) : 0;
+                if (cardFeeRaw > 0) {
+                  let feeDisplayVal = 0;
+                  if (forceLkr || displayCurrency === 'LKR') {
+                    const lkrPaid = paidDisplayAmt * (currencyCode === 'LKR' ? 1 : exRate);
+                    feeDisplayVal = cardFeeRaw < (lkrPaid * 0.01) ? (cardFeeRaw * exRate) : cardFeeRaw;
+                  } else {
+                    feeDisplayVal = cardFeeRaw > (paidDisplayAmt * 0.5) ? (cardFeeRaw / exRate) : cardFeeRaw;
+                  }
+                  
+                  const feeDisplay = `${displayCurrency} ${feeDisplayVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  return (
+                    <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                      <span className="text-slate-700 font-bold">CHARGES:</span>
+                      <span className="font-bold text-slate-900">
+                        {feeDisplay}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {otherVal > 0 && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-semibold">OTHER CHARGES:</span>
+                  <span className="font-bold text-amber-700">
+                    {displayCurrency} {(displayCurrency === 'LKR' ? (currencyCode === 'LKR' ? otherVal : otherVal * exRate) : otherVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+
+              {!forceLkr && (currencyCode !== 'LKR') && (associatedBooking?.showExchangeRateOnBill || selectedPaymentForReceipt?.showExchangeRateOnBill) && (
+                <>
+                  <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
+                    <span className="text-slate-500">Exchange Rate:</span>
+                    <span className="font-medium text-slate-750">{exRate}</span>
+                  </div>
+                  <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                    <span className="text-slate-500 font-semibold">Converted Amount:</span>
+                    <span className="font-bold text-slate-900">
+                      LKR {convertedAmountLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-between pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
+                <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
+                <span className="font-bold text-xs text-slate-900">
+                  {displayCurrency} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              {isFinalPayment && (
+                <div className="text-center mt-1 pt-0.5">
+                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">✓ FULLY PAID</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Signature Lines */}
+      <div className="flex justify-between items-end mt-16 pb-4">
+        <div className="text-center w-52">
+          <div className="border-b border-slate-400 w-full mb-1"></div>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Guest Signature</span>
+        </div>
+        
+        <div className="text-center w-52">
+          <div className="border-b border-slate-400 w-full mb-1"></div>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Received By</span>
+        </div>
+      </div>
+
+      {/* Metadata & Printed Date */}
+      <div className="flex justify-between text-[8px] text-slate-400 mt-10 pt-2 border-t border-slate-100 font-medium">
+        <span>Printed: {new Date().toLocaleString()}</span>
+        <span>Staff: {receiptData.generatedBy || 'Front Office'}</span>
+      </div>
+    </div>
+  );
+});
+
+AdvanceReceiptPrint.displayName = 'AdvanceReceiptPrint';
+
+export default AdvanceReceiptPrint;

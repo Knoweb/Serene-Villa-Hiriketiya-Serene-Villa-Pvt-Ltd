@@ -17,6 +17,9 @@ public class Receipt {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "property_id")
+    private Long propertyId = 1L;
+
     @Column(name = "receipt_number", nullable = false, unique = true)
     private String receiptNumber;
 

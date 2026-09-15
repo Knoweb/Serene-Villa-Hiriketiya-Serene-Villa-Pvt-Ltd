@@ -16,21 +16,29 @@ public class RoomController {
 
     // Public endpoint for guest registrations
     @GetMapping("/api/public/rooms")
-    public ResponseEntity<List<Room>> getPublicRooms() {
+    public ResponseEntity<List<Room>> getPublicRooms(@RequestParam(name = "propertyId", required = false) Long propertyId) {
+        if (propertyId != null) {
+            return ResponseEntity.ok(roomRepository.findByPropertyId(propertyId));
+        }
         return ResponseEntity.ok(roomRepository.findAll());
     }
 
     // Protected endpoints
     @GetMapping("/api/rooms")
-    public ResponseEntity<List<Room>> getAllRooms() {
+    public ResponseEntity<List<Room>> getAllRooms(@RequestParam(name = "propertyId", required = false) Long propertyId) {
+        if (propertyId != null) {
+            return ResponseEntity.ok(roomRepository.findByPropertyId(propertyId));
+        }
         return ResponseEntity.ok(roomRepository.findAll());
     }
 
     @PostMapping("/api/rooms")
     public ResponseEntity<?> createRoom(@RequestBody Room room) {
         try {
-            if (roomRepository.findByRoomNumber(room.getRoomNumber()).isPresent()) {
-                return ResponseEntity.badRequest().body(java.util.Map.of("message", "Room number already exists!"));
+            Long propId = room.getPropertyId() != null ? room.getPropertyId() : 1L;
+            room.setPropertyId(propId);
+            if (roomRepository.findByPropertyIdAndRoomNumber(propId, room.getRoomNumber()).isPresent()) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("message", "Room number already exists for this property!"));
             }
             return ResponseEntity.ok(roomRepository.save(room));
         } catch (Exception e) {

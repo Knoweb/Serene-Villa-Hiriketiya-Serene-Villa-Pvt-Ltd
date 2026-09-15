@@ -17,6 +17,9 @@ public class DeleteRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "property_id")
+    private Long propertyId = 1L;
+
     private Long registrationId;
 
     private Long bookingId;

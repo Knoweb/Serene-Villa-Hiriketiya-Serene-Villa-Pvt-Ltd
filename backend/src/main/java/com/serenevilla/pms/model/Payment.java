@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
     indexes = {
         @Index(name = "idx_payment_booking_id", columnList = "booking_id"),
         @Index(name = "idx_payment_guest_reg_id", columnList = "guest_registration_id"),
-        @Index(name = "idx_payment_hidden", columnList = "is_hidden_from_front_office")
+        @Index(name = "idx_payment_hidden", columnList = "is_hidden_from_front_office"),
+        @Index(name = "idx_payment_property", columnList = "property_id")
     }
 )
 @Data
@@ -24,6 +25,9 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "property_id")
+    private Long propertyId = 1L;
 
     @Column(name = "booking_id", nullable = false)
     private Long bookingId;

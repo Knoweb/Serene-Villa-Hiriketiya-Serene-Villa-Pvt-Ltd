@@ -18,6 +18,9 @@ public class DailyHandover {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "property_id")
+    private Long propertyId = 1L;
+
     private LocalDate date = LocalDate.now();
 
     private String submittedBy;
