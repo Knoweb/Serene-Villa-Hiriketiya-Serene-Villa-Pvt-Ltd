@@ -13,6 +13,7 @@ public interface GuestRegistrationRepository extends JpaRepository<GuestRegistra
     List<GuestRegistration> findByPropertyIdAndIsHiddenFromFrontOfficeFalse(Long propertyId);
 
     @Query("SELECT g FROM GuestRegistration g WHERE " +
+           "(:propertyId IS NULL OR g.propertyId = :propertyId) AND " +
            "(g.isHiddenFromFrontOffice = false OR :showHidden = true) AND " +
            "(:query IS NULL OR :query = '' OR " +
            "LOWER(g.guestName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
@@ -22,6 +23,7 @@ public interface GuestRegistrationRepository extends JpaRepository<GuestRegistra
            "(:status IS NULL OR :status = '' OR LOWER(g.paymentStatus) = LOWER(:status)) AND " +
            "(:source IS NULL OR :source = '' OR (:source = 'QR' AND (g.createdBy IS NULL OR g.createdBy = 'Public QR Code')) OR (:source = 'Staff' AND g.createdBy = 'Staff'))")
     Page<GuestRegistration> searchRegistrations(
+            @Param("propertyId") Long propertyId,
             @Param("query") String query,
             @Param("status") String status,
             @Param("showHidden") boolean showHidden,

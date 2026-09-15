@@ -77,14 +77,14 @@ public class GuestRegistrationService {
         return saved;
     }
 
-    public Page<GuestRegistration> searchRegistrations(String search, String status, String role, String source, int page, int size) {
+    public Page<GuestRegistration> searchRegistrations(Long propertyId, String search, String status, String role, String source, int page, int size) {
         // Show hidden only if admin
         boolean showHidden = "ADMIN".equalsIgnoreCase(role);
         
         // Latest registrations first
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         
-        Page<GuestRegistration> result = guestRegistrationRepository.searchRegistrations(search, status, showHidden, source, pageable);
+        Page<GuestRegistration> result = guestRegistrationRepository.searchRegistrations(propertyId, search, status, showHidden, source, pageable);
 
         // Dynamically recalculate paymentStatus for FRONT_OFFICER based on visible payments
         if ("FRONT_OFFICER".equalsIgnoreCase(role)) {

@@ -711,9 +711,9 @@ const Registrations = () => {
     setError('');
     let fetchedBookings = [];
     try {
-      // Fetch registrations
+      // Fetch registrations for Property 2 (Hiriketiya)
       const regRes = await fetch(
-        `${API_BASE}/guest-registrations?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&source=QR&page=${page}&size=${pageSize}`
+        `${API_BASE}/guest-registrations?propertyId=2&search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&source=QR&page=${page}&size=${pageSize}`
       );
       if (!regRes.ok) throw new Error('Failed to fetch registrations');
       const regData = await regRes.json();
@@ -721,8 +721,8 @@ const Registrations = () => {
       setTotalPages(regData.totalPages);
       setTotalElements(regData.totalElements);
 
-      // Fetch all bookings to cross-reference allocation
-      const bookingRes = await fetch(`${API_BASE}/bookings`);
+      // Fetch all bookings for Property 2 to cross-reference allocation
+      const bookingRes = await fetch(`${API_BASE}/bookings?propertyId=2`);
       if (bookingRes.ok) {
         const bookingData = await bookingRes.json();
         setBookings(bookingData);

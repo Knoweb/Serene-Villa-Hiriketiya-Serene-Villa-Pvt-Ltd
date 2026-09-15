@@ -39,6 +39,7 @@ public class GuestRegistrationController {
     // Paginated Search & Filter Guest Registrations
     @GetMapping("/api/guest-registrations")
     public ResponseEntity<?> getRegistrations(
+            @RequestParam(name = "propertyId", required = false) Long propertyId,
             @RequestParam(name = "search", required = false, defaultValue = "") String search,
             @RequestParam(name = "status", required = false, defaultValue = "") String status,
             @RequestParam(name = "role", defaultValue = "FRONT_OFFICER") String role,
@@ -46,7 +47,7 @@ public class GuestRegistrationController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
         try {
-            return ResponseEntity.ok(guestRegistrationService.searchRegistrations(search, status, role, source, page, size));
+            return ResponseEntity.ok(guestRegistrationService.searchRegistrations(propertyId, search, status, role, source, page, size));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body(java.util.Map.of("error", e.getClass().getName(), "message", e.getMessage() != null ? e.getMessage() : "Unknown error"));
