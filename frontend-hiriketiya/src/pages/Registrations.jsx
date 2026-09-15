@@ -341,7 +341,7 @@ const Registrations = () => {
 
   const fetchRooms = async () => {
     try {
-      const res = await fetch(`${API_BASE}/rooms`);
+      const res = await fetch(`${API_BASE}/rooms?propertyId=2`);
       if (res.ok) {
         const data = await res.json();
         const mapped = data.map(r => {

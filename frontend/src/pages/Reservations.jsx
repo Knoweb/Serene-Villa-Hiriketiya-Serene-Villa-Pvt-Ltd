@@ -619,7 +619,7 @@ const Reservations = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const res = await fetch(`${API_BASE}/rooms`);
+        const res = await fetch(`${API_BASE}/rooms?propertyId=1`);
         if (res.ok) {
           const data = await res.json();
           // Filter out demo/empty rooms if any
