@@ -21,13 +21,20 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        String username = credentials.get("username");
-        String rawPassword = credentials.get("password");
+    public ResponseEntity<?> login(@RequestBody Map<String, Object> credentials) {
+        String username = (String) credentials.get("username");
+        String rawPassword = (String) credentials.get("password");
+        
+        Long requestPropertyId = null;
+        if (credentials.get("propertyId") != null) {
+            try {
+                requestPropertyId = Long.valueOf(credentials.get("propertyId").toString());
+            } catch (Exception ignored) {}
+        }
         
         java.util.Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(401).body(Map.of("message", "User not found"));
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid username or password"));
         }
         
         User user = userOpt.get();
@@ -50,11 +57,22 @@ public class AuthController {
         }
 
         if (!passwordMatches) {
-            return ResponseEntity.status(401).body(Map.of("message", "Invalid password"));
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid username or password"));
         }
         
         if (!user.isActive()) {
             return ResponseEntity.status(401).body(Map.of("message", "User account is inactive"));
+        }
+
+        // Strict Property Tenant Check:
+        // Non-ADMIN staff (FRONT_OFFICER, ACCOUNTANT) cannot login to a different property's portal
+        if (user.getRole() != com.serenevilla.pms.model.Role.ADMIN && requestPropertyId != null) {
+            Long userPropId = user.getPropertyId() != null ? user.getPropertyId() : 1L;
+            if (!userPropId.equals(requestPropertyId)) {
+                return ResponseEntity.status(403).body(Map.of(
+                    "message", "Access Denied: You do not have permission to access this property portal."
+                ));
+            }
         }
         
         // Generate secure session token with property and role context
@@ -64,7 +82,7 @@ public class AuthController {
             "username", user.getUsername(),
             "role", user.getRole().name(),
             "token", "sv-auth-" + secureToken,
-            "propertyId", user.getPropertyId() != null ? user.getPropertyId() : 1L
+            "propertyId", user.getPropertyId() != null ? user.getPropertyId() : (requestPropertyId != null ? requestPropertyId : 1L)
         ));
     }
 
@@ -104,7 +122,10 @@ public class AuthController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<List<User>> getAllUsers(@RequestParam(required = false) Long propertyId) {
+        if (propertyId != null) {
+            return ResponseEntity.ok(userRepository.findByPropertyId(propertyId));
+        }
         return ResponseEntity.ok(userRepository.findAll());
     }
 

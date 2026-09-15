@@ -18,11 +18,11 @@ const Users = () => {
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState('FRONT_OFFICER');
 
-  // Fetch all users from the backend
+  // Fetch all users from the backend for Property 1
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/users`);
+      const res = await fetch(`${API_BASE}/auth/users?propertyId=1`);
       if (res.ok) {
         const data = await res.json();
         setStaff(data);

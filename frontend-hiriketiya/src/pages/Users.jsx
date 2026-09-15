@@ -18,11 +18,11 @@ const Users = () => {
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState('FRONT_OFFICER');
 
-  // Fetch all users from the backend
+  // Fetch all users from the backend for Hiriketiya (Property 2)
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/users`);
+      const res = await fetch(`${API_BASE}/auth/users?propertyId=2`);
       if (res.ok) {
         const data = await res.json();
         setStaff(data);
@@ -66,7 +66,7 @@ const Users = () => {
           password: newPassword,
           role: newRole,
           active: true,
-          propertyId: 1
+          propertyId: 2
         })
       });
 
