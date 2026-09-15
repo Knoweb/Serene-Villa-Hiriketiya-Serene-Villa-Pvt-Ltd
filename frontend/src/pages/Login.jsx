@@ -45,7 +45,7 @@ const Login = () => {
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-emerald-900/20 to-black/30 flex flex-col justify-end p-12 text-white">
-          <h1 className="text-3xl font-extrabold tracking-tight">Serene Villa</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">Serene Villa Pvt Ltd</h1>
           <p className="text-emerald-100 text-sm mt-2 max-w-md">
             Premium hospitality and property management suite. Track reservations, process payments, and manage property portfolios effortlessly.
           </p>
