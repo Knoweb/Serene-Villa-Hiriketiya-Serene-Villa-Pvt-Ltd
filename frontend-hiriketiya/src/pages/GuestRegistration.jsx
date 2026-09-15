@@ -55,12 +55,10 @@ const GuestRegistration = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const res = await fetch(`${API_BASE}/public/rooms`);
+        const res = await fetch(`${API_BASE}/public/rooms?propertyId=2`);
         if (res.ok) {
           const data = await res.json();
-          // Filter out demo/empty rooms if any
-          const filtered = data.filter(r => r.id !== 101 || r.roomType !== 'Deluxe Room');
-          setRooms(filtered);
+          setRooms(data);
         }
       } catch (err) {
         console.error('Error fetching rooms from server:', err);

@@ -171,7 +171,7 @@ const Rooms = () => {
 
   const fetchRooms = async () => {
     try {
-      const res = await fetch(`${API_BASE}/rooms`);
+      const res = await fetch(`${API_BASE}/rooms?propertyId=2`);
       if (res.ok) {
         const data = await res.json();
         setRooms(data);
@@ -370,7 +370,8 @@ const Rooms = () => {
       image: roomImages.length > 0 ? roomImages[0] : (roomType.toLowerCase().includes('suite') ? '/suite.png' : '/deluxe.png'),
       images: roomImages,
       facilities: facilitiesArray,
-      status
+      status,
+      propertyId: 2
     };
 
     try {
