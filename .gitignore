@@ -1,5 +1,7 @@
 frontend/node_modules/
 frontend/dist/
+frontend-hiriketiya/node_modules/
+frontend-hiriketiya/dist/
 backend/target/
 .DS_Store
 *.log
@@ -12,3 +14,12 @@ backend/target/
 !frontend/src/assets/suite_room.png
 !frontend/src/assets/standard_room.png
 !frontend/src/assets/budget_room.png
+!frontend-hiriketiya/public/deluxe.png
+!frontend-hiriketiya/public/suite.png
+!frontend-hiriketiya/public/login_bg.png
+!frontend-hiriketiya/src/assets/deluxe_room.png
+!frontend-hiriketiya/src/assets/suite_room.png
+!frontend-hiriketiya/src/assets/standard_room.png
+!frontend-hiriketiya/src/assets/budget_room.png
+!frontend-hiriketiya/src/assets/resort_bg.png
+
