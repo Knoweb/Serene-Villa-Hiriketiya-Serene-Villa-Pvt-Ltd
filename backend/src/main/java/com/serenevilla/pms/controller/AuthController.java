@@ -65,8 +65,8 @@ public class AuthController {
         }
 
         // Strict Property Tenant Check:
-        // Non-ADMIN staff (FRONT_OFFICER, ACCOUNTANT) cannot login to a different property's portal
-        if (user.getRole() != com.serenevilla.pms.model.Role.ADMIN && requestPropertyId != null) {
+        // FRONT_OFFICER cannot login to a different property's portal (ADMIN & ACCOUNTANT can access both)
+        if (user.getRole() == com.serenevilla.pms.model.Role.FRONT_OFFICER && requestPropertyId != null) {
             Long userPropId = user.getPropertyId() != null ? user.getPropertyId() : 1L;
             if (!userPropId.equals(requestPropertyId)) {
                 return ResponseEntity.status(403).body(Map.of(
