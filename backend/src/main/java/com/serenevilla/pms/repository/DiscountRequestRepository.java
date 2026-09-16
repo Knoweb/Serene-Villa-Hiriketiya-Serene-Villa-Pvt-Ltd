@@ -10,4 +10,6 @@ public interface DiscountRequestRepository extends JpaRepository<DiscountRequest
     List<DiscountRequest> findByBookingId(Long bookingId);
     List<DiscountRequest> findByStatusOrderByRequestedAtDesc(String status);
     List<DiscountRequest> findAllByOrderByRequestedAtDesc();
+    List<DiscountRequest> findByPropertyIdOrderByRequestedAtDesc(Long propertyId);
+    List<DiscountRequest> findByPropertyIdAndStatusOrderByRequestedAtDesc(Long propertyId, String status);
 }

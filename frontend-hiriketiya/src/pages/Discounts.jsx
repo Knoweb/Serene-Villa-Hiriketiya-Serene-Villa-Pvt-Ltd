@@ -23,7 +23,7 @@ const Discounts = () => {
   const fetchDiscountRequests = async () => {
     setLoadingDiscounts(true);
     try {
-      const res = await fetch(`${API_BASE}/discount-requests`);
+      const res = await fetch(`${API_BASE}/discount-requests?propertyId=2`);
       if (res.ok) {
         const data = await res.json();
         setRequests(data);
@@ -38,7 +38,7 @@ const Discounts = () => {
   const fetchDeleteRequests = async () => {
     setLoadingDeletes(true);
     try {
-      const res = await fetch(`${API_BASE}/delete-requests`);
+      const res = await fetch(`${API_BASE}/delete-requests?propertyId=2`);
       if (res.ok) {
         const data = await res.json();
         setDeleteRequests(data);

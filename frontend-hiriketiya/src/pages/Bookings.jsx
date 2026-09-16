@@ -82,7 +82,8 @@ const Bookings = () => {
         requestedDiscount: `LKR ${parseFloat(amount).toLocaleString()}`,
         currency: targetBooking.currency || 'LKR',
         reason: reason,
-        requestedBy: user?.username || 'fo_user'
+        requestedBy: user?.username || 'fo_user',
+        propertyId: 2
       };
 
       try {

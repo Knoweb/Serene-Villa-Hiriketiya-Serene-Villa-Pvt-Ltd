@@ -1054,7 +1054,8 @@ const Reservations = () => {
         guestName: deleteRequestModal.guestName,
         bookingRef: deleteRequestModal.bookingRef,
         reason: deleteRequestModal.reason.trim(),
-        requestedBy: user.username || 'Front Office'
+        requestedBy: user.username || 'Front Office',
+        propertyId: 2
       };
 
       const res = await fetch(`${API_BASE}/delete-requests`, {

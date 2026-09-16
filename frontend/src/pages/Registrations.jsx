@@ -892,7 +892,8 @@ const Registrations = () => {
         guestName: deleteRequestModal.guestName,
         bookingRef: deleteRequestModal.bookingRef,
         reason: deleteRequestModal.reason.trim(),
-        requestedBy: user.username || 'Front Office'
+        requestedBy: user.username || 'Front Office',
+        propertyId: 1
       };
 
       const res = await fetch(`${API_BASE}/delete-requests`, {
@@ -5197,7 +5198,8 @@ const Registrations = () => {
                     discountAmount: discountVal,
                     currency: discountForm.currencyCode,
                     reason: discountForm.remarks || 'Front Office guest discount request',
-                    requestedBy: user?.username || user?.name || 'Front Office'
+                    requestedBy: user?.username || user?.name || 'Front Office',
+                    propertyId: 1
                   };
 
                   const response = await fetch(`${API_BASE}/discount-requests`, {

@@ -53,7 +53,7 @@ const Dashboard = () => {
     // Load discount requests from server database
     const fetchDiscountRequests = async () => {
       try {
-        const res = await fetch(`${API_BASE}/discount-requests?status=Pending`);
+        const res = await fetch(`${API_BASE}/discount-requests?status=Pending&propertyId=2`);
         if (res.ok) {
           const data = await res.json();
           setPendingDiscounts(data);

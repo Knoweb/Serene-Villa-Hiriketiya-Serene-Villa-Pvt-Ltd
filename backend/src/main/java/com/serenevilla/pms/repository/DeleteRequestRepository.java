@@ -9,4 +9,6 @@ import java.util.List;
 public interface DeleteRequestRepository extends JpaRepository<DeleteRequest, Long> {
     List<DeleteRequest> findByStatusOrderByRequestedAtDesc(String status);
     List<DeleteRequest> findAllByOrderByRequestedAtDesc();
+    List<DeleteRequest> findByPropertyIdOrderByRequestedAtDesc(Long propertyId);
+    List<DeleteRequest> findByPropertyIdAndStatusOrderByRequestedAtDesc(Long propertyId, String status);
 }

@@ -36,7 +36,14 @@ public class DiscountRequestController {
     // Get all discount requests
     @GetMapping
     public ResponseEntity<List<DiscountRequest>> getAllDiscountRequests(
+            @RequestParam(name = "propertyId", required = false) Long propertyId,
             @RequestParam(name = "status", required = false) String status) {
+        if (propertyId != null) {
+            if (status != null && !status.trim().isEmpty()) {
+                return ResponseEntity.ok(discountRequestRepository.findByPropertyIdAndStatusOrderByRequestedAtDesc(propertyId, status));
+            }
+            return ResponseEntity.ok(discountRequestRepository.findByPropertyIdOrderByRequestedAtDesc(propertyId));
+        }
         if (status != null && !status.trim().isEmpty()) {
             return ResponseEntity.ok(discountRequestRepository.findByStatusOrderByRequestedAtDesc(status));
         }
@@ -76,12 +83,14 @@ public class DiscountRequestController {
 
                 String cleanRef = req.getBookingRef() != null ? req.getBookingRef().trim().toLowerCase() : "";
                 String cleanGuestName = req.getGuestName() != null ? req.getGuestName().trim().toLowerCase() : "";
+                Long targetPropertyId = req.getPropertyId() != null ? req.getPropertyId() : 1L;
 
                 Booking matchedParent = allB.stream().filter(b -> {
                     String bNum = b.getBookingNumber() != null ? b.getBookingNumber().trim().toLowerCase() : "";
                     String bGuest = b.getGuestName() != null ? b.getGuestName().trim().toLowerCase() : "";
-                    return (!cleanRef.isEmpty() && (bNum.equals(cleanRef) || bNum.startsWith(cleanRef))) ||
-                           (!cleanGuestName.isEmpty() && !bGuest.isEmpty() && bGuest.equals(cleanGuestName));
+                    boolean propMatch = b.getPropertyId() == null || b.getPropertyId().equals(targetPropertyId);
+                    return propMatch && ((!cleanRef.isEmpty() && (bNum.equals(cleanRef) || bNum.startsWith(cleanRef))) ||
+                           (!cleanGuestName.isEmpty() && !bGuest.isEmpty() && bGuest.equals(cleanGuestName)));
                 }).findFirst().orElse(null);
 
                 Long matchedRegId = matchedParent != null ? matchedParent.getGuestRegistrationId() : null;
@@ -89,8 +98,9 @@ public class DiscountRequestController {
                     GuestRegistration matchedReg = allR.stream().filter(r -> {
                         String rNum = (r.getPassportNumber() != null ? r.getPassportNumber() : "").trim().toLowerCase();
                         String rGuest = r.getGuestName() != null ? r.getGuestName().trim().toLowerCase() : "";
-                        return (!cleanRef.isEmpty() && (rNum.contains(cleanRef) || cleanRef.contains(rNum))) ||
-                               (!cleanGuestName.isEmpty() && !rGuest.isEmpty() && rGuest.equals(cleanGuestName));
+                        boolean propMatch = r.getPropertyId() == null || r.getPropertyId().equals(targetPropertyId);
+                        return propMatch && ((!cleanRef.isEmpty() && (rNum.contains(cleanRef) || cleanRef.contains(rNum))) ||
+                               (!cleanGuestName.isEmpty() && !rGuest.isEmpty() && rGuest.equals(cleanGuestName)));
                     }).findFirst().orElse(null);
                     if (matchedReg != null) matchedRegId = matchedReg.getId();
                 }
@@ -98,29 +108,32 @@ public class DiscountRequestController {
                 if (matchedParent != null || matchedRegId != null) {
                     String parentBNum = matchedParent != null && matchedParent.getBookingNumber() != null ? matchedParent.getBookingNumber() : req.getBookingRef();
                     String discCurrency = req.getCurrency() != null ? req.getCurrency() : (matchedParent != null && matchedParent.getCurrency() != null ? matchedParent.getCurrency() : "LKR");
+                    
+                    int suffixIdx = 1;
                     String newBNum = parentBNum + "/DISC";
-
-                    // Prevent duplicate /DISC booking lines
-                    boolean exists = allB.stream().anyMatch(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(newBNum));
-                    if (!exists) {
-                        Booking discBooking = new Booking();
-                        discBooking.setGuestRegistrationId(matchedRegId != null ? matchedRegId : matchedParent.getGuestRegistrationId());
-                        discBooking.setBookingNumber(newBNum);
-                        discBooking.setGuestName(req.getGuestName() != null ? req.getGuestName() : (matchedParent != null ? matchedParent.getGuestName() : "Guest"));
-                        discBooking.setRoomNumber(matchedParent != null && matchedParent.getRoomNumber() != null ? matchedParent.getRoomNumber() : "Discount");
-                        discBooking.setRoomType(matchedParent != null && matchedParent.getRoomType() != null ? matchedParent.getRoomType() : "Discount");
-                        discBooking.setBookingType("Direct");
-                        discBooking.setBoardBasis("Room Only");
-                        discBooking.setRemarks("Discount: " + (req.getReason() != null ? req.getReason() : "Admin Approved Discount"));
-                        double rawAmount = req.getDiscountAmount() > 0 ? req.getDiscountAmount() : 0;
-                        discBooking.setTotalAmount(-Math.abs(rawAmount));
-                        discBooking.setCurrency(discCurrency);
-                        discBooking.setCheckInDate(matchedParent != null && matchedParent.getCheckInDate() != null ? matchedParent.getCheckInDate() : LocalDate.now());
-                        discBooking.setCheckOutDate(matchedParent != null && matchedParent.getCheckOutDate() != null ? matchedParent.getCheckOutDate() : LocalDate.now().plusDays(1));
-                        discBooking.setNumberOfNights(1);
-                        discBooking.setStatus("Confirmed");
-                        bookingRepository.save(discBooking);
+                    while (allB.stream().anyMatch(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(newBNum))) {
+                        suffixIdx++;
+                        newBNum = parentBNum + "/DISC-" + suffixIdx;
                     }
+
+                    Booking discBooking = new Booking();
+                    discBooking.setGuestRegistrationId(matchedRegId != null ? matchedRegId : matchedParent.getGuestRegistrationId());
+                    discBooking.setBookingNumber(newBNum);
+                    discBooking.setGuestName(req.getGuestName() != null ? req.getGuestName() : (matchedParent != null ? matchedParent.getGuestName() : "Guest"));
+                    discBooking.setRoomNumber(matchedParent != null && matchedParent.getRoomNumber() != null ? matchedParent.getRoomNumber() : "Discount");
+                    discBooking.setRoomType(matchedParent != null && matchedParent.getRoomType() != null ? matchedParent.getRoomType() : "Discount");
+                    discBooking.setBookingType("Direct");
+                    discBooking.setBoardBasis("Room Only");
+                    discBooking.setRemarks("Discount: " + (req.getReason() != null ? req.getReason() : "Admin Approved Discount"));
+                    double rawAmount = req.getDiscountAmount() > 0 ? req.getDiscountAmount() : 0;
+                    discBooking.setTotalAmount(-Math.abs(rawAmount));
+                    discBooking.setCurrency(discCurrency);
+                    discBooking.setPropertyId(targetPropertyId);
+                    discBooking.setCheckInDate(matchedParent != null && matchedParent.getCheckInDate() != null ? matchedParent.getCheckInDate() : LocalDate.now());
+                    discBooking.setCheckOutDate(matchedParent != null && matchedParent.getCheckOutDate() != null ? matchedParent.getCheckOutDate() : LocalDate.now().plusDays(1));
+                    discBooking.setNumberOfNights(1);
+                    discBooking.setStatus("Confirmed");
+                    bookingRepository.save(discBooking);
                 }
 
                 req.setStatus("Approved");

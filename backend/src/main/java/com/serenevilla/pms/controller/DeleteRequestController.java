@@ -25,7 +25,14 @@ public class DeleteRequestController {
     // Get all delete requests
     @GetMapping
     public ResponseEntity<List<DeleteRequest>> getAllDeleteRequests(
-            @RequestParam(name = "status", required = false) String status) {
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "propertyId", required = false) Long propertyId) {
+        if (propertyId != null) {
+            if (status != null && !status.trim().isEmpty()) {
+                return ResponseEntity.ok(deleteRequestRepository.findByPropertyIdAndStatusOrderByRequestedAtDesc(propertyId, status.toUpperCase()));
+            }
+            return ResponseEntity.ok(deleteRequestRepository.findByPropertyIdOrderByRequestedAtDesc(propertyId));
+        }
         if (status != null && !status.trim().isEmpty()) {
             return ResponseEntity.ok(deleteRequestRepository.findByStatusOrderByRequestedAtDesc(status.toUpperCase()));
         }
