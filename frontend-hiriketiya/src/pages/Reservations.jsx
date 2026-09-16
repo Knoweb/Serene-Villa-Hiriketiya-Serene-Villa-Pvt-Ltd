@@ -183,37 +183,6 @@ const ROOM_TEMPLATES = {
   }
 };
 
-const generateNextBookingNumber = (prefix, bookingList) => {
-  if (!bookingList || !Array.isArray(bookingList)) return `${prefix}0001`;
-  const cleanPrefix = (prefix || 'D-').toUpperCase();
-  const escapedPrefix = cleanPrefix.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-  const regex = new RegExp(`^${escapedPrefix}(\\d+)`, 'i');
-
-  let maxNum = 0;
-  let maxDigits = 4;
-
-  bookingList.forEach(b => {
-    if (b && b.bookingNumber) {
-      const bNum = String(b.bookingNumber).trim();
-      const match = bNum.match(regex);
-      if (match && match[1]) {
-        const num = parseInt(match[1], 10);
-        if (!isNaN(num)) {
-          if (num > maxNum) {
-            maxNum = num;
-            if (match[1].length > maxDigits) {
-              maxDigits = match[1].length;
-            }
-          }
-        }
-      }
-    }
-  });
-
-  const nextNum = maxNum + 1;
-  const padded = String(nextNum).padStart(Math.max(4, maxDigits), '0');
-  return `${cleanPrefix}${padded}`;
-};
 
 const mapBookingTypeForBackend = (type) => {
   if (!type) return 'Direct';
@@ -1432,11 +1401,11 @@ const Reservations = () => {
     else if (type === 'Airbnb Booking') prefix = 'A-';
     else if (type === 'Web Booking') prefix = 'W-';
 
-    const nextAvailableNum = generateNextBookingNumber(prefix, bookings);
+    const defaultBookingNum = prefix;
 
     setConfirmationData({
       guestName: '',
-      bookingNumber: nextAvailableNum,
+      bookingNumber: defaultBookingNum,
       checkInDate: '',
       checkOutDate: '',
       nights: '',
