@@ -183,6 +183,38 @@ const ROOM_TEMPLATES = {
   }
 };
 
+const generateNextBookingNumber = (prefix, bookingList) => {
+  if (!bookingList || !Array.isArray(bookingList)) return `${prefix}0001`;
+  const cleanPrefix = (prefix || 'D-').toUpperCase();
+  const escapedPrefix = cleanPrefix.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const regex = new RegExp(`^${escapedPrefix}(\\d+)`, 'i');
+
+  let maxNum = 0;
+  let maxDigits = 4;
+
+  bookingList.forEach(b => {
+    if (b && b.bookingNumber) {
+      const bNum = String(b.bookingNumber).trim();
+      const match = bNum.match(regex);
+      if (match && match[1]) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num)) {
+          if (num > maxNum) {
+            maxNum = num;
+            if (match[1].length > maxDigits) {
+              maxDigits = match[1].length;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const nextNum = maxNum + 1;
+  const padded = String(nextNum).padStart(Math.max(4, maxDigits), '0');
+  return `${cleanPrefix}${padded}`;
+};
+
 const mapBookingTypeForBackend = (type) => {
   if (!type) return 'Direct';
   const t = type.toLowerCase();
@@ -615,6 +647,14 @@ const Reservations = () => {
 
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const [rooms, setRooms] = useState([]);
+
+  // Check for duplicate booking numbers in real-time when creating a new reservation
+  const isDuplicateBookingNumber = React.useMemo(() => {
+    if (!isCreatingNewReservation || !confirmationData?.bookingNumber) return false;
+    const target = confirmationData.bookingNumber.trim().toLowerCase();
+    if (!target || target === 'd-' || target === 'b-' || target === 'a-' || target === 'w-') return false;
+    return bookings.some(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === target);
+  }, [confirmationData?.bookingNumber, bookings, isCreatingNewReservation]);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -1392,11 +1432,11 @@ const Reservations = () => {
     else if (type === 'Airbnb Booking') prefix = 'A-';
     else if (type === 'Web Booking') prefix = 'W-';
 
-    const defaultBookingNum = prefix;
+    const nextAvailableNum = generateNextBookingNumber(prefix, bookings);
 
     setConfirmationData({
       guestName: '',
-      bookingNumber: defaultBookingNum,
+      bookingNumber: nextAvailableNum,
       checkInDate: '',
       checkOutDate: '',
       nights: '',
@@ -1446,6 +1486,17 @@ const Reservations = () => {
 
   const handlePrintConfirmation = async () => {
     if (isSaving) return;
+    if (isCreatingNewReservation) {
+      const bNum = confirmationData.bookingNumber?.trim();
+      if (!bNum || bNum === 'D-' || bNum === 'B-' || bNum === 'A-' || bNum === 'W-') {
+        showAlert('Please enter a valid Booking Number.', 'Validation Error');
+        return;
+      }
+      if (isDuplicateBookingNumber) {
+        showAlert(`Booking Number "${bNum}" already exists! Please use a unique number.`, 'Duplicate Booking Number');
+        return;
+      }
+    }
     setIsSaving(true);
     if (isCreatingNewReservation) {
       try {
@@ -4706,14 +4757,30 @@ const Reservations = () => {
                    {isCreatingNewReservation && (
                      <>
                        <div className="space-y-1.5 col-span-2">
-                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation ID / Booking Number</label>
-                         <input 
-                           type="text" 
-                           value={confirmationData.bookingNumber}
-                           onChange={(e) => handleBookingNumberChange(e.target.value, confirmationData.bookingType)}
-                           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-mono"
-                         />
-                       </div>
+                          <div className="flex items-center justify-between">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reservation ID / Booking Number</label>
+                            {isDuplicateBookingNumber && (
+                              <span className="text-[11px] font-bold text-rose-500 flex items-center gap-1 animate-pulse">
+                                ⚠️ Duplicate Number! Already exists
+                              </span>
+                            )}
+                          </div>
+                          <input 
+                            type="text" 
+                            value={confirmationData.bookingNumber}
+                            onChange={(e) => handleBookingNumberChange(e.target.value, confirmationData.bookingType)}
+                            className={`w-full bg-slate-50 border rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-mono font-bold ${
+                              isDuplicateBookingNumber 
+                                ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30 text-rose-800' 
+                                : 'border-slate-200 focus:border-emerald-500'
+                            }`}
+                          />
+                          {isDuplicateBookingNumber && (
+                            <p className="text-[11px] text-rose-600 font-medium mt-1">
+                              This booking number is already registered in the system. Please change it to a unique number to avoid duplicate billing.
+                            </p>
+                          )}
+                        </div>
 
                        <div className="space-y-1.5">
                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Check-in Date</label>
@@ -5126,14 +5193,30 @@ const Reservations = () => {
                  <>
                    {/* Booking Number */}
                    <div className="space-y-1.5 col-span-2">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Booking Number</label>
-                     <input 
-                       type="text" 
-                       value={confirmationData.bookingNumber}
-                       onChange={(e) => handleBookingNumberChange(e.target.value, confirmationData.bookingType)}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-mono"
-                     />
-                   </div>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Booking Number</label>
+                        {isDuplicateBookingNumber && (
+                          <span className="text-[11px] font-bold text-rose-500 flex items-center gap-1 animate-pulse">
+                            ⚠️ Duplicate Number! Already exists
+                          </span>
+                        )}
+                      </div>
+                      <input 
+                        type="text" 
+                        value={confirmationData.bookingNumber}
+                        onChange={(e) => handleBookingNumberChange(e.target.value, confirmationData.bookingType)}
+                        className={`w-full bg-slate-50 border rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-mono font-bold ${
+                          isDuplicateBookingNumber 
+                            ? 'border-rose-400 ring-2 ring-rose-100 bg-rose-50/30 text-rose-800' 
+                            : 'border-slate-200 focus:border-emerald-500'
+                        }`}
+                      />
+                      {isDuplicateBookingNumber && (
+                        <p className="text-[11px] text-rose-600 font-medium mt-1">
+                          This booking number is already registered in the system. Please change it to a unique number to avoid duplicate billing.
+                        </p>
+                      )}
+                    </div>
 
                    {/* Check-in Date */}
                    <div className="space-y-1.5">
@@ -5521,7 +5604,7 @@ const Reservations = () => {
                 )}
                 <button 
                   type="submit" 
-                  disabled={isSaving}
+                  disabled={isSaving || isDuplicateBookingNumber || !confirmationData.bookingNumber || confirmationData.bookingNumber === 'D-' || confirmationData.bookingNumber === 'B-' || confirmationData.bookingNumber === 'A-' || confirmationData.bookingNumber === 'W-'}
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? (

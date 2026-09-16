@@ -19,7 +19,18 @@ public class BookingController {
     private com.serenevilla.pms.repository.GuestRegistrationRepository guestRegistrationRepository;
 
     @PostMapping
-    public ResponseEntity<Booking> createBooking(@RequestBody Booking booking) {
+    public ResponseEntity<?> createBooking(@RequestBody Booking booking) {
+        if (booking.getBookingNumber() != null && !booking.getBookingNumber().trim().isEmpty()) {
+            String bNum = booking.getBookingNumber().trim();
+            boolean exists = bookingRepository.findAll().stream().anyMatch(b -> 
+                b.getBookingNumber() != null && 
+                b.getBookingNumber().trim().equalsIgnoreCase(bNum) &&
+                (booking.getPropertyId() == null || b.getPropertyId() == null || b.getPropertyId().equals(booking.getPropertyId()))
+            );
+            if (exists) {
+                return ResponseEntity.badRequest().body("Booking with number '" + bNum + "' already exists!");
+            }
+        }
         return ResponseEntity.ok(bookingRepository.save(booking));
     }
 
