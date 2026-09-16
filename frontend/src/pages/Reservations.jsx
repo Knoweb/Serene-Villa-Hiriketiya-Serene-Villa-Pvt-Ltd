@@ -1553,6 +1553,7 @@ const Reservations = () => {
       } catch (err) {
         alert('Error saving reservation: ' + err.message);
         console.error('Error saving standalone reservation:', err);
+        return;
       } finally {
         setIsSaving(false);
       }
