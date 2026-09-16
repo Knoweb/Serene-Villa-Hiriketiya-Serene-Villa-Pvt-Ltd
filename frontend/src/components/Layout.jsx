@@ -49,7 +49,7 @@ const Layout = ({ children }) => {
     { name: 'Bookings', path: '/bookings', roles: ['ADMIN'] },
     { name: 'Payments', path: '/payments', roles: ['ADMIN', 'ACCOUNTANT'] },
     { name: 'Approvals', path: '/discounts', roles: ['ADMIN'] },
-    { name: 'Reports', path: '/reports', roles: ['ADMIN', 'ACCOUNTANT', 'FRONT_OFFICER'] },
+    { name: 'Reports', path: '/reports', roles: ['ADMIN', 'ACCOUNTANT'] },
     { name: 'Hide Details', path: '/hide-details', roles: ['ADMIN'] },
     { name: 'Users', path: '/users', roles: ['ADMIN'] },
   ];
@@ -196,7 +196,10 @@ const Layout = ({ children }) => {
           <div className="w-full flex flex-col md:flex-row items-center justify-between gap-3 text-[10px] text-slate-550 font-bold">
             {/* Copyright */}
             <p>
-              © 2026 Serene Villa. Designed & Developed by <a href="https://knowebsolutions.com" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-500 transition">knowebsolutions</a>.
+              <Link to="/reports" onClick={() => window.scrollTo(0, 0)} className="hover:text-emerald-400 transition cursor-pointer">
+                © 2026 Serene Villa.
+              </Link>{' '}
+              Designed & Developed by <a href="https://knowebsolutions.com" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-500 transition">knowebsolutions</a>.
             </p>
 
             {/* Social Icons */}
