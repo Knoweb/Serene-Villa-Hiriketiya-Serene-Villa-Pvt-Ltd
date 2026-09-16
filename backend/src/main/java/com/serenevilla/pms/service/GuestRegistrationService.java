@@ -270,11 +270,13 @@ public class GuestRegistrationService {
             if (booking == null) {
                 booking = new Booking();
                 booking.setStatus("Confirmed");
-                booking.setPropertyId(1L);
+                booking.setPropertyId(savedReg.getPropertyId() != null ? savedReg.getPropertyId() : 1L);
                 booking.setCheckInDate(savedReg.getCheckInDate());
                 booking.setCheckOutDate(savedReg.getCheckOutDate());
                 booking.setNumberOfNights(savedReg.getNumberOfNights());
                 booking.setGuestName(savedReg.getGuestName());
+            } else if (booking.getPropertyId() == null && savedReg.getPropertyId() != null) {
+                booking.setPropertyId(savedReg.getPropertyId());
             }
 
             booking.setGuestRegistrationId(id);

@@ -1465,7 +1465,8 @@ const Reservations = () => {
           paymentStatus: 'Pending',
           registrationStatus: 'Pending',
           isHiddenFromFrontOffice: false,
-          createdBy: 'Staff'
+          createdBy: 'Staff',
+          propertyId: 2
         };
 
         const guestRes = await fetch(`${API_BASE}/public/guest-registrations`, {
@@ -1514,7 +1515,7 @@ const Reservations = () => {
           confirmedBy: confirmationData.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
           remarks: confirmationData.remarks || '',
           status: 'Confirmed',
-          propertyId: 1
+          propertyId: 2
         };
 
         const bookingRes = await fetch(`${API_BASE}/bookings`, {

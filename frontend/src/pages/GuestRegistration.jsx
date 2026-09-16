@@ -340,7 +340,8 @@ const GuestRegistration = () => {
         children: parseInt(formData.children) || 0,
         guestPhotoPath: null,
         passportFrontPath: passportFrontBase64,
-        passportBackPath: null
+        passportBackPath: null,
+        propertyId: 1
       };
 
       const res = await fetch(`${API_BASE}/public/guest-registrations`, {
