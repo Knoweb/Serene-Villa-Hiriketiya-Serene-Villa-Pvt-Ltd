@@ -85,15 +85,29 @@ public class DiscountRequestController {
                 String cleanGuestName = req.getGuestName() != null ? req.getGuestName().trim().toLowerCase() : "";
                 Long targetPropertyId = req.getPropertyId() != null ? req.getPropertyId() : 1L;
 
-                Booking matchedParent = allB.stream().filter(b -> {
-                    String bNum = b.getBookingNumber() != null ? b.getBookingNumber().trim().toLowerCase() : "";
-                    String bGuest = b.getGuestName() != null ? b.getGuestName().trim().toLowerCase() : "";
-                    boolean propMatch = b.getPropertyId() == null || b.getPropertyId().equals(targetPropertyId);
-                    return propMatch && ((!cleanRef.isEmpty() && (bNum.equals(cleanRef) || bNum.startsWith(cleanRef))) ||
-                           (!cleanGuestName.isEmpty() && !bGuest.isEmpty() && bGuest.equals(cleanGuestName)));
-                }).findFirst().orElse(null);
+                // 1. Direct ID match first
+                Booking matchedParent = null;
+                if (req.getBookingId() != null) {
+                    matchedParent = allB.stream().filter(b -> b.getId().equals(req.getBookingId())).findFirst().orElse(null);
+                }
 
-                Long matchedRegId = matchedParent != null ? matchedParent.getGuestRegistrationId() : null;
+                // 2. Ref / Name match within property
+                if (matchedParent == null) {
+                    matchedParent = allB.stream().filter(b -> {
+                        String bNum = b.getBookingNumber() != null ? b.getBookingNumber().trim().toLowerCase() : "";
+                        String bGuest = b.getGuestName() != null ? b.getGuestName().trim().toLowerCase() : "";
+                        boolean propMatch = b.getPropertyId() == null || b.getPropertyId().equals(targetPropertyId);
+                        return propMatch && ((!cleanRef.isEmpty() && (bNum.equals(cleanRef) || bNum.startsWith(cleanRef))) ||
+                               (!cleanGuestName.isEmpty() && !bGuest.isEmpty() && bGuest.equals(cleanGuestName)));
+                    }).findFirst().orElse(null);
+                }
+
+                // 3. Match Registration if regId is explicitly set or search by reg/passport/name
+                Long matchedRegId = req.getGuestRegistrationId();
+                if (matchedRegId == null && matchedParent != null) {
+                    matchedRegId = matchedParent.getGuestRegistrationId();
+                }
+
                 if (matchedRegId == null && !allR.isEmpty()) {
                     GuestRegistration matchedReg = allR.stream().filter(r -> {
                         String rNum = (r.getPassportNumber() != null ? r.getPassportNumber() : "").trim().toLowerCase();
@@ -102,22 +116,30 @@ public class DiscountRequestController {
                         return propMatch && ((!cleanRef.isEmpty() && (rNum.contains(cleanRef) || cleanRef.contains(rNum))) ||
                                (!cleanGuestName.isEmpty() && !rGuest.isEmpty() && rGuest.equals(cleanGuestName)));
                     }).findFirst().orElse(null);
-                    if (matchedReg != null) matchedRegId = matchedReg.getId();
+                    if (matchedReg != null) {
+                        matchedRegId = matchedReg.getId();
+                    }
                 }
 
-                if (matchedParent != null || matchedRegId != null) {
-                    String parentBNum = matchedParent != null && matchedParent.getBookingNumber() != null ? matchedParent.getBookingNumber() : req.getBookingRef();
-                    String discCurrency = req.getCurrency() != null ? req.getCurrency() : (matchedParent != null && matchedParent.getCurrency() != null ? matchedParent.getCurrency() : "LKR");
+                // If matchedParent is still null but matchedRegId is found, find any parent booking for this reg
+                if (matchedParent == null && matchedRegId != null) {
+                    final Long finalRegId = matchedRegId;
+                    matchedParent = allB.stream().filter(b -> finalRegId.equals(b.getGuestRegistrationId()) && (b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))).findFirst().orElse(null);
+                }
+
+                if (matchedParent != null || matchedRegId != null || !cleanRef.isEmpty()) {
+                    String parentBNum = matchedParent != null && matchedParent.getBookingNumber() != null ? matchedParent.getBookingNumber() : (!cleanRef.isEmpty() ? req.getBookingRef() : "B-DISC");
+                    String discCurrency = req.getCurrency() != null ? req.getCurrency() : (matchedParent != null && matchedParent.getCurrency() != null ? matchedParent.getCurrency() : "USD");
                     
                     int suffixIdx = 1;
                     String newBNum = parentBNum + "/DISC";
-                    while (allB.stream().anyMatch(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(newBNum))) {
+                    while (allB.stream().anyMatch(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(newBNum) && (b.getPropertyId() == null || b.getPropertyId().equals(targetPropertyId)))) {
                         suffixIdx++;
                         newBNum = parentBNum + "/DISC-" + suffixIdx;
                     }
 
                     Booking discBooking = new Booking();
-                    discBooking.setGuestRegistrationId(matchedRegId != null ? matchedRegId : matchedParent.getGuestRegistrationId());
+                    discBooking.setGuestRegistrationId(matchedRegId != null ? matchedRegId : (matchedParent != null ? matchedParent.getGuestRegistrationId() : null));
                     discBooking.setBookingNumber(newBNum);
                     discBooking.setGuestName(req.getGuestName() != null ? req.getGuestName() : (matchedParent != null ? matchedParent.getGuestName() : "Guest"));
                     discBooking.setRoomNumber(matchedParent != null && matchedParent.getRoomNumber() != null ? matchedParent.getRoomNumber() : "Discount");
@@ -133,6 +155,7 @@ public class DiscountRequestController {
                     discBooking.setCheckOutDate(matchedParent != null && matchedParent.getCheckOutDate() != null ? matchedParent.getCheckOutDate() : LocalDate.now().plusDays(1));
                     discBooking.setNumberOfNights(1);
                     discBooking.setStatus("Confirmed");
+                    discBooking.setPaymentStatus("Paid");
                     bookingRepository.save(discBooking);
                 }
 

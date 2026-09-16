@@ -2423,11 +2423,16 @@ const Registrations = () => {
                   {(() => {
                     const baseB = bookings.find(b => b.guestRegistrationId === selectedReg.id && (!b.bookingNumber || !b.bookingNumber.includes('/'))) || associatedBooking;
                     const baseBNum = baseB?.bookingNumber || selectedReg?.bookingNumber;
+                    const cleanPassport = (selectedReg?.passportNumber || '').trim().toLowerCase();
+                    const cleanGuestName = (selectedReg?.guestName || '').trim().toLowerCase();
+
                     const extraBookings = bookings.filter(b => {
                       if (!selectedReg) return false;
                       const hasRegMatch = b.guestRegistrationId === selectedReg.id && b.bookingNumber && b.bookingNumber.includes('/');
                       const hasPrefixMatch = baseBNum && b.bookingNumber && b.bookingNumber.startsWith(baseBNum + '/');
-                      return hasRegMatch || hasPrefixMatch;
+                      const hasPassportMatch = cleanPassport && b.bookingNumber && b.bookingNumber.toLowerCase().startsWith(cleanPassport + '/');
+                      const hasNameMatch = cleanGuestName && b.guestName && b.guestName.trim().toLowerCase() === cleanGuestName && b.bookingNumber && b.bookingNumber.includes('/');
+                      return hasRegMatch || hasPrefixMatch || hasPassportMatch || hasNameMatch;
                     });
                     const hasDiscount = extraBookings.some(b => b.bookingNumber?.includes('/DISC'));
 
@@ -2702,11 +2707,20 @@ const Registrations = () => {
                   {(() => {
                     const isForeignGuest = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
                     
+                    const cleanPassport = (selectedReg?.passportNumber || '').trim().toLowerCase();
+                    const cleanGuestName = (selectedReg?.guestName || '').trim().toLowerCase();
+
                     const relatedBookings = bookings.filter(b => {
                       if (!selectedReg) return false;
                       if (b.guestRegistrationId === selectedReg.id) return true;
                       const baseBNum = associatedBooking?.bookingNumber || selectedReg?.bookingNumber;
                       if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                        return true;
+                      }
+                      if (cleanPassport && b.bookingNumber && b.bookingNumber.toLowerCase().startsWith(cleanPassport + '/')) {
+                        return true;
+                      }
+                      if (cleanGuestName && b.guestName && b.guestName.trim().toLowerCase() === cleanGuestName && b.bookingNumber && b.bookingNumber.includes('/')) {
                         return true;
                       }
                       return false;
@@ -5191,7 +5205,8 @@ const Registrations = () => {
                   // Front Office staff request -> Send to backend database for Admin Approval
                   const discountPayload = {
                     bookingId: associatedBooking?.id || null,
-                    bookingRef: associatedBooking?.bookingNumber || selectedReg?.passportNumber || 'N/A',
+                    guestRegistrationId: selectedReg?.id || null,
+                    bookingRef: associatedBooking?.bookingNumber || selectedReg?.bookingNumber || selectedReg?.passportNumber || 'N/A',
                     guestName: selectedReg?.guestName || associatedBooking?.guestName || 'Guest',
                     totalAmount: associatedBooking?.totalAmount || selectedReg?.totalAmount || 0,
                     requestedDiscount: `${discountForm.currencyCode} ${discountVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,

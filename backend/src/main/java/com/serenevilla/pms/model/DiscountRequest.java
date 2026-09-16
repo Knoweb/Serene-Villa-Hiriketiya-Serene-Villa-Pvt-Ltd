@@ -23,6 +23,9 @@ public class DiscountRequest {
     @Column(name = "booking_id")
     private Long bookingId;
 
+    @Column(name = "guest_registration_id")
+    private Long guestRegistrationId;
+
     private String bookingRef;
 
     private String guestName;
