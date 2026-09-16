@@ -71,6 +71,9 @@ public class GuestRegistrationService {
         if (registration.getCreatedBy() == null || registration.getCreatedBy().isEmpty()) {
             registration.setCreatedBy("Public QR Code");
         }
+        if (registration.getPropertyId() == null) {
+            registration.setPropertyId(1L);
+        }
 
         GuestRegistration saved = guestRegistrationRepository.save(registration);
         webSocketHandler.broadcast("update");

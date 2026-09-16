@@ -1465,7 +1465,8 @@ const Reservations = () => {
           paymentStatus: 'Pending',
           registrationStatus: 'Pending',
           isHiddenFromFrontOffice: false,
-          createdBy: 'Staff'
+          createdBy: 'Staff',
+          propertyId: 1
         };
 
         const guestRes = await fetch(`${API_BASE}/public/guest-registrations`, {
