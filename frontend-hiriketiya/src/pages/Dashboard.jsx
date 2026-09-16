@@ -69,18 +69,18 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const regRes = await fetch(`${API_BASE}/guest-registrations?size=1000&role=${user?.role || 'FRONT_OFFICER'}`);
+        const regRes = await fetch(`${API_BASE}/guest-registrations?propertyId=2&size=1000&role=${user?.role || 'FRONT_OFFICER'}`);
         if (regRes.ok) {
           const regData = await regRes.json();
           setRegistrations(regData.content || []);
         }
-        const bookingRes = await fetch(`${API_BASE}/bookings`);
+        const bookingRes = await fetch(`${API_BASE}/bookings?propertyId=2`);
         if (bookingRes.ok) {
           const bookingData = await bookingRes.json();
           setBookings(bookingData || []);
         }
         if (user?.role === 'ADMIN') {
-          const staffRes = await fetch(`${API_BASE}/auth/users`);
+          const staffRes = await fetch(`${API_BASE}/auth/users?propertyId=2`);
           if (staffRes.ok) {
             const staffData = await staffRes.json();
             setStaff(staffData || []);

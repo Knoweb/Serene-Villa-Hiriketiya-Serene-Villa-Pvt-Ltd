@@ -167,8 +167,8 @@ const Handover = () => {
         
       const [payRes, bookRes, regRes] = await Promise.all([
         fetch(endpoint),
-        fetch(`${API_BASE}/bookings`),
-        fetch(`${API_BASE}/guest-registrations?size=1000&role=ADMIN`)
+        fetch(`${API_BASE}/bookings?propertyId=2`),
+        fetch(`${API_BASE}/guest-registrations?propertyId=2&size=1000&role=ADMIN`)
       ]);
 
       if (payRes.ok) {

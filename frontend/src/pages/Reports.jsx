@@ -90,13 +90,13 @@ const Reports = () => {
     try {
       let url = '';
       if (reportType === 'DailyCheckIn' || reportType === 'Daily') {
-        url = `${API_BASE}/reports/daily?date=${date}`;
+        url = `${API_BASE}/reports/daily?date=${date}&propertyId=1`;
       } else if (reportType === 'Weekly') {
-        url = `${API_BASE}/reports/weekly?startDate=${startDate}&endDate=${endDate}`;
+        url = `${API_BASE}/reports/weekly?startDate=${startDate}&endDate=${endDate}&propertyId=1`;
       } else if (reportType === 'Monthly') {
-        url = `${API_BASE}/reports/monthly?year=${year}&month=${month}`;
+        url = `${API_BASE}/reports/monthly?year=${year}&month=${month}&propertyId=1`;
       } else if (reportType === 'Custom') {
-        url = `${API_BASE}/reports/range?startDate=${startDate}&endDate=${endDate}`;
+        url = `${API_BASE}/reports/range?startDate=${startDate}&endDate=${endDate}&propertyId=1`;
       }
 
       const response = await fetch(url);
