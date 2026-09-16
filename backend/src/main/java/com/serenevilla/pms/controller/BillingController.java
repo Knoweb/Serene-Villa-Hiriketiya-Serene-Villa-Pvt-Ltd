@@ -52,14 +52,19 @@ public class BillingController {
     }
 
     @GetMapping("/pending")
-    public ResponseEntity<List<Payment>> getPendingTransactions() {
+    public ResponseEntity<List<Payment>> getPendingTransactions(@RequestParam(name = "propertyId", required = false) Long propertyId) {
         List<Payment> pendingPayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.PENDING);
         populatePaymentDetails(pendingPayments);
+        if (propertyId != null) {
+            pendingPayments = pendingPayments.stream()
+                .filter(p -> propertyId.equals(p.getPropertyId()))
+                .collect(Collectors.toList());
+        }
         return ResponseEntity.ok(pendingPayments);
     }
 
     @GetMapping("/fo-pending")
-    public ResponseEntity<List<Payment>> getFoPendingTransactions() {
+    public ResponseEntity<List<Payment>> getFoPendingTransactions(@RequestParam(name = "propertyId", required = false) Long propertyId) {
         List<Payment> allActivePayments = new java.util.ArrayList<>(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.PENDING));
         allActivePayments.addAll(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.NONE));
         allActivePayments.addAll(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.REJECTED));
@@ -75,6 +80,11 @@ public class BillingController {
             .collect(Collectors.toList());
             
         populatePaymentDetails(eligiblePayments);
+        if (propertyId != null) {
+            eligiblePayments = eligiblePayments.stream()
+                .filter(p -> propertyId.equals(p.getPropertyId()))
+                .collect(Collectors.toList());
+        }
         return ResponseEntity.ok(eligiblePayments);
     }
 
@@ -110,6 +120,9 @@ public class BillingController {
             if (payment.getBookingId() != null) {
                 com.serenevilla.pms.model.Booking booking = bookingMap.get(payment.getBookingId());
                 if (booking != null) {
+                    if (payment.getPropertyId() == null && booking.getPropertyId() != null) {
+                        payment.setPropertyId(booking.getPropertyId());
+                    }
                     if (payment.getBookingRef() == null || payment.getBookingRef().trim().isEmpty()) {
                         payment.setBookingRef(booking.getBookingNumber());
                     }
@@ -120,6 +133,9 @@ public class BillingController {
                         com.serenevilla.pms.model.GuestRegistration guest = guestMap.get(booking.getGuestRegistrationId());
                         if (guest != null) {
                             payment.setGuestName(guest.getGuestName());
+                            if (payment.getPropertyId() == null && guest.getPropertyId() != null) {
+                                payment.setPropertyId(guest.getPropertyId());
+                            }
                         }
                     }
                 }
@@ -128,12 +144,20 @@ public class BillingController {
                 bookingRepository.findByGuestRegistrationId(payment.getGuestRegistrationId()).stream()
                     .filter(b -> b.getBookingNumber() != null && !b.getBookingNumber().contains("/"))
                     .findFirst()
-                    .ifPresent(b -> payment.setBookingRef(b.getBookingNumber()));
+                    .ifPresent(b -> {
+                        payment.setBookingRef(b.getBookingNumber());
+                        if (payment.getPropertyId() == null && b.getPropertyId() != null) {
+                            payment.setPropertyId(b.getPropertyId());
+                        }
+                    });
             }
             if (payment.getGuestName() == null && payment.getGuestRegistrationId() != null) {
                 com.serenevilla.pms.model.GuestRegistration guest = guestMap.get(payment.getGuestRegistrationId());
                 if (guest != null) {
                     payment.setGuestName(guest.getGuestName());
+                    if (payment.getPropertyId() == null && guest.getPropertyId() != null) {
+                        payment.setPropertyId(guest.getPropertyId());
+                    }
                 }
             }
         }

@@ -162,8 +162,8 @@ const Handover = () => {
     setLoading(true);
     try {
       const endpoint = isFrontOfficer 
-        ? `${API_BASE}/billing/accountant/fo-pending` 
-        : `${API_BASE}/billing/accountant/pending`;
+        ? `${API_BASE}/billing/accountant/fo-pending?propertyId=2` 
+        : `${API_BASE}/billing/accountant/pending?propertyId=2`;
         
       const [payRes, bookRes, regRes] = await Promise.all([
         fetch(endpoint),

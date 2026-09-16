@@ -89,92 +89,91 @@ public class GuestRegistrationService {
         
         Page<GuestRegistration> result = guestRegistrationRepository.searchRegistrations(propertyId, search, status, showHidden, source, pageable);
 
-        // Dynamically recalculate paymentStatus for FRONT_OFFICER based on visible payments
-        if ("FRONT_OFFICER".equalsIgnoreCase(role)) {
-            result = result.map(reg -> {
-                try {
-                    List<Booking> bookings = bookingRepository.findByGuestRegistrationId(reg.getId());
-                    if (bookings == null || bookings.isEmpty()) {
-                        if (reg.getGuestName() != null && !reg.getGuestName().trim().isEmpty()) {
-                            String gName = reg.getGuestName().replaceAll("^(?i)(mr|mrs|ms|dr|prof)\\.?\\s*", "").trim();
-                            List<Booking> nameMatches = bookingRepository.findAll().stream()
-                                    .filter(b -> b.getGuestName() != null && b.getGuestName().replaceAll("^(?i)(mr|mrs|ms|dr|prof)\\.?\\s*", "").trim().equalsIgnoreCase(gName))
-                                    .toList();
-                            if (!nameMatches.isEmpty()) {
-                                Booking bToLink = nameMatches.get(nameMatches.size() - 1);
-                                bToLink.setGuestRegistrationId(reg.getId());
-                                bookingRepository.save(bToLink);
-                                bookings = java.util.List.of(bToLink);
-                            }
+        // Dynamically recalculate paymentStatus based on visible payments
+        boolean isFoRole = "FRONT_OFFICER".equalsIgnoreCase(role);
+        result = result.map(reg -> {
+            try {
+                List<Booking> bookings = bookingRepository.findByGuestRegistrationId(reg.getId());
+                if (bookings == null || bookings.isEmpty()) {
+                    if (reg.getGuestName() != null && !reg.getGuestName().trim().isEmpty()) {
+                        String gName = reg.getGuestName().replaceAll("^(?i)(mr|mrs|ms|dr|prof)\\.?\\s*", "").trim();
+                        List<Booking> nameMatches = bookingRepository.findAll().stream()
+                                .filter(b -> b.getGuestName() != null && b.getGuestName().replaceAll("^(?i)(mr|mrs|ms|dr|prof)\\.?\\s*", "").trim().equalsIgnoreCase(gName))
+                                .toList();
+                        if (!nameMatches.isEmpty()) {
+                            Booking bToLink = nameMatches.get(nameMatches.size() - 1);
+                            bToLink.setGuestRegistrationId(reg.getId());
+                            bookingRepository.save(bToLink);
+                            bookings = java.util.List.of(bToLink);
                         }
                     }
-
-                    if (bookings != null && !bookings.isEmpty()) {
-                        // Find all sibling/related bookings for this guest
-                        Booking primaryBooking = bookings.get(0);
-                        String baseBNum = primaryBooking.getBookingNumber() != null ? primaryBooking.getBookingNumber().split("/")[0] : null;
-
-                        List<Booking> allRelated = bookingRepository.findAll().stream()
-                                .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(reg.getId()))
-                                          || (baseBNum != null && b.getBookingNumber() != null && (b.getBookingNumber().equals(baseBNum) || b.getBookingNumber().startsWith(baseBNum + "/"))))
-                                .toList();
-
-                        List<Payment> allVisiblePayments = new java.util.ArrayList<>();
-                        for (Booking b : allRelated) {
-                            List<Payment> pList = paymentRepository.findByBookingId(b.getId());
-                            if (pList != null) {
-                                allVisiblePayments.addAll(pList.stream()
-                                        .filter(p -> p != null && (p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice()))
-                                        .toList());
-                            }
-                        }
-
-                        // Also check payments attached directly by guestRegistrationId
-                        List<Payment> directRegPayments = paymentRepository.findAll().stream()
-                                .filter(p -> p != null && p.getGuestRegistrationId() != null && p.getGuestRegistrationId().equals(reg.getId()))
-                                .filter(p -> p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice())
-                                .filter(p -> allVisiblePayments.stream().noneMatch(existing -> existing.getId().equals(p.getId())))
-                                .toList();
-                        allVisiblePayments.addAll(directRegPayments);
-
-                        double totalPaidLkr = allVisiblePayments.stream()
-                                .mapToDouble(p -> p.getConvertedAmountLkr() != null && p.getConvertedAmountLkr() > 0 ? p.getConvertedAmountLkr() : p.getAmountLkr())
-                                .sum();
-
-                        Booking baseBookingItem = allRelated.stream().filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/")).findFirst().orElse(primaryBooking);
-                        List<Booking> discBookings = allRelated.stream().filter(b -> b.getBookingNumber() != null && b.getBookingNumber().contains("/DISC")).toList();
-                        List<Booking> extraBookings = allRelated.stream().filter(b -> b.getBookingNumber() != null && b.getBookingNumber().contains("/") && !b.getBookingNumber().contains("/DISC")).toList();
-
-                        double baseAmt = baseBookingItem.getTotalAmount() != null ? baseBookingItem.getTotalAmount() : 0.0;
-                        double totalDisc = discBookings.stream().mapToDouble(b -> Math.abs(b.getTotalAmount() != null ? b.getTotalAmount() : 0.0)).sum();
-                        double totalExtras = extraBookings.stream().mapToDouble(b -> Math.abs(b.getTotalAmount() != null ? b.getTotalAmount() : 0.0)).sum();
-                        double netTotalAmt = Math.max(0, baseAmt + totalExtras - totalDisc);
-
-                        String bCurr = baseBookingItem.getCurrency() != null ? baseBookingItem.getCurrency().toUpperCase() : "USD";
-                        double exRate = 1.0;
-                        try {
-                            if (baseBookingItem.getExchangeRate() != null && !baseBookingItem.getExchangeRate().trim().isEmpty()) {
-                                exRate = Double.parseDouble(baseBookingItem.getExchangeRate().trim());
-                            }
-                        } catch (Exception ignored) {}
-                        if (exRate <= 0) exRate = 335.0;
-
-                        double totalBookingAmtLkr = "LKR".equals(bCurr) ? netTotalAmt : (netTotalAmt * exRate);
-
-                        String computedStatus = "Unpaid";
-                        if (totalBookingAmtLkr > 0 && totalPaidLkr >= (totalBookingAmtLkr - 10.0)) {
-                            computedStatus = "Paid";
-                        } else if (totalPaidLkr > 0) {
-                            computedStatus = "Paid Advance";
-                        }
-                        reg.setPaymentStatus(computedStatus);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
-                return reg;
-            });
-        }
+
+                if (bookings != null && !bookings.isEmpty()) {
+                    // Find all sibling/related bookings for this guest
+                    Booking primaryBooking = bookings.get(0);
+                    String baseBNum = primaryBooking.getBookingNumber() != null ? primaryBooking.getBookingNumber().split("/")[0] : null;
+
+                    List<Booking> allRelated = bookingRepository.findAll().stream()
+                            .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(reg.getId()))
+                                      || (baseBNum != null && b.getBookingNumber() != null && (b.getBookingNumber().equals(baseBNum) || b.getBookingNumber().startsWith(baseBNum + "/"))))
+                            .toList();
+
+                    List<Payment> allVisiblePayments = new java.util.ArrayList<>();
+                    for (Booking b : allRelated) {
+                        List<Payment> pList = paymentRepository.findByBookingId(b.getId());
+                        if (pList != null) {
+                            allVisiblePayments.addAll(pList.stream()
+                                    .filter(p -> p != null && (!isFoRole || p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice()))
+                                    .toList());
+                        }
+                    }
+
+                    // Also check payments attached directly by guestRegistrationId
+                    List<Payment> directRegPayments = paymentRepository.findAll().stream()
+                            .filter(p -> p != null && p.getGuestRegistrationId() != null && p.getGuestRegistrationId().equals(reg.getId()))
+                            .filter(p -> !isFoRole || p.getIsHiddenFromFrontOffice() == null || !p.getIsHiddenFromFrontOffice())
+                            .filter(p -> allVisiblePayments.stream().noneMatch(existing -> existing.getId().equals(p.getId())))
+                            .toList();
+                    allVisiblePayments.addAll(directRegPayments);
+
+                    double totalPaidLkr = allVisiblePayments.stream()
+                            .mapToDouble(p -> p.getConvertedAmountLkr() != null && p.getConvertedAmountLkr() > 0 ? p.getConvertedAmountLkr() : p.getAmountLkr())
+                            .sum();
+
+                    Booking baseBookingItem = allRelated.stream().filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/")).findFirst().orElse(primaryBooking);
+                    List<Booking> discBookings = allRelated.stream().filter(b -> b.getBookingNumber() != null && b.getBookingNumber().contains("/DISC")).toList();
+                    List<Booking> extraBookings = allRelated.stream().filter(b -> b.getBookingNumber() != null && b.getBookingNumber().contains("/") && !b.getBookingNumber().contains("/DISC")).toList();
+
+                    double baseAmt = baseBookingItem.getTotalAmount() != null ? baseBookingItem.getTotalAmount() : 0.0;
+                    double totalDisc = discBookings.stream().mapToDouble(b -> Math.abs(b.getTotalAmount() != null ? b.getTotalAmount() : 0.0)).sum();
+                    double totalExtras = extraBookings.stream().mapToDouble(b -> Math.abs(b.getTotalAmount() != null ? b.getTotalAmount() : 0.0)).sum();
+                    double netTotalAmt = Math.max(0, baseAmt + totalExtras - totalDisc);
+
+                    String bCurr = baseBookingItem.getCurrency() != null ? baseBookingItem.getCurrency().toUpperCase() : "USD";
+                    double exRate = 1.0;
+                    try {
+                        if (baseBookingItem.getExchangeRate() != null && !baseBookingItem.getExchangeRate().trim().isEmpty()) {
+                            exRate = Double.parseDouble(baseBookingItem.getExchangeRate().trim());
+                        }
+                    } catch (Exception ignored) {}
+                    if (exRate <= 0) exRate = 335.0;
+
+                    double totalBookingAmtLkr = "LKR".equals(bCurr) ? netTotalAmt : (netTotalAmt * exRate);
+
+                    String computedStatus = "Unpaid";
+                    if (totalBookingAmtLkr > 0 && totalPaidLkr >= (totalBookingAmtLkr - 10.0)) {
+                        computedStatus = "Paid";
+                    } else if (totalPaidLkr > 0) {
+                        computedStatus = "Paid Advance";
+                    }
+                    reg.setPaymentStatus(computedStatus);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return reg;
+        });
 
         // Return lightweight entities for listing, stripping heavy passport Base64 image payloads
         return result.map(reg -> {
