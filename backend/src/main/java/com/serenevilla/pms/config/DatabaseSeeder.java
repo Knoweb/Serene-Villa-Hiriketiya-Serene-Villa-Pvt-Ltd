@@ -18,6 +18,16 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        // Migration: Drop legacy single-column unique index on rooms.room_number if exists
+        try {
+            jdbcTemplate.execute("ALTER TABLE rooms DROP INDEX UK7ljglxlj90ln3lbas4kl983m2");
+            System.out.println(">>> Dropped legacy single-column unique index UK7ljglxlj90ln3lbas4kl983m2 on rooms <<<");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE rooms DROP INDEX uk_room_number");
+        } catch (Exception ignored) {}
+
         // Migration: Update manually created reservations with created_by = 'Staff'
         try {
             int updatedRows = jdbcTemplate.update(
