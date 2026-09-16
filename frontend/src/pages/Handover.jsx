@@ -72,6 +72,7 @@ const Handover = () => {
   const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
   const [selectedRegForReceipt, setSelectedRegForReceipt] = useState(null);
   const [associatedBookingForReceipt, setAssociatedBookingForReceipt] = useState(null);
+  const [selectedGroupPaymentsForReceipt, setSelectedGroupPaymentsForReceipt] = useState([]);
   const [forceReceiptLkr, setForceReceiptLkr] = useState(false);
   const receiptRef = React.useRef(null);
 
@@ -140,6 +141,7 @@ const Handover = () => {
     setSelectedPaymentForReceipt(normalizedPayment);
     setSelectedRegForReceipt(matchedReg);
     setAssociatedBookingForReceipt(subBooking);
+    setSelectedGroupPaymentsForReceipt(group.payments || [normalizedPayment]);
     setReceiptData({
       id: p.id,
       receiptNumber: normalizedPayment.receiptNumber,
@@ -854,7 +856,7 @@ const Handover = () => {
                   selectedPaymentForReceipt={selectedPaymentForReceipt}
                   selectedReg={selectedRegForReceipt}
                   associatedBooking={associatedBookingForReceipt}
-                  payments={payments}
+                  payments={selectedGroupPaymentsForReceipt.length > 0 ? selectedGroupPaymentsForReceipt : payments}
                   bookings={bookings}
                   forceLkr={forceReceiptLkr}
                 />
@@ -975,7 +977,7 @@ const Handover = () => {
             selectedPaymentForReceipt={selectedPaymentForReceipt}
             selectedReg={selectedRegForReceipt}
             associatedBooking={associatedBookingForReceipt}
-            payments={payments}
+            payments={selectedGroupPaymentsForReceipt.length > 0 ? selectedGroupPaymentsForReceipt : payments}
             bookings={bookings}
             forceLkr={forceReceiptLkr}
           />
