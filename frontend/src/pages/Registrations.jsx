@@ -4478,7 +4478,14 @@ const Registrations = () => {
               e.preventDefault();
               if (!selectedReg || !associatedBooking) return;
               try {
-                const newBNum = `${associatedBooking.bookingNumber}/1N`;
+                // Find next unique suffix (e.g. /1N, /2N, /3N)
+                let suffixIndex = 1;
+                let newBNum = `${associatedBooking.bookingNumber}/${suffixIndex}N`;
+                while (bookings.some(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === newBNum.toLowerCase())) {
+                  suffixIndex++;
+                  newBNum = `${associatedBooking.bookingNumber}/${suffixIndex}N`;
+                }
+
                 const totalNights = parseInt(extraNightForm.numberOfNights, 10) || 1;
                 
                 const selectedRooms = (extraNightForm.allocatedRooms && extraNightForm.allocatedRooms.length > 0)
@@ -4529,7 +4536,8 @@ const Registrations = () => {
                   checkInDate: extraNightForm.checkInDate || associatedBooking?.checkOutDate || selectedReg?.checkOutDate,
                   checkOutDate: extraNightForm.checkOutDate,
                   numberOfNights: totalNights,
-                  status: 'Confirmed'
+                  status: 'Confirmed',
+                  propertyId: 1
                 };
                 
                 const response = await fetch(`${API_BASE}/bookings/create-extra`, {
@@ -4818,7 +4826,14 @@ const Registrations = () => {
               e.preventDefault();
               if (!selectedReg || !associatedBooking) return;
               try {
-                const newBNum = `${associatedBooking.bookingNumber}/1P`;
+                // Find next unique suffix (e.g. /1P, /2P, /3P)
+                let suffixIndex = 1;
+                let newBNum = `${associatedBooking.bookingNumber}/${suffixIndex}P`;
+                while (bookings.some(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === newBNum.toLowerCase())) {
+                  suffixIndex++;
+                  newBNum = `${associatedBooking.bookingNumber}/${suffixIndex}P`;
+                }
+
                 const selectedRooms = (extraPersonForm.allocatedRooms && extraPersonForm.allocatedRooms.length > 0)
                   ? extraPersonForm.allocatedRooms.filter(r => r.selected)
                   : [];
@@ -4867,7 +4882,8 @@ const Registrations = () => {
                   checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
                   checkOutDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
                   numberOfNights: 1,
-                  status: 'Confirmed'
+                  status: 'Confirmed',
+                  propertyId: 1
                 };
                 
                 const response = await fetch(`${API_BASE}/bookings/create-extra`, {
@@ -5125,7 +5141,13 @@ const Registrations = () => {
 
                 if (isAdmin) {
                   // Direct Admin Application
-                  const newBNum = `${associatedBooking.bookingNumber}/DISC`;
+                  let suffixIndex = 1;
+                  let newBNum = `${associatedBooking.bookingNumber}/DISC`;
+                  while (bookings.some(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === newBNum.toLowerCase())) {
+                    suffixIndex++;
+                    newBNum = `${associatedBooking.bookingNumber}/DISC-${suffixIndex}`;
+                  }
+
                   const payload = {
                     guestRegistrationId: selectedReg.id,
                     bookingNumber: newBNum,
@@ -5141,7 +5163,8 @@ const Registrations = () => {
                     checkInDate: associatedBooking?.checkInDate || selectedReg?.checkInDate || new Date().toISOString().split('T')[0],
                     checkOutDate: associatedBooking?.checkOutDate || selectedReg?.checkOutDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
                     numberOfNights: 1,
-                    status: 'Confirmed'
+                    status: 'Confirmed',
+                    propertyId: 1
                   };
                   
                   const response = await fetch(`${API_BASE}/bookings/create-extra`, {

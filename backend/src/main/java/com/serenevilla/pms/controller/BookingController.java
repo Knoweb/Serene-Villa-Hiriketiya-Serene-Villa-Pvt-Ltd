@@ -85,9 +85,17 @@ public class BookingController {
     @PostMapping("/create-extra")
     public ResponseEntity<?> createExtraBooking(@RequestBody Booking booking) {
         try {
-            // Check if booking Number already exists to prevent duplicate entries
-            if (bookingRepository.findAll().stream().anyMatch(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(booking.getBookingNumber()))) {
-                return ResponseEntity.badRequest().body("Booking with number " + booking.getBookingNumber() + " already exists!");
+            // Check if booking Number already exists for the same property
+            if (booking.getBookingNumber() != null && !booking.getBookingNumber().trim().isEmpty()) {
+                String bNum = booking.getBookingNumber().trim();
+                boolean exists = bookingRepository.findAll().stream().anyMatch(b -> 
+                    b.getBookingNumber() != null && 
+                    b.getBookingNumber().trim().equalsIgnoreCase(bNum) &&
+                    (booking.getPropertyId() == null || b.getPropertyId() == null || b.getPropertyId().equals(booking.getPropertyId()))
+                );
+                if (exists) {
+                    return ResponseEntity.badRequest().body("Booking with number " + bNum + " already exists!");
+                }
             }
             Booking saved = bookingRepository.save(booking);
             return ResponseEntity.ok(saved);
