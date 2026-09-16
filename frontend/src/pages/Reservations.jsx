@@ -617,13 +617,25 @@ const Reservations = () => {
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const [rooms, setRooms] = useState([]);
 
-  // Check for duplicate booking numbers in real-time when creating a new reservation
+  // Check for duplicate booking numbers in real-time when creating a new reservation (checking both bookings and registrations)
   const isDuplicateBookingNumber = React.useMemo(() => {
     if (!isCreatingNewReservation || !confirmationData?.bookingNumber) return false;
     const target = confirmationData.bookingNumber.trim().toLowerCase();
     if (!target || target === 'd-' || target === 'b-' || target === 'a-' || target === 'w-') return false;
-    return bookings.some(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === target);
-  }, [confirmationData?.bookingNumber, bookings, isCreatingNewReservation]);
+    
+    // Check against bookings
+    const existsInBookings = bookings.some(b => b.bookingNumber && b.bookingNumber.trim().toLowerCase() === target);
+    if (existsInBookings) return true;
+
+    // Check against registrations (passportNumber format is SV-B-0004 or bookingNumber)
+    const existsInRegistrations = registrations.some(r => {
+      const regBookingNum = (r.bookingNumber || '').trim().toLowerCase();
+      const passportBookingNum = (r.passportNumber || '').replace(/^SV-?/i, '').trim().toLowerCase();
+      return regBookingNum === target || passportBookingNum === target;
+    });
+
+    return existsInRegistrations;
+  }, [confirmationData?.bookingNumber, bookings, registrations, isCreatingNewReservation]);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -1468,6 +1480,7 @@ const Reservations = () => {
     }
     setIsSaving(true);
     if (isCreatingNewReservation) {
+      let savedGuestId = null;
       try {
         const newGuest = {
           title: confirmationData.title || 'Mr.',
@@ -1501,6 +1514,7 @@ const Reservations = () => {
         }
 
         const savedGuest = await guestRes.json();
+        savedGuestId = savedGuest.id;
         
         const roomSum = confirmationData.allocatedRooms && confirmationData.allocatedRooms.length > 0
           ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0)
@@ -1551,6 +1565,15 @@ const Reservations = () => {
 
         await fetchRegistrations();
       } catch (err) {
+        // Rollback orphaned guest registration if booking creation fails
+        if (savedGuestId) {
+          try {
+            await fetch(`${API_BASE}/guest-registrations/${savedGuestId}`, { method: 'DELETE' });
+            await fetchRegistrations();
+          } catch (delErr) {
+            console.error('Failed to rollback orphaned guest registration:', delErr);
+          }
+        }
         alert('Error saving reservation: ' + err.message);
         console.error('Error saving standalone reservation:', err);
         return;
