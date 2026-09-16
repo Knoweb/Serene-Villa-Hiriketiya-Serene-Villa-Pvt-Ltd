@@ -133,7 +133,14 @@ public class DiscountRequestController {
                     
                     int suffixIdx = 1;
                     String newBNum = parentBNum + "/DISC";
-                    while (allB.stream().anyMatch(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(newBNum) && (b.getPropertyId() == null || b.getPropertyId().equals(targetPropertyId)))) {
+                    while (true) {
+                        final String checkBNum = newBNum;
+                        boolean exists = allB.stream().anyMatch(b -> 
+                            b.getBookingNumber() != null && 
+                            b.getBookingNumber().equalsIgnoreCase(checkBNum) && 
+                            (b.getPropertyId() == null || b.getPropertyId().equals(targetPropertyId))
+                        );
+                        if (!exists) break;
                         suffixIdx++;
                         newBNum = parentBNum + "/DISC-" + suffixIdx;
                     }
