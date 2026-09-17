@@ -4,6 +4,7 @@ import com.serenevilla.pms.dto.AccountantDashboardStatsDTO;
 import com.serenevilla.pms.model.Booking;
 import com.serenevilla.pms.model.DiscountRequest;
 import com.serenevilla.pms.model.GuestRegistration;
+import com.serenevilla.pms.model.Payment;
 import com.serenevilla.pms.repository.BookingRepository;
 import com.serenevilla.pms.repository.DiscountRequestRepository;
 import com.serenevilla.pms.repository.GuestRegistrationRepository;
@@ -164,7 +165,7 @@ public class AnalyticsService {
         double bankTotal = 0.0;
 
         for (Payment p : roomPayments) {
-            double amt = p.getAmountLkr() != null ? p.getAmountLkr() : 0.0;
+            double amt = p.getAmountLkr();
             String method = p.getPaymentMethod() != null ? p.getPaymentMethod().toUpperCase() : "";
 
             if (method.contains("CASH")) {
