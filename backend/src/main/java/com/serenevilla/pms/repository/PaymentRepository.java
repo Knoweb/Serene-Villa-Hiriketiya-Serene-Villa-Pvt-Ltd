@@ -9,6 +9,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByBookingId(Long bookingId);
     List<Payment> findByAccountantTransferStatus(AccountantTransferStatus accountantTransferStatus);
     List<Payment> findByPropertyId(Long propertyId);
+    List<Payment> findByPropertyIdAndAccountantTransferStatus(Long propertyId, AccountantTransferStatus accountantTransferStatus);
 
     @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amountLkr), 0) FROM Payment p WHERE (:propertyId IS NULL OR p.propertyId = :propertyId)")
     Double sumTotalRevenueByPropertyId(@org.springframework.data.repository.query.Param("propertyId") Long propertyId);

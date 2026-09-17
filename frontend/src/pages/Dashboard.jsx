@@ -21,6 +21,7 @@ import {
   Tag,
   PieChart
 } from 'lucide-react';
+import RoomIncomeAnalytics from '../components/RoomIncomeAnalytics';
 
 const Dashboard = () => {
   const { user, currentProperty } = useAuth();
@@ -705,6 +706,9 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Room-Wise Income & Occupancy Analytics Section */}
+          <RoomIncomeAnalytics currentProperty={currentProperty} />
         </div>
       )}
     </div>

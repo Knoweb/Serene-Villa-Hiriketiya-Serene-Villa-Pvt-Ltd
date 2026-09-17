@@ -23,4 +23,27 @@ public class AccountantDashboardController {
         AccountantDashboardStatsDTO stats = analyticsService.getAccountantDashboardStats(targetPropertyId);
         return ResponseEntity.ok(stats);
     }
+
+    @Autowired
+    private com.serenevilla.pms.repository.RoomRepository roomRepository;
+
+    @GetMapping("/analytics/rooms")
+    public ResponseEntity<?> getRoomsForAnalytics(
+            @RequestParam(name = "propertyId", required = false) Long propertyId,
+            @RequestHeader(name = "X-Active-Property", required = false) Long headerPropertyId) {
+        Long targetPropertyId = (propertyId != null) ? propertyId : headerPropertyId;
+        if (targetPropertyId != null) {
+            return ResponseEntity.ok(roomRepository.findByPropertyId(targetPropertyId));
+        }
+        return ResponseEntity.ok(roomRepository.findAll());
+    }
+
+    @GetMapping("/analytics/room/{roomId}")
+    public ResponseEntity<com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO> getRoomAnalytics(
+            @PathVariable(name = "roomId") Long roomId,
+            @RequestParam(name = "propertyId", required = false) Long propertyId,
+            @RequestHeader(name = "X-Active-Property", required = false) Long headerPropertyId) {
+        Long targetPropertyId = (propertyId != null) ? propertyId : headerPropertyId;
+        return ResponseEntity.ok(analyticsService.getRoomFinancialAnalytics(roomId, targetPropertyId));
+    }
 }
