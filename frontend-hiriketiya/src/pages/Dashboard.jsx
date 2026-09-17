@@ -16,7 +16,10 @@ import {
   UserCheck, 
   BedDouble, 
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Moon,
+  Tag,
+  PieChart
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -32,6 +35,7 @@ const Dashboard = () => {
   const [staff, setStaff] = useState([]);
   const [pendingDiscounts, setPendingDiscounts] = useState([]);
   const [pendingHandovers, setPendingHandovers] = useState([]);
+  const [accountantStats, setAccountantStats] = useState(null);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -87,10 +91,20 @@ const Dashboard = () => {
           }
         }
         if (user?.role === 'ACCOUNTANT' || user?.role === 'ADMIN') {
-          const handoverRes = await fetch(`${API_BASE}/billing/accountant/pending`);
+          const handoverRes = await fetch(`${API_BASE}/billing/accountant/pending?propertyId=${currentProperty?.id || 2}`);
           if (handoverRes.ok) {
             const handoverData = await handoverRes.json();
             setPendingHandovers(handoverData || []);
+          }
+
+          const statsRes = await fetch(`${API_BASE}/accountant/dashboard-stats?propertyId=${currentProperty?.id || 2}`, {
+            headers: {
+              'X-Active-Property': String(currentProperty?.id || 2)
+            }
+          });
+          if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            setAccountantStats(statsData);
           }
         }
       } catch (err) {
@@ -100,7 +114,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, [user]);
+  }, [user, currentProperty]);
 
   // Role Checks
   const isAdmin = user.role === 'ADMIN';
@@ -506,60 +520,188 @@ const Dashboard = () => {
       {/* -------------------- ACCOUNTANT DASHBOARD -------------------- */}
       {isAccountant && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Accountant Ledger</h2>
-            <p className="text-xs text-slate-500 font-medium mt-1">Shift handovers, invoice statements, and payment records</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Accountant Financial Analytics</h2>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Property Scope: <span className="font-bold text-emerald-700">{currentProperty?.name || 'Active Property'}</span></p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-lg">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Property Scoped
+              </span>
+            </div>
           </div>
 
+          {/* 4 KPI Top Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Total Revenue */}
+            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+                <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <h3 className="text-2xl font-extrabold text-slate-900">
+                  LKR {Number(accountantStats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Sum of all collected payments</p>
+              </div>
+            </div>
+
+            {/* Card 2: Total Bookings */}
+            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Bookings</p>
+                <div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                  <Calendar className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <h3 className="text-2xl font-extrabold text-slate-900">
+                  {accountantStats?.totalBookings || 0}
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Property confirmed reservations</p>
+              </div>
+            </div>
+
+            {/* Card 3: Total Nights */}
+            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Guest Nights</p>
+                <div className="h-10 w-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                  <Moon className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <h3 className="text-2xl font-extrabold text-slate-900">
+                  {accountantStats?.totalNights || 0} <span className="text-sm font-semibold text-slate-500">Nights</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Calculated across all stays</p>
+              </div>
+            </div>
+
+            {/* Card 4: Total Discounts */}
+            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Discounts</p>
+                <div className="h-10 w-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                  <Tag className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <h3 className="text-2xl font-extrabold text-rose-600">
+                  LKR {Number(accountantStats?.totalDiscounts || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Approved reductions granted</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Breakdown Visual Chart + Handover Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Handover Approvals */}
-            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4 lg:col-span-2">
+            {/* Visual Chart: Bookings by Type */}
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-5 lg:col-span-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <PieChart className="h-4.5 w-4.5 text-emerald-600" /> Bookings by Type Breakdown
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Channel distribution & source volume</p>
+                </div>
+                <span className="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg">
+                  Total: {accountantStats?.totalBookings || 0} Bookings
+                </span>
+              </div>
+
+              {/* Chart Visual Progress Bars */}
+              <div className="space-y-4 pt-2">
+                {(() => {
+                  const dist = accountantStats?.bookingTypeDistribution || {};
+                  const total = accountantStats?.totalBookings || 1;
+                  const entries = Object.entries(dist);
+                  
+                  const colorMap = {
+                    'Direct': { bar: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+                    'Booking.com': { bar: 'bg-blue-500', badge: 'bg-blue-50 text-blue-800 border-blue-200' },
+                    'Airbnb': { bar: 'bg-rose-500', badge: 'bg-rose-50 text-rose-800 border-rose-200' },
+                    'Walk-in': { bar: 'bg-amber-500', badge: 'bg-amber-50 text-amber-800 border-amber-200' }
+                  };
+
+                  return entries.map(([type, count]) => {
+                    const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                    const style = colorMap[type] || { bar: 'bg-teal-500', badge: 'bg-teal-50 text-teal-800 border-teal-200' };
+
+                    return (
+                      <div key={type} className="space-y-1.5">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-slate-700 flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${style.badge}`}>
+                              {type}
+                            </span>
+                          </span>
+                          <span className="font-bold text-slate-800 font-mono">
+                            {count} bookings <span className="text-slate-400 font-normal">({percentage}%)</span>
+                          </span>
+                        </div>
+                        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                          <div 
+                            className={`h-full ${style.bar} rounded-full transition-all duration-500`}
+                            style={{ width: `${Math.max(percentage, count > 0 ? 3 : 0)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* Handover Approvals Card */}
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <CheckCircle className="h-4.5 w-4.5 text-emerald-600" /> Pending Shift Handover approvals
+                <CheckCircle className="h-4.5 w-4.5 text-emerald-600" /> Pending Handover Approvals
               </h3>
               
               {pendingHandovers.length > 0 ? (
                 <div className="space-y-3">
-                  <div className="bg-amber-50/60 border border-amber-100/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div>
-                      <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wide">Pending Handovers</h4>
-                      <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
-                        You have {pendingHandovers.length} pending transaction payment(s) submitted by the Front Office waiting for reconciliation.
-                      </p>
-                    </div>
+                  <div className="bg-amber-50/60 border border-amber-100/80 rounded-xl p-4 space-y-3">
+                    <p className="text-xs text-amber-800 font-semibold">
+                      You have <span className="font-bold">{pendingHandovers.length}</span> pending shift handover transaction(s) waiting for accountant reconciliation.
+                    </p>
                     <button
                       onClick={() => navigate('/handover')}
-                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 px-3 rounded-lg text-[10px] transition uppercase tracking-wide cursor-pointer shrink-0"
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded-xl text-xs transition uppercase tracking-wide cursor-pointer text-center"
                     >
-                      Review & Approve
+                      Review & Reconcile Now
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="border border-slate-55 rounded-xl p-8 text-center text-slate-400 font-bold">
+                <div className="border border-slate-100 rounded-xl p-6 text-center text-slate-400 font-bold text-xs">
                   No pending shift handovers waiting for approval.
                 </div>
               )}
-            </div>
 
-            {/* Financial Overview quick links */}
-            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <FileText className="h-4.5 w-4.5 text-emerald-600" /> Accounting Reports
-              </h3>
-              <div className="space-y-2 text-xs font-semibold text-slate-600">
-                <a href="#reports" className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                  <span>Daily Revenue Report</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-400" />
-                </a>
-                <a href="#reports" className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                  <span>Weekly Payments Log</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-400" />
-                </a>
-                <a href="#reports" className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                  <span>Outstanding Balances</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-400" />
-                </a>
+              <div className="pt-2 border-t border-slate-100">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Quick Navigation</h4>
+                <div className="space-y-1.5 text-xs font-semibold text-slate-600">
+                  <button 
+                    onClick={() => navigate('/reports')} 
+                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition cursor-pointer text-left"
+                  >
+                    <span>View Financial Reports</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-400" />
+                  </button>
+                  <button 
+                    onClick={() => navigate('/handover')} 
+                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition cursor-pointer text-left"
+                  >
+                    <span>Shift Handover Logs</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-400" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
