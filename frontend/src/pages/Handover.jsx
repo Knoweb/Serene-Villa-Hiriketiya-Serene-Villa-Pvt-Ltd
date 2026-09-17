@@ -49,12 +49,16 @@ const formatPaymentTimestamp = (rawCreatedAt, paymentDate) => {
 };
 
 const Handover = () => {
-  const { user } = useAuth();
+  const { user, currentProperty } = useAuth();
   const isFrontOfficer = user?.role === 'FRONT_OFFICER';
   const isAccountant = user?.role === 'ACCOUNTANT';
   const isAdmin = user?.role === 'ADMIN';
 
+  const propId = currentProperty?.id || 1;
+
   // State
+  const [activeTab, setActiveTab] = useState('PENDING'); // 'PENDING' | 'HISTORY'
+  const [historyFilter, setHistoryFilter] = useState('ALL'); // 'ALL' | 'ACCEPTED' | 'REJECTED'
   const [payments, setPayments] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [registrations, setRegistrations] = useState([]);
@@ -162,15 +166,21 @@ const Handover = () => {
   // Fetch all required data
   const fetchData = async () => {
     setLoading(true);
+    setSelectedBookingRefs([]);
     try {
-      const endpoint = isFrontOfficer 
-        ? `${API_BASE}/billing/accountant/fo-pending?propertyId=1` 
-        : `${API_BASE}/billing/accountant/pending?propertyId=1`;
+      let endpoint;
+      if (activeTab === 'HISTORY') {
+        endpoint = `${API_BASE}/billing/accountant/history?propertyId=${propId}${historyFilter !== 'ALL' ? `&status=${historyFilter}` : ''}`;
+      } else {
+        endpoint = isFrontOfficer 
+          ? `${API_BASE}/billing/accountant/fo-pending?propertyId=${propId}` 
+          : `${API_BASE}/billing/accountant/pending?propertyId=${propId}`;
+      }
         
       const [payRes, bookRes, regRes] = await Promise.all([
         fetch(endpoint),
-        fetch(`${API_BASE}/bookings?propertyId=1`),
-        fetch(`${API_BASE}/guest-registrations?propertyId=1&size=1000&role=ADMIN`)
+        fetch(`${API_BASE}/bookings?propertyId=${propId}`),
+        fetch(`${API_BASE}/guest-registrations?propertyId=${propId}&size=1000&role=ADMIN`)
       ]);
 
       if (payRes.ok) {
@@ -199,7 +209,7 @@ const Handover = () => {
 
   useEffect(() => {
     fetchData();
-  }, [user?.role]);
+  }, [user?.role, activeTab, historyFilter, currentProperty]);
 
   // Consolidated Grouping Logic per Booking
   const consolidatedBookings = React.useMemo(() => {
@@ -559,54 +569,120 @@ const Handover = () => {
         </div>
       )}
 
-      {/* Action Control Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2.5 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200/80 transition">
-            <input 
-              type="checkbox"
-              checked={filteredBookings.length > 0 && selectedBookingRefs.length === filteredBookings.length}
-              onChange={toggleSelectAll}
-              className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
-            />
-            <span className="text-xs font-bold text-slate-700">
-              Select All ({selectedBookingRefs.length} / {filteredBookings.length} Cards)
+      {/* Primary Tab Switcher (Pending Verification vs Handover History) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('PENDING')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-2 ${
+              activeTab === 'PENDING'
+                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <Clock size={15} />
+            <span>{isFrontOfficer ? 'Ready for Handover' : 'Pending Verification'}</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              activeTab === 'PENDING' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {activeTab === 'PENDING' ? filteredBookings.length : '•'}
             </span>
-          </label>
+          </button>
 
-          {selectedBookingRefs.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-bold">•</span>
-              <span className="text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
-                Total Handover: LKR {selectedTotalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          )}
+          <button
+            onClick={() => setActiveTab('HISTORY')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-2 ${
+              activeTab === 'HISTORY'
+                ? 'bg-slate-900 text-white shadow-sm shadow-slate-900/20'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <ShieldCheck size={15} />
+            <span>Handover History (Accepted & Rejected)</span>
+          </button>
         </div>
 
-        {selectedBookingRefs.length > 0 && (
-          <div className="flex items-center gap-2">
-            {isAccountant && (
-              <button
-                onClick={() => setShowRejectModal(true)}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-rose-600/10 cursor-pointer"
-              >
-                <X size={15} /> Reject Selected ({selectedBookingRefs.length})
-              </button>
-            )}
+        {/* History Filter Sub-tabs */}
+        {activeTab === 'HISTORY' && (
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200/60">
             <button
-              onClick={isFrontOfficer ? handleSendToAccountant : handleAcceptTransactions}
-              disabled={loading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-5 rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+              onClick={() => setHistoryFilter('ALL')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                historyFilter === 'ALL' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
             >
-              {isFrontOfficer ? <Send size={15} /> : <Check size={15} />}
-              {isFrontOfficer 
-                ? `Send ${selectedBookingRefs.length} Booking(s) to Accountant` 
-                : `Approve & Reconcile ${selectedBookingRefs.length} Booking(s)`}
+              All Records
+            </button>
+            <button
+              onClick={() => setHistoryFilter('ACCEPTED')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                historyFilter === 'ACCEPTED' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-emerald-700 hover:bg-emerald-50'
+              }`}
+            >
+              <Check size={12} /> Accepted Only
+            </button>
+            <button
+              onClick={() => setHistoryFilter('REJECTED')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                historyFilter === 'REJECTED' ? 'bg-rose-600 text-white shadow-2xs' : 'text-rose-700 hover:bg-rose-50'
+              }`}
+            >
+              <X size={12} /> Rejected Only
             </button>
           </div>
         )}
       </div>
+
+      {/* Action Control Bar (Only for PENDING tab) */}
+      {activeTab === 'PENDING' && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200/80 transition">
+              <input 
+                type="checkbox"
+                checked={filteredBookings.length > 0 && selectedBookingRefs.length === filteredBookings.length}
+                onChange={toggleSelectAll}
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-slate-700">
+                Select All ({selectedBookingRefs.length} / {filteredBookings.length} Cards)
+              </span>
+            </label>
+
+            {selectedBookingRefs.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-bold">•</span>
+                <span className="text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
+                  Total Handover: LKR {selectedTotalLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {selectedBookingRefs.length > 0 && (
+            <div className="flex items-center gap-2">
+              {isAccountant && (
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm shadow-rose-600/10 cursor-pointer"
+                >
+                  <X size={15} /> Reject Selected ({selectedBookingRefs.length})
+                </button>
+              )}
+              <button
+                onClick={isFrontOfficer ? handleSendToAccountant : handleAcceptTransactions}
+                disabled={loading}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-5 rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {isFrontOfficer ? <Send size={15} /> : <Check size={15} />}
+                {isFrontOfficer 
+                  ? `Send ${selectedBookingRefs.length} Booking(s) to Accountant` 
+                  : `Approve & Reconcile ${selectedBookingRefs.length} Booking(s)`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modern Card Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

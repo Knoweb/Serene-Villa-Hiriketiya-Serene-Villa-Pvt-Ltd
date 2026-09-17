@@ -63,6 +63,39 @@ public class BillingController {
         return ResponseEntity.ok(pendingPayments);
     }
 
+    @GetMapping("/history")
+    public ResponseEntity<List<Payment>> getHandoverHistory(
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "propertyId", required = false) Long propertyId) {
+        List<Payment> historyPayments;
+        if ("ACCEPTED".equalsIgnoreCase(status)) {
+            historyPayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.ACCEPTED);
+        } else if ("REJECTED".equalsIgnoreCase(status)) {
+            historyPayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.REJECTED);
+        } else {
+            historyPayments = new java.util.ArrayList<>(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.ACCEPTED));
+            historyPayments.addAll(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.REJECTED));
+        }
+
+        populatePaymentDetails(historyPayments);
+        if (propertyId != null) {
+            historyPayments = historyPayments.stream()
+                .filter(p -> propertyId.equals(p.getPropertyId()))
+                .collect(Collectors.toList());
+        }
+        // Sort newest first
+        historyPayments.sort((a, b) -> {
+            LocalDateTime tA = a.getAcceptedByAccountantAt() != null ? a.getAcceptedByAccountantAt() : a.getCreatedAt();
+            LocalDateTime tB = b.getAcceptedByAccountantAt() != null ? b.getAcceptedByAccountantAt() : b.getCreatedAt();
+            if (tA == null && tB == null) return 0;
+            if (tA == null) return 1;
+            if (tB == null) return -1;
+            return tB.compareTo(tA);
+        });
+
+        return ResponseEntity.ok(historyPayments);
+    }
+
     @GetMapping("/fo-pending")
     public ResponseEntity<List<Payment>> getFoPendingTransactions(@RequestParam(name = "propertyId", required = false) Long propertyId) {
         List<Payment> allActivePayments = new java.util.ArrayList<>(paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.PENDING));
