@@ -47,7 +47,6 @@ const Layout = ({ children }) => {
     { name: 'Reservations', path: '/reservations', roles: ['ADMIN', 'FRONT_OFFICER'] },
     { name: 'Rooms', path: '/rooms', roles: ['ADMIN'] },
     { name: 'Bookings', path: '/bookings', roles: ['ADMIN'] },
-    { name: 'Payments', path: '/payments', roles: ['ADMIN', 'ACCOUNTANT'] },
     { name: 'Approvals', path: '/discounts', roles: ['ADMIN'] },
     { name: 'Reports', path: '/reports', roles: ['ADMIN', 'ACCOUNTANT'] },
     { name: 'Hide Details', path: '/hide-details', roles: ['ADMIN'] },
