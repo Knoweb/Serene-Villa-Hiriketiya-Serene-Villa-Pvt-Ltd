@@ -746,14 +746,14 @@ const Handover = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                    <th className="py-3.5 px-4"># / Booking & Room</th>
-                    <th className="py-3.5 px-4">Guest Name</th>
-                    <th className="py-3.5 px-4">Total Settled Amount</th>
-                    <th className="py-3.5 px-4">Payment Breakdown</th>
-                    <th className="py-3.5 px-4">FO Sent Time</th>
-                    <th className="py-3.5 px-4">Accountant Action Time</th>
-                    <th className="py-3.5 px-4 text-center">Status</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
+                    <th className="py-3.5 px-4 min-w-[210px] whitespace-nowrap"># / Booking & Room</th>
+                    <th className="py-3.5 px-4 min-w-[140px] whitespace-nowrap">Guest Name</th>
+                    <th className="py-3.5 px-4 min-w-[160px] whitespace-nowrap">Total Settled Amount</th>
+                    <th className="py-3.5 px-4 min-w-[180px] whitespace-nowrap">Payment Breakdown</th>
+                    <th className="py-3.5 px-4 min-w-[170px] whitespace-nowrap">FO Sent Time</th>
+                    <th className="py-3.5 px-4 min-w-[190px] whitespace-nowrap">Accountant Action Time</th>
+                    <th className="py-3.5 px-4 min-w-[120px] text-center whitespace-nowrap">Status</th>
+                    <th className="py-3.5 px-4 min-w-[160px] text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
@@ -768,26 +768,26 @@ const Handover = () => {
                       <React.Fragment key={b.bookingRef || idx}>
                         <tr className={`hover:bg-slate-50/60 transition ${isExpanded ? 'bg-slate-50/40' : ''}`}>
                           {/* Column 1: Booking Ref & Room */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 min-w-[210px] whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-black text-xs text-emerald-800 tracking-tight">{b.bookingRef}</span>
-                              <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/60">
+                              <span className="font-mono font-black text-xs text-emerald-800 tracking-tight whitespace-nowrap">{b.bookingRef}</span>
+                              <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/60 shrink-0 whitespace-nowrap">
                                 Room {b.roomNumbers}
                               </span>
                             </div>
-                            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
+                            <span className="text-[10px] font-mono text-slate-400 block mt-0.5 whitespace-nowrap">
                               {b.checkIn} → {b.checkOut}
                             </span>
                           </td>
 
                           {/* Column 2: Guest Name */}
-                          <td className="py-3.5 px-4">
-                            <span className="font-bold text-slate-900 block">{b.guestName}</span>
-                            <span className="text-[10px] text-slate-400">Method: {Array.from(b.paymentMethods).join(', ') || 'Cash'}</span>
+                          <td className="py-3.5 px-4 min-w-[140px]">
+                            <span className="font-bold text-slate-900 block whitespace-nowrap">{b.guestName}</span>
+                            <span className="text-[10px] text-slate-400 whitespace-nowrap">Method: {Array.from(b.paymentMethods).join(', ') || 'Cash'}</span>
                           </td>
 
                           {/* Column 3: Total Settled Amount */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 min-w-[160px] whitespace-nowrap">
                             <span className="font-mono font-black text-slate-900 text-xs block">
                               LKR {b.totalLkrEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
@@ -797,36 +797,36 @@ const Handover = () => {
                           </td>
 
                           {/* Column 4: Payment Breakdown */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 min-w-[180px]">
                             <div className="flex flex-wrap gap-1 items-center">
                               {b.advancePaid > 0 && (
-                                <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/60 px-2 py-0.5 rounded-md">
+                                <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/60 px-2 py-0.5 rounded-md whitespace-nowrap">
                                   Adv: {b.currency} {b.advancePaid.toLocaleString()}
                                 </span>
                               )}
                               {b.finalPaid > 0 && (
-                                <span className="text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200/60 px-2 py-0.5 rounded-md">
+                                <span className="text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200/60 px-2 py-0.5 rounded-md whitespace-nowrap">
                                   Final: {b.currency} {b.finalPaid.toLocaleString()}
                                 </span>
                               )}
                               {b.extraNightsPrice > 0 && (
-                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200/60 px-2 py-0.5 rounded-md">
+                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100/60 px-2 py-0.5 rounded-md whitespace-nowrap">
                                   +1N: {b.currency} {b.extraNightsPrice.toLocaleString()}
                                 </span>
                               )}
                               {b.extraPersonsPrice > 0 && (
-                                <span className="text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200/60 px-2 py-0.5 rounded-md">
+                                <span className="text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100/60 px-2 py-0.5 rounded-md whitespace-nowrap">
                                   +1P: {b.currency} {b.extraPersonsPrice.toLocaleString()}
                                 </span>
                               )}
-                              <span className="text-[10px] text-slate-400 font-bold ml-1">
+                              <span className="text-[10px] text-slate-400 font-bold ml-1 whitespace-nowrap">
                                 ({b.payments.length} slip{b.payments.length > 1 ? 's' : ''})
                               </span>
                             </div>
                           </td>
 
                           {/* Column 5: FO Sent Time */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 min-w-[170px] whitespace-nowrap">
                             <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold">
                               <Clock size={12} className="text-emerald-600 shrink-0" />
                               <span className="font-mono text-[11px]">{foTime}</span>
@@ -835,8 +835,8 @@ const Handover = () => {
                           </td>
 
                           {/* Column 6: Accountant Action Time & Feedback */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold">
+                          <td className="py-3.5 px-4 min-w-[190px]">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold whitespace-nowrap">
                               <ShieldCheck size={13} className={isAccepted ? 'text-emerald-600 shrink-0' : isRejected ? 'text-rose-600 shrink-0' : 'text-slate-400 shrink-0'} />
                               <span className="font-mono text-[11px]">{accountantTime !== '-' ? accountantTime : (isAccepted ? 'Accepted' : isRejected ? 'Rejected' : '-')}</span>
                             </div>
@@ -847,12 +847,12 @@ const Handover = () => {
                               </div>
                             )}
                             {isAccepted && (
-                              <span className="text-[9px] font-bold text-emerald-700 block ml-4">Verified & Reconciled</span>
+                              <span className="text-[9px] font-bold text-emerald-700 block ml-4 whitespace-nowrap">Verified & Reconciled</span>
                             )}
                           </td>
 
                           {/* Column 7: Status */}
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-3.5 px-4 min-w-[120px] text-center whitespace-nowrap">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                               isAccepted 
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200/80 shadow-2xs' 
@@ -866,16 +866,16 @@ const Handover = () => {
                           </td>
 
                           {/* Column 8: Actions */}
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-3.5 px-4 min-w-[160px] text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
                               {b.payments.length > 0 && (
                                 <button
                                   type="button"
                                   onClick={() => handleOpenInvoice(b.payments[0], b)}
-                                  className="p-1.5 px-2.5 text-[11px] font-extrabold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition cursor-pointer shadow-2xs"
-                                  title="View Receipt / Invoice"
+                                  className="p-1.5 px-2.5 text-[11px] font-black text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/90 rounded-lg flex items-center gap-1 transition cursor-pointer shadow-2xs whitespace-nowrap"
+                                  title="View Invoices"
                                 >
-                                  <Receipt size={12} /> Slip
+                                  <Receipt size={12} /> View Invoices
                                 </button>
                               )}
                               <button
