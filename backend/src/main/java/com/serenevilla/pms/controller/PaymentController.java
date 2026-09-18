@@ -1,5 +1,6 @@
 package com.serenevilla.pms.controller;
 
+import com.serenevilla.pms.handler.RegistrationWebSocketHandler;
 import com.serenevilla.pms.model.ExchangeRate;
 import com.serenevilla.pms.model.Payment;
 import com.serenevilla.pms.repository.ExchangeRateRepository;
@@ -21,6 +22,9 @@ public class PaymentController {
     @Autowired
     private ExchangeRateRepository exchangeRateRepository;
 
+    @Autowired(required = false)
+    private RegistrationWebSocketHandler webSocketHandler;
+
     @PostMapping
     public ResponseEntity<Payment> recordPayment(@RequestBody Payment payment) {
         if (payment.getAccountantTransferStatus() == null) {
@@ -35,7 +39,11 @@ public class PaymentController {
         }
         payment.setExchangeRate(rate);
         payment.setAmountLkr(payment.getAmountInCurrency() * rate);
-        return ResponseEntity.ok(paymentRepository.save(payment));
+        Payment saved = paymentRepository.save(payment);
+        if (webSocketHandler != null) {
+            webSocketHandler.broadcast("update");
+        }
+        return ResponseEntity.ok(saved);
     }
 
     @GetMapping("/booking/{bookingId}")
@@ -97,7 +105,11 @@ public class PaymentController {
         payment.setPaymentDate(java.time.LocalDate.now());
         payment.setCreatedAt(java.time.LocalDateTime.now());
         
-        return ResponseEntity.ok(paymentRepository.save(payment));
+        Payment saved = paymentRepository.save(payment);
+        if (webSocketHandler != null) {
+            webSocketHandler.broadcast("update");
+        }
+        return ResponseEntity.ok(saved);
     }
 
     @GetMapping("/advance/{bookingId}")

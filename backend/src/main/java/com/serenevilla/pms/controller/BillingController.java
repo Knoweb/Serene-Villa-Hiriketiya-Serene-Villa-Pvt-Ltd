@@ -1,5 +1,6 @@
 package com.serenevilla.pms.controller;
 
+import com.serenevilla.pms.handler.RegistrationWebSocketHandler;
 import com.serenevilla.pms.model.AccountantTransferStatus;
 import com.serenevilla.pms.model.Payment;
 import com.serenevilla.pms.repository.PaymentRepository;
@@ -27,6 +28,9 @@ public class BillingController {
     @Autowired
     private GuestRegistrationRepository guestRegistrationRepository;
 
+    @Autowired(required = false)
+    private RegistrationWebSocketHandler webSocketHandler;
+
     @PostMapping("/send")
     public ResponseEntity<?> sendToAccountant(@RequestBody Map<String, Object> request) {
         Object rawIdsObj = request.get("invoiceIds");
@@ -47,6 +51,9 @@ public class BillingController {
                     paymentRepository.save(payment);
                 });
             }
+        }
+        if (webSocketHandler != null) {
+            webSocketHandler.broadcast("update");
         }
         return ResponseEntity.ok(Map.of("message", "Transactions sent to accountant successfully."));
     }
@@ -216,6 +223,9 @@ public class BillingController {
                 });
             }
         }
+        if (webSocketHandler != null) {
+            webSocketHandler.broadcast("update");
+        }
         return ResponseEntity.ok(Map.of("message", "Transactions accepted successfully."));
     }
 
@@ -240,6 +250,9 @@ public class BillingController {
                     paymentRepository.save(payment);
                 });
             }
+        }
+        if (webSocketHandler != null) {
+            webSocketHandler.broadcast("update");
         }
         return ResponseEntity.ok(Map.of("message", "Transactions rejected successfully."));
     }

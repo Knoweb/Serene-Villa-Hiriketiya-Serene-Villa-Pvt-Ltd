@@ -209,6 +209,39 @@ const Handover = () => {
 
   useEffect(() => {
     fetchData();
+
+    // Setup live WebSocket sync for real-time handover updates
+    let wsUrl;
+    try {
+      if (API_BASE.startsWith('http')) {
+        const url = new URL(API_BASE);
+        const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${protocol}//${url.host}/ws/registrations`;
+      } else {
+        wsUrl = `ws://${window.location.hostname}:8080/ws/registrations`;
+      }
+    } catch (e) {
+      wsUrl = `ws://${window.location.hostname}:8080/ws/registrations`;
+    }
+
+    let ws;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = () => {
+        fetchData();
+      };
+    } catch (e) {
+      console.warn('WebSocket connection failed for Handover', e);
+    }
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 15000);
+
+    return () => {
+      if (ws) ws.close();
+      clearInterval(interval);
+    };
   }, [user?.role, activeTab, historyFilter, currentProperty]);
 
   // Consolidated Grouping Logic per Booking
