@@ -33,6 +33,9 @@ public class ReportService {
     @Autowired
     private DiscountRequestRepository discountRequestRepository;
 
+    @Autowired
+    private com.serenevilla.pms.repository.RoomRepository roomRepository;
+
     public ReportSummaryDTO generateReport(LocalDate startDate, LocalDate endDate, Long propertyId) {
         // Fetch all data
         List<GuestRegistration> allRegistrations = guestRegistrationRepository.findAll();
@@ -290,6 +293,106 @@ public class ReportService {
             checkInDTOList.add(checkInDTO);
         }
 
+        // Generate Room-Wise Breakdown for all rooms in property
+        List<com.serenevilla.pms.model.Room> propertyRooms = propertyId != null ?
+                roomRepository.findByPropertyId(propertyId) :
+                roomRepository.findAll();
+
+        List<com.serenevilla.pms.dto.RoomIncomeSummaryDTO> roomBreakdowns = new ArrayList<>();
+        for (com.serenevilla.pms.model.Room r : propertyRooms) {
+            String rNum = r.getRoomNumber() != null ? r.getRoomNumber().trim() : "";
+            
+            // Filter bookings for this room in date range
+            List<Booking> rBookings = bookingsInRange.stream()
+                    .filter(b -> b.getRoomNumber() != null && b.getRoomNumber().trim().equalsIgnoreCase(rNum))
+                    .collect(Collectors.toList());
+
+            Set<Long> rBookingIds = rBookings.stream().map(Booking::getId).filter(Objects::nonNull).collect(Collectors.toSet());
+            Set<Long> rRegIds = rBookings.stream().map(Booking::getGuestRegistrationId).filter(Objects::nonNull).collect(Collectors.toSet());
+
+            // Filter payments for this room in date range
+            List<Payment> rPayments = paymentsInRange.stream()
+                    .filter(p -> (p.getBookingId() != null && rBookingIds.contains(p.getBookingId())) ||
+                                 (p.getGuestRegistrationId() != null && rRegIds.contains(p.getGuestRegistrationId())))
+                    .collect(Collectors.toList());
+
+            double rCash = 0;
+            double rCard = 0;
+            double rBank = 0;
+
+            for (Payment p : rPayments) {
+                double amt = p.getAmountLkr();
+                String m = p.getPaymentMethod() != null ? p.getPaymentMethod().toUpperCase().trim() : "";
+                if (m.contains("CASH")) {
+                    rCash += amt;
+                } else if (m.contains("CARD") || m.contains("VISA") || m.contains("MASTER") || m.contains("AMEX")) {
+                    rCard += amt;
+                } else if (m.contains("BANK") || m.contains("TRANSFER") || m.contains("ONLINE") || m.contains("PEOPLE")) {
+                    rBank += amt;
+                } else {
+                    rCash += amt;
+                }
+            }
+
+            // Fallback to room bookings value if no explicit payments recorded yet
+            if ((rCash + rCard + rBank) == 0 && !rBookings.isEmpty()) {
+                for (Booking b : rBookings) {
+                    if (b.getTotalAmount() != null && b.getTotalAmount() > 0) {
+                        double exRate = 1.0;
+                        try {
+                            if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
+                                exRate = Double.parseDouble(b.getExchangeRate().trim());
+                            }
+                        } catch (Exception ignored) {}
+                        if (exRate <= 0) exRate = 1.0;
+                        String curr = b.getCurrency() != null ? b.getCurrency().trim().toUpperCase() : "LKR";
+                        double bLkr = "LKR".equals(curr) ? b.getTotalAmount() : (b.getTotalAmount() * exRate);
+                        String bType = b.getBookingType() != null ? b.getBookingType().toUpperCase() : "";
+                        if (bType.contains("AIRBNB") || bType.contains("BOOKING")) {
+                            rCard += bLkr;
+                        } else {
+                            rCash += bLkr;
+                        }
+                    }
+                }
+            }
+
+            int rNights = 0;
+            int rGuests = 0;
+            Set<Long> processedRegs = new HashSet<>();
+
+            for (Booking b : rBookings) {
+                if (b.getCheckInDate() != null && b.getCheckOutDate() != null) {
+                    long days = java.time.temporal.ChronoUnit.DAYS.between(b.getCheckInDate(), b.getCheckOutDate());
+                    rNights += (int) Math.max(1, days);
+                } else if (b.getNumberOfNights() != null) {
+                    rNights += b.getNumberOfNights();
+                }
+
+                if (b.getGuestRegistrationId() != null && !processedRegs.contains(b.getGuestRegistrationId())) {
+                    processedRegs.add(b.getGuestRegistrationId());
+                    GuestRegistration reg = registrationMap.get(b.getGuestRegistrationId());
+                    if (reg != null) {
+                        rGuests += (reg.getAdults() != null ? reg.getAdults() : 1) + (reg.getChildren() != null ? reg.getChildren() : 0);
+                    }
+                }
+            }
+
+            com.serenevilla.pms.dto.RoomIncomeSummaryDTO rSummary = new com.serenevilla.pms.dto.RoomIncomeSummaryDTO();
+            rSummary.setRoomId(r.getId());
+            rSummary.setRoomNumber(r.getRoomNumber());
+            rSummary.setRoomType(r.getRoomType());
+            rSummary.setTotalBookings(rBookings.size());
+            rSummary.setTotalNights(rNights);
+            rSummary.setTotalGuests(rGuests);
+            rSummary.setCashRevenue(rCash);
+            rSummary.setCardRevenue(rCard);
+            rSummary.setBankTransferRevenue(rBank);
+            rSummary.setTotalRevenue(rCash + rCard + rBank);
+
+            roomBreakdowns.add(rSummary);
+        }
+
         ReportSummaryDTO summary = new ReportSummaryDTO();
         summary.setTotalBookings(totalBookings);
         summary.setTotalCheckIns(totalCheckIns);
@@ -319,6 +422,7 @@ public class ReportService {
         summary.setApprovedDiscountTotal(approvedDiscountTotal);
         summary.setPendingDiscountRequestCount(pendingDiscountRequestCount);
         summary.setCheckIns(checkInDTOList);
+        summary.setRoomBreakdowns(roomBreakdowns);
         summary.setRows(rows);
 
         return summary;

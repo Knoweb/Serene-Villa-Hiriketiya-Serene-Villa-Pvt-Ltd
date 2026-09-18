@@ -42,8 +42,20 @@ public class AccountantDashboardController {
     public ResponseEntity<com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO> getRoomAnalytics(
             @PathVariable(name = "roomId") Long roomId,
             @RequestParam(name = "propertyId", required = false) Long propertyId,
+            @RequestParam(name = "startDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(name = "endDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
             @RequestHeader(name = "X-Active-Property", required = false) Long headerPropertyId) {
         Long targetPropertyId = (propertyId != null) ? propertyId : headerPropertyId;
-        return ResponseEntity.ok(analyticsService.getRoomFinancialAnalytics(roomId, targetPropertyId));
+        return ResponseEntity.ok(analyticsService.getRoomFinancialAnalytics(roomId, targetPropertyId, startDate, endDate));
+    }
+
+    @GetMapping("/analytics/all-rooms")
+    public ResponseEntity<java.util.List<com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO>> getAllRoomsAnalytics(
+            @RequestParam(name = "propertyId", required = false) Long propertyId,
+            @RequestParam(name = "startDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(name = "endDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
+            @RequestHeader(name = "X-Active-Property", required = false) Long headerPropertyId) {
+        Long targetPropertyId = (propertyId != null) ? propertyId : headerPropertyId;
+        return ResponseEntity.ok(analyticsService.getAllRoomsFinancialAnalytics(targetPropertyId, startDate, endDate));
     }
 }

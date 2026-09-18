@@ -19,4 +19,5 @@ public class RoomFinancialAnalyticsDTO {
     private Integer totalNights = 0;
     private Integer totalAdults = 0;
     private Integer totalChildren = 0;
+    private java.util.List<RoomBookingTransactionDTO> transactions = new java.util.ArrayList<>();
 }

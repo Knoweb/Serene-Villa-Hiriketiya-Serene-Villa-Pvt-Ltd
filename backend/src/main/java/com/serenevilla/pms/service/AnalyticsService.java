@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -147,7 +148,7 @@ public class AnalyticsService {
     @Autowired
     private com.serenevilla.pms.repository.RoomRepository roomRepository;
 
-    public com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO getRoomFinancialAnalytics(Long roomId, Long propertyId) {
+    public com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO getRoomFinancialAnalytics(Long roomId, Long propertyId, java.time.LocalDate startDate, java.time.LocalDate endDate) {
         com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO dto = new com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO();
         dto.setRoomId(roomId);
 
@@ -170,16 +171,31 @@ public class AnalyticsService {
         String targetRoomNum = room.getRoomNumber() != null ? room.getRoomNumber().trim() : "";
         List<Booking> roomBookings = allBookings.stream()
                 .filter(b -> b.getRoomNumber() != null && b.getRoomNumber().trim().equalsIgnoreCase(targetRoomNum))
+                .filter(b -> {
+                    if (startDate == null || endDate == null) return true;
+                    LocalDate bCheckIn = b.getCheckInDate();
+                    LocalDate bCheckOut = b.getCheckOutDate();
+                    if (bCheckIn == null && bCheckOut == null) return true;
+                    if (bCheckIn != null && !bCheckIn.isAfter(endDate)) {
+                        return bCheckOut == null || !bCheckOut.isBefore(startDate);
+                    }
+                    return false;
+                })
                 .collect(Collectors.toList());
 
         Set<Long> bookingIds = roomBookings.stream().map(Booking::getId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> regIds = roomBookings.stream().map(Booking::getGuestRegistrationId).filter(Objects::nonNull).collect(Collectors.toSet());
 
-        // 2. Fetch Handed Over (ACCEPTED) payments for this property
+        // 2. Fetch Handed Over (ACCEPTED) payments for this property within period
         List<Payment> allPayments = paymentRepository.findAll();
         List<Payment> acceptedPayments = allPayments.stream()
                 .filter(p -> p.getAccountantTransferStatus() == com.serenevilla.pms.model.AccountantTransferStatus.ACCEPTED)
                 .filter(p -> targetPropertyId == null || p.getPropertyId() == null || targetPropertyId.equals(p.getPropertyId()) || (targetPropertyId.equals(1L) && p.getPropertyId() == null))
+                .filter(p -> {
+                    if (startDate == null || endDate == null) return true;
+                    LocalDate pDate = p.getPaymentDate();
+                    return pDate == null || (!pDate.isBefore(startDate) && !pDate.isAfter(endDate));
+                })
                 .collect(Collectors.toList());
 
         // Filter payments matching this room's bookings or registrations
@@ -188,10 +204,15 @@ public class AnalyticsService {
                              (p.getGuestRegistrationId() != null && regIds.contains(p.getGuestRegistrationId())))
                 .collect(Collectors.toList());
 
-        // If no accepted handover payments yet, include all payments recorded for this room
+        // If no accepted handover payments yet, include all payments recorded for this room in period
         if (roomPayments.isEmpty()) {
             roomPayments = allPayments.stream()
                     .filter(p -> targetPropertyId == null || p.getPropertyId() == null || targetPropertyId.equals(p.getPropertyId()) || (targetPropertyId.equals(1L) && p.getPropertyId() == null))
+                    .filter(p -> {
+                        if (startDate == null || endDate == null) return true;
+                        LocalDate pDate = p.getPaymentDate();
+                        return pDate == null || (!pDate.isBefore(startDate) && !pDate.isAfter(endDate));
+                    })
                     .filter(p -> (p.getBookingId() != null && bookingIds.contains(p.getBookingId())) ||
                                  (p.getGuestRegistrationId() != null && regIds.contains(p.getGuestRegistrationId())))
                     .collect(Collectors.toList());
@@ -200,6 +221,7 @@ public class AnalyticsService {
         double cashTotal = 0.0;
         double cardTotal = 0.0;
         double bankTotal = 0.0;
+        List<com.serenevilla.pms.dto.RoomBookingTransactionDTO> txList = new ArrayList<>();
 
         for (Payment p : roomPayments) {
             double amt = p.getAmountLkr();
@@ -214,6 +236,19 @@ public class AnalyticsService {
             } else {
                 cashTotal += amt; // Default to cash if unspecified
             }
+
+            // Add transaction item
+            com.serenevilla.pms.dto.RoomBookingTransactionDTO tx = new com.serenevilla.pms.dto.RoomBookingTransactionDTO();
+            tx.setId(p.getId());
+            tx.setBookingRef(p.getBookingRef() != null ? p.getBookingRef() : ("PAY-" + p.getId()));
+            tx.setGuestName(p.getGuestName() != null ? p.getGuestName() : "Guest");
+            tx.setPaymentMethod(p.getPaymentMethod() != null ? p.getPaymentMethod() : "Cash");
+            tx.setAmount(BigDecimal.valueOf(p.getAmountInCurrency() > 0 ? p.getAmountInCurrency() : p.getAmountLkr()).setScale(2, RoundingMode.HALF_UP));
+            tx.setCurrency(p.getCurrency() != null ? p.getCurrency() : "LKR");
+            tx.setAmountLkr(BigDecimal.valueOf(p.getAmountLkr()).setScale(2, RoundingMode.HALF_UP));
+            tx.setStatus(p.getAccountantTransferStatus() != null ? p.getAccountantTransferStatus().name() : "NONE");
+            tx.setDate(p.getPaymentDate() != null ? p.getPaymentDate().toString() : "");
+            txList.add(tx);
         }
 
         // If still no payment records but room has bookings with amount, allocate from booking amounts
@@ -231,11 +266,29 @@ public class AnalyticsService {
                     double bookingLkr = "LKR".equals(curr) ? b.getTotalAmount() : (b.getTotalAmount() * exRate);
                     
                     String bType = b.getBookingType() != null ? b.getBookingType().toUpperCase() : "";
+                    String pMethod = "Cash";
                     if (bType.contains("AIRBNB") || bType.contains("BOOKING")) {
                         cardTotal += bookingLkr;
+                        pMethod = "Card / OTA";
                     } else {
                         cashTotal += bookingLkr;
                     }
+
+                    com.serenevilla.pms.dto.RoomBookingTransactionDTO tx = new com.serenevilla.pms.dto.RoomBookingTransactionDTO();
+                    tx.setId(b.getId());
+                    tx.setBookingRef(b.getBookingNumber() != null ? b.getBookingNumber() : ("B-" + b.getId()));
+                    tx.setGuestName(b.getGuestName() != null ? b.getGuestName() : "Guest");
+                    tx.setCheckInDate(b.getCheckInDate() != null ? b.getCheckInDate().toString() : "-");
+                    tx.setCheckOutDate(b.getCheckOutDate() != null ? b.getCheckOutDate().toString() : "-");
+                    tx.setNights(b.getNumberOfNights() != null ? b.getNumberOfNights() : 1);
+                    tx.setBookingType(b.getBookingType() != null ? b.getBookingType() : "Direct");
+                    tx.setPaymentMethod(pMethod);
+                    tx.setAmount(BigDecimal.valueOf(b.getTotalAmount()).setScale(2, RoundingMode.HALF_UP));
+                    tx.setCurrency(curr);
+                    tx.setAmountLkr(BigDecimal.valueOf(bookingLkr).setScale(2, RoundingMode.HALF_UP));
+                    tx.setStatus("CONFIRMED");
+                    tx.setDate(b.getCheckInDate() != null ? b.getCheckInDate().toString() : "");
+                    txList.add(tx);
                 }
             }
         }
@@ -245,6 +298,7 @@ public class AnalyticsService {
         dto.setCashAmount(BigDecimal.valueOf(cashTotal).setScale(2, RoundingMode.HALF_UP));
         dto.setCardAmount(BigDecimal.valueOf(cardTotal).setScale(2, RoundingMode.HALF_UP));
         dto.setBankTransferAmount(BigDecimal.valueOf(bankTotal).setScale(2, RoundingMode.HALF_UP));
+        dto.setTransactions(txList);
 
         // 3. Occupancy Metrics (Total Nights, Adults, Children)
         List<GuestRegistration> registrations = (targetPropertyId != null) ?
@@ -290,5 +344,19 @@ public class AnalyticsService {
         dto.setTotalChildren(totalChildren);
 
         return dto;
+    }
+
+    public List<com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO> getAllRoomsFinancialAnalytics(Long propertyId, java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        List<com.serenevilla.pms.model.Room> rooms = (propertyId != null) ?
+                roomRepository.findByPropertyId(propertyId) :
+                roomRepository.findAll();
+
+        List<com.serenevilla.pms.dto.RoomFinancialAnalyticsDTO> list = new ArrayList<>();
+        for (com.serenevilla.pms.model.Room room : rooms) {
+            if (room.getId() != null) {
+                list.add(getRoomFinancialAnalytics(room.getId(), propertyId, startDate, endDate));
+            }
+        }
+        return list;
     }
 }

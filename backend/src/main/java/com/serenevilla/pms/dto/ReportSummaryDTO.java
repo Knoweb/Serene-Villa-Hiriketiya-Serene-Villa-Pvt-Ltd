@@ -46,6 +46,9 @@ public class ReportSummaryDTO {
     // Check-in Summary List for Daily Check-in view
     private List<DailyCheckInDTO> checkIns;
 
+    // Room-Wise Breakdown for Daily and Monthly Reporting
+    private List<RoomIncomeSummaryDTO> roomBreakdowns;
+
     // Details
     private List<ReportRowDTO> rows;
 }

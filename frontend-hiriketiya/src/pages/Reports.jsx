@@ -76,6 +76,8 @@ const Reports = () => {
         return 'Weekly Income Summary';
       case 'Monthly':
         return 'Monthly Income Summary';
+      case 'RoomWise':
+        return 'Room-Wise Income & Occupancy Summary';
       case 'Custom':
         return 'Custom Range Income Summary';
       default:
@@ -95,7 +97,7 @@ const Reports = () => {
         url = `${API_BASE}/reports/weekly?startDate=${startDate}&endDate=${endDate}&propertyId=2`;
       } else if (reportType === 'Monthly') {
         url = `${API_BASE}/reports/monthly?year=${year}&month=${month}&propertyId=2`;
-      } else if (reportType === 'Custom') {
+      } else if (reportType === 'RoomWise' || reportType === 'Custom') {
         url = `${API_BASE}/reports/range?startDate=${startDate}&endDate=${endDate}&propertyId=2`;
       }
 
@@ -341,8 +343,9 @@ const Reports = () => {
             >
               <option value="DailyCheckIn">📅 Daily Check-in Summary</option>
               <option value="Daily">💵 Daily Income Summary</option>
-              <option value="Weekly">📊 Weekly Income Summary</option>
               <option value="Monthly">📈 Monthly Income Summary</option>
+              <option value="RoomWise">🏠 Room-Wise Income Summary</option>
+              <option value="Weekly">📊 Weekly Income Summary</option>
               <option value="Custom">🗓️ Custom Range Summary</option>
             </select>
           </div>
@@ -412,7 +415,7 @@ const Reports = () => {
             </div>
           )}
 
-          {reportType === 'Custom' && (
+          {(reportType === 'Custom' || reportType === 'RoomWise') && (
             <div className="flex items-center gap-2">
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">From</span>
@@ -751,6 +754,111 @@ const Reports = () => {
                   </table>
                 </div>
               </div>
+
+              {/* ------------------------------------------------------------------- */}
+              {/* SECTION 2: Room-Wise Income & Occupancy Breakdown Matrix            */}
+              {/* ------------------------------------------------------------------- */}
+              {data.roomBreakdowns && data.roomBreakdowns.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                      <span className="w-1.5 h-3 bg-emerald-700 rounded-xs"></span>
+                      Room-Wise Income & Occupancy Performance ({data.roomBreakdowns.length} Rooms)
+                    </h3>
+                    <span className="text-[10px] font-bold text-slate-500">
+                      Reconciled Room Revenue Matrix
+                    </span>
+                  </div>
+
+                  <div className="w-full">
+                    <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden table-fixed">
+                      <thead>
+                        <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[9px]">
+                          <th className="p-2 w-[18%]">Room # & Type</th>
+                          <th className="p-2 w-[10%] text-center">Bookings</th>
+                          <th className="p-2 w-[10%] text-center">Nights</th>
+                          <th className="p-2 w-[10%] text-center">Guests</th>
+                          <th className="p-2 w-[13%] text-right">Cash (LKR)</th>
+                          <th className="p-2 w-[13%] text-right">Visa/Card (LKR)</th>
+                          <th className="p-2 w-[13%] text-right">Bank Transfer (LKR)</th>
+                          <th className="p-2 w-[13%] text-right font-black text-emerald-900">Total Room Income</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                        {data.roomBreakdowns.map((rb, rIdx) => (
+                          <tr key={rb.roomId || rIdx} className="hover:bg-slate-50/50 transition">
+                            <td className="p-2">
+                              <span className="font-mono font-bold text-slate-900 text-[10px] block">Room {rb.roomNumber}</span>
+                              <span className="text-[8px] text-slate-400 block truncate">{rb.roomType || 'Standard'}</span>
+                            </td>
+                            <td className="p-2 text-center font-mono font-bold text-slate-700 text-[10px]">
+                              {rb.totalBookings}
+                            </td>
+                            <td className="p-2 text-center font-mono text-slate-700 text-[10px]">
+                              {rb.totalNights}
+                            </td>
+                            <td className="p-2 text-center font-mono text-slate-700 text-[10px]">
+                              {rb.totalGuests}
+                            </td>
+                            <td className="p-2 text-right font-mono text-[10px]">
+                              {rb.cashRevenue > 0 ? (
+                                <span className="font-bold text-emerald-700">{formatNum(rb.cashRevenue)}</span>
+                              ) : (
+                                <span className="text-slate-300">-</span>
+                              )}
+                            </td>
+                            <td className="p-2 text-right font-mono text-[10px]">
+                              {rb.cardRevenue > 0 ? (
+                                <span className="font-bold text-blue-700">{formatNum(rb.cardRevenue)}</span>
+                              ) : (
+                                <span className="text-slate-300">-</span>
+                              )}
+                            </td>
+                            <td className="p-2 text-right font-mono text-[10px]">
+                              {rb.bankTransferRevenue > 0 ? (
+                                <span className="font-bold text-amber-700">{formatNum(rb.bankTransferRevenue)}</span>
+                              ) : (
+                                <span className="text-slate-300">-</span>
+                              )}
+                            </td>
+                            <td className="p-2 text-right font-mono font-black text-emerald-900 bg-emerald-50/30 text-[10px]">
+                              {formatNum(rb.totalRevenue)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-slate-100/90 font-black border-t-2 border-slate-300 text-slate-900 text-xs">
+                        <tr>
+                          <td className="p-2 uppercase text-[9px] text-slate-600">
+                            Grand Totals:
+                          </td>
+                          <td className="p-2 text-center font-mono text-[10px]">
+                            {data.roomBreakdowns.reduce((s, r) => s + (r.totalBookings || 0), 0)}
+                          </td>
+                          <td className="p-2 text-center font-mono text-[10px]">
+                            {data.roomBreakdowns.reduce((s, r) => s + (r.totalNights || 0), 0)}
+                          </td>
+                          <td className="p-2 text-center font-mono text-[10px]">
+                            {data.roomBreakdowns.reduce((s, r) => s + (r.totalGuests || 0), 0)}
+                          </td>
+                          <td className="p-2 text-right font-mono text-emerald-800 text-[10px]">
+                            {formatNum(data.roomBreakdowns.reduce((s, r) => s + (r.cashRevenue || 0), 0))}
+                          </td>
+                          <td className="p-2 text-right font-mono text-blue-800 text-[10px]">
+                            {formatNum(data.roomBreakdowns.reduce((s, r) => s + (r.cardRevenue || 0), 0))}
+                          </td>
+                          <td className="p-2 text-right font-mono text-amber-800 text-[10px]">
+                            {formatNum(data.roomBreakdowns.reduce((s, r) => s + (r.bankTransferRevenue || 0), 0))}
+                          </td>
+                          <td className="p-2 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-[11px]">
+                            {formatNum(data.roomBreakdowns.reduce((s, r) => s + (r.totalRevenue || 0), 0))}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* ------------------------------------------------------------------- */}
               {/* BOTTOM HALF: Section 1 (Executive Summary) & Section 2 (Payments)  */}

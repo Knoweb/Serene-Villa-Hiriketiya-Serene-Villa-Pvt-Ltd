@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Home, 
   DollarSign, 
@@ -11,7 +11,13 @@ import {
   ChevronDown,
   Sparkles,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  Calendar,
+  Clock,
+  Printer,
+  FileText,
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 
 const RoomIncomeAnalytics = ({ currentProperty }) => {
@@ -21,10 +27,54 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
 
+  // Period filter states: 'ALL', 'DAILY', 'MONTHLY', 'CUSTOM'
+  const [periodType, setPeriodType] = useState('ALL');
+  const [dailyDate, setDailyDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [customStartDate, setCustomStartDate] = useState(
+    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
+  const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const printableRef = useRef(null);
+
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
   const propId = currentProperty?.id || 2;
 
-  // 1. Fetch Rooms list for the active property
+  // Calculate start and end date based on periodType
+  const getDateRange = () => {
+    if (periodType === 'DAILY') {
+      return { start: dailyDate, end: dailyDate };
+    }
+    if (periodType === 'MONTHLY') {
+      const year = parseInt(selectedYear, 10);
+      const month = parseInt(selectedMonth, 10);
+      const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+      const lastDayDate = new Date(year, month, 0).getDate();
+      const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayDate).padStart(2, '0')}`;
+      return { start: firstDay, end: lastDay };
+    }
+    if (periodType === 'CUSTOM') {
+      return { start: customStartDate, end: customEndDate };
+    }
+    return { start: null, end: null };
+  };
+
+  const getPeriodLabel = () => {
+    if (periodType === 'DAILY') return `Daily: ${dailyDate}`;
+    if (periodType === 'MONTHLY') {
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      return `Monthly: ${monthNames[selectedMonth - 1]} ${selectedYear}`;
+    }
+    if (periodType === 'CUSTOM') return `${customStartDate} to ${customEndDate}`;
+    return 'All-Time Performance';
+  };
+
+  // 1. Fetch Rooms list for active property
   useEffect(() => {
     const fetchRooms = async () => {
       setLoadingRooms(true);
@@ -54,38 +104,48 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
     fetchRooms();
   }, [propId]);
 
-  // 2. Fetch Room-specific financial metrics
-  useEffect(() => {
+  // 2. Fetch Room-specific financial metrics with date filtering
+  const fetchRoomAnalytics = async () => {
     if (!selectedRoomId) return;
 
-    const fetchRoomAnalytics = async () => {
-      setLoadingStats(true);
-      try {
-        const res = await fetch(`${API_BASE}/accountant/analytics/room/${selectedRoomId}?propertyId=${propId}`, {
-          headers: {
-            'X-Active-Property': String(propId)
-          }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setAnalytics(data);
-        }
-      } catch (err) {
-        console.error('Error fetching room analytics:', err);
-      } finally {
-        setLoadingStats(false);
+    setLoadingStats(true);
+    try {
+      const { start, end } = getDateRange();
+      let url = `${API_BASE}/accountant/analytics/room/${selectedRoomId}?propertyId=${propId}`;
+      if (start && end) {
+        url += `&startDate=${start}&endDate=${end}`;
       }
-    };
 
+      const res = await fetch(url, {
+        headers: {
+          'X-Active-Property': String(propId)
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnalytics(data);
+      }
+    } catch (err) {
+      console.error('Error fetching room analytics:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRoomAnalytics();
-  }, [selectedRoomId, propId]);
+  }, [selectedRoomId, propId, periodType, dailyDate, selectedMonth, selectedYear, customStartDate, customEndDate]);
 
   const selectedRoomObj = rooms.find(r => String(r.id) === String(selectedRoomId));
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-6">
-      {/* Header with Room Selector Dropdown */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      {/* Header with Room Selector Dropdown and Period Filters */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
@@ -96,18 +156,16 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
             </h3>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Reconciled revenue & guest stay metrics (Accountant Accepted Handover Only)
+            Real-time room revenue, payment channels, and occupancy metrics (Daily, Monthly & All-Time)
           </p>
         </div>
 
-        {/* Dynamic Room Selector Dropdown */}
-        <div className="flex items-center gap-3">
-          <label htmlFor="room-selector-hiri" className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-            Select Room:
-          </label>
+        {/* Room & Period Selectors */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Room Selector */}
           <div className="relative min-w-[200px]">
             <select
-              id="room-selector-hiri"
+              id="room-selector"
               value={selectedRoomId}
               onChange={(e) => setSelectedRoomId(e.target.value)}
               disabled={loadingRooms || rooms.length === 0}
@@ -122,6 +180,111 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
             </select>
             <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
           </div>
+
+          {/* Quick Print Button */}
+          <button
+            onClick={handlePrint}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+            title="Print Room Income Statement"
+          >
+            <Printer className="h-3.5 w-3.5 text-slate-600" />
+            <span>Print Report</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Period Filter Tabs & Date Controls */}
+      <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/60 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1.5 flex items-center gap-1">
+            <Filter className="h-3 w-3" /> Period:
+          </span>
+          {[
+            { id: 'ALL', label: 'All Time' },
+            { id: 'DAILY', label: 'Daily Report' },
+            { id: 'MONTHLY', label: 'Monthly Report' },
+            { id: 'CUSTOM', label: 'Custom Range' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setPeriodType(tab.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                periodType === tab.id
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Dynamic Period Input Controls */}
+        <div className="flex items-center gap-2">
+          {periodType === 'DAILY' && (
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs">
+              <Calendar className="h-3.5 w-3.5 text-emerald-600" />
+              <input
+                type="date"
+                value={dailyDate}
+                onChange={(e) => setDailyDate(e.target.value)}
+                className="bg-transparent text-slate-800 font-bold focus:outline-none text-xs cursor-pointer"
+              />
+            </div>
+          )}
+
+          {periodType === 'MONTHLY' && (
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+              >
+                {[
+                  'January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'
+                ].map((m, idx) => (
+                  <option key={m} value={idx + 1}>{m}</option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+              >
+                {[2024, 2025, 2026, 2027].map((yr) => (
+                  <option key={yr} value={yr}>{yr}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {periodType === 'CUSTOM' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+              />
+              <span className="text-slate-400 text-xs font-bold">to</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+              />
+            </div>
+          )}
+
+          <button
+            onClick={fetchRoomAnalytics}
+            disabled={loadingStats}
+            className="p-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 transition cursor-pointer"
+            title="Refresh"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loadingStats ? 'animate-spin text-emerald-600' : ''}`} />
+          </button>
         </div>
       </div>
 
@@ -134,7 +297,7 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
           <div className="h-28 bg-slate-100 rounded-2xl"></div>
         </div>
       ) : analytics ? (
-        <div className="space-y-6">
+        <div ref={printableRef} className="space-y-6">
           {/* Room Header Strip */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 to-teal-950 text-white p-5 rounded-2xl shadow-sm">
             <div className="flex items-center gap-3.5">
@@ -152,7 +315,7 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
                 </div>
                 <p className="text-xs text-emerald-200/80 mt-0.5 flex items-center gap-1.5 font-medium">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                  Audit Verified: Handover Accepted Payments Only
+                  Scope: <strong className="text-white">{getPeriodLabel()}</strong>
                 </p>
               </div>
             </div>
@@ -160,7 +323,7 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
             {/* Total Room Income Highlighting */}
             <div className="text-right sm:text-right">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                Total Handed-Over Revenue
+                Total Handed-Over / Room Revenue
               </span>
               <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white mt-0.5">
                 LKR {Number(analytics.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -168,7 +331,7 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
             </div>
           </div>
 
-          {/* 3 Payment Methods Breakdown Cards + Occupancy Grid */}
+          {/* 3 Payment Methods Breakdown Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Cash Breakdown */}
             <div className="bg-emerald-50/40 border border-emerald-100/80 p-4.5 rounded-2xl space-y-2">
@@ -258,6 +421,96 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
                   {analytics.totalChildren || 0} <span className="text-xs font-semibold text-slate-500">Children</span>
                 </h5>
               </div>
+            </div>
+          </div>
+
+          {/* Itemized Room Bookings & Transactions Table */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs">
+            <div className="p-4 bg-slate-50/70 border-b border-slate-200/80 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-emerald-700" />
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                  Itemized Room Bookings & Revenue Ledger ({analytics.transactions?.length || 0})
+                </h4>
+              </div>
+              <span className="text-[11px] font-bold text-slate-500 font-mono">
+                {getPeriodLabel()}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="p-3">Reference / Slip</th>
+                    <th className="p-3">Guest Name</th>
+                    <th className="p-3">Stay Dates</th>
+                    <th className="p-3">Channel / Type</th>
+                    <th className="p-3">Method</th>
+                    <th className="p-3 text-right">Amount</th>
+                    <th className="p-3 text-right">LKR Equivalent</th>
+                    <th className="p-3 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                  {analytics.transactions && analytics.transactions.length > 0 ? (
+                    analytics.transactions.map((tx, idx) => (
+                      <tr key={tx.id || idx} className="hover:bg-slate-50/60 transition">
+                        <td className="p-3 font-mono font-bold text-emerald-800">
+                          {tx.bookingRef || `TX-${tx.id}`}
+                        </td>
+                        <td className="p-3 font-semibold text-slate-900">
+                          {tx.guestName || 'Guest'}
+                        </td>
+                        <td className="p-3 font-mono text-[11px] text-slate-500">
+                          {tx.checkInDate && tx.checkOutDate ? `${tx.checkInDate} → ${tx.checkOutDate}` : (tx.date || '-')}
+                        </td>
+                        <td className="p-3">
+                          <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">
+                            {tx.bookingType || 'Direct / Walk-in'}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            (tx.paymentMethod || '').toUpperCase().includes('CASH')
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'
+                              : (tx.paymentMethod || '').toUpperCase().includes('CARD')
+                              ? 'bg-blue-50 text-blue-800 border border-blue-200/60'
+                              : 'bg-purple-50 text-purple-800 border border-purple-200/60'
+                          }`}>
+                            {tx.paymentMethod || 'Cash'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-800">
+                          {tx.currency} {Number(tx.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-3 text-right font-mono font-black text-emerald-900">
+                          LKR {Number(tx.amountLkr || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                            tx.status === 'ACCEPTED'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : tx.status === 'PENDING'
+                              ? 'bg-amber-100 text-amber-800'
+                              : tx.status === 'REJECTED'
+                              ? 'bg-rose-100 text-rose-800'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {tx.status || 'CONFIRMED'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="8" className="p-8 text-center text-slate-400 font-semibold text-xs">
+                        No transactions or bookings recorded for Room {analytics.roomNumber || selectedRoomObj?.roomNumber} during this period ({getPeriodLabel()}).
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
