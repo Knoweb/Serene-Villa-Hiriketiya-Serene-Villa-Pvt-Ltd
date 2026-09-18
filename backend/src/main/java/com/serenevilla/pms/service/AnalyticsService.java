@@ -36,10 +36,6 @@ public class AnalyticsService {
     public AccountantDashboardStatsDTO getAccountantDashboardStats(Long propertyId) {
         AccountantDashboardStatsDTO stats = new AccountantDashboardStatsDTO();
 
-        // 1. Total Revenue: Sum of payment amountLkr for the property
-        Double totalRev = paymentRepository.sumTotalRevenueByPropertyId(propertyId);
-        stats.setTotalRevenue(totalRev != null ? BigDecimal.valueOf(totalRev).setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO);
-
         // Fetch all bookings for property
         List<Booking> bookings = propertyId != null ? 
                 bookingRepository.findByPropertyId(propertyId) : 
@@ -49,6 +45,36 @@ public class AnalyticsService {
         List<Booking> validBookings = bookings.stream()
                 .filter(b -> b.getBookingNumber() != null && !b.getBookingNumber().contains("/DISC"))
                 .collect(Collectors.toList());
+
+        // 1. Total Revenue: Sum of payment amountLkr for the property, fallback to confirmed bookings if payments are 0
+        List<Payment> allPayments = paymentRepository.findAll();
+        List<Payment> propertyPayments = allPayments.stream()
+                .filter(p -> propertyId == null || p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
+                .collect(Collectors.toList());
+
+        double totalPaymentRev = propertyPayments.stream()
+                .mapToDouble(Payment::getAmountLkr)
+                .sum();
+
+        double totalBookingRev = 0.0;
+        for (Booking b : validBookings) {
+            if (b.getTotalAmount() != null && b.getTotalAmount() > 0) {
+                double exRate = 1.0;
+                try {
+                    if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
+                        exRate = Double.parseDouble(b.getExchangeRate().trim());
+                    }
+                } catch (Exception ignored) {}
+                if (exRate <= 0) exRate = 1.0;
+
+                String curr = b.getCurrency() != null ? b.getCurrency().trim().toUpperCase() : "LKR";
+                double bookingLkr = "LKR".equals(curr) ? b.getTotalAmount() : (b.getTotalAmount() * exRate);
+                totalBookingRev += bookingLkr;
+            }
+        }
+
+        double finalRevenue = totalPaymentRev > 0 ? totalPaymentRev : totalBookingRev;
+        stats.setTotalRevenue(BigDecimal.valueOf(finalRevenue).setScale(2, RoundingMode.HALF_UP));
 
         // 2. Total Bookings
         stats.setTotalBookings((long) validBookings.size());
@@ -150,15 +176,26 @@ public class AnalyticsService {
         Set<Long> regIds = roomBookings.stream().map(Booking::getGuestRegistrationId).filter(Objects::nonNull).collect(Collectors.toSet());
 
         // 2. Fetch Handed Over (ACCEPTED) payments for this property
-        List<Payment> acceptedPayments = (targetPropertyId != null) ?
-                paymentRepository.findByPropertyIdAndAccountantTransferStatus(targetPropertyId, com.serenevilla.pms.model.AccountantTransferStatus.ACCEPTED) :
-                paymentRepository.findByAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.ACCEPTED);
+        List<Payment> allPayments = paymentRepository.findAll();
+        List<Payment> acceptedPayments = allPayments.stream()
+                .filter(p -> p.getAccountantTransferStatus() == com.serenevilla.pms.model.AccountantTransferStatus.ACCEPTED)
+                .filter(p -> targetPropertyId == null || p.getPropertyId() == null || targetPropertyId.equals(p.getPropertyId()) || (targetPropertyId.equals(1L) && p.getPropertyId() == null))
+                .collect(Collectors.toList());
 
         // Filter payments matching this room's bookings or registrations
         List<Payment> roomPayments = acceptedPayments.stream()
                 .filter(p -> (p.getBookingId() != null && bookingIds.contains(p.getBookingId())) ||
                              (p.getGuestRegistrationId() != null && regIds.contains(p.getGuestRegistrationId())))
                 .collect(Collectors.toList());
+
+        // If no accepted handover payments yet, include all payments recorded for this room
+        if (roomPayments.isEmpty()) {
+            roomPayments = allPayments.stream()
+                    .filter(p -> targetPropertyId == null || p.getPropertyId() == null || targetPropertyId.equals(p.getPropertyId()) || (targetPropertyId.equals(1L) && p.getPropertyId() == null))
+                    .filter(p -> (p.getBookingId() != null && bookingIds.contains(p.getBookingId())) ||
+                                 (p.getGuestRegistrationId() != null && regIds.contains(p.getGuestRegistrationId())))
+                    .collect(Collectors.toList());
+        }
 
         double cashTotal = 0.0;
         double cardTotal = 0.0;
@@ -176,6 +213,30 @@ public class AnalyticsService {
                 bankTotal += amt;
             } else {
                 cashTotal += amt; // Default to cash if unspecified
+            }
+        }
+
+        // If still no payment records but room has bookings with amount, allocate from booking amounts
+        if ((cashTotal + cardTotal + bankTotal) == 0.0 && !roomBookings.isEmpty()) {
+            for (Booking b : roomBookings) {
+                if (b.getTotalAmount() != null && b.getTotalAmount() > 0) {
+                    double exRate = 1.0;
+                    try {
+                        if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
+                            exRate = Double.parseDouble(b.getExchangeRate().trim());
+                        }
+                    } catch (Exception ignored) {}
+                    if (exRate <= 0) exRate = 1.0;
+                    String curr = b.getCurrency() != null ? b.getCurrency().trim().toUpperCase() : "LKR";
+                    double bookingLkr = "LKR".equals(curr) ? b.getTotalAmount() : (b.getTotalAmount() * exRate);
+                    
+                    String bType = b.getBookingType() != null ? b.getBookingType().toUpperCase() : "";
+                    if (bType.contains("AIRBNB") || bType.contains("BOOKING")) {
+                        cardTotal += bookingLkr;
+                    } else {
+                        cashTotal += bookingLkr;
+                    }
+                }
             }
         }
 

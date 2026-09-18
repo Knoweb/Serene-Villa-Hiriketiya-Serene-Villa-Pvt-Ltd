@@ -64,7 +64,7 @@ public class BillingController {
         populatePaymentDetails(pendingPayments);
         if (propertyId != null) {
             pendingPayments = pendingPayments.stream()
-                .filter(p -> propertyId.equals(p.getPropertyId()))
+                .filter(p -> p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
                 .collect(Collectors.toList());
         }
         return ResponseEntity.ok(pendingPayments);
@@ -87,7 +87,7 @@ public class BillingController {
         populatePaymentDetails(historyPayments);
         if (propertyId != null) {
             historyPayments = historyPayments.stream()
-                .filter(p -> propertyId.equals(p.getPropertyId()))
+                .filter(p -> p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
                 .collect(Collectors.toList());
         }
         // Sort newest first
@@ -122,7 +122,7 @@ public class BillingController {
         populatePaymentDetails(eligiblePayments);
         if (propertyId != null) {
             eligiblePayments = eligiblePayments.stream()
-                .filter(p -> propertyId.equals(p.getPropertyId()))
+                .filter(p -> p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
                 .collect(Collectors.toList());
         }
         return ResponseEntity.ok(eligiblePayments);

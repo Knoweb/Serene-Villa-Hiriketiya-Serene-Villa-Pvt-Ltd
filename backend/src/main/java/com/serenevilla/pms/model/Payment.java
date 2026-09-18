@@ -98,7 +98,17 @@ public class Payment {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public double getAmountLkr() {
-        return amountLkr != null ? amountLkr : 0.0;
+        if (amountLkr != null && amountLkr > 0) return amountLkr;
+        if (convertedAmountLkr != null && convertedAmountLkr > 0) return convertedAmountLkr;
+        if (amountInCurrency != null && amountInCurrency > 0) {
+            double rate = (exchangeRate != null && exchangeRate > 0) ? exchangeRate : 1.0;
+            return amountInCurrency * rate;
+        }
+        if (amount != null && amount > 0) {
+            double rate = (exchangeRate != null && exchangeRate > 0) ? exchangeRate : 1.0;
+            return amount * rate;
+        }
+        return 0.0;
     }
     
     public double getAmountInCurrency() {
