@@ -437,6 +437,15 @@ const Handover = () => {
   }, [consolidatedBookings, searchTerm]);
 
   // Multi-select helpers
+  const actionableBookings = React.useMemo(() => {
+    if (isFrontOfficer) {
+      // Front Officer can only select items that are NOT pending (i.e. 'NONE' or 'REJECTED')
+      return filteredBookings.filter(b => b.status !== 'PENDING');
+    }
+    // Accountant can select all pending items to approve/reject
+    return filteredBookings;
+  }, [filteredBookings, isFrontOfficer]);
+
   const allPaymentIdsSelected = React.useMemo(() => {
     const ids = [];
     filteredBookings
@@ -450,14 +459,18 @@ const Handover = () => {
   }, [filteredBookings, selectedBookingRefs]);
 
   const toggleSelectAll = () => {
-    if (selectedBookingRefs.length === filteredBookings.length) {
+    if (selectedBookingRefs.length === actionableBookings.length && actionableBookings.length > 0) {
       setSelectedBookingRefs([]);
     } else {
-      setSelectedBookingRefs(filteredBookings.map(b => b.bookingRef));
+      setSelectedBookingRefs(actionableBookings.map(b => b.bookingRef));
     }
   };
 
   const toggleSelectBooking = (ref) => {
+    const targetBooking = filteredBookings.find(b => b.bookingRef === ref);
+    if (isFrontOfficer && targetBooking?.status === 'PENDING') {
+      return; // Prevent selecting already pending handovers
+    }
     setSelectedBookingRefs(prev => 
       prev.includes(ref) ? prev.filter(r => r !== ref) : [...prev, ref]
     );
@@ -680,17 +693,24 @@ const Handover = () => {
       {activeTab === 'PENDING' && (
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200/80 transition">
-              <input 
-                type="checkbox"
-                checked={filteredBookings.length > 0 && selectedBookingRefs.length === filteredBookings.length}
-                onChange={toggleSelectAll}
-                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
-              />
-              <span className="text-xs font-bold text-slate-700">
-                Select All ({selectedBookingRefs.length} / {filteredBookings.length} Cards)
-              </span>
-            </label>
+            {actionableBookings.length > 0 ? (
+              <label className="flex items-center gap-2.5 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200/80 transition">
+                <input 
+                  type="checkbox"
+                  checked={actionableBookings.length > 0 && selectedBookingRefs.length === actionableBookings.length}
+                  onChange={toggleSelectAll}
+                  className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                />
+                <span className="text-xs font-bold text-slate-700">
+                  Select All ({selectedBookingRefs.length} / {actionableBookings.length} {isFrontOfficer ? 'Ready' : 'Cards'})
+                </span>
+              </label>
+            ) : (
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-50 px-3.5 py-2 rounded-xl border border-amber-200/70">
+                <Clock size={14} className="text-amber-600 animate-pulse" />
+                <span>All handovers are currently submitted and waiting for Accountant approval</span>
+              </div>
+            )}
 
             {selectedBookingRefs.length > 0 && (
               <div className="flex items-center gap-2">
@@ -1060,12 +1080,21 @@ const Handover = () => {
                 {/* Card Header */}
                 <div className="p-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <input 
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelectBooking(b.bookingRef)}
-                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
-                    />
+                    {isFrontOfficer && b.status === 'PENDING' ? (
+                      <div 
+                        className="h-5 w-5 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0 shadow-2xs" 
+                        title="Already submitted to Accountant. Waiting for verification."
+                      >
+                        <Clock size={12} className="animate-pulse" />
+                      </div>
+                    ) : (
+                      <input 
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectBooking(b.bookingRef)}
+                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer shrink-0"
+                      />
+                    )}
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-black text-sm text-emerald-800 tracking-tight">{b.bookingRef}</span>
