@@ -54,7 +54,7 @@ const Handover = () => {
   const isAccountant = user?.role === 'ACCOUNTANT';
   const isAdmin = user?.role === 'ADMIN';
 
-  const propId = currentProperty?.id || 2;
+  const propId = currentProperty?.id || 1;
 
   // State
   const [activeTab, setActiveTab] = useState('PENDING'); // 'PENDING' | 'HISTORY'
@@ -298,11 +298,19 @@ const Handover = () => {
           status: p.accountantTransferStatus || 'NONE',
           rejectionReasons: [],
           paymentMethods: new Set(),
-          date: p.paymentDate || p.date || ''
+          date: p.paymentDate || p.date || '',
+          sentToAccountantAt: p.sentToAccountantAt || null,
+          acceptedByAccountantAt: p.acceptedByAccountantAt || null
         };
       }
 
       groups[baseRef].payments.push(p);
+      if (p.sentToAccountantAt && (!groups[baseRef].sentToAccountantAt || p.sentToAccountantAt > groups[baseRef].sentToAccountantAt)) {
+        groups[baseRef].sentToAccountantAt = p.sentToAccountantAt;
+      }
+      if (p.acceptedByAccountantAt && (!groups[baseRef].acceptedByAccountantAt || p.acceptedByAccountantAt > groups[baseRef].acceptedByAccountantAt)) {
+        groups[baseRef].acceptedByAccountantAt = p.acceptedByAccountantAt;
+      }
       if (p.paymentMethod || p.method) {
         groups[baseRef].paymentMethods.add(p.paymentMethod || p.method);
       }
@@ -391,19 +399,22 @@ const Handover = () => {
     return consolidatedBookings.filter(b => 
       b.bookingRef.toLowerCase().includes(q) ||
       b.guestName.toLowerCase().includes(q) ||
-      b.roomNumbers.toLowerCase().includes(q)
+      b.roomNumbers.toLowerCase().includes(q) ||
+      b.payments.some(p => (p.receiptNumber || '').toLowerCase().includes(q) || (p.referenceNumber || '').toLowerCase().includes(q))
     );
   }, [consolidatedBookings, searchTerm]);
 
   // Multi-select helpers
   const allPaymentIdsSelected = React.useMemo(() => {
-    const allIds = [];
-    filteredBookings.forEach(g => {
-      if (selectedBookingRefs.includes(g.bookingRef)) {
-        g.payments.forEach(p => allIds.push(p.id));
-      }
-    });
-    return allIds;
+    const ids = [];
+    filteredBookings
+      .filter(b => selectedBookingRefs.includes(b.bookingRef))
+      .forEach(b => {
+        b.payments.forEach(p => {
+          if (p.id) ids.push(p.id);
+        });
+      });
+    return ids;
   }, [filteredBookings, selectedBookingRefs]);
 
   const toggleSelectAll = () => {
@@ -684,229 +695,545 @@ const Handover = () => {
         </div>
       )}
 
-      {/* Modern Card Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {filteredBookings.map((b) => {
-          const isSelected = selectedBookingRefs.includes(b.bookingRef);
-          const isExpanded = expandedCards.has(b.bookingRef);
-
-          return (
-            <div 
-              key={b.bookingRef}
-              className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-xs hover:shadow-md ${
-                isSelected 
-                  ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-500/5' 
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              {/* Card Header */}
-              <div className="p-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => toggleSelectBooking(b.bookingRef)}
-                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-black text-sm text-emerald-800 tracking-tight">{b.bookingRef}</span>
-                      <span className="text-[10px] font-bold bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs">
-                        Room {b.roomNumbers}
-                      </span>
-                    </div>
-                    <h3 className="text-xs font-black text-slate-800 mt-0.5">{b.guestName}</h3>
-                  </div>
-                </div>
-
-                <div className="text-right flex flex-col items-end gap-1">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                    b.status === 'ACCEPTED' 
-                      ? 'bg-emerald-100 text-emerald-800' 
-                      : b.status === 'PENDING' 
-                      ? 'bg-amber-100 text-amber-800' 
-                      : b.status === 'REJECTED' 
-                      ? 'bg-rose-100 text-rose-800' 
-                      : 'bg-blue-50 text-blue-800 border border-blue-100'
-                  }`}>
-                    {b.status === 'NONE' ? (isFrontOfficer ? '● Ready for Handover' : 'Pending FO') : `● ${b.status}`}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400 font-medium">
-                    {b.checkIn} → {b.checkOut}
-                  </span>
-                </div>
+      {/* CONDITIONAL RENDER: HISTORY (Table View) vs PENDING (Card View) */}
+      {activeTab === 'HISTORY' ? (
+        <div className="space-y-4">
+          {/* History KPI Metrics Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total History Records</p>
+                <p className="text-xl font-black text-slate-900 mt-1">{filteredBookings.length}</p>
+                <p className="text-[10px] font-bold text-slate-500 mt-0.5">Handover transactions</p>
               </div>
+              <div className="p-3 bg-slate-100 rounded-xl text-slate-600">
+                <Layers size={20} />
+              </div>
+            </div>
 
-              {/* Card Body: Financial Summary Tiles */}
-              <div className="p-4 space-y-3.5">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                  <div className="p-2.5 bg-slate-50/70 border border-slate-100 rounded-xl">
-                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Gross Total</p>
-                    <p className="font-mono font-bold text-xs text-slate-800 mt-0.5">
-                      {b.currency} {b.grossBillValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="p-2.5 bg-emerald-50/40 border border-emerald-100/60 rounded-xl">
-                    <p className="text-[9px] uppercase font-bold text-emerald-700 tracking-wider">Net Payable</p>
-                    <p className="font-mono font-black text-xs text-emerald-900 mt-0.5">
-                      {b.currency} {b.netPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="p-2.5 bg-amber-50/40 border border-amber-100/60 rounded-xl">
-                    <p className="text-[9px] uppercase font-bold text-amber-700 tracking-wider">Advance Paid</p>
-                    <p className="font-mono font-bold text-xs text-amber-800 mt-0.5">
-                      {b.currency} {b.advancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="p-2.5 bg-blue-50/40 border border-blue-100/60 rounded-xl">
-                    <p className="text-[9px] uppercase font-bold text-blue-700 tracking-wider">Final Settlement</p>
-                    <p className="font-mono font-bold text-xs text-blue-800 mt-0.5">
-                      {b.currency} {b.finalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider">Total Accepted Handover</p>
+                <p className="text-xl font-black text-emerald-800 mt-1 font-mono">
+                  LKR {filteredBookings.filter(b => b.status === 'ACCEPTED').reduce((s, b) => s + b.totalLkrEquivalent, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] font-bold text-emerald-600 mt-0.5">
+                  {filteredBookings.filter(b => b.status === 'ACCEPTED').length} Accepted Booking(s)
+                </p>
+              </div>
+              <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+                <CheckCircle2 size={20} />
+              </div>
+            </div>
 
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  {b.extraNightsPrice > 0 && (
-                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                      <BedDouble size={11} /> Extra Night: {b.currency} {b.extraNightsPrice.toLocaleString()}
-                    </span>
-                  )}
-                  {b.extraPersonsPrice > 0 && (
-                    <span className="text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                      <User size={11} /> Extra Person: {b.currency} {b.extraPersonsPrice.toLocaleString()}
-                    </span>
-                  )}
-                  {b.discountVal > 0 && (
-                    <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                      <Tag size={11} /> Discount: -{b.currency} {b.discountVal.toLocaleString()}
-                    </span>
-                  )}
-                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg ml-auto">
-                    Method: {Array.from(b.paymentMethods).join(', ') || 'Direct'}
-                  </span>
-                </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase font-bold text-rose-700 tracking-wider">Total Rejected Records</p>
+                <p className="text-xl font-black text-rose-800 mt-1">
+                  {filteredBookings.filter(b => b.status === 'REJECTED').length}
+                </p>
+                <p className="text-[10px] font-bold text-rose-500 mt-0.5">Returned with feedback to FO</p>
+              </div>
+              <div className="p-3 bg-rose-50 rounded-xl text-rose-600">
+                <AlertCircle size={20} />
+              </div>
+            </div>
+          </div>
 
-                {b.status === 'REJECTED' && b.rejectionReasons.length > 0 && (
-                  <div className="p-2.5 bg-rose-50/80 border border-rose-200 rounded-xl text-xs text-rose-800 font-medium">
-                    <p className="font-bold flex items-center gap-1 text-[11px] text-rose-900">
-                      <AlertCircle size={13} /> Rejection Reason from Accountant:
-                    </p>
-                    <p className="mt-0.5 text-[11px]">{b.rejectionReasons.join(', ')}</p>
-                  </div>
-                )}
+          {/* Table Container */}
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                    <th className="py-3.5 px-4"># / Booking & Room</th>
+                    <th className="py-3.5 px-4">Guest Name</th>
+                    <th className="py-3.5 px-4">Total Settled Amount</th>
+                    <th className="py-3.5 px-4">Payment Breakdown</th>
+                    <th className="py-3.5 px-4">FO Sent Time</th>
+                    <th className="py-3.5 px-4">Accountant Action Time</th>
+                    <th className="py-3.5 px-4 text-center">Status</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                  {filteredBookings.map((b, idx) => {
+                    const isExpanded = expandedCards.has(b.bookingRef);
+                    const isAccepted = b.status === 'ACCEPTED';
+                    const isRejected = b.status === 'REJECTED';
+                    const foTime = formatPaymentTimestamp(b.sentToAccountantAt, b.date || b.payments[0]?.createdAt);
+                    const accountantTime = formatPaymentTimestamp(b.acceptedByAccountantAt, b.payments[0]?.acceptedByAccountantAt);
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-slate-400">Total Handover LKR</span>
-                    <p className="font-mono font-black text-sm text-slate-900">
-                      LKR {b.totalLkrEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-
-                  <button 
-                    onClick={() => toggleExpandCard(b.bookingRef)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-emerald-700 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/80 transition cursor-pointer"
-                  >
-                    {isExpanded ? (
-                      <>Hide Transactions <ChevronUp size={13} /></>
-                    ) : (
-                      <>View {b.payments.length} Transaction(s) <ChevronDown size={13} /></>
-                    )}
-                  </button>
-                </div>
-
-                {/* Expanded Individual Receipts & Breakdown */}
-                {isExpanded && (
-                  <div className="pt-2 space-y-2 border-t border-slate-100 bg-slate-50/60 p-3 rounded-xl">
-                    <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
-                      <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Itemized Handover Breakdown & Timestamps</p>
-                      <span className="text-[9px] font-bold text-slate-400">{b.payments.length} Item(s)</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {b.payments.map((p, pIdx) => {
-                        const ref = (p.referenceNumber || p.receiptNumber || p.bookingRef || '').toUpperCase();
-                        const rem = (p.remarks || '').toUpperCase();
-                        const isExtraNight = ref.includes('/1N') || ref.includes('/EN') || rem.includes('EXTRA NIGHT');
-                        const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
-                        const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
-                        
-                        const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'Extra Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
-                        const itemBadgeColor = isExtraNight ? 'bg-indigo-100 text-indigo-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : isFinal ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800';
-                        
-                        const paidTimestamp = formatPaymentTimestamp(p.createdAt, p.paymentDate);
-
-                        return (
-                          <div key={p.id || pIdx} className="bg-white p-2.5 rounded-lg border border-slate-200/70 flex items-center justify-between text-xs hover:border-slate-300 transition">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${itemBadgeColor}`}>
-                                  {itemTypeLabel}
-                                </span>
-                                <span className="font-mono font-bold text-slate-800 text-[10px]">
-                                  {p.receiptNumber || p.referenceNumber || `Item #${p.id}`}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium flex-wrap">
-                                <span>Method: <strong className="text-slate-700">{p.paymentMethod || 'Cash'}</strong></span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1 text-slate-600">
-                                  <Calendar size={10} className="text-emerald-600" />
-                                  Paid: <strong className="text-slate-800">{paidTimestamp}</strong>
-                                </span>
-                              </div>
+                    return (
+                      <React.Fragment key={b.bookingRef || idx}>
+                        <tr className={`hover:bg-slate-50/60 transition ${isExpanded ? 'bg-slate-50/40' : ''}`}>
+                          {/* Column 1: Booking Ref & Room */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-black text-xs text-emerald-800 tracking-tight">{b.bookingRef}</span>
+                              <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/60">
+                                Room {b.roomNumbers}
+                              </span>
                             </div>
+                            <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
+                              {b.checkIn} → {b.checkOut}
+                            </span>
+                          </td>
 
-                            <div className="text-right flex flex-col items-end gap-1">
-                              <p className="font-mono font-black text-slate-900 text-xs">
-                                {p.currencyCode || p.currency || 'USD'} {(parseFloat(p.amount || p.amountInCurrency || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                              </p>
-                              <p className="text-[10px] font-mono font-semibold text-emerald-800">
-                                LKR {(parseFloat(p.amountLkr || p.convertedAmountLkr || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                              </p>
-                              <div className="flex items-center gap-1.5 mt-0.5">
+                          {/* Column 2: Guest Name */}
+                          <td className="py-3.5 px-4">
+                            <span className="font-bold text-slate-900 block">{b.guestName}</span>
+                            <span className="text-[10px] text-slate-400">Method: {Array.from(b.paymentMethods).join(', ') || 'Cash'}</span>
+                          </td>
+
+                          {/* Column 3: Total Settled Amount */}
+                          <td className="py-3.5 px-4">
+                            <span className="font-mono font-black text-slate-900 text-xs block">
+                              LKR {b.totalLkrEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-500">
+                              {b.currency} {b.grossBillValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </td>
+
+                          {/* Column 4: Payment Breakdown */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex flex-wrap gap-1 items-center">
+                              {b.advancePaid > 0 && (
+                                <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/60 px-2 py-0.5 rounded-md">
+                                  Adv: {b.currency} {b.advancePaid.toLocaleString()}
+                                </span>
+                              )}
+                              {b.finalPaid > 0 && (
+                                <span className="text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200/60 px-2 py-0.5 rounded-md">
+                                  Final: {b.currency} {b.finalPaid.toLocaleString()}
+                                </span>
+                              )}
+                              {b.extraNightsPrice > 0 && (
+                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200/60 px-2 py-0.5 rounded-md">
+                                  +1N: {b.currency} {b.extraNightsPrice.toLocaleString()}
+                                </span>
+                              )}
+                              {b.extraPersonsPrice > 0 && (
+                                <span className="text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200/60 px-2 py-0.5 rounded-md">
+                                  +1P: {b.currency} {b.extraPersonsPrice.toLocaleString()}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-400 font-bold ml-1">
+                                ({b.payments.length} slip{b.payments.length > 1 ? 's' : ''})
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Column 5: FO Sent Time */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold">
+                              <Clock size={12} className="text-emerald-600 shrink-0" />
+                              <span className="font-mono text-[11px]">{foTime}</span>
+                            </div>
+                            <span className="text-[9px] font-bold text-slate-400 block ml-4">Front Office Dispatch</span>
+                          </td>
+
+                          {/* Column 6: Accountant Action Time & Feedback */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold">
+                              <ShieldCheck size={13} className={isAccepted ? 'text-emerald-600 shrink-0' : isRejected ? 'text-rose-600 shrink-0' : 'text-slate-400 shrink-0'} />
+                              <span className="font-mono text-[11px]">{accountantTime !== '-' ? accountantTime : (isAccepted ? 'Accepted' : isRejected ? 'Rejected' : '-')}</span>
+                            </div>
+                            {isRejected && b.rejectionReasons.length > 0 && (
+                              <div className="mt-1 p-1 px-2 bg-rose-50 border border-rose-200 rounded-md text-[10px] text-rose-800 font-medium max-w-xs">
+                                <span className="font-bold text-rose-900">Reason: </span>
+                                {b.rejectionReasons.join(', ')}
+                              </div>
+                            )}
+                            {isAccepted && (
+                              <span className="text-[9px] font-bold text-emerald-700 block ml-4">Verified & Reconciled</span>
+                            )}
+                          </td>
+
+                          {/* Column 7: Status */}
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              isAccepted 
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200/80 shadow-2xs' 
+                                : isRejected 
+                                ? 'bg-rose-100 text-rose-800 border border-rose-200/80 shadow-2xs' 
+                                : 'bg-amber-100 text-amber-800 border border-amber-200/80'
+                            }`}>
+                              {isAccepted ? <Check size={11} className="stroke-[3]" /> : isRejected ? <X size={11} className="stroke-[3]" /> : '●'}
+                              {b.status}
+                            </span>
+                          </td>
+
+                          {/* Column 8: Actions */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {b.payments.length > 0 && (
                                 <button
                                   type="button"
-                                  onClick={() => handleOpenInvoice(p, b)}
-                                  className="text-[10px] font-extrabold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2 py-0.5 rounded-md flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                                  onClick={() => handleOpenInvoice(b.payments[0], b)}
+                                  className="p-1.5 px-2.5 text-[11px] font-extrabold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                                  title="View Receipt / Invoice"
                                 >
-                                  <Receipt size={11} /> Invoice
+                                  <Receipt size={12} /> Slip
                                 </button>
-                                {p.slipPath && !p.slipPath.includes('dummy_slip.png') && p.slipPath.trim() !== '' && (
-                                  <a 
-                                    href={p.slipPath.startsWith('http') || p.slipPath.startsWith('data:') ? p.slipPath : `${API_BASE.replace('/api', '')}${p.slipPath.startsWith('/') ? '' : '/'}${p.slipPath}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="text-[10px] text-blue-600 hover:underline font-bold inline-block"
-                                  >
-                                    Slip ↗
-                                  </a>
-                                )}
-                              </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => toggleExpandCard(b.bookingRef)}
+                                className="p-1.5 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 rounded-lg transition cursor-pointer"
+                                title={isExpanded ? "Collapse itemized breakdown" : "Expand itemized breakdown"}
+                              >
+                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              </button>
                             </div>
-                          </div>
-                        );
-                      })}
+                          </td>
+                        </tr>
+
+                        {/* Expandable nested table row for itemized slips */}
+                        {isExpanded && (
+                          <tr className="bg-slate-50/90 border-y border-slate-200/80">
+                            <td colSpan={8} className="p-4">
+                              <div className="bg-white rounded-xl border border-slate-200 p-3 space-y-2.5 shadow-2xs">
+                                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                                    <FileText size={13} className="text-emerald-600" />
+                                    Itemized Handover Slips ({b.payments.length} Items for {b.bookingRef})
+                                  </span>
+                                  <span className="text-[10px] font-bold text-slate-400 font-mono">
+                                    Room: {b.roomNumbers} • Guest: {b.guestName}
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                  {b.payments.map((p, pIdx) => {
+                                    const ref = (p.referenceNumber || p.receiptNumber || p.bookingRef || '').toUpperCase();
+                                    const rem = (p.remarks || '').toUpperCase();
+                                    const isExtraNight = ref.includes('/1N') || ref.includes('/EN') || rem.includes('EXTRA NIGHT');
+                                    const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
+                                    const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
+                                    
+                                    const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'Extra Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
+                                    const itemBadgeColor = isExtraNight ? 'bg-indigo-100 text-indigo-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : isFinal ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800';
+                                    
+                                    const paidTimestamp = formatPaymentTimestamp(p.createdAt, p.paymentDate);
+                                    const pFoSentTime = formatPaymentTimestamp(p.sentToAccountantAt);
+                                    const pAccTime = formatPaymentTimestamp(p.acceptedByAccountantAt);
+
+                                    return (
+                                      <div key={p.id || pIdx} className="bg-slate-50/70 p-3 rounded-lg border border-slate-200/80 space-y-2 text-xs">
+                                        <div className="flex items-center justify-between">
+                                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${itemBadgeColor}`}>
+                                            {itemTypeLabel}
+                                          </span>
+                                          <span className="font-mono font-bold text-slate-800 text-[11px]">
+                                            {p.receiptNumber || p.referenceNumber || `Item #${p.id}`}
+                                          </span>
+                                        </div>
+
+                                        <div className="space-y-1 text-[11px] text-slate-600">
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-400">Amount:</span>
+                                            <strong className="font-mono text-slate-900">{p.currencyCode || p.currency || 'USD'} {(parseFloat(p.amount || p.amountInCurrency || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-400">LKR Eqv:</span>
+                                            <strong className="font-mono text-emerald-800">LKR {(parseFloat(p.amountLkr || p.convertedAmountLkr || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-400">Method:</span>
+                                            <strong className="text-slate-800">{p.paymentMethod || 'Cash'}</strong>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-400">Paid At:</span>
+                                            <span className="font-mono text-slate-700">{paidTimestamp}</span>
+                                          </div>
+                                          {pFoSentTime !== '-' && (
+                                            <div className="flex justify-between">
+                                              <span className="text-slate-400">FO Sent:</span>
+                                              <span className="font-mono text-emerald-700 font-semibold">{pFoSentTime}</span>
+                                            </div>
+                                          )}
+                                          {pAccTime !== '-' && (
+                                            <div className="flex justify-between">
+                                              <span className="text-slate-400">Action At:</span>
+                                              <span className="font-mono text-slate-800 font-semibold">{pAccTime}</span>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleOpenInvoice(p, b)}
+                                            className="text-[10px] font-extrabold text-emerald-700 hover:text-emerald-800 bg-white hover:bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                                          >
+                                            <Receipt size={11} /> View Invoice
+                                          </button>
+                                          {p.slipPath && !p.slipPath.includes('dummy_slip.png') && p.slipPath.trim() !== '' && (
+                                            <a 
+                                              href={p.slipPath.startsWith('http') || p.slipPath.startsWith('data:') ? p.slipPath : `${API_BASE.replace('/api', '')}${p.slipPath.startsWith('/') ? '' : '/'}${p.slipPath}`} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer" 
+                                              className="text-[10px] text-blue-600 hover:underline font-bold inline-block"
+                                            >
+                                              Slip ↗
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredBookings.length === 0 && (
+              <div className="p-12 text-center space-y-2">
+                <div className="h-12 w-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                  <CheckCircle2 size={24} />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800">No History Records Found</h4>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  No accepted or rejected handovers match your search or filter criteria.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Modern Card Grid (For PENDING tab) */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {filteredBookings.map((b) => {
+            const isSelected = selectedBookingRefs.includes(b.bookingRef);
+            const isExpanded = expandedCards.has(b.bookingRef);
+
+            return (
+              <div 
+                key={b.bookingRef}
+                className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-xs hover:shadow-md ${
+                  isSelected 
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-500/5' 
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                {/* Card Header */}
+                <div className="p-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectBooking(b.bookingRef)}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-sm text-emerald-800 tracking-tight">{b.bookingRef}</span>
+                        <span className="text-[10px] font-bold bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs">
+                          Room {b.roomNumbers}
+                        </span>
+                      </div>
+                      <h3 className="text-xs font-black text-slate-800 mt-0.5">{b.guestName}</h3>
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
 
-        {filteredBookings.length === 0 && (
-          <div className="col-span-full bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-2">
-            <div className="h-12 w-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-              <CheckCircle2 size={24} />
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                      b.status === 'ACCEPTED' 
+                        ? 'bg-emerald-100 text-emerald-800' 
+                        : b.status === 'PENDING' 
+                        ? 'bg-amber-100 text-amber-800' 
+                        : b.status === 'REJECTED' 
+                        ? 'bg-rose-100 text-rose-800' 
+                        : 'bg-blue-50 text-blue-800 border border-blue-100'
+                    }`}>
+                      {b.status === 'NONE' ? (isFrontOfficer ? '● Ready for Handover' : 'Pending FO') : `● ${b.status}`}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 font-medium">
+                      {b.checkIn} → {b.checkOut}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card Body: Financial Summary Tiles */}
+                <div className="p-4 space-y-3.5">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                    <div className="p-2.5 bg-slate-50/70 border border-slate-100 rounded-xl">
+                      <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Gross Total</p>
+                      <p className="font-mono font-bold text-xs text-slate-800 mt-0.5">
+                        {b.currency} {b.grossBillValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-emerald-50/40 border border-emerald-100/60 rounded-xl">
+                      <p className="text-[9px] uppercase font-bold text-emerald-700 tracking-wider">Net Payable</p>
+                      <p className="font-mono font-black text-xs text-emerald-900 mt-0.5">
+                        {b.currency} {b.netPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-amber-50/40 border border-amber-100/60 rounded-xl">
+                      <p className="text-[9px] uppercase font-bold text-amber-700 tracking-wider">Advance Paid</p>
+                      <p className="font-mono font-bold text-xs text-amber-800 mt-0.5">
+                        {b.currency} {b.advancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-blue-50/40 border border-blue-100/60 rounded-xl">
+                      <p className="text-[9px] uppercase font-bold text-blue-700 tracking-wider">Final Settlement</p>
+                      <p className="font-mono font-bold text-xs text-blue-800 mt-0.5">
+                        {b.currency} {b.finalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    {b.extraNightsPrice > 0 && (
+                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                        <BedDouble size={11} /> Extra Night: {b.currency} {b.extraNightsPrice.toLocaleString()}
+                      </span>
+                    )}
+                    {b.extraPersonsPrice > 0 && (
+                      <span className="text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                        <User size={11} /> Extra Person: {b.currency} {b.extraPersonsPrice.toLocaleString()}
+                      </span>
+                    )}
+                    {b.discountVal > 0 && (
+                      <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                        <Tag size={11} /> Discount: -{b.currency} {b.discountVal.toLocaleString()}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg ml-auto">
+                      Method: {Array.from(b.paymentMethods).join(', ') || 'Direct'}
+                    </span>
+                  </div>
+
+                  {b.status === 'REJECTED' && b.rejectionReasons.length > 0 && (
+                    <div className="p-2.5 bg-rose-50/80 border border-rose-200 rounded-xl text-xs text-rose-800 font-medium">
+                      <p className="font-bold flex items-center gap-1 text-[11px] text-rose-900">
+                        <AlertCircle size={13} /> Rejection Reason from Accountant:
+                      </p>
+                      <p className="mt-0.5 text-[11px]">{b.rejectionReasons.join(', ')}</p>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-slate-400">Total Handover LKR</span>
+                      <p className="font-mono font-black text-sm text-slate-900">
+                        LKR {b.totalLkrEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+
+                    <button 
+                      onClick={() => toggleExpandCard(b.bookingRef)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-emerald-700 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/80 transition cursor-pointer"
+                    >
+                      {isExpanded ? (
+                        <>Hide Transactions <ChevronUp size={13} /></>
+                      ) : (
+                        <>View {b.payments.length} Transaction(s) <ChevronDown size={13} /></>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Expanded Individual Receipts & Breakdown */}
+                  {isExpanded && (
+                    <div className="pt-2 space-y-2 border-t border-slate-100 bg-slate-50/60 p-3 rounded-xl">
+                      <div className="flex justify-between items-center pb-1 border-b border-slate-200/60">
+                        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Itemized Handover Breakdown & Timestamps</p>
+                        <span className="text-[9px] font-bold text-slate-400">{b.payments.length} Item(s)</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {b.payments.map((p, pIdx) => {
+                          const ref = (p.referenceNumber || p.receiptNumber || p.bookingRef || '').toUpperCase();
+                          const rem = (p.remarks || '').toUpperCase();
+                          const isExtraNight = ref.includes('/1N') || ref.includes('/EN') || rem.includes('EXTRA NIGHT');
+                          const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
+                          const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
+                          
+                          const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'Extra Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
+                          const itemBadgeColor = isExtraNight ? 'bg-indigo-100 text-indigo-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : isFinal ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800';
+                          
+                          const paidTimestamp = formatPaymentTimestamp(p.createdAt, p.paymentDate);
+
+                          return (
+                            <div key={p.id || pIdx} className="bg-white p-2.5 rounded-lg border border-slate-200/70 flex items-center justify-between text-xs hover:border-slate-300 transition">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${itemBadgeColor}`}>
+                                    {itemTypeLabel}
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-800 text-[10px]">
+                                    {p.receiptNumber || p.referenceNumber || `Item #${p.id}`}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium flex-wrap">
+                                  <span>Method: <strong className="text-slate-700">{p.paymentMethod || 'Cash'}</strong></span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1 text-slate-600">
+                                    <Calendar size={10} className="text-emerald-600" />
+                                    Paid: <strong className="text-slate-800">{paidTimestamp}</strong>
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-right flex flex-col items-end gap-1">
+                                <p className="font-mono font-black text-slate-900 text-xs">
+                                  {p.currencyCode || p.currency || 'USD'} {(parseFloat(p.amount || p.amountInCurrency || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-[10px] font-mono font-semibold text-emerald-800">
+                                  LKR {(parseFloat(p.amountLkr || p.convertedAmountLkr || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenInvoice(p, b)}
+                                    className="text-[10px] font-extrabold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2 py-0.5 rounded-md flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                                  >
+                                    <Receipt size={11} /> Invoice
+                                  </button>
+                                  {p.slipPath && !p.slipPath.includes('dummy_slip.png') && p.slipPath.trim() !== '' && (
+                                    <a 
+                                      href={p.slipPath.startsWith('http') || p.slipPath.startsWith('data:') ? p.slipPath : `${API_BASE.replace('/api', '')}${p.slipPath.startsWith('/') ? '' : '/'}${p.slipPath}`} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="text-[10px] text-blue-600 hover:underline font-bold inline-block"
+                                    >
+                                      Slip ↗
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredBookings.length === 0 && (
+            <div className="col-span-full bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-2">
+              <div className="h-12 w-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                <CheckCircle2 size={24} />
+              </div>
+              <h4 className="text-sm font-bold text-slate-800">All caught up!</h4>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                No pending guest settlements waiting for handover or accountant approval.
+              </p>
             </div>
-            <h4 className="text-sm font-bold text-slate-800">All caught up!</h4>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              No pending guest settlements waiting for handover or accountant approval.
-            </p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Invoice / Receipt Preview Modal */}
       {showReceiptModal && selectedPaymentForReceipt && receiptData && selectedRegForReceipt && associatedBookingForReceipt && (

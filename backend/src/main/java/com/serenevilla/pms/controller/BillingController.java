@@ -228,11 +228,14 @@ public class BillingController {
         }
         List<?> rawIds = (List<?>) rawIdsObj;
         
+        LocalDateTime now = LocalDateTime.now();
         for (Object rawId : rawIds) {
             if (rawId instanceof Number) {
                 long id = ((Number) rawId).longValue();
                 paymentRepository.findById(id).ifPresent(payment -> {
                     payment.setAccountantTransferStatus(AccountantTransferStatus.REJECTED);
+                    payment.setAcceptedByAccountantAt(now);
+                    payment.setAcceptedByAccountantId(2L);
                     payment.setRemarks(reason != null && !reason.trim().isEmpty() ? "Rejected: " + reason : "Rejected by Accountant");
                     paymentRepository.save(payment);
                 });
