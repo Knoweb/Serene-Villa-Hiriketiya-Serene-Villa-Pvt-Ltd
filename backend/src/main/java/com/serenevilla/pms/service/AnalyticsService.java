@@ -163,14 +163,31 @@ public class AnalyticsService {
 
         Long targetPropertyId = (propertyId != null) ? propertyId : room.getPropertyId();
 
-        // 1. Find all bookings allocated to this room (by roomNumber and propertyId)
+        // 1. Find all bookings allocated to this room (by roomNumber, roomType, or roomPrices)
         List<Booking> allBookings = (targetPropertyId != null) ?
                 bookingRepository.findByPropertyId(targetPropertyId) :
                 bookingRepository.findAll();
+        if (allBookings.isEmpty() && targetPropertyId != null) {
+            allBookings = bookingRepository.findAll();
+        }
 
         String targetRoomNum = room.getRoomNumber() != null ? room.getRoomNumber().trim() : "";
+        String cleanTargetNum = targetRoomNum.replaceAll("[^0-9a-zA-Z]", "");
+
         List<Booking> roomBookings = allBookings.stream()
-                .filter(b -> b.getRoomNumber() != null && b.getRoomNumber().trim().equalsIgnoreCase(targetRoomNum))
+                .filter(b -> {
+                    if (b.getRoomNumber() == null || b.getRoomNumber().trim().isEmpty()) return false;
+                    String bRoom = b.getRoomNumber().trim();
+                    String cleanBRoom = bRoom.replaceAll("[^0-9a-zA-Z]", "");
+                    
+                    if (bRoom.equalsIgnoreCase(targetRoomNum) || cleanBRoom.equalsIgnoreCase(cleanTargetNum)) {
+                        return true;
+                    }
+                    if (bRoom.toLowerCase().contains(targetRoomNum.toLowerCase()) || targetRoomNum.toLowerCase().contains(bRoom.toLowerCase())) {
+                        return true;
+                    }
+                    return false;
+                })
                 .filter(b -> {
                     if (startDate == null || endDate == null) return true;
                     LocalDate bCheckIn = b.getCheckInDate();
@@ -207,7 +224,6 @@ public class AnalyticsService {
         // If no accepted handover payments yet, include all payments recorded for this room in period
         if (roomPayments.isEmpty()) {
             roomPayments = allPayments.stream()
-                    .filter(p -> targetPropertyId == null || p.getPropertyId() == null || targetPropertyId.equals(p.getPropertyId()) || (targetPropertyId.equals(1L) && p.getPropertyId() == null))
                     .filter(p -> {
                         if (startDate == null || endDate == null) return true;
                         LocalDate pDate = p.getPaymentDate();
