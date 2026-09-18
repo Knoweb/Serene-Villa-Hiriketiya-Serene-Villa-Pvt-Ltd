@@ -164,9 +164,11 @@ const Handover = () => {
   };
 
   // Fetch all required data
-  const fetchData = async () => {
-    setLoading(true);
-    setSelectedBookingRefs([]);
+  const fetchData = async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setSelectedBookingRefs([]);
+    }
     try {
       let endpoint;
       if (activeTab === 'HISTORY') {
@@ -203,14 +205,16 @@ const Handover = () => {
       console.error('Error fetching handover data:', err);
       setPayments([]);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchData();
 
-    // Setup live WebSocket sync for real-time handover updates
+    // Pure WebSocket Real-Time synchronization (No timer/interval polling)
     let wsUrl;
     try {
       if (API_BASE.startsWith('http')) {
@@ -228,19 +232,14 @@ const Handover = () => {
     try {
       ws = new WebSocket(wsUrl);
       ws.onmessage = () => {
-        fetchData();
+        fetchData(true); // Silent live sync upon event without disrupting UI
       };
     } catch (e) {
       console.warn('WebSocket connection failed for Handover', e);
     }
 
-    const interval = setInterval(() => {
-      fetchData();
-    }, 15000);
-
     return () => {
       if (ws) ws.close();
-      clearInterval(interval);
     };
   }, [user?.role, activeTab, historyFilter, currentProperty]);
 
