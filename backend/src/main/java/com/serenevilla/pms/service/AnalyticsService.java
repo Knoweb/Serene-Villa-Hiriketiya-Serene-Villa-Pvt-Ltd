@@ -234,13 +234,28 @@ public class AnalyticsService {
                     .collect(Collectors.toList());
         }
 
+        // Map how many distinct rooms are in each guest registration / booking so payments split equally
+        Map<Long, Long> roomsPerReg = allBookings.stream()
+                .filter(b -> b.getGuestRegistrationId() != null && b.getRoomNumber() != null && !b.getRoomNumber().trim().isEmpty())
+                .collect(Collectors.groupingBy(Booking::getGuestRegistrationId, Collectors.mapping(Booking::getRoomNumber, Collectors.toSet())))
+                .entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> (long) Math.max(1, e.getValue().size())));
+
         double cashTotal = 0.0;
         double cardTotal = 0.0;
         double bankTotal = 0.0;
         List<com.serenevilla.pms.dto.RoomBookingTransactionDTO> txList = new ArrayList<>();
 
         for (Payment p : roomPayments) {
-            double amt = p.getAmountLkr();
+            // If payment is for a registration that spans multiple rooms, split payment equally
+            long roomCount = 1L;
+            if (p.getGuestRegistrationId() != null && roomsPerReg.containsKey(p.getGuestRegistrationId())) {
+                roomCount = roomsPerReg.get(p.getGuestRegistrationId());
+            }
+            if (roomCount <= 0) roomCount = 1L;
+
+            double amt = p.getAmountLkr() / (double) roomCount;
+            double amtInCurr = p.getAmountInCurrency() > 0 ? (p.getAmountInCurrency() / (double) roomCount) : amt;
             String method = p.getPaymentMethod() != null ? p.getPaymentMethod().toUpperCase() : "";
 
             if (method.contains("CASH")) {
@@ -259,9 +274,9 @@ public class AnalyticsService {
             tx.setBookingRef(p.getBookingRef() != null ? p.getBookingRef() : ("PAY-" + p.getId()));
             tx.setGuestName(p.getGuestName() != null ? p.getGuestName() : "Guest");
             tx.setPaymentMethod(p.getPaymentMethod() != null ? p.getPaymentMethod() : "Cash");
-            tx.setAmount(BigDecimal.valueOf(p.getAmountInCurrency() > 0 ? p.getAmountInCurrency() : p.getAmountLkr()).setScale(2, RoundingMode.HALF_UP));
+            tx.setAmount(BigDecimal.valueOf(amtInCurr).setScale(2, RoundingMode.HALF_UP));
             tx.setCurrency(p.getCurrency() != null ? p.getCurrency() : "LKR");
-            tx.setAmountLkr(BigDecimal.valueOf(p.getAmountLkr()).setScale(2, RoundingMode.HALF_UP));
+            tx.setAmountLkr(BigDecimal.valueOf(amt).setScale(2, RoundingMode.HALF_UP));
             tx.setStatus(p.getAccountantTransferStatus() != null ? p.getAccountantTransferStatus().name() : "NONE");
             tx.setDate(p.getPaymentDate() != null ? p.getPaymentDate().toString() : "");
             txList.add(tx);

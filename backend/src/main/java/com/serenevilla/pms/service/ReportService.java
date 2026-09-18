@@ -298,6 +298,13 @@ public class ReportService {
                 roomRepository.findByPropertyId(propertyId) :
                 roomRepository.findAll();
 
+        // Map how many distinct rooms are in each guest registration / booking so payments split equally
+        Map<Long, Long> roomsPerReg = allBookings.stream()
+                .filter(b -> b.getGuestRegistrationId() != null && b.getRoomNumber() != null && !b.getRoomNumber().trim().isEmpty())
+                .collect(Collectors.groupingBy(Booking::getGuestRegistrationId, Collectors.mapping(Booking::getRoomNumber, Collectors.toSet())))
+                .entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> (long) Math.max(1, e.getValue().size())));
+
         List<com.serenevilla.pms.dto.RoomIncomeSummaryDTO> roomBreakdowns = new ArrayList<>();
         for (com.serenevilla.pms.model.Room r : propertyRooms) {
             String rNum = r.getRoomNumber() != null ? r.getRoomNumber().trim() : "";
@@ -321,7 +328,13 @@ public class ReportService {
             double rBank = 0;
 
             for (Payment p : rPayments) {
-                double amt = p.getAmountLkr();
+                long roomCount = 1L;
+                if (p.getGuestRegistrationId() != null && roomsPerReg.containsKey(p.getGuestRegistrationId())) {
+                    roomCount = roomsPerReg.get(p.getGuestRegistrationId());
+                }
+                if (roomCount <= 0) roomCount = 1L;
+
+                double amt = p.getAmountLkr() / (double) roomCount;
                 String m = p.getPaymentMethod() != null ? p.getPaymentMethod().toUpperCase().trim() : "";
                 if (m.contains("CASH")) {
                     rCash += amt;
