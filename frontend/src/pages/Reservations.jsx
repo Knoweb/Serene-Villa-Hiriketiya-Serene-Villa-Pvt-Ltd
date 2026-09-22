@@ -4903,34 +4903,37 @@ const Reservations = () => {
                                          type="checkbox"
                                          checked={isChecked}
                                          onChange={() => {
-                                           let newAllocated;
-                                           if (isChecked) {
-                                             newAllocated = currentAllocated.filter(r => cleanRoomNumber(r.roomNumber) !== cleanTarget);
-                                           } else {
-                                             const defaultPrice = parseFloat(room.price || 0) > 0 ? parseFloat(room.price).toFixed(2) : '0.00';
-                                             newAllocated = [
-                                               ...currentAllocated,
-                                               {
-                                                 roomType: room.roomType || 'Deluxe Room',
-                                                 roomNumber: cleanTarget,
-                                                 price: defaultPrice
-                                               }
-                                             ];
-                                           }
+                                           setConfirmationData(prev => {
+                                             const currentAllocated = prev.allocatedRooms || [];
+                                             let newAllocated;
+                                             if (currentAllocated.some(r => cleanRoomNumber(r.roomNumber) === cleanTarget)) {
+                                               newAllocated = currentAllocated.filter(r => cleanRoomNumber(r.roomNumber) !== cleanTarget);
+                                             } else {
+                                               const defaultPrice = parseFloat(room.price || 0) > 0 ? parseFloat(room.price).toFixed(2) : '0.00';
+                                               newAllocated = [
+                                                 ...currentAllocated,
+                                                 {
+                                                   roomType: room.roomType || 'Deluxe Room',
+                                                   roomNumber: cleanTarget,
+                                                   price: defaultPrice
+                                                 }
+                                               ];
+                                             }
 
-                                           const roomString = newAllocated.map(r => r.roomNumber).join(', ');
-                                           const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
-                                           const rate = parseFloat(confirmationData.exchangeRate) || 1;
+                                             const roomString = newAllocated.map(r => r.roomNumber).join(', ');
+                                             const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                                             const rate = parseFloat(prev.exchangeRate) || 1;
 
-                                           const firstSelectedRoom = newAllocated[0];
-                                           let newRoomType = firstSelectedRoom ? firstSelectedRoom.roomType : '';
+                                             const firstSelectedRoom = newAllocated[0];
+                                             const newRoomType = firstSelectedRoom ? firstSelectedRoom.roomType : '';
 
-                                           setConfirmationData({
-                                             ...confirmationData,
-                                             room: roomString,
-                                             roomType: newRoomType,
-                                             allocatedRooms: newAllocated,
-                                             totalPrice: (totalSum * rate).toFixed(2)
+                                             return {
+                                               ...prev,
+                                               room: roomString,
+                                               roomType: newRoomType,
+                                               allocatedRooms: newAllocated,
+                                               totalPrice: (totalSum * rate).toFixed(2)
+                                             };
                                            });
                                          }}
                                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
