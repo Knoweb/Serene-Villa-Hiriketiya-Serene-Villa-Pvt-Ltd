@@ -47,7 +47,7 @@ public class AnalyticsService {
                 .filter(b -> b.getBookingNumber() != null && !b.getBookingNumber().contains("/DISC"))
                 .collect(Collectors.toList());
 
-        // 1. Total Revenue: Sum of payment amountLkr for the property, fallback to confirmed bookings if payments are 0
+        // 1. Total Revenue: Strictly sum of actual collected payments for the property
         List<Payment> allPayments = paymentRepository.findAll();
         List<Payment> propertyPayments = allPayments.stream()
                 .filter(p -> propertyId == null || p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
@@ -57,25 +57,7 @@ public class AnalyticsService {
                 .mapToDouble(Payment::getAmountLkr)
                 .sum();
 
-        double totalBookingRev = 0.0;
-        for (Booking b : validBookings) {
-            if (b.getTotalAmount() != null && b.getTotalAmount() > 0) {
-                double exRate = 1.0;
-                try {
-                    if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
-                        exRate = Double.parseDouble(b.getExchangeRate().trim());
-                    }
-                } catch (Exception ignored) {}
-                if (exRate <= 0) exRate = 1.0;
-
-                String curr = b.getCurrency() != null ? b.getCurrency().trim().toUpperCase() : "LKR";
-                double bookingLkr = "LKR".equals(curr) ? b.getTotalAmount() : (b.getTotalAmount() * exRate);
-                totalBookingRev += bookingLkr;
-            }
-        }
-
-        double finalRevenue = totalPaymentRev > 0 ? totalPaymentRev : totalBookingRev;
-        stats.setTotalRevenue(BigDecimal.valueOf(finalRevenue).setScale(2, RoundingMode.HALF_UP));
+        stats.setTotalRevenue(BigDecimal.valueOf(totalPaymentRev).setScale(2, RoundingMode.HALF_UP));
 
         // 2. Total Bookings
         stats.setTotalBookings((long) validBookings.size());
@@ -326,7 +308,7 @@ public class AnalyticsService {
             txList.add(tx);
         }
 
-        // 3. Fallback for bookings in the period without separate payment records
+        // 3. Filter bookings active in the period for occupancy metrics
         List<Booking> bookingsInPeriod = allRoomBookings.stream()
                 .filter(b -> {
                     if (startDate == null || endDate == null) return true;
@@ -339,49 +321,6 @@ public class AnalyticsService {
                     return false;
                 })
                 .collect(Collectors.toList());
-
-        for (Booking b : bookingsInPeriod) {
-            if (!processedPaymentBookingIds.contains(b.getId()) && b.getTotalAmount() != null && b.getTotalAmount() > 0) {
-                long roomCount = getRoomCountForBooking(b);
-                if (roomCount <= 0) roomCount = 1L;
-
-                double exRate = 1.0;
-                try {
-                    if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
-                        exRate = Double.parseDouble(b.getExchangeRate().trim());
-                    }
-                } catch (Exception ignored) {}
-                if (exRate <= 0) exRate = 1.0;
-                String curr = b.getCurrency() != null ? b.getCurrency().trim().toUpperCase() : "LKR";
-                double bookingLkr = ("LKR".equals(curr) ? b.getTotalAmount() : (b.getTotalAmount() * exRate)) / (double) roomCount;
-                double bookingCurr = b.getTotalAmount() / (double) roomCount;
-
-                String bType = b.getBookingType() != null ? b.getBookingType().toUpperCase() : "";
-                String pMethod = "Cash";
-                if (bType.contains("AIRBNB") || bType.contains("BOOKING")) {
-                    cardTotal += bookingLkr;
-                    pMethod = "Card / OTA";
-                } else {
-                    cashTotal += bookingLkr;
-                }
-
-                com.serenevilla.pms.dto.RoomBookingTransactionDTO tx = new com.serenevilla.pms.dto.RoomBookingTransactionDTO();
-                tx.setId(b.getId());
-                tx.setBookingRef(b.getBookingNumber() != null ? b.getBookingNumber() : ("B-" + b.getId()));
-                tx.setGuestName(b.getGuestName() != null ? b.getGuestName() : "Guest");
-                tx.setCheckInDate(b.getCheckInDate() != null ? b.getCheckInDate().toString() : "-");
-                tx.setCheckOutDate(b.getCheckOutDate() != null ? b.getCheckOutDate().toString() : "-");
-                tx.setNights(b.getNumberOfNights() != null ? b.getNumberOfNights() : 1);
-                tx.setBookingType(b.getBookingType() != null ? b.getBookingType() : "Direct");
-                tx.setPaymentMethod(pMethod);
-                tx.setAmount(BigDecimal.valueOf(bookingCurr).setScale(2, RoundingMode.HALF_UP));
-                tx.setCurrency(curr);
-                tx.setAmountLkr(BigDecimal.valueOf(bookingLkr).setScale(2, RoundingMode.HALF_UP));
-                tx.setStatus("CONFIRMED");
-                tx.setDate(b.getCheckInDate() != null ? b.getCheckInDate().toString() : "");
-                txList.add(tx);
-            }
-        }
 
         double totalRevenue = cashTotal + cardTotal + bankTotal;
         dto.setTotalAmount(BigDecimal.valueOf(totalRevenue).setScale(2, RoundingMode.HALF_UP));
