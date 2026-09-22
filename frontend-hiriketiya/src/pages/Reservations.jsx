@@ -1471,11 +1471,43 @@ const Reservations = () => {
     if (isCreatingNewReservation) {
       const bNum = confirmationData.bookingNumber?.trim();
       if (!bNum || bNum === 'D-' || bNum === 'B-' || bNum === 'A-' || bNum === 'W-') {
-        showAlert('Please enter a valid Booking Number.', 'Validation Error');
+        await showAlert({
+          title: 'Validation Error',
+          message: 'Please enter a valid Booking Number.',
+          type: 'warning'
+        });
         return;
       }
       if (isDuplicateBookingNumber) {
-        showAlert(`Booking Number "${bNum}" already exists! Please use a unique number.`, 'Duplicate Booking Number');
+        await showAlert({
+          title: 'Duplicate Booking Number',
+          message: `Booking Number "${bNum}" already exists! Please use a unique number.`,
+          type: 'error'
+        });
+        return;
+      }
+      if (!confirmationData.checkInDate) {
+        await showAlert({
+          title: 'Missing Check-in Date',
+          message: 'Please select a Check-in Date before saving the reservation.',
+          type: 'warning'
+        });
+        return;
+      }
+      if (!confirmationData.checkOutDate) {
+        await showAlert({
+          title: 'Missing Check-out Date',
+          message: 'Please select a Check-out Date before saving the reservation.',
+          type: 'warning'
+        });
+        return;
+      }
+      if (new Date(confirmationData.checkOutDate) <= new Date(confirmationData.checkInDate)) {
+        await showAlert({
+          title: 'Invalid Date Range',
+          message: 'Check-out Date must be after the Check-in Date.',
+          type: 'warning'
+        });
         return;
       }
     }
@@ -1575,7 +1607,21 @@ const Reservations = () => {
             console.error('Failed to rollback orphaned guest registration:', delErr);
           }
         }
-        alert('Error saving reservation: ' + err.message);
+        
+        let friendlyMsg = err.message || 'An unexpected error occurred while saving the reservation.';
+        if (friendlyMsg.toLowerCase().includes('check_out_date') || friendlyMsg.toLowerCase().includes('check out date')) {
+          friendlyMsg = 'Check-out Date is missing or invalid. Please select a valid Check-out Date.';
+        } else if (friendlyMsg.toLowerCase().includes('check_in_date') || friendlyMsg.toLowerCase().includes('check in date')) {
+          friendlyMsg = 'Check-in Date is missing or invalid. Please select a valid Check-in Date.';
+        } else if (friendlyMsg.toLowerCase().includes('duplicate') || friendlyMsg.toLowerCase().includes('unique')) {
+          friendlyMsg = `Booking Number "${confirmationData.bookingNumber}" already exists. Please use a different number.`;
+        }
+
+        await showAlert({
+          title: 'Unable to Save Reservation',
+          message: friendlyMsg,
+          type: 'error'
+        });
         console.error('Error saving standalone reservation:', err);
         return;
       } finally {
