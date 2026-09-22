@@ -1136,17 +1136,41 @@ const Registrations = () => {
   const handlePaymentCurrencyChange = (e) => {
     const curr = e.target.value;
     const booking = getBookingForReg(selectedReg?.id);
+    const bCurr = getBookingCurrency(booking, selectedReg, bookingForm);
+    const bookingExRate = parseFloat(booking?.exchangeRate) || (bCurr === 'EUR' ? 345 : bCurr === 'AUD' ? 220 : 320);
+
     let rate = 1;
-    if (booking?.exchangeRate && parseFloat(booking.exchangeRate) > 0 && curr === (booking.currency || 'USD')) {
-      rate = parseFloat(booking.exchangeRate);
+    if (curr === bCurr && bookingExRate > 1) {
+      rate = bookingExRate;
     } else if (curr === 'USD') {
-      rate = 300;
+      rate = (bCurr === 'USD' ? bookingExRate : 320);
     } else if (curr === 'EUR') {
-      rate = 325;
+      rate = (bCurr === 'EUR' ? bookingExRate : 345);
     } else if (curr === 'AUD') {
-      rate = 220;
+      rate = (bCurr === 'AUD' ? bookingExRate : 220);
+    } else if (curr === 'LKR') {
+      rate = bookingExRate || 320;
     }
-    setPaymentForm(prev => ({ ...prev, currencyCode: curr, exchangeRate: rate }));
+
+    const currentCurr = paymentForm.currencyCode || bCurr;
+    let newAmount = paymentForm.amount;
+
+    if (newAmount && parseFloat(newAmount) > 0) {
+      const numAmt = parseFloat(newAmount);
+      if (currentCurr !== 'LKR' && curr === 'LKR') {
+        newAmount = (numAmt * rate).toFixed(2);
+      } else if (currentCurr === 'LKR' && curr !== 'LKR') {
+        const activeRate = parseFloat(paymentForm.exchangeRate) || rate || 1;
+        newAmount = (numAmt / activeRate).toFixed(2);
+      }
+    }
+
+    setPaymentForm(prev => ({ 
+      ...prev, 
+      currencyCode: curr, 
+      exchangeRate: rate,
+      amount: newAmount
+    }));
   };
 
   const handleSavePayment = async (e, tab, remainingBalanceInBookingCurrency) => {
@@ -3053,24 +3077,32 @@ const Registrations = () => {
                                 className="w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none bg-white text-slate-700"
                               />
                             </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
-                              <input
-                                type="number"
-                                step="any"
-                                required
-                                disabled={paymentForm.currencyCode === 'LKR'}
-                                value={paymentForm.exchangeRate}
-                                onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none disabled:bg-slate-100"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Converted (LKR)</label>
-                              <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700 font-mono">
-                                {((parseFloat(paymentForm.amount) || 0) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString()} LKR
-                              </div>
-                            </div>
+                            {(paymentForm.currencyCode !== 'LKR' || bookingCurrency !== 'LKR') && (
+                              <>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    required
+                                    value={paymentForm.exchangeRate}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
+                                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none font-mono font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                    {paymentForm.currencyCode === 'LKR' ? `Equivalent (${bookingCurrency})` : 'Converted (LKR)'}
+                                  </label>
+                                  <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700 font-mono">
+                                    {paymentForm.currencyCode === 'LKR'
+                                      ? `${((parseFloat(paymentForm.amount) || 0) / (parseFloat(paymentForm.exchangeRate) || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${bookingCurrency}`
+                                      : `${((parseFloat(paymentForm.amount) || 0) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`
+                                    }
+                                  </div>
+                                </div>
+                              </>
+                            )}
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Method</label>
                               <select

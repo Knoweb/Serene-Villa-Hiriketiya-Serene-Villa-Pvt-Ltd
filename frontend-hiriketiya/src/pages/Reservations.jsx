@@ -1712,17 +1712,41 @@ const Reservations = () => {
   const handlePaymentCurrencyChange = (e) => {
     const curr = e.target.value;
     const booking = getBookingForReg(selectedReg?.id);
+    const bCurr = getBookingCurrency(booking);
+    const bookingExRate = parseFloat(booking?.exchangeRate) || (bCurr === 'EUR' ? 345 : bCurr === 'AUD' ? 220 : 320);
+
     let rate = 1;
-    if (booking?.exchangeRate && parseFloat(booking.exchangeRate) > 0 && curr === (booking.currency || 'USD')) {
-      rate = parseFloat(booking.exchangeRate);
+    if (curr === bCurr && bookingExRate > 1) {
+      rate = bookingExRate;
     } else if (curr === 'USD') {
-      rate = 300;
+      rate = (bCurr === 'USD' ? bookingExRate : 320);
     } else if (curr === 'EUR') {
-      rate = 325;
+      rate = (bCurr === 'EUR' ? bookingExRate : 345);
     } else if (curr === 'AUD') {
-      rate = 220;
+      rate = (bCurr === 'AUD' ? bookingExRate : 220);
+    } else if (curr === 'LKR') {
+      rate = bookingExRate || 320;
     }
-    setPaymentForm(prev => ({ ...prev, currencyCode: curr, exchangeRate: rate }));
+
+    const currentCurr = paymentForm.currencyCode || bCurr;
+    let newAmount = paymentForm.amount;
+
+    if (newAmount && parseFloat(newAmount) > 0) {
+      const numAmt = parseFloat(newAmount);
+      if (currentCurr !== 'LKR' && curr === 'LKR') {
+        newAmount = (numAmt * rate).toFixed(2);
+      } else if (currentCurr === 'LKR' && curr !== 'LKR') {
+        const activeRate = parseFloat(paymentForm.exchangeRate) || rate || 1;
+        newAmount = (numAmt / activeRate).toFixed(2);
+      }
+    }
+
+    setPaymentForm(prev => ({ 
+      ...prev, 
+      currencyCode: curr, 
+      exchangeRate: rate,
+      amount: newAmount
+    }));
   };
 
   const handleGenerateReceipt = async (paymentId, fallbackPaymentList = null) => {
@@ -1782,12 +1806,13 @@ const Reservations = () => {
 
     const otherCharges = parseFloat(paymentForm.otherCharges) || 0;
     const netAmount = Math.max(0, actualAmount - otherCharges);
-    const convertedLkr = netAmount * actualExchangeRate;
+    const convertedLkr = actualCurrency === 'LKR' ? netAmount : (netAmount * actualExchangeRate);
     const totalBookingAmount = booking.totalAmount || 0;
     const bookingExRate = parseFloat(booking.exchangeRate) || (actualCurrency === 'LKR' ? 1 : actualExchangeRate);
     const bookingCurrency = (booking.currency || 'USD').toUpperCase();
     const totalBookingAmountLkr = bookingCurrency === 'LKR' 
       ? totalBookingAmount 
+      : (totalBookingAmount * bookingExRate); 
       : (totalBookingAmount * bookingExRate);
 
     const totalPaidSoFar = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
@@ -3068,7 +3093,7 @@ const Reservations = () => {
                                 className={`w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none bg-white text-slate-700`}
                               />
                             </div>
-                            {paymentForm.currencyCode !== 'LKR' && (
+                            {(paymentForm.currencyCode !== 'LKR' || bCurr !== 'LKR') && (
                               <>
                                 <div>
                                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Exchange Rate</label>
@@ -3083,11 +3108,14 @@ const Reservations = () => {
                                 </div>
                                 <div>
                                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                    Converted (LKR)
+                                    {paymentForm.currencyCode === 'LKR' ? `Equivalent (${bCurr})` : 'Converted (LKR)'}
                                     {parseFloat(paymentForm.otherCharges) > 0 && <span className="text-amber-600 font-normal normal-case font-mono text-[9px]"> (Net of charges)</span>}
                                   </label>
                                   <div className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 font-bold text-slate-700 font-mono">
-                                    {(Math.max(0, (parseFloat(paymentForm.amount) || 0) - (parseFloat(paymentForm.otherCharges) || 0)) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR
+                                    {paymentForm.currencyCode === 'LKR'
+                                      ? `${(Math.max(0, (parseFloat(paymentForm.amount) || 0) - (parseFloat(paymentForm.otherCharges) || 0)) / (parseFloat(paymentForm.exchangeRate) || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${bCurr}`
+                                      : `${(Math.max(0, (parseFloat(paymentForm.amount) || 0) - (parseFloat(paymentForm.otherCharges) || 0)) * (parseFloat(paymentForm.exchangeRate) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`
+                                    }
                                   </div>
                                 </div>
                               </>
