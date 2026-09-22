@@ -5686,6 +5686,19 @@ const Reservations = () => {
                 return (
                   <>
                     <button
+                      type="button"
+                      onClick={() => {
+                        setForceLkr(false);
+                        setTimeout(() => {
+                          window.print();
+                        }, 150);
+                      }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10 text-xs"
+                    >
+                      <Printer size={13} /> Print {draftBookingCurr !== 'LKR' ? `in ${draftBookingCurr}` : ''}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setForceLkr(true);
                         setTimeout(() => {
@@ -5697,19 +5710,6 @@ const Reservations = () => {
                     >
                       <Printer size={13} /> Print in LKR
                     </button>
-                    {draftBookingCurr !== 'LKR' && (
-                      <button
-                        onClick={() => {
-                          setForceLkr(false);
-                          setTimeout(() => {
-                            window.print();
-                          }, 150);
-                        }}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-500/10 text-xs"
-                      >
-                        <Printer size={13} /> Print in {draftBookingCurr}
-                      </button>
-                    )}
                   </>
                 );
               })()}

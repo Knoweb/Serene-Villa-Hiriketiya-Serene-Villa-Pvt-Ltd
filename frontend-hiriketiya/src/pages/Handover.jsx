@@ -1336,6 +1336,18 @@ const Handover = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    setForceReceiptLkr(false);
+                    setTimeout(() => {
+                      window.print();
+                    }, 150);
+                  }}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm text-xs"
+                >
+                  <Printer size={13} /> Print
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     setForceReceiptLkr(true);
                     setTimeout(() => {
                       window.print();
@@ -1346,20 +1358,6 @@ const Handover = () => {
                 >
                   <Printer size={13} /> Print in LKR
                 </button>
-                {receiptData.bookingCurrency !== 'LKR' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForceReceiptLkr(false);
-                      setTimeout(() => {
-                        window.print();
-                      }, 150);
-                    }}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm text-xs"
-                  >
-                    <Printer size={13} /> Print in {receiptData.bookingCurrency}
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => setShowReceiptModal(false)}
