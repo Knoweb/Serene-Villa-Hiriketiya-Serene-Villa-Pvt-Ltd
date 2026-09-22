@@ -28,12 +28,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
     const isForeign = (selectedReg?.country && selectedReg.country.toLowerCase() !== 'sri lanka') || (selectedReg?.nationality && selectedReg.nationality.toLowerCase() !== 'sri lankan');
     return isForeign ? 'USD' : 'LKR';
   })();
-  const defaultExRateForBCurr = bCurr === 'EUR' ? 325 : bCurr === 'AUD' ? 220 : bCurr === 'GBP' ? 380 : 300;
-  const rawBookingRate = parseFloat(associatedBooking?.exchangeRate);
-  const rawPaymentRate = parseFloat(selectedPaymentForReceipt?.exchangeRate);
-  const exRate = bCurr === 'LKR' 
-    ? 1 
-    : (rawBookingRate > 1.05 ? rawBookingRate : (rawPaymentRate > 1.05 ? rawPaymentRate : defaultExRateForBCurr));
+  const exRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking.exchangeRate) || 335;
   const displayCurrency = forceLkr ? 'LKR' : bCurr;
   const convFactor = forceLkr ? exRate : 1;
 
@@ -54,16 +49,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const paymentsUpToThis = paymentsList.length > 0 
     ? paymentsList.filter(p => p.id <= selectedPaymentForReceipt.id)
     : [selectedPaymentForReceipt];
-  const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => {
-    const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
-    const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
-    const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
-    const rawRate = parseFloat(p.exchangeRate);
-    const rate = rawRate > 1.05 ? rawRate : exRate;
-    if (pLkr > 0) return sum + pLkr;
-    if (pCurr === 'LKR') return sum + pAmt;
-    return sum + (pAmt * rate);
-  }, 0);
+  const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
   const remainingBalLkr = Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
 
   const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' || selectedPaymentForReceipt.isFinalPayment;
@@ -505,8 +491,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
             const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
             const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
-            const rawRate = parseFloat(p.exchangeRate);
-            const pExRate = rawRate > 1.05 ? rawRate : exRate;
+            const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
             if (pCurr === bCurr.toUpperCase()) return sum + pAmt;
             if (bCurr.toUpperCase() === 'LKR') return sum + (pLkr > 0 ? pLkr : (pAmt * pExRate));
             return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
@@ -517,8 +502,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           // Currency normalization for the payment amount
           const pCurr = (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || bCurr).toUpperCase();
           const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
-          const rawCurRate = parseFloat(selectedPaymentForReceipt.exchangeRate);
-          const pExRate = rawCurRate > 1.05 ? rawCurRate : exRate;
+          const pExRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || exRate || 1;
 
           let basePaidInBookingCurr = 0;
           if (rawPaid === 0) {

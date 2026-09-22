@@ -58,18 +58,13 @@ public class GuestRegistrationService {
             registration.setCountry(registration.getNationality());
         }
 
-        // Null-safe check-in and check-out dates
-        if (registration.getCheckInDate() == null) {
-            registration.setCheckInDate(LocalDate.now());
-        }
-        if (registration.getCheckOutDate() == null) {
-            int nights = registration.getNumberOfNights() != null && registration.getNumberOfNights() > 0 ? registration.getNumberOfNights() : 1;
-            registration.setCheckOutDate(registration.getCheckInDate().plusDays(nights));
-        }
-
         // Calculate nights
-        long days = java.time.temporal.ChronoUnit.DAYS.between(registration.getCheckInDate(), registration.getCheckOutDate());
-        registration.setNumberOfNights((int) Math.max(1, days));
+        if (registration.getCheckInDate() != null && registration.getCheckOutDate() != null) {
+            long days = java.time.temporal.ChronoUnit.DAYS.between(registration.getCheckInDate(), registration.getCheckOutDate());
+            registration.setNumberOfNights((int) Math.max(1, days));
+        } else {
+            registration.setNumberOfNights(1);
+        }
         registration.setPaymentStatus("Confirm");
         registration.setRegistrationStatus("Pending");
         registration.setHiddenFromFrontOffice(false);
