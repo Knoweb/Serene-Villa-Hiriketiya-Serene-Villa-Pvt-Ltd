@@ -290,6 +290,8 @@ const Handover = () => {
         let baseRoomPrice = 0;
         let extraNightsPrice = 0;
         let extraPersonsPrice = 0;
+        let otherChargesPrice = 0;
+        let otherChargesRemarks = '';
         let discountVal = 0;
         let discountRemarks = '';
 
@@ -313,6 +315,11 @@ const Handover = () => {
           baseRoomPrice = parseFloat(matchedBaseBooking.totalAmount || matchedBaseBooking.amount || 0);
         }
 
+        if (matchedBaseBooking?.otherCharges) {
+          otherChargesPrice = parseFloat(matchedBaseBooking.otherCharges || 0);
+          otherChargesRemarks = matchedBaseBooking.otherChargesRemarks || '';
+        }
+
         groups[baseRef] = {
           bookingRef: baseRef,
           guestName,
@@ -323,6 +330,8 @@ const Handover = () => {
           baseRoomPrice,
           extraNightsPrice,
           extraPersonsPrice,
+          otherChargesPrice,
+          otherChargesRemarks,
           discountVal,
           discountRemarks,
           payments: [],
@@ -371,7 +380,7 @@ const Handover = () => {
     });
 
     return Object.values(groups).map(g => {
-      const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
+      const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice + g.otherChargesPrice;
       const grossBillValue = g.baseRoomPrice + extrasSubtotal;
       const netPayable = Math.max(0, grossBillValue - g.discountVal);
       const bookingCurr = (g.currency || 'USD').toUpperCase();
@@ -380,6 +389,7 @@ const Handover = () => {
       let extraNightsPaid = 0;
       let extraPersonsPaid = 0;
       let finalPaid = 0;
+      let totalBankCharges = 0;
       let totalPaidInCurrency = 0;
       let totalLkrEquivalent = 0;
 
@@ -395,6 +405,13 @@ const Handover = () => {
         // Exact LKR amount from record or converted
         const pLkr = parseFloat(p.amountLkr || p.convertedAmountLkr || (pCurr === 'LKR' ? pRawAmt : (pRawAmt * pExRate)));
         
+        // Extract bank/card charges from payment remarks if present (e.g. [Bank Charges: 1350] or [Charges: 1350])
+        const cardFeeMatch = p.remarks?.match(/\[(?:Bank )?Charges: ([\d.]+)\]/i);
+        if (cardFeeMatch) {
+          const rawFee = parseFloat(cardFeeMatch[1]) || 0;
+          totalBankCharges += rawFee;
+        }
+
         // Normalized amount in booking currency
         let pAmtInBookingCurr = pRawAmt;
         if (pCurr !== bookingCurr) {
@@ -442,6 +459,7 @@ const Handover = () => {
         extraPersonsPaid,
         finalPaid,
         finalPaidOrig,
+        totalBankCharges,
         totalPaidInCurrency,
         totalLkrEquivalent,
         remainingBalance
@@ -1201,24 +1219,34 @@ const Handover = () => {
 
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     {b.extraNightsPrice > 0 && (
-                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                        <BedDouble size={11} /> Extra Night: {b.currency} {b.extraNightsPrice.toLocaleString()}
-                      </span>
+                       <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                         <BedDouble size={11} /> Extra Night: {b.currency} {b.extraNightsPrice.toLocaleString()}
+                       </span>
                     )}
                     {b.extraPersonsPrice > 0 && (
-                      <span className="text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                        <User size={11} /> Extra Person: {b.currency} {b.extraPersonsPrice.toLocaleString()}
-                      </span>
+                       <span className="text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                         <User size={11} /> Extra Person: {b.currency} {b.extraPersonsPrice.toLocaleString()}
+                       </span>
+                    )}
+                    {b.otherChargesPrice > 0 && (
+                       <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 px-2 py-0.5 rounded-lg flex items-center gap-1" title={b.otherChargesRemarks || 'Other Charges'}>
+                         <Receipt size={11} /> Other Charges: {b.currency} {b.otherChargesPrice.toLocaleString()}
+                       </span>
+                    )}
+                    {b.totalBankCharges > 0 && (
+                       <span className="text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200/80 px-2 py-0.5 rounded-lg flex items-center gap-1" title="Bank / Card Processing Charges">
+                         <CreditCard size={11} /> Charges: LKR {b.totalBankCharges.toLocaleString()}
+                       </span>
                     )}
                     {b.discountVal > 0 && (
-                      <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                        <Tag size={11} /> Discount: -{b.currency} {b.discountVal.toLocaleString()}
-                      </span>
+                       <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                         <Tag size={11} /> Discount: -{b.currency} {b.discountVal.toLocaleString()}
+                       </span>
                     )}
                     {b.remainingBalance > 0 && (
-                      <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg">
-                        Due: {b.currency} {b.remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                       <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg">
+                         Due: {b.currency} {b.remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                       </span>
                     )}
                     <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg ml-auto">
                       Method: {Array.from(b.paymentMethods).join(', ') || 'Direct'}
