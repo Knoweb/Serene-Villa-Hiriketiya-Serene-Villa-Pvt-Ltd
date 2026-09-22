@@ -1162,10 +1162,18 @@ const Registrations = () => {
     }
 
     const bookingCurrency = getBookingCurrency(booking, selectedReg, bookingForm);
+    const defaultBookingRate = bookingCurrency === 'EUR' ? 325 : bookingCurrency === 'AUD' ? 220 : bookingCurrency === 'GBP' ? 380 : 300;
+    const rawBookingRate = parseFloat(booking.exchangeRate || bookingForm?.exchangeRate);
+    const bookingExRate = bookingCurrency === 'LKR' ? 1 : (rawBookingRate > 1.05 ? rawBookingRate : defaultBookingRate);
 
     const enteredAmount = parseFloat(paymentForm.amount);
     const enteredCurrency = paymentForm.currencyCode || bookingCurrency;
-    const exRate = parseFloat(paymentForm.exchangeRate);
+    let exRate = parseFloat(paymentForm.exchangeRate) || 1;
+    if (enteredCurrency !== 'LKR' && exRate <= 1.05) {
+      exRate = bookingExRate;
+    } else if (enteredCurrency === 'LKR' && bookingCurrency !== 'LKR') {
+      exRate = bookingExRate;
+    }
     const convertedLkr = enteredCurrency === 'LKR' ? enteredAmount : enteredAmount * exRate;
 
     // Convert entered amount to booking currency
@@ -1181,10 +1189,11 @@ const Registrations = () => {
     getVisiblePayments(advancePayments).forEach(p => {
       const pCurr = p.currencyCode || p.currency || bookingCurrency;
       let pAmt = p.amountInCurrency != null && !isNaN(p.amountInCurrency) ? parseFloat(p.amountInCurrency) : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
+      const rawPRate = parseFloat(p.exchangeRate);
+      const rate = rawPRate > 1.05 ? rawPRate : bookingExRate;
       if (pCurr.toUpperCase() === bookingCurrency.toUpperCase()) {
         currentPaidInBookingCurrency += pAmt;
       } else if (pCurr.toUpperCase() === 'LKR' && bookingCurrency !== 'LKR') {
-        const rate = parseFloat(p.exchangeRate || exRate || 1);
         if (rate > 0) currentPaidInBookingCurrency += (p.convertedAmountLkr || p.amountLkr || pAmt) / rate;
       } else {
         currentPaidInBookingCurrency += pAmt;
@@ -2743,7 +2752,9 @@ const Registrations = () => {
                     const bookingCurrency = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
 
                     const visiblePays = getVisiblePayments(advancePayments);
-                    const bookingExRate = parseFloat(associatedBooking?.exchangeRate || bookingForm.exchangeRate || 1);
+                    const defaultBookingRate = bookingCurrency === 'EUR' ? 325 : bookingCurrency === 'AUD' ? 220 : bookingCurrency === 'GBP' ? 380 : 300;
+                    const rawBookingRate = parseFloat(associatedBooking?.exchangeRate || bookingForm?.exchangeRate);
+                    const bookingExRate = bookingCurrency === 'LKR' ? 1 : (rawBookingRate > 1.05 ? rawBookingRate : defaultBookingRate);
 
                     let totalPaidInBookingCurrency = 0;
                     let advancePaidInBookingCurrency = 0;
@@ -2754,7 +2765,8 @@ const Registrations = () => {
                         ? parseFloat(p.amountInCurrency)
                         : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
                       const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
-                      const pExRate = parseFloat(p.exchangeRate) || bookingExRate || 1;
+                      const rawPRate = parseFloat(p.exchangeRate);
+                      const pExRate = rawPRate > 1.05 ? rawPRate : bookingExRate;
 
                       let convertedAmt = pAmt;
                       if (pCurr === bookingCurrency.toUpperCase()) {
@@ -2922,8 +2934,9 @@ const Registrations = () => {
                     const baseNetAmt = Math.max(0, baseAmount - totalDiscountDeduction);
 
                     // Smart currency detection
-                    const bookingCurrency = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
-                    const bookingExRate = parseFloat(associatedBooking?.exchangeRate || bookingForm.exchangeRate || 1);
+                    const defaultBookingRate = bookingCurrency === 'EUR' ? 325 : bookingCurrency === 'AUD' ? 220 : bookingCurrency === 'GBP' ? 380 : 300;
+                    const rawBookingRate = parseFloat(associatedBooking?.exchangeRate || bookingForm?.exchangeRate);
+                    const bookingExRate = bookingCurrency === 'LKR' ? 1 : (rawBookingRate > 1.05 ? rawBookingRate : defaultBookingRate);
 
                     const visiblePays = getVisiblePayments(advancePayments);
                     let totalPaidInBookingCurrency = 0;
@@ -2934,7 +2947,8 @@ const Registrations = () => {
                         ? parseFloat(p.amountInCurrency)
                         : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
                       const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
-                      const pExRate = parseFloat(p.exchangeRate) || bookingExRate || 1;
+                      const rawPRate = parseFloat(p.exchangeRate);
+                      const pExRate = rawPRate > 1.05 ? rawPRate : bookingExRate;
 
                       let convertedAmt = pAmt;
                       if (pCurr === bookingCurrency.toUpperCase()) {
@@ -3749,9 +3763,23 @@ const Registrations = () => {
         // Robust currency detection matching the payment card
         const bCurrRender = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
 
-        const exRateRender = parseFloat(selectedPaymentForReceipt.exchangeRate) || parseFloat(associatedBooking?.exchangeRate) || parseFloat(bookingForm?.exchangeRate) || 335;
+        const defaultExRateForBCurr = bCurrRender === 'EUR' ? 325 : bCurrRender === 'AUD' ? 220 : bCurrRender === 'GBP' ? 380 : 300;
+        const rawBookingRate = parseFloat(associatedBooking?.exchangeRate || bookingForm?.exchangeRate);
+        const rawPaymentRate = parseFloat(selectedPaymentForReceipt?.exchangeRate);
+        const exRateRender = bCurrRender === 'LKR' 
+          ? 1 
+          : (rawBookingRate > 1.05 ? rawBookingRate : (rawPaymentRate > 1.05 ? rawPaymentRate : defaultExRateForBCurr));
         const paymentsUpToThis = getVisiblePayments(advancePayments).filter(p => p.id <= selectedPaymentForReceipt.id);
-        const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
+        const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => {
+          const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+          const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
+          const pCurr = (p.currencyCode || p.currency || bCurrRender).toUpperCase();
+          const rawRate = parseFloat(p.exchangeRate);
+          const rate = rawRate > 1.05 ? rawRate : exRateRender;
+          if (pLkr > 0) return sum + pLkr;
+          if (pCurr === 'LKR') return sum + pAmt;
+          return sum + (pAmt * rate);
+        }, 0);
         
         const dispCurr = forceReceiptLkr ? 'LKR' : bCurrRender;
         const convFactor = (forceReceiptLkr && bCurrRender !== 'LKR') ? exRateRender : 1;
@@ -4207,7 +4235,8 @@ const Registrations = () => {
                     const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
                     const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
                     const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
-                    const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+                    const rawRate = parseFloat(p.exchangeRate);
+                    const pExRate = rawRate > 1.05 ? rawRate : exRate;
                     if (pCurr === bCurr.toUpperCase()) return sum + pAmt;
                     if (bCurr.toUpperCase() === 'LKR') return sum + (pLkr > 0 ? pLkr : (pAmt * pExRate));
                     return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
@@ -4217,7 +4246,8 @@ const Registrations = () => {
 
                   const pCurr = (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || bCurr).toUpperCase();
                   const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
-                  const pExRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || exRate || 1;
+                  const rawCurRate = parseFloat(selectedPaymentForReceipt.exchangeRate);
+                  const pExRate = rawCurRate > 1.05 ? rawCurRate : exRate;
 
                   let basePaidInBookingCurr = 0;
                   if (rawPaid === 0) {
