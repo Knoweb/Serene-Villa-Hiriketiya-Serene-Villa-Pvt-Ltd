@@ -374,6 +374,7 @@ const Handover = () => {
       const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
       const grossBillValue = g.baseRoomPrice + extrasSubtotal;
       const netPayable = Math.max(0, grossBillValue - g.discountVal);
+      const bookingCurr = (g.currency || 'USD').toUpperCase();
 
       let advancePaid = 0;
       let extraNightsPaid = 0;
@@ -382,11 +383,31 @@ const Handover = () => {
       let totalPaidInCurrency = 0;
       let totalLkrEquivalent = 0;
 
+      // Track individual payment currencies for detailed card badges
+      let advancePaidOrig = { amount: 0, currency: '' };
+      let finalPaidOrig = { amount: 0, currency: '' };
+
       g.payments.forEach(p => {
-        const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
-        const pLkr = parseFloat(p.amountLkr || p.convertedAmountLkr || (pAmt * (g.currency === 'LKR' ? 1 : g.exchangeRate)));
+        const pCurr = (p.currencyCode || p.currency || bookingCurr).toUpperCase();
+        const pRawAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+        const pExRate = parseFloat(p.exchangeRate) || parseFloat(g.exchangeRate) || 1;
         
-        totalPaidInCurrency += pAmt;
+        // Exact LKR amount from record or converted
+        const pLkr = parseFloat(p.amountLkr || p.convertedAmountLkr || (pCurr === 'LKR' ? pRawAmt : (pRawAmt * pExRate)));
+        
+        // Normalized amount in booking currency
+        let pAmtInBookingCurr = pRawAmt;
+        if (pCurr !== bookingCurr) {
+          if (bookingCurr === 'LKR') {
+            pAmtInBookingCurr = pLkr;
+          } else {
+            // Target is USD/other foreign currency, convert from LKR or via exchange rate
+            const effectiveRate = pExRate > 0 ? pExRate : 1;
+            pAmtInBookingCurr = pCurr === 'LKR' ? (pRawAmt / effectiveRate) : ((pRawAmt * pExRate) / effectiveRate);
+          }
+        }
+        
+        totalPaidInCurrency += pAmtInBookingCurr;
         totalLkrEquivalent += pLkr;
 
         const ref = (p.referenceNumber || p.receiptNumber || p.bookingRef || '').toUpperCase();
@@ -396,13 +417,15 @@ const Handover = () => {
         const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
 
         if (isExtraNight) {
-          extraNightsPaid += pAmt;
+          extraNightsPaid += pAmtInBookingCurr;
         } else if (isExtraPerson) {
-          extraPersonsPaid += pAmt;
+          extraPersonsPaid += pAmtInBookingCurr;
         } else if (isFinal) {
-          finalPaid += pAmt;
+          finalPaid += pAmtInBookingCurr;
+          finalPaidOrig = { amount: pRawAmt, currency: pCurr };
         } else {
-          advancePaid += pAmt;
+          advancePaid += pAmtInBookingCurr;
+          advancePaidOrig = { amount: pRawAmt, currency: pCurr };
         }
       });
 
@@ -414,9 +437,11 @@ const Handover = () => {
         grossBillValue,
         netPayable,
         advancePaid,
+        advancePaidOrig,
         extraNightsPaid,
         extraPersonsPaid,
         finalPaid,
+        finalPaidOrig,
         totalPaidInCurrency,
         totalLkrEquivalent,
         remainingBalance
@@ -1127,29 +1152,50 @@ const Handover = () => {
                 {/* Card Body: Financial Summary Tiles */}
                 <div className="p-4 space-y-3.5">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                    <div className="p-2.5 bg-slate-50/70 border border-slate-100 rounded-xl">
+                    <div className="p-2.5 bg-slate-50/80 border border-slate-200/70 rounded-xl flex flex-col justify-between">
                       <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Gross Total</p>
-                      <p className="font-mono font-bold text-xs text-slate-800 mt-0.5">
-                        {b.currency} {b.grossBillValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
+                      <div className="mt-0.5">
+                        <p className="font-mono font-bold text-xs text-slate-800">
+                          {b.currency} {b.grossBillValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-2.5 bg-emerald-50/40 border border-emerald-100/60 rounded-xl">
+
+                    <div className="p-2.5 bg-emerald-50/50 border border-emerald-200/70 rounded-xl flex flex-col justify-between">
                       <p className="text-[9px] uppercase font-bold text-emerald-700 tracking-wider">Net Payable</p>
-                      <p className="font-mono font-black text-xs text-emerald-900 mt-0.5">
-                        {b.currency} {b.netPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
+                      <div className="mt-0.5">
+                        <p className="font-mono font-black text-xs text-emerald-900">
+                          {b.currency} {b.netPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-2.5 bg-amber-50/40 border border-amber-100/60 rounded-xl">
+
+                    <div className="p-2.5 bg-amber-50/50 border border-amber-200/70 rounded-xl flex flex-col justify-between">
                       <p className="text-[9px] uppercase font-bold text-amber-700 tracking-wider">Advance Paid</p>
-                      <p className="font-mono font-bold text-xs text-amber-800 mt-0.5">
-                        {b.currency} {b.advancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
+                      <div className="mt-0.5">
+                        <p className="font-mono font-bold text-xs text-amber-800">
+                          {b.currency} {b.advancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        {b.advancePaidOrig?.currency && b.advancePaidOrig.currency !== b.currency && (
+                          <span className="inline-block text-[9px] font-semibold text-amber-700 bg-amber-100/70 px-1.5 py-0.2 rounded mt-0.5">
+                            Paid: {b.advancePaidOrig.currency} {b.advancePaidOrig.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="p-2.5 bg-blue-50/40 border border-blue-100/60 rounded-xl">
+
+                    <div className="p-2.5 bg-blue-50/50 border border-blue-200/70 rounded-xl flex flex-col justify-between">
                       <p className="text-[9px] uppercase font-bold text-blue-700 tracking-wider">Final Settlement</p>
-                      <p className="font-mono font-bold text-xs text-blue-800 mt-0.5">
-                        {b.currency} {b.finalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
+                      <div className="mt-0.5">
+                        <p className="font-mono font-bold text-xs text-blue-800">
+                          {b.currency} {b.finalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        {b.finalPaidOrig?.currency && b.finalPaidOrig.currency !== b.currency && (
+                          <span className="inline-block text-[9px] font-semibold text-blue-700 bg-blue-100/70 px-1.5 py-0.2 rounded mt-0.5">
+                            Paid: {b.finalPaidOrig.currency} {b.finalPaidOrig.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1167,6 +1213,11 @@ const Handover = () => {
                     {b.discountVal > 0 && (
                       <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
                         <Tag size={11} /> Discount: -{b.currency} {b.discountVal.toLocaleString()}
+                      </span>
+                    )}
+                    {b.remainingBalance > 0 && (
+                      <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg">
+                        Due: {b.currency} {b.remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     )}
                     <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg ml-auto">
