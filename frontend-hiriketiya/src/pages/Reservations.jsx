@@ -1812,7 +1812,6 @@ const Reservations = () => {
     const bookingCurrency = (booking.currency || 'USD').toUpperCase();
     const totalBookingAmountLkr = bookingCurrency === 'LKR' 
       ? totalBookingAmount 
-      : (totalBookingAmount * bookingExRate); 
       : (totalBookingAmount * bookingExRate);
 
     const totalPaidSoFar = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
