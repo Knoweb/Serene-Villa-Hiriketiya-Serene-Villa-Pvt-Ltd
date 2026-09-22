@@ -499,14 +499,20 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
           const dispPriorAdvancePaid = isExtraSubBooking ? 0 : (forceLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr);
 
-          // If this is a final payment and other charges were adjusted, ensure the base settlement paid amount reflects net paid
-          let basePaidInBookingCurr = rawPaid;
+          // Currency normalization for the payment amount
+          const pCurr = (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || bCurr).toUpperCase();
           const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
-          if (pLkrAmount > 0 && exRate > 0 && bCurr !== 'LKR') {
-            const derivedBookingCurr = pLkrAmount / exRate;
-            if (Math.abs(derivedBookingCurr - (rawPaid - otherVal)) < 0.05 || Math.abs(derivedBookingCurr - rawPaid) < 0.05) {
-              basePaidInBookingCurr = derivedBookingCurr;
-            }
+          const pExRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || exRate || 1;
+
+          let basePaidInBookingCurr = 0;
+          if (rawPaid === 0) {
+            basePaidInBookingCurr = 0;
+          } else if (pCurr === bCurr.toUpperCase()) {
+            basePaidInBookingCurr = rawPaid;
+          } else if (bCurr.toUpperCase() === 'LKR') {
+            basePaidInBookingCurr = pLkrAmount > 0 ? pLkrAmount : (rawPaid * pExRate);
+          } else {
+            basePaidInBookingCurr = (pLkrAmount > 0 ? pLkrAmount : rawPaid) / (pExRate > 0 ? pExRate : 1);
           }
 
           const paidDisplayAmt = forceLkr 

@@ -4183,13 +4183,19 @@ const Reservations = () => {
                       const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
                       const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
 
-                      let basePaidInBookingCurr = rawPaid;
+                      const pCurr = (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || bCurr).toUpperCase();
                       const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
-                      if (pLkrAmount > 0 && exRate > 0 && (dispCurr !== 'LKR' || bCurr !== 'LKR')) {
-                        const derivedBookingCurr = pLkrAmount / exRate;
-                        if (Math.abs(derivedBookingCurr - (rawPaid - otherVal)) < 0.05 || Math.abs(derivedBookingCurr - rawPaid) < 0.05) {
-                          basePaidInBookingCurr = derivedBookingCurr;
-                        }
+                      const pExRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || exRate || 1;
+
+                      let basePaidInBookingCurr = 0;
+                      if (rawPaid === 0) {
+                        basePaidInBookingCurr = 0;
+                      } else if (pCurr === bCurr.toUpperCase()) {
+                        basePaidInBookingCurr = rawPaid;
+                      } else if (bCurr.toUpperCase() === 'LKR') {
+                        basePaidInBookingCurr = pLkrAmount > 0 ? pLkrAmount : (rawPaid * pExRate);
+                      } else {
+                        basePaidInBookingCurr = (pLkrAmount > 0 ? pLkrAmount : rawPaid) / (pExRate > 0 ? pExRate : 1);
                       }
 
                       const paidAmt = forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' 
