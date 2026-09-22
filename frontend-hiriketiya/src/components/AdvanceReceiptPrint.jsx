@@ -516,8 +516,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           }
 
           const paidDisplayAmt = forceLkr 
-            ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (basePaidInBookingCurr * exRate))
+            ? (bCurr === 'LKR' ? basePaidInBookingCurr : (basePaidInBookingCurr * exRate))
             : basePaidInBookingCurr;
+
+          const totalPaidUpToThisBCurr = priorAdvancePaidBCurr + basePaidInBookingCurr;
+          const totalPaidUpToThisDisplay = forceLkr
+            ? (bCurr === 'LKR' ? totalPaidUpToThisBCurr : (totalPaidUpToThisBCurr * exRate))
+            : totalPaidUpToThisBCurr;
 
           let remBal = 0;
           if (isFinalPayment) {
@@ -525,10 +530,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           } else if (isExtraNight || isExtraPerson) {
             remBal = Math.max(0, dispNetTotAmt - paidDisplayAmt);
           } else if (isDiscountAdjusted) {
-            const totalPaidUpToThisDisplay = forceLkr ? totalPaidUpToThis : (totalPaidUpToThis / exRate);
             remBal = Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay);
           } else {
-            const totalPaidUpToThisDisplay = forceLkr ? totalPaidUpToThis : (totalPaidUpToThis / exRate);
             remBal = Math.max(0, dispGrossTotAmt - totalPaidUpToThisDisplay);
           }
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
