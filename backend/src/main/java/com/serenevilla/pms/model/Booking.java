@@ -10,8 +10,10 @@ import java.time.LocalDate;
 @Table(
     name = "bookings",
     indexes = {
-        @Index(name = "idx_booking_reg_id", columnList = "guest_registration_id"),
-        @Index(name = "idx_booking_room_num", columnList = "roomNumber"),
+        @Index(name = "idx_bookings_prop_room_status", columnList = "property_id, roomNumber, status"),
+        @Index(name = "idx_bookings_prop_dates_status", columnList = "property_id, status, checkInDate, checkOutDate"),
+        @Index(name = "idx_bookings_prop_guest_reg", columnList = "property_id, guest_registration_id"),
+        @Index(name = "idx_bookings_prop_pay_status", columnList = "property_id, paymentStatus"),
         @Index(name = "idx_booking_property", columnList = "property_id")
     },
     uniqueConstraints = {

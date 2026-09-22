@@ -7,9 +7,17 @@ import lombok.AllArgsConstructor;
 import java.util.List;
 
 @Entity
-@Table(name = "rooms", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_property_room", columnNames = {"property_id", "roomNumber"})
-})
+@Table(
+    name = "rooms",
+    indexes = {
+        @Index(name = "idx_rooms_property_id", columnList = "property_id, id"),
+        @Index(name = "idx_rooms_property_room_number", columnList = "property_id, roomNumber"),
+        @Index(name = "idx_rooms_property_status", columnList = "property_id, status")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_property_room", columnNames = {"property_id", "roomNumber"})
+    }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

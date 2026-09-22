@@ -11,10 +11,11 @@ import java.time.LocalDateTime;
 @Table(
     name = "guest_registrations",
     indexes = {
+        @Index(name = "idx_guest_reg_prop_dates", columnList = "property_id, checkInDate, checkOutDate"),
+        @Index(name = "idx_guest_reg_prop_pay_status", columnList = "property_id, paymentStatus"),
         @Index(name = "idx_guest_reg_name", columnList = "guestName"),
         @Index(name = "idx_guest_reg_passport", columnList = "passportNumber"),
         @Index(name = "idx_guest_reg_whatsapp", columnList = "whatsappNumber"),
-        @Index(name = "idx_guest_reg_pay_status", columnList = "paymentStatus"),
         @Index(name = "idx_guest_reg_hidden", columnList = "isHiddenFromFrontOffice"),
         @Index(name = "idx_guest_reg_property", columnList = "property_id")
     }
