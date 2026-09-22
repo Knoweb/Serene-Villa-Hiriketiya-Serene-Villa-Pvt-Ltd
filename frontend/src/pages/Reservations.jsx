@@ -1478,16 +1478,33 @@ const Reservations = () => {
         showAlert(`Booking Number "${bNum}" already exists! Please use a unique number.`, 'Duplicate Booking Number');
         return;
       }
+      if (!confirmationData.checkInDate) {
+        showAlert('Please select a Check-in Date.', 'Validation Error');
+        return;
+      }
+      if (!confirmationData.checkOutDate) {
+        const inD = new Date(confirmationData.checkInDate);
+        inD.setDate(inD.getDate() + (parseInt(confirmationData.nights) || 1));
+        confirmationData.checkOutDate = inD.toISOString().split('T')[0];
+      }
     }
     setIsSaving(true);
     if (isCreatingNewReservation) {
       let savedGuestId = null;
       try {
+        const checkInVal = confirmationData.checkInDate || new Date().toISOString().split('T')[0];
+        let checkOutVal = confirmationData.checkOutDate;
+        if (!checkOutVal && checkInVal) {
+          const d = new Date(checkInVal);
+          d.setDate(d.getDate() + (parseInt(confirmationData.nights) || 1));
+          checkOutVal = d.toISOString().split('T')[0];
+        }
+
         const newGuest = {
           title: confirmationData.title || 'Mr.',
           guestName: confirmationData.guestName || 'Guest',
-          checkInDate: confirmationData.checkInDate,
-          checkOutDate: confirmationData.checkOutDate,
+          checkInDate: checkInVal,
+          checkOutDate: checkOutVal,
           numberOfNights: parseInt(confirmationData.nights) || 1,
           adults: parseInt(confirmationData.adults) || 1,
           children: parseInt(confirmationData.children) || 0,
