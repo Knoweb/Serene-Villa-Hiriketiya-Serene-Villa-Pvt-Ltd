@@ -1274,19 +1274,28 @@ const Reservations = () => {
     const reg = regToUse || selectedReg;
     if (!reg) return;
 
+    const bForReg = getBookingForReg(reg.id);
     const relatedBookings = bookings.filter(b => {
-      if (!reg) return false;
-      if (b.guestRegistrationId && b.guestRegistrationId === reg.id) return true;
-      const cleanRegName = (reg.guestName || '').replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '').trim().toLowerCase();
-      const cleanBName = (b.guestName || '').replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '').trim().toLowerCase();
-      if (cleanRegName && cleanBName && (cleanBName === cleanRegName || cleanBName.includes(cleanRegName) || cleanRegName.includes(cleanBName))) return true;
+      if (!bForReg) return false;
+      if (b.guestRegistrationId && bForReg.guestRegistrationId && b.guestRegistrationId === bForReg.guestRegistrationId) return true;
+      const baseBNum = bForReg.bookingNumber;
+      if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+        return true;
+      }
       return false;
     });
+    const baseBookingItem = (relatedBookings.length > 0 ? relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) : null) || bForReg || {
+      bookingNumber: 'SV-' + (1000 + reg.id),
+      roomNumber: 'Unallocated',
+      roomType: 'Deluxe Room',
+      totalAmount: 100.00,
+      boardBasis: 'Bed & Breakfast',
+      remarks: '',
+      bookingType: 'Direct Booking'
+    };
 
-    let booking = getBookingForReg(reg.id);
-    const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || booking || {};
-
-    const nightsVal = reg.numberOfNights || reg.nights || 1;
+    const nightsCount = reg.numberOfNights || reg.nights || 1;
+    const defaultUnitPrice = (parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) / nightsCount).toFixed(2);
     const allocatedRooms = (() => {
       if (baseBookingItem.roomPrices) {
         try {
@@ -1316,27 +1325,27 @@ const Reservations = () => {
       return res;
     })();
 
-    const bCurr = getBookingCurrency(baseBookingItem, reg);
-
     setConfirmationData({
+      address: '',
       guestName: reg.guestName || '',
-      bookingNumber: baseBookingItem.bookingNumber || booking?.bookingNumber || ('SV-' + (1000 + reg.id)),
+      email: reg?.email || baseBookingItem?.email || 'N/A',
+      vatNo: '',
+      whatsappNumber: reg?.whatsappNumber || reg?.whatsAppNumber || 'N/A',
+      nationality: reg?.nationality || 'N/A',
       checkInDate: baseBookingItem.checkInDate || reg.checkInDate || '',
       checkOutDate: baseBookingItem.checkOutDate || reg.checkOutDate || '',
-      nights: nightsVal,
+      roomType: baseBookingItem.roomType || 'Deluxe Room',
+      nights: nightsCount,
       adults: reg.adults || 1,
       children: reg.children || 0,
-      boardBasis: baseBookingItem.boardBasis || 'Bed & Breakfast',
-      email: reg.email || 'N/A',
-      whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || 'N/A',
-      nationality: reg.nationality || 'N/A',
+      boardBasis: baseBookingItem.boardBasis || 'Room Only',
       reservationDate: new Date().toISOString().split('T')[0],
-      roomType: baseBookingItem.roomType || '',
-      unitPrice: baseBookingItem.unitPrice || '0.00',
-      totalPrice: (parseFloat(baseBookingItem.totalAmount || booking?.totalAmount || 0)).toFixed(2),
-      currency: bCurr,
-      tableCurrency: bCurr,
-      exchangeRate: baseBookingItem.exchangeRate || booking?.exchangeRate || '1.00',
+      roomReference: `Room ${baseBookingItem.roomNumber || ''} (${baseBookingItem.roomType || ''})`,
+      unitPrice: baseBookingItem.unitPrice || defaultUnitPrice,
+      totalPrice: (parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0)).toFixed(2),
+      currency: baseBookingItem.currency || 'USD',
+      tableCurrency: baseBookingItem.currency || 'USD',
+      exchangeRate: baseBookingItem.exchangeRate || '1.00',
       allocatedRooms: allocatedRooms,
       confirmedBy: baseBookingItem.confirmedBy || localStorage.getItem('pms_confirmed_by') || 'Muthuni Weerasingha',
       reservationStatus: 'Confirm Booking',
@@ -2800,6 +2809,88 @@ const Reservations = () => {
                   <span>Print PDF</span>
                 </button>
               </div>
+
+              {/* View Draft Bill button for bookings inside drawer */}
+              {associatedBooking && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const relatedBookings = bookings.filter(b => {
+                        if (!associatedBooking) return false;
+                        if (b.guestRegistrationId && associatedBooking.guestRegistrationId && b.guestRegistrationId === associatedBooking.guestRegistrationId) return true;
+                        const baseBNum = associatedBooking.bookingNumber;
+                        if (baseBNum && b.bookingNumber && (b.bookingNumber.startsWith(baseBNum + '/') || b.bookingNumber === baseBNum)) {
+                          return true;
+                        }
+                        return false;
+                      });
+                      const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/')) || associatedBooking;
+                      const nightsVal = selectedReg.numberOfNights || selectedReg.nights || 1;
+                      const allocatedRooms = (() => {
+                        if (baseBookingItem.roomPrices) {
+                          try {
+                            const p = typeof baseBookingItem.roomPrices === 'string' ? JSON.parse(baseBookingItem.roomPrices) : baseBookingItem.roomPrices;
+                            if (Array.isArray(p) && p.length > 0) {
+                              return p.map((item, idx) => ({
+                                roomType: item.roomType || baseBookingItem.roomType || 'Deluxe Room',
+                                roomNumber: String(item.roomNumber || item.roomNum || `Room ${idx + 1}`).replace(/^Room\s*/i, '').trim(),
+                                price: item.price != null && item.price !== '' ? item.price : (item.rate || '0.00')
+                              }));
+                            }
+                          } catch (e) {}
+                        }
+                        const rNums = (baseBookingItem.roomNumber || '').split(',').map(r => r.trim()).filter(Boolean);
+                        const rTypes = (baseBookingItem.roomType || '').split(',').map(t => t.trim()).filter(Boolean);
+                        const count = Math.max(rNums.length, rTypes.length, 1);
+                        const tot = parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0);
+                        const perRoom = count > 0 && tot > 0 ? (tot / count).toFixed(2) : '0.00';
+                        const res = [];
+                        for (let i = 0; i < count; i++) {
+                          res.push({
+                            roomType: rTypes[i] || rTypes[0] || baseBookingItem.roomType || 'Deluxe Room',
+                            roomNumber: rNums[i] || (count > 1 ? `${i + 1}` : (rNums[0] || '')),
+                            price: perRoom
+                          });
+                        }
+                        return res;
+                      })();
+
+                      setConfirmationData({
+                        guestName: selectedReg.guestName || '',
+                        bookingNumber: baseBookingItem.bookingNumber || associatedBooking.bookingNumber || '',
+                        checkInDate: baseBookingItem.checkInDate || selectedReg.checkInDate || '',
+                        checkOutDate: baseBookingItem.checkOutDate || selectedReg.checkOutDate || '',
+                        nights: nightsVal,
+                        adults: selectedReg.adults || 1,
+                        children: selectedReg.children || 0,
+                        boardBasis: baseBookingItem.boardBasis || associatedBooking.boardBasis || 'Room Only',
+                        email: selectedReg.email || 'N/A',
+                        whatsappNumber: selectedReg.whatsappNumber || 'N/A',
+                        nationality: selectedReg.nationality || 'N/A',
+                        reservationDate: new Date().toISOString().split('T')[0],
+                        roomType: baseBookingItem.roomType || associatedBooking.roomType || '',
+                        unitPrice: baseBookingItem.unitPrice || associatedBooking.unitPrice || '0.00',
+                        totalPrice: (parseFloat(baseBookingItem.totalAmount || associatedBooking.totalAmount || 0)).toFixed(2),
+                        currency: baseBookingItem.currency || associatedBooking.currency || 'USD',
+                        tableCurrency: baseBookingItem.currency || associatedBooking.currency || 'USD',
+                        exchangeRate: baseBookingItem.exchangeRate || associatedBooking.exchangeRate || '1.00',
+                        allocatedRooms: allocatedRooms,
+                        confirmedBy: baseBookingItem.confirmedBy || associatedBooking.confirmedBy || 'Muthuni Weerasingha',
+                        reservationStatus: 'Confirm Booking',
+                        senderName: baseBookingItem.senderName || associatedBooking.senderName || confirmationData.senderName || localStorage.getItem('pms_sender_name') || user?.name || user?.username || '',
+                        badgeText: '',
+                        remarks: baseBookingItem.remarks || '',
+                        bookingType: baseBookingItem.bookingType || associatedBooking.bookingType || 'Booking.com Booking'
+                      });
+                      setShowDraftPreviewModal(true);
+                    }}
+                    className="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <FileText className="h-4 w-4 text-blue-700" /> View Draft Bill
+                  </button>
+                </div>
+              )}
 
               {/* Save / Edit / Cancel Buttons for Guest Info */}
               {(isFrontOfficer || isAdmin) && (
@@ -5654,7 +5745,7 @@ const Reservations = () => {
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col p-6 space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                <FileText size={18} className="text-blue-600" /> Reservation Confirmation & Bill Preview
+                <FileText size={18} className="text-blue-600" /> Draft Bill Preview
               </h3>
               <button
                 onClick={() => setShowDraftPreviewModal(false)}
