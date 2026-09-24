@@ -35,5 +35,8 @@ public class ReportRowDTO {
     private double cashAmount;
     private double cardAmount;
     private double bankTransferAmount;
+    private double cardCharges;
+    private double otherCharges;
+    private double netAmount;
     private int pax;
 }

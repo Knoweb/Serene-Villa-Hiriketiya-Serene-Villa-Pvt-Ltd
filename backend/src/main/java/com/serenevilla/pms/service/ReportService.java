@@ -98,21 +98,50 @@ public class ReportService {
         long totalInvoices = paymentsInRange.size();
         double totalRevenue = paymentsInRange.stream().mapToDouble(Payment::getAmountLkr).sum();
 
-        // Payment method breakdown
+        // Payment method breakdown and charges calculation
         double cashRevenue = 0;
         double cardRevenue = 0;
         double bankTransferRevenue = 0;
+        double totalCardCharges = 0;
+        double totalOtherCharges = 0;
 
         for (Payment p : paymentsInRange) {
             String method = p.getPaymentMethod() != null ? p.getPaymentMethod().toUpperCase().trim() : "";
+            double pAmtLkr = p.getAmountLkr();
+            Double rateObj = p.getExchangeRate();
+            double pRate = rateObj != null && rateObj > 0 ? rateObj : 1.0;
+            String pCurr = p.getCurrency() != null ? p.getCurrency().toUpperCase() : "LKR";
+
             if (method.contains("CASH")) {
-                cashRevenue += p.getAmountLkr();
+                cashRevenue += pAmtLkr;
             } else if (method.contains("CARD") || method.contains("VISA") || method.contains("MASTER") || method.contains("AMEX")) {
-                cardRevenue += p.getAmountLkr();
+                cardRevenue += pAmtLkr;
             } else if (method.contains("BANK") || method.contains("TRANSFER") || method.contains("ONLINE") || method.contains("PEOPLE")) {
-                bankTransferRevenue += p.getAmountLkr();
+                bankTransferRevenue += pAmtLkr;
             } else {
-                cashRevenue += p.getAmountLkr();
+                cashRevenue += pAmtLkr;
+            }
+
+            // Extract Card / Bank Charges from remarks e.g. [Charges: 42]
+            if (p.getRemarks() != null) {
+                java.util.regex.Matcher cardFeeMatch = java.util.regex.Pattern.compile("\\[(?:Bank )?Charges: ([\\d.]+)\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(p.getRemarks());
+                if (cardFeeMatch.find()) {
+                    try {
+                        double feeRaw = Double.parseDouble(cardFeeMatch.group(1));
+                        double feeLkr = "LKR".equals(pCurr) ? feeRaw : (feeRaw * pRate);
+                        totalCardCharges += feeLkr;
+                    } catch (Exception ignored) {}
+                }
+
+                // Extract Other Charges from remarks e.g. [Other Charges: 50]
+                java.util.regex.Matcher otherMatch = java.util.regex.Pattern.compile("\\[Other Charges: ([\\d.]+)\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(p.getRemarks());
+                if (otherMatch.find()) {
+                    try {
+                        double otherRaw = Double.parseDouble(otherMatch.group(1));
+                        double otherLkr = "LKR".equals(pCurr) ? otherRaw : (otherRaw * pRate);
+                        totalOtherCharges += otherLkr;
+                    } catch (Exception ignored) {}
+                }
             }
         }
 
@@ -251,6 +280,29 @@ public class ReportService {
             row.setCardAmount(rowCard);
             row.setBankTransferAmount(rowBank);
             row.setPax(pax);
+
+            // Extract row-specific card fees and other charges
+            double rowFeeLkr = 0;
+            double rowOtherLkr = 0;
+            if (payment.getRemarks() != null) {
+                java.util.regex.Matcher cfm = java.util.regex.Pattern.compile("\\[(?:Bank )?Charges: ([\\d.]+)\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(payment.getRemarks());
+                if (cfm.find()) {
+                    try {
+                        double feeRaw = Double.parseDouble(cfm.group(1));
+                        rowFeeLkr = "LKR".equalsIgnoreCase(payment.getCurrency()) ? feeRaw : (feeRaw * (payment.getExchangeRate() > 0 ? payment.getExchangeRate() : 1.0));
+                    } catch (Exception ignored) {}
+                }
+                java.util.regex.Matcher om = java.util.regex.Pattern.compile("\\[Other Charges: ([\\d.]+)\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(payment.getRemarks());
+                if (om.find()) {
+                    try {
+                        double otherRaw = Double.parseDouble(om.group(1));
+                        rowOtherLkr = "LKR".equalsIgnoreCase(payment.getCurrency()) ? otherRaw : (otherRaw * (payment.getExchangeRate() > 0 ? payment.getExchangeRate() : 1.0));
+                    } catch (Exception ignored) {}
+                }
+            }
+            row.setCardCharges(rowFeeLkr);
+            row.setOtherCharges(rowOtherLkr);
+            row.setNetAmount(Math.max(0, pAmountLkr - rowOtherLkr));
 
             rows.add(row);
         }
@@ -422,6 +474,9 @@ public class ReportService {
         summary.setCashRevenue(cashRevenue);
         summary.setCardRevenue(cardRevenue);
         summary.setBankTransferRevenue(bankTransferRevenue);
+        summary.setTotalCardCharges(totalCardCharges);
+        summary.setTotalOtherCharges(totalOtherCharges);
+        summary.setNetRevenue(Math.max(0, totalRevenue - totalOtherCharges));
 
         summary.setDirectBookingCount(directBookingCount);
         summary.setDirectBookingAmount(directBookingAmount);

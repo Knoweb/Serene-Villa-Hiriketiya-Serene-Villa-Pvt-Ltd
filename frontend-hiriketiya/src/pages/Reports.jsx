@@ -282,7 +282,7 @@ const Reports = () => {
 
     const headers = [
       'Invoice / Receipt', 'Booking Ref', 'Guest Name', 'Room', 'Check-In', 'Check-Out', 
-      'Payment Method', 'Cash (LKR)', 'Visa/Card (LKR)', 'Bank Transfer (LKR)', 'Total Amount (LKR)', 'Source'
+      'Payment Method', 'Cash (LKR)', 'Visa/Card (LKR)', 'Bank Transfer (LKR)', 'Gross (LKR)', 'Card Fee (LKR)', 'Other Charges (LKR)', 'Net Revenue (LKR)', 'Source'
     ];
 
     const csvRows = [
@@ -299,6 +299,9 @@ const Reports = () => {
         row.cardAmount || 0,
         row.bankTransferAmount || 0,
         row.convertedAmount || 0,
+        row.cardCharges || 0,
+        row.otherCharges || 0,
+        row.netAmount != null ? row.netAmount : (row.convertedAmount || 0),
         `"${row.bookingSource}"`
       ].join(','))
     ];
@@ -318,6 +321,9 @@ const Reports = () => {
   const totalCardRows = data?.rows?.reduce((sum, r) => sum + (r.cardAmount || 0), 0) || 0;
   const totalBankRows = data?.rows?.reduce((sum, r) => sum + (r.bankTransferAmount || 0), 0) || 0;
   const totalConvertedRows = data?.rows?.reduce((sum, r) => sum + (r.convertedAmount || 0), 0) || 0;
+  const totalCardChargesRows = data?.rows?.reduce((sum, r) => sum + (r.cardCharges || 0), 0) || 0;
+  const totalOtherChargesRows = data?.rows?.reduce((sum, r) => sum + (r.otherCharges || 0), 0) || 0;
+  const totalNetRows = data?.rows?.reduce((sum, r) => sum + (r.netAmount != null ? r.netAmount : (r.convertedAmount || 0)), 0) || 0;
 
   return (
     <div className="space-y-6">
@@ -672,13 +678,14 @@ const Reports = () => {
                   <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden table-fixed">
                     <thead>
                       <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[9px]">
-                        <th className="p-2 w-[12%]">Invoice #</th>
-                        <th className="p-2 w-[16%]">Booking Ref</th>
-                        <th className="p-2 w-[16%]">Room</th>
-                        <th className="p-2 w-[14%] text-right">Cash (LKR)</th>
-                        <th className="p-2 w-[14%] text-right">Visa/Card (LKR)</th>
-                        <th className="p-2 w-[14%] text-right">Bank Transfer (LKR)</th>
-                        <th className="p-2 w-[14%] text-right font-black text-emerald-900">Total (LKR)</th>
+                        <th className="p-2 w-[11%]">Invoice #</th>
+                        <th className="p-2 w-[14%]">Booking Ref</th>
+                        <th className="p-2 w-[13%]">Room</th>
+                        <th className="p-2 w-[11%] text-right">Cash (LKR)</th>
+                        <th className="p-2 w-[11%] text-right">Visa/Card (LKR)</th>
+                        <th className="p-2 w-[11%] text-right">Bank Transfer (LKR)</th>
+                        <th className="p-2 w-[11%] text-right font-black text-slate-900">Gross (LKR)</th>
+                        <th className="p-2 w-[14%] text-right font-black text-emerald-900">Net Revenue (LKR)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -705,7 +712,12 @@ const Reports = () => {
                           </td>
                           <td className="p-2 text-right font-mono text-slate-700 text-[10px] whitespace-nowrap">
                             {row.cardAmount > 0 ? (
-                              <span className="font-bold text-blue-700">{formatNum(row.cardAmount)}</span>
+                              <div>
+                                <span className="font-bold text-blue-700 block">{formatNum(row.cardAmount)}</span>
+                                {row.cardCharges > 0 && (
+                                  <span className="text-[8px] text-blue-600 block font-normal">(Fee: -{formatNum(row.cardCharges)})</span>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
@@ -717,15 +729,23 @@ const Reports = () => {
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
+                          <td className="p-2 text-right font-mono font-bold text-slate-900 text-[10px] whitespace-nowrap">
+                            <div>
+                              <span>{formatNum(row.convertedAmount)}</span>
+                              {row.otherCharges > 0 && (
+                                <span className="text-[8px] text-amber-600 block font-normal">(Other: -{formatNum(row.otherCharges)})</span>
+                              )}
+                            </div>
+                          </td>
                           <td className="p-2 text-right font-mono font-black text-emerald-900 bg-emerald-50/30 text-[10px] whitespace-nowrap">
-                            {formatNum(row.convertedAmount)}
+                            {formatNum(row.netAmount != null ? row.netAmount : row.convertedAmount)}
                           </td>
                         </tr>
                       ))}
 
                       {(!data.rows || data.rows.length === 0) && (
                         <tr>
-                          <td colSpan="7" className="p-8 text-center text-slate-400 font-bold">
+                          <td colSpan="8" className="p-8 text-center text-slate-400 font-bold">
                             No financial transactions recorded for the selected period.
                           </td>
                         </tr>
@@ -746,8 +766,11 @@ const Reports = () => {
                         <td className="p-2 text-right font-mono text-amber-800 text-[10px] whitespace-nowrap">
                           {formatNum(totalBankRows)}
                         </td>
-                        <td className="p-2 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-[11px] whitespace-nowrap">
+                        <td className="p-2 text-right font-mono font-bold text-slate-900 text-[10px] whitespace-nowrap">
                           {formatNum(totalConvertedRows)}
+                        </td>
+                        <td className="p-2 text-right font-mono font-black text-emerald-950 bg-emerald-100/60 text-[11px] whitespace-nowrap">
+                          {formatNum(totalNetRows)}
                         </td>
                       </tr>
                     </tfoot>
@@ -976,12 +999,37 @@ const Reports = () => {
                               <td className="p-2 text-right font-mono font-bold text-slate-900">{formatLKR(data.cardRevenue)}</td>
                               <td className="p-2 text-right font-mono text-slate-500 text-[10px]">{getPct(data.cardRevenue)}</td>
                             </tr>
-                            <tr className="bg-emerald-50/70 font-black border-t-2 border-emerald-200 text-slate-900">
-                              <td className="p-2 text-emerald-950 uppercase text-xs">Total Settled Revenue</td>
-                              <td className="p-2 text-right font-mono font-black text-emerald-900 text-sm">
+                            <tr className="bg-slate-50/90 font-bold border-t border-slate-200 text-slate-900">
+                              <td className="p-2 uppercase text-[10px] text-slate-600">Gross Total Revenue</td>
+                              <td className="p-2 text-right font-mono font-bold text-slate-900">
                                 {formatLKR(totalSettled)}
                               </td>
-                              <td className="p-2 text-right font-mono font-black text-emerald-900">100.0%</td>
+                              <td className="p-2 text-right font-mono text-slate-500 text-[10px]">100.0%</td>
+                            </tr>
+                            {(data.totalOtherCharges || 0) > 0 && (
+                              <tr className="text-amber-700 bg-amber-50/40 font-semibold">
+                                <td className="p-2 flex items-center gap-2">
+                                  <span className="h-2 w-2 rounded-full bg-amber-500"></span> Less: Web Other Charges
+                                </td>
+                                <td className="p-2 text-right font-mono font-bold">-{formatLKR(data.totalOtherCharges)}</td>
+                                <td className="p-2 text-right font-mono text-slate-400 text-[10px]">-</td>
+                              </tr>
+                            )}
+                            {(data.totalCardCharges || 0) > 0 && (
+                              <tr className="text-blue-700 bg-blue-50/40 font-semibold">
+                                <td className="p-2 flex items-center gap-2">
+                                  <span className="h-2 w-2 rounded-full bg-blue-500"></span> Memo: Card Fee (3%)
+                                </td>
+                                <td className="p-2 text-right font-mono font-bold">{formatLKR(data.totalCardCharges)}</td>
+                                <td className="p-2 text-right font-mono text-slate-400 text-[10px]">-</td>
+                              </tr>
+                            )}
+                            <tr className="bg-emerald-50/80 font-black border-t-2 border-emerald-300 text-slate-900">
+                              <td className="p-2 text-emerald-950 uppercase text-xs">Net Reconciled Revenue</td>
+                              <td className="p-2 text-right font-mono font-black text-emerald-900 text-sm">
+                                {formatLKR(data.netRevenue != null ? data.netRevenue : Math.max(0, totalSettled - (data.totalOtherCharges || 0)))}
+                              </td>
+                              <td className="p-2 text-right font-mono font-black text-emerald-900">NET</td>
                             </tr>
                           </>
                         );

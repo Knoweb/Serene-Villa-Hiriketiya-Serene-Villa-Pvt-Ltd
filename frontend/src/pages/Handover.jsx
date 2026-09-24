@@ -412,6 +412,15 @@ const Handover = () => {
           totalBankCharges += rawFee;
         }
 
+        // Extract other charges from payment remarks if present (e.g. [Other Charges: 50])
+        const otherChargesMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/i);
+        if (otherChargesMatch) {
+          const rawOther = parseFloat(otherChargesMatch[1]) || 0;
+          if (rawOther > 0 && g.otherChargesPrice === 0) {
+            g.otherChargesPrice += rawOther;
+          }
+        }
+
         // Normalized amount in booking currency
         let pAmtInBookingCurr = pRawAmt;
         if (pCurr !== bookingCurr) {

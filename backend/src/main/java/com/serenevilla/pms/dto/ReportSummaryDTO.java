@@ -21,6 +21,11 @@ public class ReportSummaryDTO {
     private double totalRemainingBalance;
     private double totalOutstandingAmount;
 
+    // Fees and Deductions
+    private double totalCardCharges;
+    private double totalOtherCharges;
+    private double netRevenue;
+
     // Payment method breakdowns
     private double cashRevenue;
     private double cardRevenue;

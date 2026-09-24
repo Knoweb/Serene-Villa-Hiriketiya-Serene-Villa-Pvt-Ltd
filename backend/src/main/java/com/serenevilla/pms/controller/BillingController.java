@@ -47,7 +47,16 @@ public class BillingController {
                     payment.setAccountantTransferStatus(AccountantTransferStatus.PENDING);
                     payment.setSentToAccountantAt(now);
                     payment.setSentToAccountantById(1L); // Simulated Front Office User ID
-                    payment.setRemarks(""); // Clear any previous rejection reason
+                    
+                    // Clean rejection reason while preserving charges tags
+                    String currentRemarks = payment.getRemarks() != null ? payment.getRemarks() : "";
+                    String preservedCharges = "";
+                    java.util.regex.Matcher cm = java.util.regex.Pattern.compile("\\[(?:Bank )?Charges: [\\d.]+\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(currentRemarks);
+                    while (cm.find()) preservedCharges += cm.group() + " ";
+                    java.util.regex.Matcher om = java.util.regex.Pattern.compile("\\[Other Charges: [\\d.]+\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(currentRemarks);
+                    while (om.find()) preservedCharges += om.group() + " ";
+                    
+                    payment.setRemarks(preservedCharges.trim());
                     paymentRepository.save(payment);
                 });
             }
@@ -246,7 +255,16 @@ public class BillingController {
                     payment.setAccountantTransferStatus(AccountantTransferStatus.REJECTED);
                     payment.setAcceptedByAccountantAt(now);
                     payment.setAcceptedByAccountantId(2L);
-                    payment.setRemarks(reason != null && !reason.trim().isEmpty() ? "Rejected: " + reason : "Rejected by Accountant");
+                    
+                    String currentRemarks = payment.getRemarks() != null ? payment.getRemarks() : "";
+                    String preservedCharges = "";
+                    java.util.regex.Matcher cm = java.util.regex.Pattern.compile("\\[(?:Bank )?Charges: [\\d.]+\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(currentRemarks);
+                    while (cm.find()) preservedCharges += cm.group() + " ";
+                    java.util.regex.Matcher om = java.util.regex.Pattern.compile("\\[Other Charges: [\\d.]+\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(currentRemarks);
+                    while (om.find()) preservedCharges += om.group() + " ";
+                    
+                    String rejText = reason != null && !reason.trim().isEmpty() ? "Rejected: " + reason : "Rejected by Accountant";
+                    payment.setRemarks((preservedCharges.trim() + " " + rejText).trim());
                     paymentRepository.save(payment);
                 });
             }
