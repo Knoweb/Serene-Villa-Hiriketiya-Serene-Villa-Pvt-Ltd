@@ -380,9 +380,6 @@ const Handover = () => {
     });
 
     return Object.values(groups).map(g => {
-      const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
-      const grossBillValue = g.baseRoomPrice + extrasSubtotal;
-      const netPayable = Math.max(0, grossBillValue - g.discountVal - (g.otherChargesPrice || 0));
       const bookingCurr = (g.currency || 'USD').toUpperCase();
 
       let advancePaid = 0;
@@ -455,6 +452,9 @@ const Handover = () => {
         }
       });
 
+      const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
+      const grossBillValue = g.baseRoomPrice + extrasSubtotal;
+      const netPayable = Math.max(0, grossBillValue - g.discountVal - (g.otherChargesPrice || 0));
       const remainingBalance = Math.max(0, netPayable - (advancePaid + extraNightsPaid + extraPersonsPaid + finalPaid));
 
       return {
