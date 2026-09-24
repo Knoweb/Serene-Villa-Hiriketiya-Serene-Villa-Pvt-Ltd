@@ -102,8 +102,12 @@ public class PaymentController {
             payment.setReceiptNumber(payment.getReferenceNumber());
         }
 
-        payment.setPaymentDate(java.time.LocalDate.now());
-        payment.setCreatedAt(java.time.LocalDateTime.now());
+        if (payment.getPaymentDate() == null) {
+            payment.setPaymentDate(java.time.LocalDate.now());
+        }
+        if (payment.getCreatedAt() == null) {
+            payment.setCreatedAt(java.time.LocalDateTime.now());
+        }
         
         Payment saved = paymentRepository.save(payment);
         if (webSocketHandler != null) {

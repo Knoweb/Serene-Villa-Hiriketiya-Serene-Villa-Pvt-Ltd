@@ -1932,6 +1932,7 @@ const Reservations = () => {
         return r.trim();
       })(),
       createdBy: user.username,
+      paymentDate: paymentForm.paymentDate || new Date().toISOString().split('T')[0],
       slipPath: paymentForm.slipPath || '',
       paymentSlipUrl: paymentForm.slipPath || '',
       isAdvancePayment: !isFull
