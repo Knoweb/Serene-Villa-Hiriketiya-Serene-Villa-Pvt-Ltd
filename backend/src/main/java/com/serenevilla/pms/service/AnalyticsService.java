@@ -56,14 +56,28 @@ public class AnalyticsService {
         double totalPaymentRev = 0;
         double totalCardCharges = 0;
         double totalOtherCharges = 0;
+        double cashRev = 0;
+        double cardRev = 0;
+        double bankRev = 0;
 
         for (Payment p : propertyPayments) {
             double pAmt = p.getAmountLkr();
             Double rateObj = p.getExchangeRate();
             double pRate = (rateObj != null && rateObj > 0) ? rateObj : 1.0;
             String pCurr = p.getCurrency() != null ? p.getCurrency().toUpperCase() : "LKR";
+            String method = p.getPaymentMethod() != null ? p.getPaymentMethod().toUpperCase().trim() : "";
 
             totalPaymentRev += pAmt;
+
+            if (method.contains("CASH")) {
+                cashRev += pAmt;
+            } else if (method.contains("CARD") || method.contains("VISA") || method.contains("MASTER") || method.contains("AMEX")) {
+                cardRev += pAmt;
+            } else if (method.contains("BANK") || method.contains("TRANSFER") || method.contains("ONLINE") || method.contains("PEOPLE")) {
+                bankRev += pAmt;
+            } else {
+                cashRev += pAmt;
+            }
 
             if (p.getRemarks() != null) {
                 java.util.regex.Matcher cardFeeMatch = java.util.regex.Pattern.compile("\\[(?:Bank )?Charges: ([\\d.]+)\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(p.getRemarks());
@@ -86,10 +100,43 @@ public class AnalyticsService {
             }
         }
 
+        // Calculate Extra Night and Extra Person revenue from bookings
+        double extraNightsRev = 0;
+        double extraPaxRev = 0;
+
+        for (Booking b : bookings) {
+            String bNum = b.getBookingNumber() != null ? b.getBookingNumber().toUpperCase().trim() : "";
+            String remarks = b.getRemarks() != null ? b.getRemarks().toUpperCase() : "";
+            double amt = b.getTotalAmount() != null ? Math.abs(b.getTotalAmount()) : 0.0;
+            String bCurr = b.getCurrency() != null ? b.getCurrency().toUpperCase() : "USD";
+            double exRate = 1.0;
+            try {
+                if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
+                    exRate = Double.parseDouble(b.getExchangeRate().trim());
+                }
+            } catch (Exception ignored) {}
+            if (exRate <= 0) exRate = 335.0;
+            double amtLkr = "LKR".equals(bCurr) ? amt : (amt * exRate);
+
+            if (bNum.matches(".*/\\d+N.*") || remarks.contains("EXTRA NIGHT")) {
+                extraNightsRev += amtLkr;
+            } else if (bNum.matches(".*/\\d+P.*") || remarks.contains("EXTRA PERSON") || remarks.contains("ONE PERSON")) {
+                extraPaxRev += amtLkr;
+            }
+        }
+
         stats.setTotalRevenue(BigDecimal.valueOf(totalPaymentRev).setScale(2, RoundingMode.HALF_UP));
         stats.setTotalCardCharges(BigDecimal.valueOf(totalCardCharges).setScale(2, RoundingMode.HALF_UP));
         stats.setTotalOtherCharges(BigDecimal.valueOf(totalOtherCharges).setScale(2, RoundingMode.HALF_UP));
         stats.setNetRevenue(BigDecimal.valueOf(Math.max(0, totalPaymentRev - totalOtherCharges)).setScale(2, RoundingMode.HALF_UP));
+
+        stats.setCashRevenue(BigDecimal.valueOf(cashRev).setScale(2, RoundingMode.HALF_UP));
+        stats.setCardRevenue(BigDecimal.valueOf(cardRev).setScale(2, RoundingMode.HALF_UP));
+        stats.setBankTransferRevenue(BigDecimal.valueOf(bankRev).setScale(2, RoundingMode.HALF_UP));
+
+        stats.setExtraNightsRevenue(BigDecimal.valueOf(extraNightsRev).setScale(2, RoundingMode.HALF_UP));
+        stats.setExtraPaxRevenue(BigDecimal.valueOf(extraPaxRev).setScale(2, RoundingMode.HALF_UP));
+        stats.setTotalExtrasRevenue(BigDecimal.valueOf(extraNightsRev + extraPaxRev).setScale(2, RoundingMode.HALF_UP));
 
         // 2. Total Bookings
         stats.setTotalBookings((long) validBookings.size());

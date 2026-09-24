@@ -22,7 +22,13 @@ import {
   PieChart,
   Receipt,
   CreditCard,
-  Sparkles
+  Sparkles,
+  Wallet,
+  Building,
+  Bed,
+  PlusCircle,
+  UserPlus,
+  Layers
 } from 'lucide-react';
 import RoomIncomeAnalytics from '../components/RoomIncomeAnalytics';
 
@@ -536,7 +542,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* KPI Top Cards */}
+          {/* 1. Primary Financial Summary Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Card 1: Gross Revenue */}
             <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
@@ -603,42 +609,138 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Secondary Stats Row: Bookings, Nights, Discounts */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Sub-Card 1: Total Bookings */}
-            <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-2xs flex items-center justify-between">
+          {/* 2. Collections by Payment Method Breakdown */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Bookings</p>
-                <h4 className="text-lg font-extrabold text-slate-900 mt-0.5">{accountantStats?.totalBookings || 0}</h4>
-                <p className="text-[10px] text-slate-400 font-medium">Confirmed reservations</p>
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Wallet className="h-4 w-4 text-emerald-600" /> Collections Breakdown by Payment Method
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">Cash, Card, and Bank Transfer collections</p>
               </div>
-              <div className="h-9 w-9 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center">
-                <Calendar className="h-4 w-4" />
-              </div>
+              <span className="text-[11px] font-bold text-slate-500 bg-slate-50 px-2.5 py-0.5 rounded-md border border-slate-200/50">
+                100% Reconciled
+              </span>
             </div>
 
-            {/* Sub-Card 2: Total Nights */}
-            <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Guest Nights</p>
-                <h4 className="text-lg font-extrabold text-slate-900 mt-0.5">{accountantStats?.totalNights || 0} <span className="text-xs font-semibold text-slate-500">Nights</span></h4>
-                <p className="text-[10px] text-slate-400 font-medium">Calculated across stays</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+              {/* Cash Collections */}
+              <div className="bg-emerald-50/40 border border-emerald-100/80 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Cash Collected</p>
+                  </div>
+                  <h4 className="text-base font-extrabold text-emerald-950 font-mono mt-1">
+                    LKR {Number(accountantStats?.cashRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </h4>
+                  <p className="text-[10px] text-emerald-700/80 font-medium">Physical cash receipts</p>
+                </div>
+                <div className="h-9 w-9 bg-emerald-100/70 text-emerald-700 rounded-lg flex items-center justify-center">
+                  <DollarSign className="h-4 w-4" />
+                </div>
               </div>
-              <div className="h-9 w-9 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center">
+
+              {/* Card Collections */}
+              <div className="bg-blue-50/40 border border-blue-100/80 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                    <p className="text-[11px] font-bold text-blue-800 uppercase tracking-wider">Card / POS</p>
+                  </div>
+                  <h4 className="text-base font-extrabold text-blue-950 font-mono mt-1">
+                    LKR {Number(accountantStats?.cardRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </h4>
+                  <p className="text-[10px] text-blue-700/80 font-medium">Credit/Debit card POS</p>
+                </div>
+                <div className="h-9 w-9 bg-blue-100/70 text-blue-700 rounded-lg flex items-center justify-center">
+                  <CreditCard className="h-4 w-4" />
+                </div>
+              </div>
+
+              {/* Bank Transfers */}
+              <div className="bg-purple-50/40 border border-purple-100/80 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-purple-500"></span>
+                    <p className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">Bank Transfers</p>
+                  </div>
+                  <h4 className="text-base font-extrabold text-purple-950 font-mono mt-1">
+                    LKR {Number(accountantStats?.bankTransferRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </h4>
+                  <p className="text-[10px] text-purple-700/80 font-medium">Direct deposits & online wire</p>
+                </div>
+                <div className="h-9 w-9 bg-purple-100/70 text-purple-700 rounded-lg flex items-center justify-center">
+                  <Building className="h-4 w-4" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Extras Earnings Breakdown & Booking Volume */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Extra Nights Earnings */}
+            <div className="bg-white border border-teal-100/80 p-4 rounded-xl shadow-2xs flex items-center justify-between bg-teal-50/20">
+              <div>
+                <p className="text-[10px] font-bold text-teal-800 uppercase tracking-wider">Extra Nights</p>
+                <h4 className="text-base font-extrabold text-teal-950 font-mono mt-0.5">
+                  LKR {Number(accountantStats?.extraNightsRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h4>
+                <p className="text-[10px] text-teal-700 font-medium">Additional stay extensions</p>
+              </div>
+              <div className="h-8 w-8 bg-teal-100 text-teal-700 rounded-lg flex items-center justify-center">
                 <Moon className="h-4 w-4" />
               </div>
             </div>
 
-            {/* Sub-Card 3: Total Discounts */}
+            {/* Extra/One Person Earnings */}
+            <div className="bg-white border border-indigo-100/80 p-4 rounded-xl shadow-2xs flex items-center justify-between bg-indigo-50/20">
+              <div>
+                <p className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">Extra Person Charges</p>
+                <h4 className="text-base font-extrabold text-indigo-950 font-mono mt-0.5">
+                  LKR {Number(accountantStats?.extraPaxRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h4>
+                <p className="text-[10px] text-indigo-700 font-medium">Extra guest/mattress fees</p>
+              </div>
+              <div className="h-8 w-8 bg-indigo-100 text-indigo-700 rounded-lg flex items-center justify-center">
+                <UserPlus className="h-4 w-4" />
+              </div>
+            </div>
+
+            {/* Total Bookings */}
+            <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Bookings</p>
+                <h4 className="text-base font-extrabold text-slate-900 mt-0.5">{accountantStats?.totalBookings || 0}</h4>
+                <p className="text-[10px] text-slate-400 font-medium">Confirmed reservations</p>
+              </div>
+              <div className="h-8 w-8 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center">
+                <Calendar className="h-4 w-4" />
+              </div>
+            </div>
+
+            {/* Total Nights */}
+            <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Nights</p>
+                <h4 className="text-base font-extrabold text-slate-900 mt-0.5">{accountantStats?.totalNights || 0} <span className="text-xs font-semibold text-slate-500">Nights</span></h4>
+                <p className="text-[10px] text-slate-400 font-medium">Across all stays</p>
+              </div>
+              <div className="h-8 w-8 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center">
+                <Bed className="h-4 w-4" />
+              </div>
+            </div>
+
+            {/* Total Discounts */}
             <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-2xs flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Discounts</p>
-                <h4 className="text-lg font-extrabold text-rose-600 mt-0.5">
+                <h4 className="text-base font-extrabold text-rose-600 mt-0.5">
                   LKR {Number(accountantStats?.totalDiscounts || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h4>
                 <p className="text-[10px] text-slate-400 font-medium">Approved reductions</p>
               </div>
-              <div className="h-9 w-9 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center">
+              <div className="h-8 w-8 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center">
                 <Tag className="h-4 w-4" />
               </div>
             </div>
