@@ -609,72 +609,216 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* 2. Collections by Payment Method Breakdown */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          {/* 2. Collections by Payment Method Breakdown (with Interactive Pie / Donut Chart) */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3.5">
               <div>
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <Wallet className="h-4 w-4 text-emerald-600" /> Collections Breakdown by Payment Method
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <PieChart className="h-4.5 w-4.5 text-emerald-600" /> Collections Breakdown by Payment Method
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Cash, Card, and Bank Transfer collections</p>
+                <p className="text-xs text-slate-400 mt-0.5">Real-time revenue distribution across Cash, Card & Bank channels</p>
               </div>
-              <span className="text-[11px] font-bold text-slate-500 bg-slate-50 px-2.5 py-0.5 rounded-md border border-slate-200/50">
-                100% Reconciled
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
-              {/* Cash Collections */}
-              <div className="bg-emerald-50/40 border border-emerald-100/80 p-4 rounded-xl flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                    <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Cash Collected</p>
-                  </div>
-                  <h4 className="text-base font-extrabold text-emerald-950 font-mono mt-1">
-                    LKR {Number(accountantStats?.cashRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </h4>
-                  <p className="text-[10px] text-emerald-700/80 font-medium">Physical cash receipts</p>
-                </div>
-                <div className="h-9 w-9 bg-emerald-100/70 text-emerald-700 rounded-lg flex items-center justify-center">
-                  <DollarSign className="h-4 w-4" />
-                </div>
-              </div>
-
-              {/* Card Collections */}
-              <div className="bg-blue-50/40 border border-blue-100/80 p-4 rounded-xl flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                    <p className="text-[11px] font-bold text-blue-800 uppercase tracking-wider">Card / POS</p>
-                  </div>
-                  <h4 className="text-base font-extrabold text-blue-950 font-mono mt-1">
-                    LKR {Number(accountantStats?.cardRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </h4>
-                  <p className="text-[10px] text-blue-700/80 font-medium">Credit/Debit card POS</p>
-                </div>
-                <div className="h-9 w-9 bg-blue-100/70 text-blue-700 rounded-lg flex items-center justify-center">
-                  <CreditCard className="h-4 w-4" />
-                </div>
-              </div>
-
-              {/* Bank Transfers */}
-              <div className="bg-purple-50/40 border border-purple-100/80 p-4 rounded-xl flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-purple-500"></span>
-                    <p className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">Bank Transfers</p>
-                  </div>
-                  <h4 className="text-base font-extrabold text-purple-950 font-mono mt-1">
-                    LKR {Number(accountantStats?.bankTransferRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </h4>
-                  <p className="text-[10px] text-purple-700/80 font-medium">Direct deposits & online wire</p>
-                </div>
-                <div className="h-9 w-9 bg-purple-100/70 text-purple-700 rounded-lg flex items-center justify-center">
-                  <Building className="h-4 w-4" />
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
+                  Total: LKR {Number(accountantStats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-200/50">
+                  100% Reconciled
+                </span>
               </div>
             </div>
+
+            {(() => {
+              const cash = Number(accountantStats?.cashRevenue || 0);
+              const card = Number(accountantStats?.cardRevenue || 0);
+              const bank = Number(accountantStats?.bankTransferRevenue || 0);
+              const total = (cash + card + bank) > 0 ? (cash + card + bank) : (Number(accountantStats?.totalRevenue || 0) || 1);
+
+              const cashPct = total > 0 ? Math.round((cash / total) * 100) : 0;
+              const cardPct = total > 0 ? Math.round((card / total) * 100) : 0;
+              const bankPct = total > 0 ? Math.max(0, 100 - cashPct - cardPct) : 0;
+
+              // Donut calculations (circumference for radius 40 = 2 * PI * 40 = ~251.327)
+              const C = 251.327;
+              const cashStroke = (cash / total) * C;
+              const cardStroke = (card / total) * C;
+              const bankStroke = (bank / total) * C;
+
+              const cardOffset = -cashStroke;
+              const bankOffset = -(cashStroke + cardStroke);
+
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center pt-2">
+                  {/* Left: Modern SVG Pie / Donut Chart */}
+                  <div className="lg:col-span-4 flex flex-col items-center justify-center p-4 bg-slate-50/60 rounded-2xl border border-slate-100">
+                    <div className="relative flex items-center justify-center">
+                      <svg className="w-36 h-36 transform -rotate-90" viewBox="0 0 100 100">
+                        {/* Background track */}
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          className="stroke-slate-200"
+                          strokeWidth="12"
+                          fill="transparent"
+                        />
+                        {/* Cash Segment */}
+                        {cash > 0 && (
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            className="stroke-emerald-500 transition-all duration-700 ease-out"
+                            strokeWidth="12"
+                            strokeDasharray={`${cashStroke} ${C}`}
+                            strokeDashoffset="0"
+                            strokeLinecap="round"
+                            fill="transparent"
+                          />
+                        )}
+                        {/* Card Segment */}
+                        {card > 0 && (
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            className="stroke-blue-500 transition-all duration-700 ease-out"
+                            strokeWidth="12"
+                            strokeDasharray={`${cardStroke} ${C}`}
+                            strokeDashoffset={cardOffset}
+                            strokeLinecap="round"
+                            fill="transparent"
+                          />
+                        )}
+                        {/* Bank Segment */}
+                        {bank > 0 && (
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            className="stroke-purple-500 transition-all duration-700 ease-out"
+                            strokeWidth="12"
+                            strokeDasharray={`${bankStroke} ${C}`}
+                            strokeDashoffset={bankOffset}
+                            strokeLinecap="round"
+                            fill="transparent"
+                          />
+                        )}
+                      </svg>
+                      {/* Center Info in Donut */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Methods</span>
+                        <span className="text-sm font-extrabold text-slate-900 font-mono">3 Channels</span>
+                        <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded-full mt-0.5">Live</span>
+                      </div>
+                    </div>
+
+                    {/* Chart Legend */}
+                    <div className="flex items-center justify-center gap-4 mt-4 w-full text-[11px] font-semibold text-slate-600">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                        <span>Cash ({cashPct}%)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
+                        <span>Card ({cardPct}%)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-purple-500"></span>
+                        <span>Bank ({bankPct}%)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Detailed Metric Cards with Mini Progress Bars */}
+                  <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    {/* Cash Collections */}
+                    <div className="bg-emerald-50/40 border border-emerald-100/80 p-4 rounded-xl flex flex-col justify-between shadow-2xs hover:shadow-sm transition">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                          <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Cash Collected</p>
+                        </div>
+                        <div className="h-7 w-7 bg-emerald-100/70 text-emerald-700 rounded-lg flex items-center justify-center">
+                          <DollarSign className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                      <div className="my-2.5">
+                        <h4 className="text-lg font-extrabold text-emerald-950 font-mono">
+                          LKR {cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </h4>
+                        <p className="text-[10px] text-emerald-700/80 font-medium mt-0.5">Physical cash receipts</p>
+                      </div>
+                      <div className="space-y-1 pt-1 border-t border-emerald-100/60">
+                        <div className="flex justify-between text-[10px] font-bold text-emerald-800">
+                          <span>Share</span>
+                          <span className="font-mono">{cashPct}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-emerald-100/60 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${cashPct}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Collections */}
+                    <div className="bg-blue-50/40 border border-blue-100/80 p-4 rounded-xl flex flex-col justify-between shadow-2xs hover:shadow-sm transition">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                          <p className="text-[11px] font-bold text-blue-800 uppercase tracking-wider">Card / POS</p>
+                        </div>
+                        <div className="h-7 w-7 bg-blue-100/70 text-blue-700 rounded-lg flex items-center justify-center">
+                          <CreditCard className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                      <div className="my-2.5">
+                        <h4 className="text-lg font-extrabold text-blue-950 font-mono">
+                          LKR {card.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </h4>
+                        <p className="text-[10px] text-blue-700/80 font-medium mt-0.5">Credit/Debit card POS</p>
+                      </div>
+                      <div className="space-y-1 pt-1 border-t border-blue-100/60">
+                        <div className="flex justify-between text-[10px] font-bold text-blue-800">
+                          <span>Share</span>
+                          <span className="font-mono">{cardPct}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-blue-100/60 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full transition-all duration-500" style={{ width: `${cardPct}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bank Transfers */}
+                    <div className="bg-purple-50/40 border border-purple-100/80 p-4 rounded-xl flex flex-col justify-between shadow-2xs hover:shadow-sm transition">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-purple-500"></span>
+                          <p className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">Bank Transfers</p>
+                        </div>
+                        <div className="h-7 w-7 bg-purple-100/70 text-purple-700 rounded-lg flex items-center justify-center">
+                          <Building className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                      <div className="my-2.5">
+                        <h4 className="text-lg font-extrabold text-purple-950 font-mono">
+                          LKR {bank.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </h4>
+                        <p className="text-[10px] text-purple-700/80 font-medium mt-0.5">Direct deposits & online wire</p>
+                      </div>
+                      <div className="space-y-1 pt-1 border-t border-purple-100/60">
+                        <div className="flex justify-between text-[10px] font-bold text-purple-800">
+                          <span>Share</span>
+                          <span className="font-mono">{bankPct}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-purple-100/60 rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-500 rounded-full transition-all duration-500" style={{ width: `${bankPct}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* 3. Extras Earnings Breakdown & Booking Volume */}
