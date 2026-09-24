@@ -11,6 +11,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class AccountantDashboardStatsDTO {
     private BigDecimal totalRevenue = BigDecimal.ZERO;
+    private BigDecimal totalCardCharges = BigDecimal.ZERO;
+    private BigDecimal totalOtherCharges = BigDecimal.ZERO;
+    private BigDecimal netRevenue = BigDecimal.ZERO;
     private Long totalBookings = 0L;
     private Long totalNights = 0L;
     private BigDecimal totalDiscounts = BigDecimal.ZERO;

@@ -53,11 +53,43 @@ public class AnalyticsService {
                 .filter(p -> propertyId == null || p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
                 .collect(Collectors.toList());
 
-        double totalPaymentRev = propertyPayments.stream()
-                .mapToDouble(Payment::getAmountLkr)
-                .sum();
+        double totalPaymentRev = 0;
+        double totalCardCharges = 0;
+        double totalOtherCharges = 0;
+
+        for (Payment p : propertyPayments) {
+            double pAmt = p.getAmountLkr();
+            Double rateObj = p.getExchangeRate();
+            double pRate = (rateObj != null && rateObj > 0) ? rateObj : 1.0;
+            String pCurr = p.getCurrency() != null ? p.getCurrency().toUpperCase() : "LKR";
+
+            totalPaymentRev += pAmt;
+
+            if (p.getRemarks() != null) {
+                java.util.regex.Matcher cardFeeMatch = java.util.regex.Pattern.compile("\\[(?:Bank )?Charges: ([\\d.]+)\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(p.getRemarks());
+                if (cardFeeMatch.find()) {
+                    try {
+                        double feeRaw = Double.parseDouble(cardFeeMatch.group(1));
+                        double feeLkr = "LKR".equals(pCurr) ? feeRaw : (feeRaw * pRate);
+                        totalCardCharges += feeLkr;
+                    } catch (Exception ignored) {}
+                }
+
+                java.util.regex.Matcher otherMatch = java.util.regex.Pattern.compile("\\[Other Charges: ([\\d.]+)\\]", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(p.getRemarks());
+                if (otherMatch.find()) {
+                    try {
+                        double otherRaw = Double.parseDouble(otherMatch.group(1));
+                        double otherLkr = "LKR".equals(pCurr) ? otherRaw : (otherRaw * pRate);
+                        totalOtherCharges += otherLkr;
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
 
         stats.setTotalRevenue(BigDecimal.valueOf(totalPaymentRev).setScale(2, RoundingMode.HALF_UP));
+        stats.setTotalCardCharges(BigDecimal.valueOf(totalCardCharges).setScale(2, RoundingMode.HALF_UP));
+        stats.setTotalOtherCharges(BigDecimal.valueOf(totalOtherCharges).setScale(2, RoundingMode.HALF_UP));
+        stats.setNetRevenue(BigDecimal.valueOf(Math.max(0, totalPaymentRev - totalOtherCharges)).setScale(2, RoundingMode.HALF_UP));
 
         // 2. Total Bookings
         stats.setTotalBookings((long) validBookings.size());

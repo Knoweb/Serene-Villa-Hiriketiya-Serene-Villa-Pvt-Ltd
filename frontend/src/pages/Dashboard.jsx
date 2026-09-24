@@ -19,7 +19,10 @@ import {
   AlertTriangle,
   Moon,
   Tag,
-  PieChart
+  PieChart,
+  Receipt,
+  CreditCard,
+  Sparkles
 } from 'lucide-react';
 import RoomIncomeAnalytics from '../components/RoomIncomeAnalytics';
 
@@ -533,69 +536,110 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* 4 KPI Top Cards */}
+          {/* KPI Top Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Total Revenue */}
+            {/* Card 1: Gross Revenue */}
             <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
-                <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Total Revenue</p>
+                <div className="h-10 w-10 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center">
                   <DollarSign className="h-5 w-5" />
                 </div>
               </div>
               <div className="mt-3">
-                <h3 className="text-2xl font-extrabold text-slate-900">
+                <h3 className="text-xl font-extrabold text-slate-900">
                   LKR {Number(accountantStats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h3>
                 <p className="text-[11px] text-slate-400 font-medium mt-0.5">Sum of all collected payments</p>
               </div>
             </div>
 
-            {/* Card 2: Total Bookings */}
-            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
+            {/* Card 2: Web Booking Other Charges (Deductions) */}
+            <div className="bg-white border border-amber-100/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition bg-amber-50/10">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Bookings</p>
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Web Other Charges</p>
+                <div className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                  <Receipt className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <h3 className="text-xl font-extrabold text-amber-700">
+                  LKR {Number(accountantStats?.totalOtherCharges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h3>
+                <p className="text-[11px] text-amber-600/80 font-medium mt-0.5">Channel deductions & other fees</p>
+              </div>
+            </div>
+
+            {/* Card 3: Card Processing Charges (3%) */}
+            <div className="bg-white border border-blue-100/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition bg-blue-50/10">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Card Charges (3%)</p>
                 <div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                  <Calendar className="h-5 w-5" />
+                  <CreditCard className="h-5 w-5" />
                 </div>
               </div>
               <div className="mt-3">
-                <h3 className="text-2xl font-extrabold text-slate-900">
-                  {accountantStats?.totalBookings || 0}
+                <h3 className="text-xl font-extrabold text-blue-700">
+                  LKR {Number(accountantStats?.totalCardCharges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h3>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Property confirmed reservations</p>
+                <p className="text-[11px] text-blue-600/80 font-medium mt-0.5">Bank processing commissions</p>
               </div>
             </div>
 
-            {/* Card 3: Total Nights */}
-            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
+            {/* Card 4: Net Reconciled Revenue */}
+            <div className="bg-white border border-emerald-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition bg-emerald-50/30">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Guest Nights</p>
-                <div className="h-10 w-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                  <Moon className="h-5 w-5" />
+                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Net Reconciled Revenue</p>
+                <div className="h-10 w-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center">
+                  <Sparkles className="h-5 w-5" />
                 </div>
               </div>
               <div className="mt-3">
-                <h3 className="text-2xl font-extrabold text-slate-900">
-                  {accountantStats?.totalNights || 0} <span className="text-sm font-semibold text-slate-500">Nights</span>
+                <h3 className="text-xl font-extrabold text-emerald-900 font-mono">
+                  LKR {Number(accountantStats?.netRevenue || accountantStats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h3>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Calculated across all stays</p>
+                <p className="text-[11px] text-emerald-700 font-medium mt-0.5">Gross minus other charges</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Secondary Stats Row: Bookings, Nights, Discounts */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Sub-Card 1: Total Bookings */}
+            <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Bookings</p>
+                <h4 className="text-lg font-extrabold text-slate-900 mt-0.5">{accountantStats?.totalBookings || 0}</h4>
+                <p className="text-[10px] text-slate-400 font-medium">Confirmed reservations</p>
+              </div>
+              <div className="h-9 w-9 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center">
+                <Calendar className="h-4 w-4" />
               </div>
             </div>
 
-            {/* Card 4: Total Discounts */}
-            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Discounts</p>
-                <div className="h-10 w-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
-                  <Tag className="h-5 w-5" />
-                </div>
+            {/* Sub-Card 2: Total Nights */}
+            <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Guest Nights</p>
+                <h4 className="text-lg font-extrabold text-slate-900 mt-0.5">{accountantStats?.totalNights || 0} <span className="text-xs font-semibold text-slate-500">Nights</span></h4>
+                <p className="text-[10px] text-slate-400 font-medium">Calculated across stays</p>
               </div>
-              <div className="mt-3">
-                <h3 className="text-2xl font-extrabold text-rose-600">
+              <div className="h-9 w-9 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center">
+                <Moon className="h-4 w-4" />
+              </div>
+            </div>
+
+            {/* Sub-Card 3: Total Discounts */}
+            <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Discounts</p>
+                <h4 className="text-lg font-extrabold text-rose-600 mt-0.5">
                   LKR {Number(accountantStats?.totalDiscounts || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Approved reductions granted</p>
+                </h4>
+                <p className="text-[10px] text-slate-400 font-medium">Approved reductions</p>
+              </div>
+              <div className="h-9 w-9 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center">
+                <Tag className="h-4 w-4" />
               </div>
             </div>
           </div>
