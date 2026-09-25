@@ -60,6 +60,7 @@ const Handover = () => {
   const [activeTab, setActiveTab] = useState('PENDING'); // 'PENDING' | 'HISTORY'
   const [historyFilter, setHistoryFilter] = useState('ALL'); // 'ALL' | 'ACCEPTED' | 'REJECTED'
   const [payments, setPayments] = useState([]);
+  const [allPayments, setAllPayments] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [selectedBookingRefs, setSelectedBookingRefs] = useState([]);
@@ -179,8 +180,9 @@ const Handover = () => {
           : `${API_BASE}/billing/accountant/pending?propertyId=${propId}`;
       }
         
-      const [payRes, bookRes, regRes] = await Promise.all([
+      const [payRes, allPayRes, bookRes, regRes] = await Promise.all([
         fetch(endpoint),
+        fetch(`${API_BASE}/payments`),
         fetch(`${API_BASE}/bookings?propertyId=${propId}`),
         fetch(`${API_BASE}/guest-registrations?propertyId=${propId}&size=1000&role=ADMIN`)
       ]);
@@ -190,6 +192,13 @@ const Handover = () => {
         setPayments(payData || []);
       } else {
         setPayments([]);
+      }
+
+      if (allPayRes.ok) {
+        const allPayData = await allPayRes.json();
+        setAllPayments(allPayData || []);
+      } else {
+        setAllPayments([]);
       }
 
       if (bookRes.ok) {
@@ -204,6 +213,7 @@ const Handover = () => {
     } catch (err) {
       console.error('Error fetching handover data:', err);
       setPayments([]);
+      setAllPayments([]);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -394,7 +404,25 @@ const Handover = () => {
       let advancePaidOrig = { amount: 0, currency: '' };
       let finalPaidOrig = { amount: 0, currency: '' };
 
-      g.payments.forEach(p => {
+      // All payments for this booking across all statuses (to accurately know historical advance, settlement, extra payments)
+      const allRelatedPayments = allPayments.length > 0 ? allPayments.filter(p => {
+        const rawRef = p.bookingRef || p.referenceNumber || '';
+        let base = rawRef;
+        if (rawRef.includes('/')) base = rawRef.split('/')[0].trim();
+        const targetBase = g.bookingRef.toLowerCase();
+        if (base && base.toLowerCase() === targetBase) return true;
+        if (p.bookingId && g.payments.some(gp => gp.bookingId === p.bookingId)) return true;
+        if (p.guestRegistrationId && g.payments.some(gp => gp.guestRegistrationId === p.guestRegistrationId)) return true;
+        return false;
+      }) : g.payments;
+
+      // Ensure all payments in g.payments are included in the pool
+      const paymentPoolMap = new Map();
+      allRelatedPayments.forEach(p => paymentPoolMap.set(p.id || `${p.bookingRef}-${p.amount}-${p.paymentDate}`, p));
+      g.payments.forEach(p => paymentPoolMap.set(p.id || `${p.bookingRef}-${p.amount}-${p.paymentDate}`, p));
+      const fullPaymentsPool = Array.from(paymentPoolMap.values());
+
+      fullPaymentsPool.forEach(p => {
         const pCurr = (p.currencyCode || p.currency || bookingCurr).toUpperCase();
         const pRawAmt = parseFloat(p.amount || p.amountInCurrency || 0);
         const pExRate = parseFloat(p.exchangeRate) || parseFloat(g.exchangeRate) || 1;
@@ -429,9 +457,6 @@ const Handover = () => {
             pAmtInBookingCurr = pCurr === 'LKR' ? (pRawAmt / effectiveRate) : ((pRawAmt * pExRate) / effectiveRate);
           }
         }
-        
-        totalPaidInCurrency += pAmtInBookingCurr;
-        totalLkrEquivalent += pLkr;
 
         const ref = (p.referenceNumber || p.receiptNumber || p.bookingRef || '').toUpperCase();
         const rem = (p.remarks || '').toUpperCase();
@@ -450,6 +475,26 @@ const Handover = () => {
           advancePaid += pAmtInBookingCurr;
           advancePaidOrig = { amount: pRawAmt, currency: pCurr };
         }
+      });
+
+      // Compute Total Handover LKR strictly from the current handover batch (g.payments)
+      g.payments.forEach(p => {
+        const pCurr = (p.currencyCode || p.currency || bookingCurr).toUpperCase();
+        const pRawAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+        const pExRate = parseFloat(p.exchangeRate) || parseFloat(g.exchangeRate) || 1;
+        const pLkr = parseFloat(p.amountLkr || p.convertedAmountLkr || (pCurr === 'LKR' ? pRawAmt : (pRawAmt * pExRate)));
+        
+        let pAmtInBookingCurr = pRawAmt;
+        if (pCurr !== bookingCurr) {
+          if (bookingCurr === 'LKR') {
+            pAmtInBookingCurr = pLkr;
+          } else {
+            const effectiveRate = pExRate > 0 ? pExRate : 1;
+            pAmtInBookingCurr = pCurr === 'LKR' ? (pRawAmt / effectiveRate) : ((pRawAmt * pExRate) / effectiveRate);
+          }
+        }
+        totalPaidInCurrency += pAmtInBookingCurr;
+        totalLkrEquivalent += pLkr;
       });
 
       const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
@@ -474,7 +519,7 @@ const Handover = () => {
         remainingBalance
       };
     });
-  }, [payments, bookings, registrations]);
+  }, [payments, allPayments, bookings, registrations]);
 
   // Filter based on search query
   const filteredBookings = React.useMemo(() => {
