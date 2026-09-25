@@ -333,10 +333,16 @@ public class AnalyticsService {
                 })
                 .collect(Collectors.toList());
 
-        // Filter payments that belong to this room (via booking ID or registration ID)
+        // Filter payments that belong to this room:
+        // 1. If payment has a bookingId, it MUST be one of this room's booking IDs.
+        // 2. If payment only has guestRegistrationId (no bookingId), then match via allRoomRegIds.
         List<Payment> matchingPayments = paymentsInPeriod.stream()
-                .filter(p -> (p.getBookingId() != null && allRoomBookingIds.contains(p.getBookingId())) ||
-                             (p.getGuestRegistrationId() != null && allRoomRegIds.contains(p.getGuestRegistrationId())))
+                .filter(p -> {
+                    if (p.getBookingId() != null) {
+                        return allRoomBookingIds.contains(p.getBookingId());
+                    }
+                    return p.getGuestRegistrationId() != null && allRoomRegIds.contains(p.getGuestRegistrationId());
+                })
                 .collect(Collectors.toList());
 
         double cashTotal = 0.0;
