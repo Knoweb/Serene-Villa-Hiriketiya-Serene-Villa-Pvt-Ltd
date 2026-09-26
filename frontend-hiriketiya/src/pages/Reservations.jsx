@@ -257,65 +257,25 @@ const Reservations = () => {
     const cleanRegEmail = (targetReg.email || '').trim().toLowerCase();
     const cleanRegPhone = (targetReg.whatsappNumber || targetReg.whatsAppNumber || targetReg.phone || '').replace(/\D/g, '');
 
-    // 1. If registration already has a specific bookingNumber, prioritize exact match (excluding sub-bookings with '/')
+    // 1. Exact match by registration bookingNumber
     if (targetReg.bookingNumber && !targetReg.bookingNumber.includes('/')) {
       const cleanTargetNum = targetReg.bookingNumber.trim().toLowerCase();
       const directMatch = bookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/') && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
       if (directMatch) return directMatch;
     }
 
-    // Find all matching candidate bookings (strictly base bookings only)
-    const candidates = bookings.filter(b => {
-      // Never match a sub-booking (/DISC, /1N, /1P) as a base reservation
-      if (b.bookingNumber && (b.bookingNumber.includes('/') || b.bookingNumber.includes('DISC') || b.bookingNumber.includes('1N') || b.bookingNumber.includes('1P') || parseFloat(b.totalAmount || b.amount || 0) < 0)) {
-        return false;
-      }
+    // 2. Exact match by passportNumber (e.g. SV-D-420 -> D-420)
+    const cleanPassportNum = (targetReg.passportNumber || '').replace(/^SV-?/i, '').trim().toLowerCase();
+    if (cleanPassportNum && cleanPassportNum !== 'undefined' && cleanPassportNum !== 'null') {
+      const passMatch = bookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/') && b.bookingNumber.trim().toLowerCase() === cleanPassportNum);
+      if (passMatch) return passMatch;
+    }
 
-      if (b.guestRegistrationId === regId) return true;
+    // 3. Match by explicit guestRegistrationId link
+    const idMatch = bookings.find(b => b.guestRegistrationId === regId && (!b.bookingNumber || !b.bookingNumber.includes('/')));
+    if (idMatch) return idMatch;
 
-      const cleanBName = (b.guestName || '')
-        .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
-        .replace(/^mr\s*\/\s*mrs\s*/i, '')
-        .trim().toLowerCase();
-
-      if (cleanRegName && cleanRegName.length >= 2 && (cleanBName === cleanRegName || cleanBName.includes(cleanRegName) || cleanRegName.includes(cleanBName))) return true;
-      if (cleanRegEmail && b.email && b.email.trim().toLowerCase() === cleanRegEmail) return true;
-      if (cleanRegPhone && cleanRegPhone.length >= 7) {
-        const bPhone = (b.contactNumber || b.phone || b.whatsappNumber || '').replace(/\D/g, '');
-        if (bPhone && (bPhone.endsWith(cleanRegPhone) || cleanRegPhone.endsWith(bPhone))) return true;
-      }
-
-      return false;
-    });
-
-    if (candidates.length === 0) return null;
-
-    // Rank candidates: REAL manual reservations (e.g. D-7892023) come FIRST over auto-drafts (D-10xx, D-11xx)!
-    // Strictly filter out sub-bookings (bookings with "/" in bookingNumber, discount, or extra-night rows)
-    const isRootBooking = (b) => {
-      if (!b.bookingNumber) return true;
-      const bNum = b.bookingNumber;
-      return !bNum.includes('/') && !bNum.includes('-DISC') && !bNum.includes('1N') && !bNum.includes('1P');
-    };
-
-    const primaryCandidates = candidates.filter(b => isRootBooking(b) && (parseFloat(b.totalAmount || b.amount || 0) >= 0));
-    const nonSubCandidates = candidates.filter(b => isRootBooking(b));
-    const finalCandidates = primaryCandidates.length > 0 ? primaryCandidates : (nonSubCandidates.length > 0 ? nonSubCandidates : candidates);
-
-    finalCandidates.sort((a, b) => {
-      const aAmt = parseFloat(a.totalAmount || a.amount || 0);
-      const bAmt = parseFloat(b.totalAmount || b.amount || 0);
-      if (aAmt > 0 && bAmt <= 0) return -1;
-      if (aAmt <= 0 && bAmt > 0) return 1;
-
-      const aIsReal = a.bookingNumber && (a.bookingNumber.startsWith('D-789') || (!a.bookingNumber.startsWith('D-10') && !a.bookingNumber.startsWith('D-11')));
-      const bIsReal = b.bookingNumber && (b.bookingNumber.startsWith('D-789') || (!b.bookingNumber.startsWith('D-10') && !b.bookingNumber.startsWith('D-11')));
-      if (aIsReal && !bIsReal) return -1;
-      if (!aIsReal && bIsReal) return 1;
-      return (b.id || 0) - (a.id || 0);
-    });
-
-    return finalCandidates[0];
+    return null;
   };
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -2191,8 +2151,8 @@ const Reservations = () => {
                             {reg.whatsappNumber || reg.whatsAppNumber}
                           </td>
                           <td className="p-4">
-                            <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {booking?.checkInDate || reg.checkInDate}</div>
-                            <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {booking?.checkOutDate || reg.checkOutDate}</div>
+                            <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {reg.checkInDate || booking?.checkInDate}</div>
+                            <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {reg.checkOutDate || booking?.checkOutDate}</div>
                             <p className="text-slate-500 font-bold text-[11px] mt-1">
                               {booking ? (booking.roomNumber ? `Room ${booking.roomNumber}` : 'Unallocated') : 'Unallocated'}
                             </p>

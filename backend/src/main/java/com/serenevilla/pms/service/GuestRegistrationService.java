@@ -99,20 +99,6 @@ public class GuestRegistrationService {
         result = result.map(reg -> {
             try {
                 List<Booking> bookings = bookingRepository.findByGuestRegistrationId(reg.getId());
-                if (bookings == null || bookings.isEmpty()) {
-                    if (reg.getGuestName() != null && !reg.getGuestName().trim().isEmpty()) {
-                        String gName = reg.getGuestName().replaceAll("^(?i)(mr|mrs|ms|dr|prof)\\.?\\s*", "").trim();
-                        List<Booking> nameMatches = bookingRepository.findAll().stream()
-                                .filter(b -> b.getGuestName() != null && b.getGuestName().replaceAll("^(?i)(mr|mrs|ms|dr|prof)\\.?\\s*", "").trim().equalsIgnoreCase(gName))
-                                .toList();
-                        if (!nameMatches.isEmpty()) {
-                            Booking bToLink = nameMatches.get(nameMatches.size() - 1);
-                            bToLink.setGuestRegistrationId(reg.getId());
-                            bookingRepository.save(bToLink);
-                            bookings = java.util.List.of(bToLink);
-                        }
-                    }
-                }
 
                 if (bookings != null && !bookings.isEmpty()) {
                     // Find all sibling/related bookings for this guest
@@ -262,8 +248,7 @@ public class GuestRegistrationService {
             List<Booking> candidates = bookingRepository.findAll().stream()
                     .filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))
                     .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
-                              || (details.containsKey("bookingNumber") && details.get("bookingNumber") != null && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(String.valueOf(details.get("bookingNumber")).trim()))
-                              || (savedReg.getGuestName() != null && b.getGuestName() != null && b.getGuestName().trim().equalsIgnoreCase(savedReg.getGuestName().trim())))
+                              || (details.containsKey("bookingNumber") && details.get("bookingNumber") != null && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(String.valueOf(details.get("bookingNumber")).trim())))
                     .sorted((a, b) -> {
                         boolean aIsReal = a.getBookingNumber() != null && (a.getBookingNumber().startsWith("D-789") || (!a.getBookingNumber().startsWith("D-10") && !a.getBookingNumber().startsWith("D-11")));
                         boolean bIsReal = b.getBookingNumber() != null && (b.getBookingNumber().startsWith("D-789") || (!b.getBookingNumber().startsWith("D-10") && !b.getBookingNumber().startsWith("D-11")));
