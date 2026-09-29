@@ -134,12 +134,11 @@ public class GuestRegistrationService {
 
                     Booking baseBookingItem = allRelated.stream().filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/")).findFirst().orElse(primaryBooking);
                     List<Booking> discBookings = allRelated.stream().filter(b -> b.getBookingNumber() != null && b.getBookingNumber().contains("/DISC")).toList();
-                    List<Booking> extraBookings = allRelated.stream().filter(b -> b.getBookingNumber() != null && b.getBookingNumber().contains("/") && !b.getBookingNumber().contains("/DISC")).toList();
 
+                    // Calculate base booking target in LKR (base minus discounts)
                     double baseAmt = baseBookingItem.getTotalAmount() != null ? baseBookingItem.getTotalAmount() : 0.0;
                     double totalDisc = discBookings.stream().mapToDouble(b -> Math.abs(b.getTotalAmount() != null ? b.getTotalAmount() : 0.0)).sum();
-                    double totalExtras = extraBookings.stream().mapToDouble(b -> Math.abs(b.getTotalAmount() != null ? b.getTotalAmount() : 0.0)).sum();
-                    double netTotalAmt = Math.max(0, baseAmt + totalExtras - totalDisc);
+                    double netBaseAmt = Math.max(0, baseAmt - totalDisc);
 
                     String bCurr = baseBookingItem.getCurrency() != null ? baseBookingItem.getCurrency().toUpperCase() : "USD";
                     double exRate = 1.0;
@@ -150,12 +149,28 @@ public class GuestRegistrationService {
                     } catch (Exception ignored) {}
                     if (exRate <= 0) exRate = 335.0;
 
-                    double totalBookingAmtLkr = "LKR".equals(bCurr) ? netTotalAmt : (netTotalAmt * exRate);
+                    double baseBookingAmtLkr = "LKR".equals(bCurr) ? netBaseAmt : (netBaseAmt * exRate);
+
+                    // Separate base payments from sub-booking (/1N, /1P) payments
+                    // Base payments are either attached directly to the base booking, or have paymentType like Advance/Balance/Full/etc., or are direct reg payments
+                    double basePaidLkr = allVisiblePayments.stream()
+                            .filter(p -> {
+                                if (p.getBookingId() != null) {
+                                    Booking matchedB = allRelated.stream().filter(b -> b.getId().equals(p.getBookingId())).findFirst().orElse(null);
+                                    if (matchedB != null && matchedB.getBookingNumber() != null && matchedB.getBookingNumber().contains("/")) {
+                                        // Payment is tied to a sub-booking (/1N, /1P)
+                                        return false;
+                                    }
+                                }
+                                return true;
+                            })
+                            .mapToDouble(p -> p.getConvertedAmountLkr() != null && p.getConvertedAmountLkr() > 0 ? p.getConvertedAmountLkr() : p.getAmountLkr())
+                            .sum();
 
                     String computedStatus = "Unpaid";
-                    if (totalBookingAmtLkr > 0 && totalPaidLkr >= (totalBookingAmtLkr - 10.0)) {
+                    if (baseBookingAmtLkr > 0 && basePaidLkr >= (baseBookingAmtLkr - 10.0)) {
                         computedStatus = "Paid";
-                    } else if (totalPaidLkr > 0) {
+                    } else if (basePaidLkr > 0 || totalPaidLkr > 0) {
                         computedStatus = "Paid Advance";
                     }
                     reg.setPaymentStatus(computedStatus);

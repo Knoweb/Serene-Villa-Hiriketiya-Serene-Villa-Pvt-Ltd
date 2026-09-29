@@ -277,6 +277,23 @@ const Reservations = () => {
 
     return null;
   };
+
+  const getExtraBookingsForReg = (reg) => {
+    if (!reg) return [];
+    const baseB = getBookingForReg(reg.id);
+    const baseBNum = baseB?.bookingNumber ? baseB.bookingNumber.split('/')[0] : (reg.bookingNumber ? reg.bookingNumber.split('/')[0] : null);
+    const cleanPassport = (reg.passportNumber || '').replace(/^SV-?/i, '').trim().toLowerCase();
+    const cleanGuestName = (reg.guestName || '').trim().toLowerCase();
+
+    return bookings.filter(b => {
+      if (!b || !b.bookingNumber || !b.bookingNumber.includes('/')) return false;
+      const hasRegMatch = b.guestRegistrationId === reg.id;
+      const hasPrefixMatch = baseBNum && b.bookingNumber.startsWith(baseBNum + '/');
+      const hasPassportMatch = cleanPassport && cleanPassport !== 'undefined' && b.bookingNumber.toLowerCase().startsWith(cleanPassport + '/');
+      const hasNameMatch = cleanGuestName && b.guestName && b.guestName.trim().toLowerCase() === cleanGuestName;
+      return hasRegMatch || hasPrefixMatch || hasPassportMatch || hasNameMatch;
+    });
+  };
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(''); // Empty means 'All'
@@ -2167,7 +2184,7 @@ const Reservations = () => {
                               </span>
                             </div>
                             {/* Payment Status Badge */}
-                            <div>
+                            <div className="flex flex-wrap items-center gap-1">
                               {(() => {
                                 const status = reg.paymentStatus ? reg.paymentStatus.toLowerCase() : 'pending';
                                 let displayStatus = 'Pending';
@@ -2188,6 +2205,34 @@ const Reservations = () => {
                                   <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold ${colorClass}`}>
                                     {displayStatus}
                                   </span>
+                                );
+                              })()}
+
+                              {/* Pending Add-on Badges (Extra Night / Extra Person) */}
+                              {(() => {
+                                const extras = getExtraBookingsForReg(reg);
+                                const unpaid1N = extras.filter(b => b.bookingNumber?.includes('/1N') && (b.paymentStatus || '').toLowerCase() !== 'paid');
+                                const unpaid1P = extras.filter(b => b.bookingNumber?.includes('/1P') && (b.paymentStatus || '').toLowerCase() !== 'paid');
+
+                                return (
+                                  <>
+                                    {unpaid1N.length > 0 && (
+                                      <span
+                                        title={`Extra Night Pending Payment (${unpaid1N.map(b => b.bookingNumber).join(', ')})`}
+                                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300/80 text-[8.5px] font-black uppercase shadow-2xs animate-pulse"
+                                      >
+                                        <span>🌙</span> 1N Due
+                                      </span>
+                                    )}
+                                    {unpaid1P.length > 0 && (
+                                      <span
+                                        title={`Extra Person Pending Payment (${unpaid1P.map(b => b.bookingNumber).join(', ')})`}
+                                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-800 border border-purple-300/80 text-[8.5px] font-black uppercase shadow-2xs animate-pulse"
+                                      >
+                                        <span>👤</span> 1P Due
+                                      </span>
+                                    )}
+                                  </>
                                 );
                               })()}
                             </div>
