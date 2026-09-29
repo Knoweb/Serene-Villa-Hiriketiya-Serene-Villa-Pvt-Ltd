@@ -499,7 +499,6 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
           const dispPriorAdvancePaid = isExtraSubBooking ? 0 : (forceLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr);
 
-          // Currency normalization for the payment amount
           const pCurr = (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || bCurr).toUpperCase();
           const pLkrAmount = parseFloat(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0);
           const pExRate = parseFloat(selectedPaymentForReceipt.exchangeRate) || exRate || 1;
@@ -515,11 +514,24 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             basePaidInBookingCurr = (pLkrAmount > 0 ? pLkrAmount : rawPaid) / (pExRate > 0 ? pExRate : 1);
           }
 
-          const paidDisplayAmt = forceLkr 
-            ? (bCurr === 'LKR' ? basePaidInBookingCurr : (basePaidInBookingCurr * exRate))
-            : basePaidInBookingCurr;
+          const otherDispVal = forceLkr 
+            ? (pCurr === 'LKR' ? otherVal : otherVal * exRate) 
+            : (pCurr === 'LKR' ? otherVal / exRate : otherVal);
 
-          const totalPaidUpToThisBCurr = priorAdvancePaidBCurr + basePaidInBookingCurr;
+          const otherValBCurr = pCurr === bCurr.toUpperCase() 
+            ? otherVal 
+            : (bCurr.toUpperCase() === 'LKR' ? (otherVal * pExRate) : (otherVal / (pExRate > 0 ? pExRate : 1)));
+
+          const netPayableBCurr = Math.max(0, grossTotAmt - totalDiscountVal - otherValBCurr);
+          const dispNetPayable = forceLkr ? netPayableBCurr * exRate : netPayableBCurr;
+
+          // If the payment recorded amount equals the full gross amount before other charge adjustment,
+          // the net settlement actually paid is (paid - other charges)
+          const actualPaidDisplayAmt = (isFinalPayment && otherVal > 0 && Math.abs(basePaidInBookingCurr - grossTotAmt) < 0.01)
+            ? (forceLkr ? (basePaidInBookingCurr - otherValBCurr) * exRate : (basePaidInBookingCurr - otherValBCurr))
+            : (forceLkr ? (bCurr === 'LKR' ? basePaidInBookingCurr : (basePaidInBookingCurr * exRate)) : basePaidInBookingCurr);
+
+          const totalPaidUpToThisBCurr = priorAdvancePaidBCurr + (basePaidInBookingCurr > netPayableBCurr && otherVal > 0 ? (basePaidInBookingCurr - otherValBCurr) : basePaidInBookingCurr);
           const totalPaidUpToThisDisplay = forceLkr
             ? (bCurr === 'LKR' ? totalPaidUpToThisBCurr : (totalPaidUpToThisBCurr * exRate))
             : totalPaidUpToThisBCurr;
@@ -530,16 +542,16 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           if (isFinalPayment) {
             remBal = 0;
           } else if (isExtraNight || isExtraPerson) {
-            remBal = Math.max(0, dispNetTotAmt - paidDisplayAmt - (forceLkr ? otherVal * exRate : otherVal));
+            remBal = Math.max(0, dispNetPayable - actualPaidDisplayAmt);
           } else if (isDiscountAdjusted) {
-            remBal = Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay - (forceLkr ? otherVal * exRate : otherVal));
+            remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
           } else {
-            remBal = Math.max(0, dispGrossTotAmt - totalPaidUpToThisDisplay - (forceLkr ? otherVal * exRate : otherVal));
+            remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
           }
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           
           // Converted amount in LKR for this receipt payment (paid room settlement * exchange rate)
-          const convertedAmountLkr = selectedPaymentForReceipt.convertedAmountLkr || (paidDisplayAmt * (displayCurrency === 'LKR' ? 1 : exRate));
+          const convertedAmountLkr = selectedPaymentForReceipt.convertedAmountLkr || (actualPaidDisplayAmt * (displayCurrency === 'LKR' ? 1 : exRate));
 
           return (
             <div className="border border-slate-700/60 rounded-lg p-3 space-y-1.5 bg-white shadow-2xs">
@@ -555,6 +567,22 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 </div>
               )}
 
+              {otherVal > 0 && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-amber-700 bg-amber-50/40 px-1 py-0.5 rounded">
+                  <span className="font-semibold">Other Charge (Adjustment):</span>
+                  <span className="font-bold font-mono">
+                    - {displayCurrency} {otherDispVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+
+              {(totalDiscountVal > 0 || otherVal > 0) && (
+                <div className="flex justify-between pb-0.5 border-b border-slate-200 font-bold text-slate-800">
+                  <span className="text-slate-600">Net Payable Amount:</span>
+                  <span className="font-mono">{displayCurrency} {dispNetPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
+
               {/* Advance Payments Received earlier (Shown whenever prior advance exists) */}
               {dispPriorAdvancePaid > 0 && (
                 <div className="flex justify-between pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
@@ -563,7 +591,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 </div>
               )}
               
-              {paidDisplayAmt > 0 && (
+              {actualPaidDisplayAmt > 0 && (
                 <div className="flex justify-between pb-0.5 border-b border-slate-100">
                   <span className="text-slate-500 font-semibold">
                     {isFinalPayment 
@@ -574,7 +602,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                     }
                   </span>
                   <span className="font-bold text-slate-900">
-                    {displayCurrency} {paidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {displayCurrency} {actualPaidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               )}
@@ -585,10 +613,10 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 if (cardFeeRaw > 0) {
                   let feeDisplayVal = 0;
                   if (forceLkr || displayCurrency === 'LKR') {
-                    const lkrPaid = paidDisplayAmt * (currencyCode === 'LKR' ? 1 : exRate);
+                    const lkrPaid = actualPaidDisplayAmt * (currencyCode === 'LKR' ? 1 : exRate);
                     feeDisplayVal = cardFeeRaw < (lkrPaid * 0.01) ? (cardFeeRaw * exRate) : cardFeeRaw;
                   } else {
-                    feeDisplayVal = cardFeeRaw > (paidDisplayAmt * 0.5) ? (cardFeeRaw / exRate) : cardFeeRaw;
+                    feeDisplayVal = cardFeeRaw > (actualPaidDisplayAmt * 0.5) ? (cardFeeRaw / exRate) : cardFeeRaw;
                   }
                   
                   const feeDisplay = `${displayCurrency} ${feeDisplayVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -614,19 +642,10 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                   <div className="flex justify-between pb-0.5 border-b border-slate-100">
                     <span className="text-slate-500 font-semibold">Converted Amount (LKR):</span>
                     <span className="font-bold text-slate-900">
-                      LKR {(paidDisplayAmt * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      LKR {(actualPaidDisplayAmt * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </>
-              )}
-
-              {otherVal > 0 && (
-                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-amber-700">
-                  <span className="font-semibold">Other Charge (Adjustment):</span>
-                  <span className="font-bold font-mono">
-                    - {displayCurrency} {(forceLkr ? (currencyCode === 'LKR' ? otherVal : otherVal * exRate) : (currencyCode === 'LKR' ? otherVal / exRate : otherVal)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
               )}
 
               {showExRate && otherVal > 0 && (
