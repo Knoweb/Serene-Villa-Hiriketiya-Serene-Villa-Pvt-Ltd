@@ -4299,6 +4299,20 @@ const Registrations = () => {
                         </div>
                       )}
 
+                      {/* Web Booking Conversion & Adjustment Breakdown matching standard format */}
+                      {!forceReceiptLkr && bCurr !== 'LKR' && (
+                        <>
+                          <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
+                            <span className="text-slate-500">Exchange Rate:</span>
+                            <span className="font-medium text-slate-700">{exRate}</span>
+                          </div>
+                          <div className="flex justify-between pb-0.5 border-b border-slate-100">
+                            <span className="text-slate-500 font-semibold">Converted Amount (LKR):</span>
+                            <span className="font-bold text-slate-900">LKR {(paidAmt * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        </>
+                      )}
+
                       {cardFeeVal > 0 && (
                         <div className="flex justify-between pb-0.5 border-b border-slate-100">
                           <span className="text-slate-700 font-bold">CHARGES:</span>
@@ -4309,30 +4323,30 @@ const Registrations = () => {
                       )}
 
                       {otherVal > 0 && (
-                        <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                          <span className="text-slate-500 font-semibold">OTHER CHARGES:</span>
-                          <span className="font-bold text-amber-700">
-                            {dispCurr} {(dispCurr === 'LKR' ? ((selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR') === 'LKR' ? otherVal : otherVal * exRate) : otherVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <div className="flex justify-between pb-0.5 border-b border-slate-100 text-amber-700">
+                          <span className="font-semibold">Other Charge (Adjustment):</span>
+                          <span className="font-bold font-mono">
+                            - LKR {((selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR') === 'LKR' ? otherVal : otherVal * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       )}
 
-                      {dispCurr !== 'LKR' && (selectedPaymentForReceipt?.showExchangeRateOnBill || associatedBooking?.showExchangeRateOnBill) && (
-                        <>
-                          <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
-                            <span className="text-slate-500">Exchange Rate:</span>
-                            <span className="font-medium text-slate-700">{exRate}</span>
-                          </div>
-                          <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                            <span className="text-slate-500 font-semibold">Converted Amount:</span>
-                            <span className="font-bold text-slate-900">LKR {convertedAmountLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                        </>
+                      {otherVal > 0 && !forceReceiptLkr && bCurr !== 'LKR' && (
+                        <div className="flex justify-between pb-0.5 border-b border-slate-100 bg-emerald-50/50 px-1 py-0.5 rounded">
+                          <span className="text-slate-700 font-bold text-[11px]">Next Payment:</span>
+                          <span className="font-bold font-mono text-emerald-800 text-[11px]">
+                            LKR {convertedAmountLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
                       )}
 
                       <div className="flex justify-between pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
                         <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
-                        <span className="font-mono text-xs text-slate-900">{dispCurr} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-mono text-xs text-slate-900">
+                          {otherVal > 0 && !forceReceiptLkr && bCurr !== 'LKR'
+                            ? `LKR ${(remBal * (dispCurr === 'LKR' ? 1 : exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : `${dispCurr} ${remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        </span>
                       </div>
                       {isFinalPayment && (
                         <div className="text-center mt-1 pt-0.5">

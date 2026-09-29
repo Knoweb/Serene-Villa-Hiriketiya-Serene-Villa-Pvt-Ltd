@@ -4328,16 +4328,17 @@ const Reservations = () => {
                             </span>
                           </div>
 
-                          {!forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (selectedPaymentForReceipt?.showExchangeRateOnBill || associatedBooking?.showExchangeRateOnBill) && (
+                          {/* Web Booking Conversion & Adjustment Breakdown matching standard format */}
+                          {!forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (
                             <>
                               <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
                                 <span className="text-slate-500">Exchange Rate:</span>
                                 <span className="font-medium text-slate-700">{exRate}</span>
                               </div>
                               <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                                <span className="text-slate-500 font-semibold">Converted Amount:</span>
+                                <span className="text-slate-500 font-semibold">Converted Amount (LKR):</span>
                                 <span className="font-bold text-emerald-850 print:text-slate-900">
-                                  LKR {(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  LKR {(parseFloat(paidAmt) * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               </div>
                             </>
@@ -4370,13 +4371,27 @@ const Reservations = () => {
                             const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
                             const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
                             if (otherVal > 0) {
-                              const otherDisp = forceReceiptLkr || dispCurr === 'LKR'
-                                ? `LKR ${(selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : (otherVal * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                : `${dispCurr} ${otherVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                              const otherLkr = (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : (otherVal * exRate));
                               return (
-                                <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                                  <span className="text-slate-500 font-semibold">OTHER CHARGES:</span>
-                                  <span className="font-bold text-amber-700">{otherDisp}</span>
+                                <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-amber-700">
+                                  <span className="font-semibold">Other Charge (Adjustment):</span>
+                                  <span className="font-bold font-mono">- LKR {otherLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+
+                          {(() => {
+                            const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                            const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
+                            if (otherVal > 0 && !forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR') {
+                              return (
+                                <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 bg-emerald-50/50 px-1 py-0.5 rounded">
+                                  <span className="text-slate-700 font-bold text-[11px]">Next Payment:</span>
+                                  <span className="font-bold font-mono text-emerald-800 text-[11px]">
+                                    LKR {(selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || ((parseFloat(paidAmt) - otherVal) * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </span>
                                 </div>
                               );
                             }
@@ -4388,7 +4403,14 @@ const Reservations = () => {
                             <span className={`font-mono text-xs ${
                               isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
                             } print:text-slate-900`}>
-                              {dispCurr} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {(() => {
+                                const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                                const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
+                                if (otherVal > 0 && !forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR') {
+                                  return `LKR ${(remBal * (dispCurr === 'LKR' ? 1 : exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                }
+                                return `${dispCurr} ${remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                              })()}
                             </span>
                           </div>
                           {isFinalPayment && (
