@@ -207,6 +207,16 @@ const getBookingCurrency = (booking, reg = null, form = null) => {
   return isForeign ? 'USD' : 'LKR';
 };
 
+const formatLocalDate = (dateInput) => {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return String(dateInput).split('T')[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const Registrations = () => {
   const { user } = useAuth();
   const { showConfirm, showAlert } = useModal();
@@ -951,8 +961,8 @@ const Registrations = () => {
         currencyCode: associatedBooking.currency || reg.currency || reg.currencyCode || 'USD',
         paymentStatus: reg.paymentStatus || associatedBooking.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: associatedBooking.checkInDate || reg.checkInDate || '',
-        checkOutDate: associatedBooking.checkOutDate || reg.checkOutDate || '',
+        checkInDate: formatLocalDate(associatedBooking.checkInDate || reg.checkInDate),
+        checkOutDate: formatLocalDate(associatedBooking.checkOutDate || reg.checkOutDate),
         numberOfNights: associatedBooking.numberOfNights || reg.numberOfNights || reg.nights || 0
       });
       fetchAdvancePayments(associatedBooking.id);
@@ -969,8 +979,8 @@ const Registrations = () => {
         currencyCode: reg.currency || reg.currencyCode || 'USD',
         paymentStatus: reg.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: reg.checkInDate || '',
-        checkOutDate: reg.checkOutDate || '',
+        checkInDate: formatLocalDate(reg.checkInDate),
+        checkOutDate: formatLocalDate(reg.checkOutDate),
         numberOfNights: reg.numberOfNights || reg.nights || 0
       });
       setAdvancePayments([]);
@@ -1203,12 +1213,13 @@ const Registrations = () => {
     });
     const baseBookingItem = relatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
     const discBookings = relatedBookings.filter(b => b.bookingNumber && b.bookingNumber.includes('/DISC'));
-    const baseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(booking.totalAmount || 0);
+    const rawBaseAmount = baseBookingItem ? parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0) : parseFloat(booking.totalAmount || 0);
+    const validBaseAmount = (!isNaN(rawBaseAmount) && rawBaseAmount > 0) ? rawBaseAmount : parseFloat(selectedReg?.totalAmount || 0);
     const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
-    const netBookingAmount = Math.max(0, baseAmount - totalDiscountDeduction);
+    const netBookingAmount = Math.max(0, validBaseAmount - totalDiscountDeduction);
 
     const newTotalInBookingCurrency = currentPaidInBookingCurrency + amountInBookingCurrency;
-    const isFull = tab === 'FULL' || newTotalInBookingCurrency >= (netBookingAmount - 0.01);
+    const isFull = tab === 'FULL' || (netBookingAmount > 0 && newTotalInBookingCurrency >= (netBookingAmount - 0.01));
 
     let finalRemarks = paymentForm.remarks || '';
     if (paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0) {
@@ -2734,11 +2745,15 @@ const Registrations = () => {
                       ? (parseFloat(baseBookingItem.totalAmount || baseBookingItem.amount || 0))
                       : parseFloat(associatedBooking?.totalAmount || bookingForm.amount || selectedReg?.totalAmount || 0);
 
+                    const validBaseAmount = (!isNaN(baseAmount) && baseAmount > 0)
+                      ? baseAmount
+                      : parseFloat(selectedReg?.totalAmount || 0);
+
                     const totalDiscountDeduction = discBookings.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
                     const totalExtraCharges = extraItems.reduce((sum, b) => sum + Math.abs(parseFloat(b.totalAmount || b.amount || 0)), 0);
                     
                     // Base Net Total is strictly Base Amount minus Discount
-                    const baseNetAmt = Math.max(0, baseAmount - totalDiscountDeduction);
+                    const baseNetAmt = Math.max(0, validBaseAmount - totalDiscountDeduction);
 
                     // Smartly detect booking currency
                     const bookingCurrency = getBookingCurrency(associatedBooking || baseBookingItem, selectedReg, bookingForm);
