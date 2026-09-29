@@ -1280,7 +1280,7 @@ const Registrations = () => {
       guestName: selectedReg.guestName,
       bookingRef: realBooking?.bookingNumber || bookingForm.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, ''),
       roomNumber: realBooking?.roomNumber || bookingForm.room,
-      totalAmount: baseAmount,
+      totalAmount: validBaseAmount,
       bookingCurrency: bookingCurrency
     });
     setShowReceiptModal(true);
