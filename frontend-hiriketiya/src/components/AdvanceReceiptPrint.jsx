@@ -555,45 +555,45 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
           return (
             <div className="border border-slate-700/60 rounded-lg p-3 space-y-1.5 bg-white shadow-2xs">
-              <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                <span className="text-slate-500 font-semibold">Total Booking Amount:</span>
-                <span className="font-bold text-slate-800">{displayCurrency} {dispGrossTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <div className="flex justify-between items-center pb-0.5 border-b border-slate-100">
+                <span className="text-slate-500 font-semibold whitespace-nowrap">Total Booking Amount:</span>
+                <span className="font-bold text-slate-800 whitespace-nowrap ml-2">{displayCurrency} {dispGrossTotAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
 
               {totalDiscountVal > 0 && shouldApplyDiscount && (
-                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-rose-600 bg-rose-50/50 px-1 py-0.5 rounded">
-                  <span className="font-semibold">Discount Deducted:</span>
-                  <span className="font-bold font-mono">-{displayCurrency} {(forceLkr ? totalDiscountVal * exRate : totalDiscountVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-rose-600 bg-rose-50/50 px-1 py-0.5 rounded">
+                  <span className="font-semibold whitespace-nowrap">Discount Deducted:</span>
+                  <span className="font-bold font-mono whitespace-nowrap ml-2">-{displayCurrency} {(forceLkr ? totalDiscountVal * exRate : totalDiscountVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
 
               {otherVal > 0 && (
-                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-amber-700 bg-amber-50/40 px-1 py-0.5 rounded">
-                  <span className="font-semibold">Other Charge (Adjustment):</span>
-                  <span className="font-bold font-mono">
+                <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-amber-700 bg-amber-50/40 px-1 py-0.5 rounded">
+                  <span className="font-semibold whitespace-nowrap">Other Charge (Adjustment):</span>
+                  <span className="font-bold font-mono whitespace-nowrap ml-2">
                     - {displayCurrency} {otherDispVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               )}
 
               {(totalDiscountVal > 0 || otherVal > 0) && (
-                <div className="flex justify-between pb-0.5 border-b border-slate-200 font-bold text-slate-800">
-                  <span className="text-slate-600">Net Payable Amount:</span>
-                  <span className="font-mono">{displayCurrency} {dispNetPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <div className="flex justify-between items-center pb-0.5 border-b border-slate-200 font-bold text-slate-800">
+                  <span className="text-slate-600 whitespace-nowrap">Net Payable Amount:</span>
+                  <span className="font-mono whitespace-nowrap ml-2">{displayCurrency} {dispNetPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
 
               {/* Advance Payments Received earlier (Shown whenever prior advance exists) */}
               {dispPriorAdvancePaid > 0 && (
-                <div className="flex justify-between pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
-                  <span className="font-semibold">Advance Paid Earlier:</span>
-                  <span className="font-bold font-mono">-{displayCurrency} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
+                  <span className="font-semibold whitespace-nowrap">Advance Paid Earlier:</span>
+                  <span className="font-bold font-mono whitespace-nowrap ml-2">-{displayCurrency} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
               
               {actualPaidDisplayAmt > 0 && (
-                <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-semibold">
+                <div className="flex justify-between items-center pb-0.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-semibold whitespace-nowrap">
                     {isFinalPayment 
                       ? 'Final Settlement Paid:' 
                       : (isExtraNight || isExtraPerson)
@@ -601,7 +601,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                       : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')
                     }
                   </span>
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-slate-900 whitespace-nowrap ml-2">
                     {displayCurrency} {actualPaidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -621,9 +621,9 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                   
                   const feeDisplay = `${displayCurrency} ${feeDisplayVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   return (
-                    <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                      <span className="text-slate-700 font-bold">CHARGES:</span>
-                      <span className="font-bold text-slate-900">
+                    <div className="flex justify-between items-center pb-0.5 border-b border-slate-100">
+                      <span className="text-slate-700 font-bold whitespace-nowrap">CHARGES:</span>
+                      <span className="font-bold text-slate-900 whitespace-nowrap ml-2">
                         {feeDisplay}
                       </span>
                     </div>
@@ -635,13 +635,13 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               {/* Web Booking Conversion breakdown ONLY when showExchangeRateOnBill toggle is enabled */}
               {showExRate && (
                 <>
-                  <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
-                    <span className="text-slate-500">Exchange Rate:</span>
-                    <span className="font-medium text-slate-750">{exRate}</span>
+                  <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-[10px]">
+                    <span className="text-slate-500 whitespace-nowrap">Exchange Rate:</span>
+                    <span className="font-medium text-slate-750 whitespace-nowrap ml-2">{exRate}</span>
                   </div>
-                  <div className="flex justify-between pb-0.5 border-b border-slate-100">
-                    <span className="text-slate-500 font-semibold">Converted Amount (LKR):</span>
-                    <span className="font-bold text-slate-900">
+                  <div className="flex justify-between items-center pb-0.5 border-b border-slate-100">
+                    <span className="text-slate-500 font-semibold whitespace-nowrap">Converted Amount (LKR):</span>
+                    <span className="font-bold text-slate-900 whitespace-nowrap ml-2">
                       LKR {(actualPaidDisplayAmt * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -649,17 +649,17 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               )}
 
               {showExRate && otherVal > 0 && (
-                <div className="flex justify-between pb-0.5 border-b border-slate-100 bg-emerald-50/50 px-1 py-0.5 rounded">
-                  <span className="text-slate-700 font-bold text-[11px]">Next Payment:</span>
-                  <span className="font-bold font-mono text-emerald-800 text-[11px]">
+                <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 bg-emerald-50/50 px-1 py-0.5 rounded">
+                  <span className="text-slate-700 font-bold text-[11px] whitespace-nowrap">Next Payment:</span>
+                  <span className="font-bold font-mono text-emerald-800 text-[11px] whitespace-nowrap ml-2">
                     LKR {convertedAmountLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               )}
 
-              <div className="flex justify-between pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
-                <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
-                <span className="font-bold text-xs text-slate-900">
+              <div className="flex justify-between items-center pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
+                <span className="text-slate-900 font-black text-xs whitespace-nowrap">Remaining Balance:</span>
+                <span className="font-bold text-xs text-slate-900 whitespace-nowrap ml-2">
                   {displayCurrency} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
