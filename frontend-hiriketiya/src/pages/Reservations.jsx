@@ -4343,6 +4343,8 @@ const Reservations = () => {
                         return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
                       }, 0);
 
+                      const dispPriorAdvancePaid = forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
+
                       const otherDispVal = forceReceiptLkr 
                         ? (pCurr === 'LKR' ? otherVal : (otherVal * exRate))
                         : (pCurr === 'LKR' ? (otherVal / exRate) : otherVal);
