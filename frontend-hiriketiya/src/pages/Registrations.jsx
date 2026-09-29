@@ -2774,11 +2774,11 @@ const Registrations = () => {
                       }
                     });
 
-                    let pStatus = associatedBooking?.paymentStatus || selectedReg?.paymentStatus || 'Unpaid';
-                    if (totalPaidInBookingCurrency >= (baseNetAmt - 0.01) && baseNetAmt > 0) pStatus = 'Paid';
-                    else if (totalPaidInBookingCurrency > 0 && pStatus !== 'Paid') pStatus = 'Partially Paid';
-
-                    const bal = pStatus === 'Paid' ? 0 : Math.max(0, baseNetAmt - totalPaidInBookingCurrency);
+                    const bal = Math.max(0, baseNetAmt - totalPaidInBookingCurrency);
+                    let pStatus = 'Unpaid';
+                    if (baseNetAmt > 0 && bal <= 0.01) pStatus = 'Paid';
+                    else if (totalPaidInBookingCurrency > 0) pStatus = 'Partially Paid';
+                    else if (associatedBooking?.paymentStatus === 'Paid' && totalPaidInBookingCurrency === 0 && baseNetAmt === 0) pStatus = 'Paid';
 
                     return (
                       <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-2.5 text-xs">
@@ -2951,8 +2951,8 @@ const Registrations = () => {
                       totalPaidInBookingCurrency += convertedAmt;
                     });
 
-                    const remainingBal = (associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid') ? 0 : Math.max(0, baseNetAmt - totalPaidInBookingCurrency);
-                    const isFullyPaid = remainingBal <= 0.001 || associatedBooking?.paymentStatus === 'Paid' || selectedReg?.paymentStatus === 'Paid';
+                    const remainingBal = Math.max(0, baseNetAmt - totalPaidInBookingCurrency);
+                    const isFullyPaid = baseNetAmt > 0 && remainingBal <= 0.01;
 
                     if (isFullyPaid) return (
                       <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700 font-bold">
