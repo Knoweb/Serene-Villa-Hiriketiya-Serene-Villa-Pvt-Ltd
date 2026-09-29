@@ -8,6 +8,7 @@ services:
     environment:
       MYSQL_DATABASE: serene_villa_db
       MYSQL_ROOT_PASSWORD: rootpassword
+      TZ: Asia/Colombo
     ports:
       - "3306:3306"
     volumes:
@@ -22,10 +23,13 @@ services:
     depends_on:
       - db
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/serene_villa_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/serene_villa_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Colombo
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=rootpassword
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_TIME_ZONE=Asia/Colombo
+      - SPRING_JACKSON_TIME_ZONE=Asia/Colombo
+      - TZ=Asia/Colombo
     ports:
       - "8080:8080"
 
