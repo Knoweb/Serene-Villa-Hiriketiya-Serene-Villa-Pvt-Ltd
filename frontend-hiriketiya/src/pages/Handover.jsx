@@ -263,6 +263,10 @@ const Handover = () => {
       if (rawRef.includes('/')) {
         baseRef = rawRef.split('/')[0].trim();
       }
+      if (!baseRef && p.guestRegistrationId) {
+        const foundB = bookings.find(b => b.guestRegistrationId === p.guestRegistrationId && b.bookingNumber && !b.bookingNumber.includes('/'));
+        if (foundB) baseRef = foundB.bookingNumber.trim();
+      }
       if (!baseRef) {
         baseRef = `NO-REF-${p.id}`;
       }
@@ -332,6 +336,7 @@ const Handover = () => {
 
         groups[baseRef] = {
           bookingRef: baseRef,
+          guestRegistrationId: regId || null,
           guestName,
           roomNumbers,
           checkIn,
@@ -411,6 +416,8 @@ const Handover = () => {
         if (rawRef.includes('/')) base = rawRef.split('/')[0].trim();
         const targetBase = g.bookingRef.toLowerCase();
         if (base && base.toLowerCase() === targetBase) return true;
+        if (rawRef && rawRef.toLowerCase().startsWith(targetBase)) return true;
+        if (g.guestRegistrationId && p.guestRegistrationId && p.guestRegistrationId === g.guestRegistrationId) return true;
         if (p.bookingId && g.payments.some(gp => gp.bookingId === p.bookingId)) return true;
         if (p.guestRegistrationId && g.payments.some(gp => gp.guestRegistrationId === p.guestRegistrationId)) return true;
         return false;
@@ -498,13 +505,23 @@ const Handover = () => {
       });
 
       const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
-      const grossBillValue = g.baseRoomPrice + extrasSubtotal;
-      const netPayable = Math.max(0, grossBillValue - g.discountVal - (g.otherChargesPrice || 0));
-      const remainingBalance = Math.max(0, netPayable - (advancePaid + extraNightsPaid + extraPersonsPaid + finalPaid));
+      const baseGrossTotal = g.baseRoomPrice;
+      const baseNetPayable = Math.max(0, baseGrossTotal - g.discountVal - (g.otherChargesPrice || 0));
+      const grossBillValue = g.baseRoomPrice; // Keep base gross intact as requested
+      const netPayable = baseNetPayable;
+      
+      const extraNightDue = Math.max(0, g.extraNightsPrice - extraNightsPaid);
+      const extraPersonDue = Math.max(0, g.extraPersonsPrice - extraPersonsPaid);
+      const baseDue = Math.max(0, baseNetPayable - (advancePaid + finalPaid));
+      const remainingBalance = baseDue + extraNightDue + extraPersonDue;
 
       return {
         ...g,
         extrasSubtotal,
+        baseGrossTotal,
+        baseNetPayable,
+        extraNightDue,
+        extraPersonDue,
         grossBillValue,
         netPayable,
         advancePaid,
@@ -1274,12 +1291,12 @@ const Handover = () => {
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     {b.extraNightsPrice > 0 && (
                        <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                         <BedDouble size={11} /> Extra Night: {b.currency} {b.extraNightsPrice.toLocaleString()}
+                         <BedDouble size={11} /> Extra Night: {b.currency} {b.extraNightsPrice.toLocaleString()} {b.extraNightDue > 0 ? `(Due: ${b.currency} ${b.extraNightDue.toLocaleString()})` : '(Settled)'}
                        </span>
                     )}
                     {b.extraPersonsPrice > 0 && (
                        <span className="text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                         <User size={11} /> Extra Person: {b.currency} {b.extraPersonsPrice.toLocaleString()}
+                         <User size={11} /> Extra Person: {b.currency} {b.extraPersonsPrice.toLocaleString()} {b.extraPersonDue > 0 ? `(Due: ${b.currency} ${b.extraPersonDue.toLocaleString()})` : '(Settled)'}
                        </span>
                     )}
                     {b.otherChargesPrice > 0 && (
