@@ -2151,8 +2151,8 @@ const Reservations = () => {
                             {reg.whatsappNumber || reg.whatsAppNumber}
                           </td>
                           <td className="p-4">
-                            <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {reg.checkInDate || booking?.checkInDate}</div>
-                            <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {reg.checkOutDate || booking?.checkOutDate}</div>
+                            <div className="text-slate-850"><span className="font-extrabold text-slate-400 text-[10px] mr-1">IN:</span> {reg.checkInDate || booking?.checkInDate || 'N/A'}</div>
+                            <div className="text-slate-850 mt-0.5"><span className="font-extrabold text-slate-400 text-[10px] mr-1">OUT:</span> {reg.checkOutDate || booking?.checkOutDate || 'N/A'}</div>
                             <p className="text-slate-500 font-bold text-[11px] mt-1">
                               {booking ? (booking.roomNumber ? `Room ${booking.roomNumber}` : 'Unallocated') : 'Unallocated'}
                             </p>
@@ -2367,7 +2367,7 @@ const Reservations = () => {
                       />
                     ) : (
                       <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.checkInDate || selectedReg.checkInDate}
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkInDate || associatedBooking?.checkInDate || 'N/A'}
                       </p>
                     )}
                   </div>
@@ -2384,7 +2384,7 @@ const Reservations = () => {
                       />
                     ) : (
                       <p className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.checkOutDate || selectedReg.checkOutDate}
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.checkOutDate || associatedBooking?.checkOutDate || 'N/A'}
                       </p>
                     )}
                   </div>
@@ -2820,8 +2820,8 @@ const Reservations = () => {
                       setConfirmationData({
                         guestName: selectedReg.guestName || '',
                         bookingNumber: baseBookingItem.bookingNumber || associatedBooking.bookingNumber || '',
-                        checkInDate: baseBookingItem.checkInDate || selectedReg.checkInDate || '',
-                        checkOutDate: baseBookingItem.checkOutDate || selectedReg.checkOutDate || '',
+                        checkInDate: selectedReg.checkInDate || baseBookingItem.checkInDate || '',
+                        checkOutDate: selectedReg.checkOutDate || baseBookingItem.checkOutDate || '',
                         nights: nightsVal,
                         adults: selectedReg.adults || 1,
                         children: selectedReg.children || 0,
