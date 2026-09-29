@@ -524,15 +524,17 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             ? (bCurr === 'LKR' ? totalPaidUpToThisBCurr : (totalPaidUpToThisBCurr * exRate))
             : totalPaidUpToThisBCurr;
 
+          const showExRate = !forceLkr && (bCurr !== 'LKR') && Boolean(associatedBooking?.showExchangeRateOnBill || receiptData?.showExchangeRateOnBill);
+
           let remBal = 0;
           if (isFinalPayment) {
             remBal = 0;
           } else if (isExtraNight || isExtraPerson) {
-            remBal = Math.max(0, dispNetTotAmt - paidDisplayAmt);
+            remBal = Math.max(0, dispNetTotAmt - paidDisplayAmt - (forceLkr ? otherVal * exRate : otherVal));
           } else if (isDiscountAdjusted) {
-            remBal = Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay);
+            remBal = Math.max(0, dispNetTotAmt - totalPaidUpToThisDisplay - (forceLkr ? otherVal * exRate : otherVal));
           } else {
-            remBal = Math.max(0, dispGrossTotAmt - totalPaidUpToThisDisplay);
+            remBal = Math.max(0, dispGrossTotAmt - totalPaidUpToThisDisplay - (forceLkr ? otherVal * exRate : otherVal));
           }
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           
@@ -602,8 +604,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 return null;
               })()}
 
-              {/* Web Booking Conversion & Adjustment Breakdown matching standard format */}
-              {!forceLkr && (currencyCode !== 'LKR') && (
+              {/* Web Booking Conversion breakdown ONLY when showExchangeRateOnBill toggle is enabled */}
+              {showExRate && (
                 <>
                   <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
                     <span className="text-slate-500">Exchange Rate:</span>
@@ -622,12 +624,12 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
                 <div className="flex justify-between pb-0.5 border-b border-slate-100 text-amber-700">
                   <span className="font-semibold">Other Charge (Adjustment):</span>
                   <span className="font-bold font-mono">
-                    - LKR {(currencyCode === 'LKR' ? otherVal : otherVal * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    - {displayCurrency} {(forceLkr ? (currencyCode === 'LKR' ? otherVal : otherVal * exRate) : (currencyCode === 'LKR' ? otherVal / exRate : otherVal)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               )}
 
-              {!forceLkr && (currencyCode !== 'LKR') && otherVal > 0 && (
+              {showExRate && otherVal > 0 && (
                 <div className="flex justify-between pb-0.5 border-b border-slate-100 bg-emerald-50/50 px-1 py-0.5 rounded">
                   <span className="text-slate-700 font-bold text-[11px]">Next Payment:</span>
                   <span className="font-bold font-mono text-emerald-800 text-[11px]">
@@ -639,11 +641,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
               <div className="flex justify-between pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
                 <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
                 <span className="font-bold text-xs text-slate-900">
-                  {otherVal > 0 && (currencyCode !== 'LKR') && !forceLkr ? (
-                    `LKR ${(remBal * (displayCurrency === 'LKR' ? 1 : exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  ) : (
-                    `${displayCurrency} ${remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  )}
+                  {displayCurrency} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               {isFinalPayment && (

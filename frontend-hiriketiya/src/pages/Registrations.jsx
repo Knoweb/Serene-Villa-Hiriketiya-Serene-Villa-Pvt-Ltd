@@ -4303,20 +4303,22 @@ const Registrations = () => {
                     ? (selectedPaymentForReceipt.convertedAmountLkr || selectedPaymentForReceipt.amountLkr || (basePaidInBookingCurr * exRate))
                     : basePaidInBookingCurr;
 
+                  const showExRate = !forceReceiptLkr && (bCurr !== 'LKR') && Boolean(associatedBooking?.showExchangeRateOnBill || receiptData?.showExchangeRateOnBill);
+
                   let remBal = 0;
                   if (isFinalPayment) {
                     remBal = 0;
                   } else if (isExtraNight || isExtraPerson) {
                     // For sub-booking, remaining balance is sub-booking total minus payments made for this sub-booking
-                    remBal = Math.max(0, dispNetTotAmt - paidAmt);
+                    remBal = Math.max(0, dispNetTotAmt - paidAmt - (forceReceiptLkr ? (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : otherVal * exRate) : (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal / exRate : otherVal)));
                   } else if (isDiscountAdjusted) {
                     // For discount adjusted invoice, remaining balance is net total minus all payments made so far
                     const totalPaidBCurr = totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate));
-                    remBal = Math.max(0, dispNetTotAmt - totalPaidBCurr);
+                    remBal = Math.max(0, dispNetTotAmt - totalPaidBCurr - (forceReceiptLkr ? (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : otherVal * exRate) : (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal / exRate : otherVal)));
                   } else {
                     // For standard Advance Payment receipt on base booking, calculate against base booking payments
                     const totalPaidBCurr = totalPaidUpToThis * (forceReceiptLkr ? 1 : (1/exRate));
-                    remBal = Math.max(0, dispGrossTotAmt - totalPaidBCurr);
+                    remBal = Math.max(0, dispGrossTotAmt - totalPaidBCurr - (forceReceiptLkr ? (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : otherVal * exRate) : (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal / exRate : otherVal)));
                   }
                   
                   // Converted Amount in LKR for this receipt payment (paid room settlement * exchange rate)
@@ -4359,8 +4361,8 @@ const Registrations = () => {
                         </div>
                       )}
 
-                      {/* Web Booking Conversion & Adjustment Breakdown matching standard format */}
-                      {!forceReceiptLkr && bCurr !== 'LKR' && (
+                      {/* Web Booking Conversion breakdown ONLY when showExchangeRateOnBill toggle is enabled */}
+                      {showExRate && (
                         <>
                           <div className="flex justify-between pb-0.5 border-b border-slate-100 text-[10px]">
                             <span className="text-slate-500">Exchange Rate:</span>
@@ -4386,12 +4388,12 @@ const Registrations = () => {
                         <div className="flex justify-between pb-0.5 border-b border-slate-100 text-amber-700">
                           <span className="font-semibold">Other Charge (Adjustment):</span>
                           <span className="font-bold font-mono">
-                            - LKR {((selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR') === 'LKR' ? otherVal : otherVal * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            - {dispCurr} {(forceReceiptLkr ? (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : otherVal * exRate) : (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal / exRate : otherVal)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       )}
 
-                      {otherVal > 0 && !forceReceiptLkr && bCurr !== 'LKR' && (
+                      {otherVal > 0 && showExRate && (
                         <div className="flex justify-between pb-0.5 border-b border-slate-100 bg-emerald-50/50 px-1 py-0.5 rounded">
                           <span className="text-slate-700 font-bold text-[11px]">Next Payment:</span>
                           <span className="font-bold font-mono text-emerald-800 text-[11px]">
@@ -4403,9 +4405,7 @@ const Registrations = () => {
                       <div className="flex justify-between pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
                         <span className="text-slate-900 font-black text-xs">Remaining Balance:</span>
                         <span className="font-mono text-xs text-slate-900">
-                          {otherVal > 0 && !forceReceiptLkr && bCurr !== 'LKR'
-                            ? `LKR ${(remBal * (dispCurr === 'LKR' ? 1 : exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : `${dispCurr} ${remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                          {dispCurr} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       {isFinalPayment && (

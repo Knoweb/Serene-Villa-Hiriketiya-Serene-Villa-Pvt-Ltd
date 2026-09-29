@@ -2887,7 +2887,8 @@ const Reservations = () => {
                         senderName: baseBookingItem.senderName || associatedBooking.senderName || confirmationData.senderName || localStorage.getItem('pms_sender_name') || user?.name || user?.username || '',
                         badgeText: '',
                         remarks: baseBookingItem.remarks || '',
-                        bookingType: baseBookingItem.bookingType || associatedBooking.bookingType || 'Booking.com Booking'
+                        bookingType: baseBookingItem.bookingType || associatedBooking.bookingType || 'Booking.com Booking',
+                        showExchangeRateOnBill: Boolean(baseBookingItem.showExchangeRateOnBill || associatedBooking.showExchangeRateOnBill)
                       });
                       setShowDraftPreviewModal(true);
                     }}
@@ -4342,7 +4343,8 @@ const Reservations = () => {
                       }, 0);
 
                       const dispPriorAdvancePaid = forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
-                      const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - (dispPriorAdvancePaid + paidAmt));
+                      const showExRate = !forceReceiptLkr && (bCurr !== 'LKR') && Boolean(associatedBooking?.showExchangeRateOnBill || receiptData?.showExchangeRateOnBill);
+                      const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - (dispPriorAdvancePaid + paidAmt) - (forceReceiptLkr ? (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : otherVal * exRate) : (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal / exRate : otherVal)));
 
                       return (
                         <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
@@ -4373,8 +4375,8 @@ const Reservations = () => {
                             </span>
                           </div>
 
-                          {/* Web Booking Conversion & Adjustment Breakdown matching standard format */}
-                          {!forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR' && (
+                          {/* Web Booking Conversion breakdown ONLY when showExchangeRateOnBill toggle is enabled */}
+                          {showExRate && (
                             <>
                               <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-[10px]">
                                 <span className="text-slate-500">Exchange Rate:</span>
@@ -4416,11 +4418,13 @@ const Reservations = () => {
                             const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
                             const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
                             if (otherVal > 0) {
-                              const otherLkr = (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : (otherVal * exRate));
+                              const otherDispVal = forceReceiptLkr 
+                                ? (selectedPaymentForReceipt.currencyCode === 'LKR' ? otherVal : (otherVal * exRate))
+                                : (selectedPaymentForReceipt.currencyCode === 'LKR' ? (otherVal / exRate) : otherVal);
                               return (
                                 <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-amber-700">
                                   <span className="font-semibold">Other Charge (Adjustment):</span>
-                                  <span className="font-bold font-mono">- LKR {otherLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  <span className="font-bold font-mono">- {dispCurr} {otherDispVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                               );
                             }
@@ -4430,7 +4434,7 @@ const Reservations = () => {
                           {(() => {
                             const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
                             const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
-                            if (otherVal > 0 && !forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR') {
+                            if (otherVal > 0 && showExRate) {
                               return (
                                 <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 bg-emerald-50/50 px-1 py-0.5 rounded">
                                   <span className="text-slate-700 font-bold text-[11px]">Next Payment:</span>
@@ -4448,14 +4452,7 @@ const Reservations = () => {
                             <span className={`font-mono text-xs ${
                               isFinalPayment ? 'text-blue-700' : 'text-emerald-800'
                             } print:text-slate-900`}>
-                              {(() => {
-                                const otherMatch = selectedPaymentForReceipt.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
-                                const otherVal = otherMatch ? parseFloat(otherMatch[1]) : 0;
-                                if (otherVal > 0 && !forceReceiptLkr && (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency) !== 'LKR') {
-                                  return `LKR ${(remBal * (dispCurr === 'LKR' ? 1 : exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                }
-                                return `${dispCurr} ${remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                              })()}
+                              {dispCurr} {remBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
                           {isFinalPayment && (
