@@ -2186,19 +2186,20 @@ const Reservations = () => {
                             {/* Payment Status Badge */}
                             <div className="flex flex-wrap items-center gap-1">
                               {(() => {
-                                const status = reg.paymentStatus ? reg.paymentStatus.toLowerCase() : 'pending';
+                                const rawStatus = (booking?.paymentStatus || reg.paymentStatus || 'Pending').trim();
+                                const status = rawStatus.toLowerCase();
                                 let displayStatus = 'Pending';
                                 let colorClass = 'bg-blue-100 text-blue-700';
 
-                                if (status.includes('paid advance') || status.includes('partially') || status === 'advance') {
-                                  displayStatus = 'Advance';
-                                  colorClass = 'bg-amber-100 text-amber-700';
-                                } else if (status === 'paid') {
+                                if (status === 'paid') {
                                   displayStatus = 'Paid';
-                                  colorClass = 'bg-green-100 text-green-700';
+                                  colorClass = 'bg-green-100 text-green-700 font-bold';
+                                } else if (status.includes('paid advance') || status.includes('partially') || status === 'advance') {
+                                  displayStatus = 'Advance';
+                                  colorClass = 'bg-amber-100 text-amber-700 font-bold';
                                 } else if (status === 'unpaid' || status === 'non paid' || status === 'nonpaid') {
                                   displayStatus = 'Non Paid';
-                                  colorClass = 'bg-rose-100 text-rose-700';
+                                  colorClass = 'bg-rose-100 text-rose-700 font-bold';
                                 }
 
                                 return (

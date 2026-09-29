@@ -1554,7 +1554,7 @@ const Registrations = () => {
                           <td className="p-4 space-y-1">
                             <div className="flex flex-wrap items-center gap-1">
                               {(() => {
-                                const rawStatus = (reg.paymentStatus || 'Pending').trim();
+                                const rawStatus = (booking?.paymentStatus || reg.paymentStatus || 'Pending').trim();
                                 const lower = rawStatus.toLowerCase();
                                 let isPaid = lower === 'paid';
                                 let isAdvance = lower.includes('advance') || lower.includes('partially');
@@ -1567,7 +1567,7 @@ const Registrations = () => {
 
                                 return (
                                   <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] ${badgeClass}`}>
-                                    {rawStatus}
+                                    {isPaid ? 'Paid' : isAdvance ? 'Advance' : isUnpaid ? 'Non Paid' : rawStatus}
                                   </span>
                                 );
                               })()}
