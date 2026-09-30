@@ -8,4 +8,5 @@ public interface BankSlipRepository extends JpaRepository<BankSlip, Long> {
     List<BankSlip> findByBookingKey(String bookingKey);
     List<BankSlip> findByBookingId(Long bookingId);
     List<BankSlip> findByGuestRegistrationId(Long guestRegistrationId);
+    List<BankSlip> findByPropertyId(Long propertyId);
 }

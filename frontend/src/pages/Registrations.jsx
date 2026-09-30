@@ -427,9 +427,11 @@ const Registrations = () => {
         const dbSlips = await res.json();
         const grouped = {};
         dbSlips.forEach(s => {
-          if (!s.bookingKey) return;
-          if (!grouped[s.bookingKey]) grouped[s.bookingKey] = [];
-          grouped[s.bookingKey].push({
+          if (!s.bookingKey || typeof s.bookingKey !== 'string') return;
+          const cleanKey = s.bookingKey.trim();
+          if (!cleanKey) return;
+          if (!grouped[cleanKey]) grouped[cleanKey] = [];
+          grouped[cleanKey].push({
             id: s.id,
             dbId: s.id,
             bankKey: s.bankKey,
@@ -440,16 +442,10 @@ const Registrations = () => {
             createdAt: s.createdAt
           });
         });
-        setAllBankSlips(prev => {
-          const merged = { ...prev };
-          Object.keys(grouped).forEach(k => {
-            merged[k] = grouped[k];
-          });
-          try {
-            localStorage.setItem('serene_bank_slips', JSON.stringify(merged));
-          } catch (e) {}
-          return merged;
-        });
+        setAllBankSlips(grouped);
+        try {
+          localStorage.setItem('serene_bank_slips', JSON.stringify(grouped));
+        } catch (e) {}
       }
     } catch (e) {
       console.warn('Could not fetch slips from DB, using cached', e);
@@ -1021,10 +1017,14 @@ const Registrations = () => {
       exchangeRate: guestExRate,
       amount: ''
     }));
-    setBankSlipForm(prev => ({
-      ...prev,
-      bankKey: getBankKeyForCurrency(guestCurrency)
-    }));
+    setBankSlipForm({
+      bankKey: getBankKeyForCurrency(guestCurrency),
+      paidDate: new Date().toISOString().split('T')[0],
+      paymentType: 'Advance Payment',
+      slipUrl: '',
+      fileName: ''
+    });
+    setSelectedSlipPreview(null);
     setBookingSuccess(false);
     setIsEditingBooking(false);
   };
@@ -1704,7 +1704,17 @@ const Registrations = () => {
               {/* Header Info (Centered Avatar & Title) */}
               <div className="relative border-b border-slate-100 pb-4 text-center flex flex-col items-center justify-center">
                 <button 
-                  onClick={() => setSelectedReg(null)}
+                  onClick={() => {
+                    setSelectedReg(null);
+                    setSelectedSlipPreview(null);
+                    setBankSlipForm({
+                      bankKey: 'USD_PB',
+                      paidDate: new Date().toISOString().split('T')[0],
+                      paymentType: 'Advance Payment',
+                      slipUrl: '',
+                      fileName: ''
+                    });
+                  }}
                   className="absolute top-0 right-0 text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                 >
                   <X className="h-4 w-4" />
@@ -2219,8 +2229,8 @@ const Registrations = () => {
 
                   {/* Bank Payment Slips Section */}
                   {(() => {
-                    const bId = associatedBooking?.id || selectedReg.id;
-                    const bookingSlips = allBankSlips[bId] || allBankSlips[selectedReg.id] || [];
+                    const bKey = getSlipStorageKey(associatedBooking, selectedReg);
+                    const bookingSlips = (bKey && allBankSlips[bKey]) ? allBankSlips[bKey] : [];
 
                     if (bookingSlips.length === 0) return null;
 

@@ -361,7 +361,7 @@ const Reservations = () => {
       const saved = localStorage.getItem('serene_bank_slips');
       if (!saved) return {};
       const parsed = JSON.parse(saved);
-      // Clean legacy raw integer keys (like "1", "2") that cause cross-contamination
+      // Clean legacy raw integer keys (like "1", "2") and dummy samples that cause cross-contamination
       const cleaned = {};
       Object.keys(parsed).forEach(k => {
         if (k.startsWith('booking_') || k.startsWith('reg_')) {
@@ -382,9 +382,11 @@ const Reservations = () => {
         const dbSlips = await res.json();
         const grouped = {};
         dbSlips.forEach(s => {
-          if (!s.bookingKey) return;
-          if (!grouped[s.bookingKey]) grouped[s.bookingKey] = [];
-          grouped[s.bookingKey].push({
+          if (!s.bookingKey || typeof s.bookingKey !== 'string') return;
+          const cleanKey = s.bookingKey.trim();
+          if (!cleanKey) return;
+          if (!grouped[cleanKey]) grouped[cleanKey] = [];
+          grouped[cleanKey].push({
             id: s.id,
             dbId: s.id,
             bankKey: s.bankKey,
@@ -395,16 +397,10 @@ const Reservations = () => {
             createdAt: s.createdAt
           });
         });
-        setAllBankSlips(prev => {
-          const merged = { ...prev };
-          Object.keys(grouped).forEach(k => {
-            merged[k] = grouped[k];
-          });
-          try {
-            localStorage.setItem('serene_bank_slips', JSON.stringify(merged));
-          } catch (e) {}
-          return merged;
-        });
+        setAllBankSlips(grouped);
+        try {
+          localStorage.setItem('serene_bank_slips', JSON.stringify(grouped));
+        } catch (e) {}
       }
     } catch (e) {
       console.warn('Could not fetch slips from DB, using cached', e);
@@ -1161,10 +1157,14 @@ const Reservations = () => {
         currencyCode: bCurr,
         exchangeRate: parseFloat(associatedBooking.exchangeRate) || defaultRate
       }));
-      setBankSlipForm(prev => ({
-        ...prev,
-        bankKey: getBankKeyForCurrency(bCurr)
-      }));
+      setBankSlipForm({
+        bankKey: getBankKeyForCurrency(bCurr),
+        paidDate: new Date().toISOString().split('T')[0],
+        paymentType: 'Advance Payment',
+        slipUrl: '',
+        fileName: ''
+      });
+      setSelectedSlipPreview(null);
       fetchAdvancePayments(associatedBooking.id);
     } else {
       setSidebarAllocatedRooms([]);
@@ -1190,10 +1190,14 @@ const Reservations = () => {
         currencyCode: 'USD',
         exchangeRate: 300
       }));
-      setBankSlipForm(prev => ({
-        ...prev,
-        bankKey: 'USD_PB'
-      }));
+      setBankSlipForm({
+        bankKey: 'USD_PB',
+        paidDate: new Date().toISOString().split('T')[0],
+        paymentType: 'Advance Payment',
+        slipUrl: '',
+        fileName: ''
+      });
+      setSelectedSlipPreview(null);
       setAdvancePayments([]);
     }
     setBookingSuccess(false);
@@ -2339,12 +2343,24 @@ const Reservations = () => {
 
         {/* Sidebar Details and Booking Form Panel */}
         <div className="lg:col-span-5 min-w-0 w-full bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-6">
-          {selectedReg ? (
+          {selectedReg ? (() => {
+            const associatedBooking = getBookingForReg(selectedReg.id);
+            return (
             <div className="space-y-6">
                             {/* Header Info */}
               <div className="relative flex flex-col items-center text-center border-b border-slate-100 pb-5">
                 <button 
-                  onClick={() => setSelectedReg(null)}
+                  onClick={() => {
+                    setSelectedReg(null);
+                    setSelectedSlipPreview(null);
+                    setBankSlipForm({
+                      bankKey: 'USD_PB',
+                      paidDate: new Date().toISOString().split('T')[0],
+                      paymentType: 'Advance Payment',
+                      slipUrl: '',
+                      fileName: ''
+                    });
+                  }}
                   className="absolute top-0 right-0 text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                 >
                   <X className="h-4 w-4" />
@@ -3553,7 +3569,8 @@ const Reservations = () => {
               )}
 
             </div>
-          ) : (
+            );
+          })() : (
             <div className="text-center py-12 text-slate-400 space-y-2">
               <User className="h-10 w-10 text-slate-300 mx-auto" />
               <p className="font-bold text-xs">No Guest Selected</p>

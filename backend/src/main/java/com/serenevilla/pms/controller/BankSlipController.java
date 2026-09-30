@@ -18,13 +18,19 @@ public class BankSlipController {
     private BankSlipRepository bankSlipRepository;
 
     @GetMapping
-    public ResponseEntity<List<BankSlip>> getAllSlips() {
+    public ResponseEntity<List<BankSlip>> getAllSlips(@RequestParam(name = "propertyId", required = false) Long propertyId) {
+        if (propertyId != null) {
+            return ResponseEntity.ok(bankSlipRepository.findByPropertyId(propertyId));
+        }
         return ResponseEntity.ok(bankSlipRepository.findAll());
     }
 
     @GetMapping("/key/{bookingKey}")
     public ResponseEntity<List<BankSlip>> getSlipsByKey(@PathVariable("bookingKey") String bookingKey) {
-        return ResponseEntity.ok(bankSlipRepository.findByBookingKey(bookingKey));
+        if (bookingKey == null || bookingKey.trim().isEmpty()) {
+            return ResponseEntity.ok(java.util.Collections.emptyList());
+        }
+        return ResponseEntity.ok(bankSlipRepository.findByBookingKey(bookingKey.trim()));
     }
 
     @PostMapping
