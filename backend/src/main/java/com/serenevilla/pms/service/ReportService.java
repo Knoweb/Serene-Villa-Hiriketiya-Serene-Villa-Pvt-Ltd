@@ -59,9 +59,30 @@ public class ReportService {
         Map<Long, List<DiscountRequest>> discountsByBooking = allDiscounts.stream()
                 .collect(Collectors.groupingBy(DiscountRequest::getBookingId));
 
-        // Filter bookings whose guest registration check-in date is in range
+        // Payments in range
+        List<Payment> paymentsInRange = allPayments.stream()
+                .filter(p -> p.getPaymentDate() != null && !p.getPaymentDate().isBefore(startDate) && !p.getPaymentDate().isAfter(endDate))
+                .collect(Collectors.toList());
+
+        // Filter bookings for report metrics:
+        // Include bookings where:
+        // 1) Check-in date is within [startDate, endDate], OR
+        // 2) The booking received a payment within [startDate, endDate] (e.g. advance payment, settlement)
+        Set<Long> bookingIdsWithPaymentInRange = paymentsInRange.stream()
+                .map(Payment::getBookingId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<Long> regIdsWithPaymentInRange = paymentsInRange.stream()
+                .map(Payment::getGuestRegistrationId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
         List<Booking> bookingsInRange = allBookings.stream()
                 .filter(b -> {
+                    if (bookingIdsWithPaymentInRange.contains(b.getId())) return true;
+                    if (b.getGuestRegistrationId() != null && regIdsWithPaymentInRange.contains(b.getGuestRegistrationId())) return true;
+
                     LocalDate cIn = b.getCheckInDate();
                     if (cIn == null) {
                         GuestRegistration reg = registrationMap.get(b.getGuestRegistrationId());
@@ -80,11 +101,6 @@ public class ReportService {
         // Check-outs in range
         List<GuestRegistration> checkOutsInRange = allRegistrations.stream()
                 .filter(r -> r.getCheckOutDate() != null && !r.getCheckOutDate().isBefore(startDate) && !r.getCheckOutDate().isAfter(endDate))
-                .collect(Collectors.toList());
-
-        // Payments in range
-        List<Payment> paymentsInRange = allPayments.stream()
-                .filter(p -> p.getPaymentDate() != null && !p.getPaymentDate().isBefore(startDate) && !p.getPaymentDate().isAfter(endDate))
                 .collect(Collectors.toList());
 
         // Aggregate core numbers
@@ -161,20 +177,30 @@ public class ReportService {
         for (Booking b : bookingsInRange) {
             String bType = b.getBookingType() != null ? b.getBookingType().toLowerCase().trim() : "";
             double amt = b.getTotalAmount() != null ? b.getTotalAmount() : 0.0;
+            // Convert to LKR if currency is foreign
+            double exRate = 1.0;
+            try {
+                if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
+                    exRate = Double.parseDouble(b.getExchangeRate().trim());
+                }
+            } catch (Exception ignored) {}
+            if (exRate <= 0) exRate = 1.0;
+            String curr = b.getCurrency() != null ? b.getCurrency().trim().toUpperCase() : "LKR";
+            double bLkr = "LKR".equals(curr) ? amt : (amt * exRate);
 
             if (bType.contains("booking.com") || bType.contains("booking_com")) {
                 bookingComCount++;
-                bookingComAmount += amt;
+                bookingComAmount += bLkr;
             } else if (bType.contains("airbnb")) {
                 airbnbCount++;
-                airbnbAmount += amt;
+                airbnbAmount += bLkr;
             } else if (bType.contains("web") || bType.contains("website") || bType.contains("online")) {
                 webBookingCount++;
-                webBookingAmount += amt;
+                webBookingAmount += bLkr;
             } else {
                 // Default to Direct Booking
                 directBookingCount++;
-                directBookingAmount += amt;
+                directBookingAmount += bLkr;
             }
         }
 
@@ -350,59 +376,71 @@ public class ReportService {
                 roomRepository.findByPropertyId(propertyId) :
                 roomRepository.findAll();
 
-        // Map how many distinct rooms are in each guest registration / booking so payments split equally
-        Map<Long, Long> roomsPerReg = allBookings.stream()
-                .filter(b -> b.getGuestRegistrationId() != null && b.getRoomNumber() != null && !b.getRoomNumber().trim().isEmpty())
-                .collect(Collectors.groupingBy(Booking::getGuestRegistrationId, Collectors.mapping(Booking::getRoomNumber, Collectors.toSet())))
-                .entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> (long) Math.max(1, e.getValue().size())));
+        // Helper to check if a booking contains a specific room number (handles single "101" or comma-separated "101, 102, 103")
+        java.util.function.BiFunction<Booking, String, Boolean> bookingHasRoom = (b, targetRoom) -> {
+            if (b == null || b.getRoomNumber() == null || targetRoom == null || targetRoom.trim().isEmpty()) return false;
+            String[] parts = b.getRoomNumber().split(",");
+            for (String p : parts) {
+                if (p.trim().equalsIgnoreCase(targetRoom.trim())) return true;
+            }
+            return false;
+        };
+
+        // Helper to count total rooms assigned to a booking
+        java.util.function.Function<Booking, Integer> getBookingRoomCount = (b) -> {
+            if (b == null || b.getRoomNumber() == null || b.getRoomNumber().trim().isEmpty()) return 1;
+            String[] parts = b.getRoomNumber().split(",");
+            int count = 0;
+            for (String p : parts) {
+                if (!p.trim().isEmpty()) count++;
+            }
+            return Math.max(1, count);
+        };
 
         List<com.serenevilla.pms.dto.RoomIncomeSummaryDTO> roomBreakdowns = new ArrayList<>();
         for (com.serenevilla.pms.model.Room r : propertyRooms) {
             String rNum = r.getRoomNumber() != null ? r.getRoomNumber().trim() : "";
             
-            // Filter bookings for this room in date range
+            // Filter bookings that include this room
             List<Booking> rBookings = bookingsInRange.stream()
-                    .filter(b -> b.getRoomNumber() != null && b.getRoomNumber().trim().equalsIgnoreCase(rNum))
-                    .collect(Collectors.toList());
-
-            Set<Long> rBookingIds = rBookings.stream().map(Booking::getId).filter(Objects::nonNull).collect(Collectors.toSet());
-            Set<Long> rRegIds = rBookings.stream().map(Booking::getGuestRegistrationId).filter(Objects::nonNull).collect(Collectors.toSet());
-
-            // Filter payments for this room in date range
-            List<Payment> rPayments = paymentsInRange.stream()
-                    .filter(p -> (p.getBookingId() != null && rBookingIds.contains(p.getBookingId())) ||
-                                 (p.getGuestRegistrationId() != null && rRegIds.contains(p.getGuestRegistrationId())))
+                    .filter(b -> bookingHasRoom.apply(b, rNum))
                     .collect(Collectors.toList());
 
             double rCash = 0;
             double rCard = 0;
             double rBank = 0;
 
-            for (Payment p : rPayments) {
-                long roomCount = 1L;
-                if (p.getGuestRegistrationId() != null && roomsPerReg.containsKey(p.getGuestRegistrationId())) {
-                    roomCount = roomsPerReg.get(p.getGuestRegistrationId());
+            // Attribute payments for bookings containing this room
+            for (Payment p : paymentsInRange) {
+                Booking b = p.getBookingId() != null ? bookingMap.get(p.getBookingId()) : null;
+                if (b == null && p.getGuestRegistrationId() != null) {
+                    b = allBookings.stream()
+                            .filter(bk -> Objects.equals(bk.getGuestRegistrationId(), p.getGuestRegistrationId()))
+                            .findFirst()
+                            .orElse(null);
                 }
-                if (roomCount <= 0) roomCount = 1L;
 
-                double amt = p.getAmountLkr() / (double) roomCount;
-                String m = p.getPaymentMethod() != null ? p.getPaymentMethod().toUpperCase().trim() : "";
-                if (m.contains("CASH")) {
-                    rCash += amt;
-                } else if (m.contains("CARD") || m.contains("VISA") || m.contains("MASTER") || m.contains("AMEX")) {
-                    rCard += amt;
-                } else if (m.contains("BANK") || m.contains("TRANSFER") || m.contains("ONLINE") || m.contains("PEOPLE")) {
-                    rBank += amt;
-                } else {
-                    rCash += amt;
+                if (b != null && bookingHasRoom.apply(b, rNum)) {
+                    int roomCount = getBookingRoomCount.apply(b);
+                    double amt = p.getAmountLkr() / (double) roomCount;
+                    String m = p.getPaymentMethod() != null ? p.getPaymentMethod().toUpperCase().trim() : "";
+                    if (m.contains("CASH")) {
+                        rCash += amt;
+                    } else if (m.contains("CARD") || m.contains("VISA") || m.contains("MASTER") || m.contains("AMEX")) {
+                        rCard += amt;
+                    } else if (m.contains("BANK") || m.contains("TRANSFER") || m.contains("ONLINE") || m.contains("PEOPLE")) {
+                        rBank += amt;
+                    } else {
+                        rCash += amt;
+                    }
                 }
             }
 
-            // Fallback to room bookings value if no explicit payments recorded yet
+            // Fallback to room booking value if no explicit payment recorded yet
             if ((rCash + rCard + rBank) == 0 && !rBookings.isEmpty()) {
                 for (Booking b : rBookings) {
                     if (b.getTotalAmount() != null && b.getTotalAmount() > 0) {
+                        int roomCount = getBookingRoomCount.apply(b);
                         double exRate = 1.0;
                         try {
                             if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
@@ -411,7 +449,7 @@ public class ReportService {
                         } catch (Exception ignored) {}
                         if (exRate <= 0) exRate = 1.0;
                         String curr = b.getCurrency() != null ? b.getCurrency().trim().toUpperCase() : "LKR";
-                        double bLkr = "LKR".equals(curr) ? b.getTotalAmount() : (b.getTotalAmount() * exRate);
+                        double bLkr = ("LKR".equals(curr) ? b.getTotalAmount() : (b.getTotalAmount() * exRate)) / (double) roomCount;
                         String bType = b.getBookingType() != null ? b.getBookingType().toUpperCase() : "";
                         if (bType.contains("AIRBNB") || bType.contains("BOOKING")) {
                             rCard += bLkr;
@@ -427,18 +465,22 @@ public class ReportService {
             Set<Long> processedRegs = new HashSet<>();
 
             for (Booking b : rBookings) {
+                int roomCount = getBookingRoomCount.apply(b);
+                int bNights = 1;
                 if (b.getCheckInDate() != null && b.getCheckOutDate() != null) {
                     long days = java.time.temporal.ChronoUnit.DAYS.between(b.getCheckInDate(), b.getCheckOutDate());
-                    rNights += (int) Math.max(1, days);
+                    bNights = (int) Math.max(1, days);
                 } else if (b.getNumberOfNights() != null) {
-                    rNights += b.getNumberOfNights();
+                    bNights = b.getNumberOfNights();
                 }
+                rNights += bNights;
 
                 if (b.getGuestRegistrationId() != null && !processedRegs.contains(b.getGuestRegistrationId())) {
                     processedRegs.add(b.getGuestRegistrationId());
                     GuestRegistration reg = registrationMap.get(b.getGuestRegistrationId());
                     if (reg != null) {
-                        rGuests += (reg.getAdults() != null ? reg.getAdults() : 1) + (reg.getChildren() != null ? reg.getChildren() : 0);
+                        int totalPax = (reg.getAdults() != null ? reg.getAdults() : 1) + (reg.getChildren() != null ? reg.getChildren() : 0);
+                        rGuests += Math.max(1, (int) Math.round((double) totalPax / (double) roomCount));
                     }
                 }
             }
