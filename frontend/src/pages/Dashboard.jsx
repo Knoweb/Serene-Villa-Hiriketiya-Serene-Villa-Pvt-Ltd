@@ -524,20 +524,17 @@ const Dashboard = () => {
               </div>
             );
           })()}
-
-          {/* Room-Wise Income & Grand Totals for Admin */}
-          <div className="pt-2">
-            <RoomIncomeAnalytics currentProperty={currentProperty} />
-          </div>
         </div>
       )}
 
-      {/* -------------------- ACCOUNTANT DASHBOARD -------------------- */}
-      {isAccountant && (
+      {/* -------------------- FINANCIAL ANALYTICS & ACCOUNTANT SECTION (ADMIN & ACCOUNTANT) -------------------- */}
+      {(isAccountant || isAdmin) && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Accountant Financial Analytics</h2>
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                {isAdmin ? 'Property Financial Analytics & Reconciliation' : 'Accountant Financial Analytics'}
+              </h2>
               <p className="text-xs text-slate-500 font-medium mt-0.5">Property Scope: <span className="font-bold text-emerald-700">{currentProperty?.name || 'Active Property'}</span></p>
             </div>
             <div className="flex items-center gap-2">
