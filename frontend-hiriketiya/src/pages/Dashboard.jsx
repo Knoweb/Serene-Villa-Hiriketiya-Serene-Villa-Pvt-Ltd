@@ -524,6 +524,11 @@ const Dashboard = () => {
               </div>
             );
           })()}
+
+          {/* Room-Wise Income & Grand Totals for Admin */}
+          <div className="pt-2">
+            <RoomIncomeAnalytics currentProperty={currentProperty} />
+          </div>
         </div>
       )}
 
