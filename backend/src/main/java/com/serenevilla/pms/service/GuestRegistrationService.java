@@ -147,30 +147,38 @@ public class GuestRegistrationService {
                             exRate = Double.parseDouble(baseBookingItem.getExchangeRate().trim());
                         }
                     } catch (Exception ignored) {}
-                    if (exRate <= 0) exRate = 335.0;
+                    // Calculate base paid in booking currency accurately (matching frontend logic)
+                    double basePaidInBookingCurrency = 0.0;
+                    for (Payment p : allVisiblePayments) {
+                        if (p.getBookingId() != null) {
+                            Booking matchedB = allRelated.stream().filter(b -> b.getId().equals(p.getBookingId())).findFirst().orElse(null);
+                            if (matchedB != null && matchedB.getBookingNumber() != null && matchedB.getBookingNumber().contains("/")) {
+                                // Payment is tied to a sub-booking (/1N, /1P)
+                                continue;
+                            }
+                        }
+                        String pCurr = p.getCurrencyCode() != null ? p.getCurrencyCode() : (p.getCurrency() != null ? p.getCurrency() : bCurr);
+                        double pAmt = p.getAmountInCurrency() > 0 ? p.getAmountInCurrency() : (p.getAmount() != null ? p.getAmount() : 0.0);
+                        double pLkr = p.getConvertedAmountLkr() != null && p.getConvertedAmountLkr() > 0 ? p.getConvertedAmountLkr() : p.getAmountLkr();
+                        double pExRate = p.getExchangeRate() > 0 ? p.getExchangeRate() : exRate;
 
-                    double baseBookingAmtLkr = "LKR".equals(bCurr) ? netBaseAmt : (netBaseAmt * exRate);
-
-                    // Separate base payments from sub-booking (/1N, /1P) payments
-                    // Base payments are either attached directly to the base booking, or have paymentType like Advance/Balance/Full/etc., or are direct reg payments
-                    double basePaidLkr = allVisiblePayments.stream()
-                            .filter(p -> {
-                                if (p.getBookingId() != null) {
-                                    Booking matchedB = allRelated.stream().filter(b -> b.getId().equals(p.getBookingId())).findFirst().orElse(null);
-                                    if (matchedB != null && matchedB.getBookingNumber() != null && matchedB.getBookingNumber().contains("/")) {
-                                        // Payment is tied to a sub-booking (/1N, /1P)
-                                        return false;
-                                    }
-                                }
-                                return true;
-                            })
-                            .mapToDouble(p -> p.getConvertedAmountLkr() != null && p.getConvertedAmountLkr() > 0 ? p.getConvertedAmountLkr() : p.getAmountLkr())
-                            .sum();
+                        double convertedAmt = pAmt;
+                        if (pCurr.equalsIgnoreCase(bCurr)) {
+                            convertedAmt = pAmt;
+                        } else if ("LKR".equalsIgnoreCase(bCurr)) {
+                            convertedAmt = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                        } else {
+                            if (pExRate > 0) {
+                                convertedAmt = (pLkr > 0 ? pLkr : pAmt) / pExRate;
+                            }
+                        }
+                        basePaidInBookingCurrency += convertedAmt;
+                    }
 
                     String computedStatus = "Unpaid";
-                    if (baseBookingAmtLkr > 0 && basePaidLkr >= (baseBookingAmtLkr - 10.0)) {
+                    if (netBaseAmt > 0 && basePaidInBookingCurrency >= (netBaseAmt - 0.01)) {
                         computedStatus = "Paid";
-                    } else if (basePaidLkr > 0 || totalPaidLkr > 0) {
+                    } else if (basePaidInBookingCurrency > 0 || totalPaidLkr > 0) {
                         computedStatus = "Paid Advance";
                     }
                     reg.setPaymentStatus(computedStatus);

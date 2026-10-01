@@ -1287,6 +1287,12 @@ const Registrations = () => {
       body: JSON.stringify({ paymentStatus: newPaymentStatus })
     });
 
+    if (booking?.id) {
+      await fetch(`${API_BASE}/bookings/${booking.id}/payment-status?paymentStatus=${newPaymentStatus}`, {
+        method: 'PUT'
+      });
+    }
+
     setSelectedReg(prev => ({ ...prev, paymentStatus: newPaymentStatus }));
     fetchRegistrations();
     fetchAdvancePayments(booking.id);
@@ -1558,7 +1564,7 @@ const Registrations = () => {
                               {(() => {
                                 const rawStatus = (booking?.paymentStatus || reg.paymentStatus || 'Pending').trim();
                                 const lower = rawStatus.toLowerCase();
-                                let isPaid = lower === 'paid';
+                                let isPaid = lower === 'paid' || lower === 'fully paid';
                                 let isAdvance = lower.includes('advance') || lower.includes('partially');
                                 let isUnpaid = lower === 'unpaid' || lower.includes('non');
 

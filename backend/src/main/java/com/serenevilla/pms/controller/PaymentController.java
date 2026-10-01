@@ -22,8 +22,43 @@ public class PaymentController {
     @Autowired
     private ExchangeRateRepository exchangeRateRepository;
 
+    @Autowired
+    private com.serenevilla.pms.repository.BookingRepository bookingRepository;
+
+    @Autowired
+    private com.serenevilla.pms.repository.GuestRegistrationRepository guestRegistrationRepository;
+
     @Autowired(required = false)
     private RegistrationWebSocketHandler webSocketHandler;
+
+    private void syncBookingAndRegistrationStatus(Long bookingId, Long guestRegistrationId, boolean isFullOrFinal) {
+        try {
+            if (bookingId != null) {
+                bookingRepository.findById(bookingId).ifPresent(b -> {
+                    if (isFullOrFinal) {
+                        b.setPaymentStatus("Paid");
+                        bookingRepository.save(b);
+                    }
+                    Long regId = b.getGuestRegistrationId() != null ? b.getGuestRegistrationId() : guestRegistrationId;
+                    if (regId != null) {
+                        guestRegistrationRepository.findById(regId).ifPresent(reg -> {
+                            if (isFullOrFinal) {
+                                reg.setPaymentStatus("Paid");
+                                guestRegistrationRepository.save(reg);
+                            }
+                        });
+                    }
+                });
+            } else if (guestRegistrationId != null && isFullOrFinal) {
+                guestRegistrationRepository.findById(guestRegistrationId).ifPresent(reg -> {
+                    reg.setPaymentStatus("Paid");
+                    guestRegistrationRepository.save(reg);
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @PostMapping
     public ResponseEntity<Payment> recordPayment(@RequestBody Payment payment) {
@@ -40,6 +75,10 @@ public class PaymentController {
         payment.setExchangeRate(rate);
         payment.setAmountLkr(payment.getAmountInCurrency() * rate);
         Payment saved = paymentRepository.save(payment);
+        
+        boolean isFinal = "FINAL".equalsIgnoreCase(saved.getPaymentType()) || !Boolean.TRUE.equals(saved.getIsAdvancePayment());
+        syncBookingAndRegistrationStatus(saved.getBookingId(), saved.getGuestRegistrationId(), isFinal);
+
         if (webSocketHandler != null) {
             webSocketHandler.broadcast("update");
         }
@@ -61,8 +100,10 @@ public class PaymentController {
 
     @PostMapping("/advance")
     public ResponseEntity<Payment> createAdvancePayment(@RequestBody Payment payment) {
-        if ("FINAL".equalsIgnoreCase(payment.getPaymentType())) {
+        boolean isFinalType = "FINAL".equalsIgnoreCase(payment.getPaymentType()) || Boolean.FALSE.equals(payment.getIsAdvancePayment());
+        if (isFinalType) {
             payment.setAdvancePayment(false);
+            payment.setPaymentType("FINAL");
         } else {
             payment.setAdvancePayment(true);
             payment.setPaymentType("ADVANCE");
@@ -110,6 +151,9 @@ public class PaymentController {
         }
         
         Payment saved = paymentRepository.save(payment);
+
+        syncBookingAndRegistrationStatus(saved.getBookingId(), saved.getGuestRegistrationId(), isFinalType);
+
         if (webSocketHandler != null) {
             webSocketHandler.broadcast("update");
         }
