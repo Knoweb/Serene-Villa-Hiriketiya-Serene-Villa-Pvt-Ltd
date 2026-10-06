@@ -507,8 +507,8 @@ public class ReportService {
         summary.setTotalGuests(totalGuests);
         summary.setTotalAdults(totalAdults);
         summary.setTotalChildren(totalChildren);
-        summary.setTotalInvoices(totalInvoices);
-        summary.setTotalRevenue(totalRevenue);
+        double grossRevenue = totalRevenue + totalOtherCharges;
+        summary.setTotalRevenue(grossRevenue);
         summary.setTotalAdvancePayments(totalAdvancePayments);
         summary.setTotalRemainingBalance(totalRemainingBalance);
         summary.setTotalOutstandingAmount(totalOutstandingAmount);
@@ -518,7 +518,7 @@ public class ReportService {
         summary.setBankTransferRevenue(bankTransferRevenue);
         summary.setTotalCardCharges(totalCardCharges);
         summary.setTotalOtherCharges(totalOtherCharges);
-        summary.setNetRevenue(Math.max(0, totalRevenue - totalOtherCharges));
+        summary.setNetRevenue(totalRevenue);
 
         summary.setDirectBookingCount(directBookingCount);
         summary.setDirectBookingAmount(directBookingAmount);

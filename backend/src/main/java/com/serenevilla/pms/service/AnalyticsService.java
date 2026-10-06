@@ -125,10 +125,13 @@ public class AnalyticsService {
             }
         }
 
-        stats.setTotalRevenue(BigDecimal.valueOf(totalPaymentRev).setScale(2, RoundingMode.HALF_UP));
+        // Gross Total Revenue is the full booking revenue before deductions (Collected Payments + Other Charges deducted)
+        double grossRevenue = totalPaymentRev + totalOtherCharges;
+        stats.setTotalRevenue(BigDecimal.valueOf(grossRevenue).setScale(2, RoundingMode.HALF_UP));
         stats.setTotalCardCharges(BigDecimal.valueOf(totalCardCharges).setScale(2, RoundingMode.HALF_UP));
         stats.setTotalOtherCharges(BigDecimal.valueOf(totalOtherCharges).setScale(2, RoundingMode.HALF_UP));
-        stats.setNetRevenue(BigDecimal.valueOf(Math.max(0, totalPaymentRev - totalOtherCharges)).setScale(2, RoundingMode.HALF_UP));
+        // Net Reconciled Revenue is the actual collected payment revenue in bank/cash
+        stats.setNetRevenue(BigDecimal.valueOf(totalPaymentRev).setScale(2, RoundingMode.HALF_UP));
 
         stats.setCashRevenue(BigDecimal.valueOf(cashRev).setScale(2, RoundingMode.HALF_UP));
         stats.setCardRevenue(BigDecimal.valueOf(cardRev).setScale(2, RoundingMode.HALF_UP));
