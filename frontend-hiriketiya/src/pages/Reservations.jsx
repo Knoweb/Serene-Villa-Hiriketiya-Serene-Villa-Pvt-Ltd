@@ -3333,6 +3333,30 @@ const Reservations = () => {
                                   {paymentForm.currencyCode || bCurr}
                                 </span>
                               </div>
+                              {parseFloat(paymentForm.otherCharges) > 0 && (() => {
+                                const payCurr = paymentForm.currencyCode || bCurr || 'EUR';
+                                const grossAmt = parseFloat(paymentForm.amount) || 0;
+                                const othAmt = parseFloat(paymentForm.otherCharges) || 0;
+                                const netAmt = Math.max(0, grossAmt - othAmt);
+                                const exRate = parseFloat(paymentForm.exchangeRate) || 1;
+                                const netLkr = payCurr === 'LKR' ? netAmt : netAmt * exRate;
+                                return (
+                                  <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-[10px] space-y-1">
+                                    <div className="flex justify-between font-medium text-amber-800">
+                                      <span>Gross Amount:</span>
+                                      <span className="font-mono">{grossAmt.toFixed(2)} {payCurr}</span>
+                                    </div>
+                                    <div className="flex justify-between font-medium text-amber-700">
+                                      <span>Other Charges (Deduction):</span>
+                                      <span className="font-mono">-{othAmt.toFixed(2)} {payCurr}</span>
+                                    </div>
+                                    <div className="flex justify-between font-black text-amber-900 border-t border-amber-200/80 pt-1">
+                                      <span>Net Settled Amount:</span>
+                                      <span className="font-mono font-extrabold">{netAmt.toFixed(2)} {payCurr} {payCurr !== 'LKR' && `(LKR ${netLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                           <button
