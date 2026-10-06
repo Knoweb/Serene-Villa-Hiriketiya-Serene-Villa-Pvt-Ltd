@@ -613,6 +613,7 @@ const Registrations = () => {
     exchangeRate: 1,
     paymentMethod: 'Cash',
     cardFee: '',
+    otherCharges: '',
     referenceNumber: '',
     remarks: '',
     paymentDate: new Date().toISOString().split('T')[0],
@@ -1196,13 +1197,15 @@ const Registrations = () => {
     const enteredAmount = parseFloat(paymentForm.amount);
     const enteredCurrency = paymentForm.currencyCode || bookingCurrency;
     const exRate = parseFloat(paymentForm.exchangeRate);
-    const convertedLkr = enteredCurrency === 'LKR' ? enteredAmount : enteredAmount * exRate;
+    const otherCharges = parseFloat(paymentForm.otherCharges) || 0;
+    const netEnteredAmount = Math.max(0, enteredAmount - otherCharges);
+    const convertedLkr = enteredCurrency === 'LKR' ? netEnteredAmount : netEnteredAmount * exRate;
 
-    // Convert entered amount to booking currency
-    let amountInBookingCurrency = enteredAmount;
+    // Convert entered net amount to booking currency
+    let amountInBookingCurrency = netEnteredAmount;
     if (enteredCurrency.toUpperCase() !== bookingCurrency.toUpperCase()) {
       if (enteredCurrency === 'LKR' && exRate > 0) {
-        amountInBookingCurrency = enteredAmount / exRate;
+        amountInBookingCurrency = netEnteredAmount / exRate;
       }
     }
 
@@ -1244,6 +1247,9 @@ const Registrations = () => {
     if (paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0) {
       finalRemarks = `${finalRemarks ? finalRemarks + ' ' : ''}[Charges: ${parseFloat(paymentForm.cardFee)}]`;
     }
+    if (parseFloat(paymentForm.otherCharges) > 0) {
+      finalRemarks = `${finalRemarks ? finalRemarks + ' ' : ''}[Other Charges: ${parseFloat(paymentForm.otherCharges)}]`;
+    }
 
     const payload = {
       bookingId: booking.id,
@@ -1259,7 +1265,7 @@ const Registrations = () => {
       paymentMethod: paymentForm.paymentMethod,
       referenceNumber: paymentForm.referenceNumber,
       receiptNumber: paymentForm.referenceNumber,
-      remarks: finalRemarks,
+      remarks: finalRemarks.trim(),
       createdBy: user.username,
       slipPath: paymentForm.slipPath || '',
       paymentSlipUrl: paymentForm.slipPath || '',
@@ -1316,6 +1322,7 @@ const Registrations = () => {
         exchangeRate: exRate,
         paymentMethod: 'Cash',
         cardFee: '',
+        otherCharges: '',
         referenceNumber: '',
         remarks: '',
         paymentDate: new Date().toISOString().split('T')[0],
@@ -3240,6 +3247,25 @@ const Registrations = () => {
                                 onChange={(e) => setPaymentForm({ ...paymentForm, remarks: e.target.value })}
                                 className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none"
                               />
+                            </div>
+                            <div className="col-span-2 mt-1">
+                              <label className="block text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <span>OTHER CHARGES / DEDUCTIONS</span>
+                                <span className="text-[9px] font-normal text-slate-400 normal-case">(OTA / Web commission, booking fees, deductions, etc.)</span>
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder="0.00"
+                                  value={paymentForm.otherCharges || ''}
+                                  onChange={(e) => setPaymentForm({ ...paymentForm, otherCharges: e.target.value })}
+                                  className="w-full bg-amber-50/20 border border-amber-300 focus:border-amber-500 rounded-lg px-3 py-2 font-bold font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500 pr-14 text-xs"
+                                />
+                                <span className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-500">
+                                  {paymentForm.currencyCode || bookingCurrency}
+                                </span>
+                              </div>
                             </div>
                           </div>
                           <button
