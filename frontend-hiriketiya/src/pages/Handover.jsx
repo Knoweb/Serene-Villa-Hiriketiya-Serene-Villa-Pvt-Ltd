@@ -446,22 +446,30 @@ const Handover = () => {
 
         // Extract other charges from payment remarks if present (e.g. [Other Charges: 50])
         const otherChargesMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/i);
+        let pOtherCharges = 0;
         if (otherChargesMatch) {
           const rawOther = parseFloat(otherChargesMatch[1]) || 0;
+          pOtherCharges = rawOther;
           if (rawOther > 0 && g.otherChargesPrice === 0) {
             g.otherChargesPrice += rawOther;
           }
         }
 
+        // Net amount collected: if record was saved with gross amount, adjust for other charges
+        let effectiveRawAmt = pRawAmt;
+        if (pOtherCharges > 0 && pRawAmt > (pLkr / (pExRate > 0 ? pExRate : 1) - pOtherCharges - 0.01) && Math.abs(pRawAmt - (g.baseRoomPrice || 0)) < 0.01) {
+          effectiveRawAmt = Math.max(0, pRawAmt - pOtherCharges);
+        }
+
         // Normalized amount in booking currency
-        let pAmtInBookingCurr = pRawAmt;
+        let pAmtInBookingCurr = effectiveRawAmt;
         if (pCurr !== bookingCurr) {
           if (bookingCurr === 'LKR') {
             pAmtInBookingCurr = pLkr;
           } else {
             // Target is USD/other foreign currency, convert from LKR or via exchange rate
             const effectiveRate = pExRate > 0 ? pExRate : 1;
-            pAmtInBookingCurr = pCurr === 'LKR' ? (pRawAmt / effectiveRate) : ((pRawAmt * pExRate) / effectiveRate);
+            pAmtInBookingCurr = pCurr === 'LKR' ? (effectiveRawAmt / effectiveRate) : ((effectiveRawAmt * pExRate) / effectiveRate);
           }
         }
 
@@ -1395,12 +1403,27 @@ const Handover = () => {
                               </div>
 
                               <div className="text-right flex flex-col items-end gap-1">
-                                <p className="font-mono font-black text-slate-900 text-xs">
-                                  {p.currencyCode || p.currency || 'USD'} {(parseFloat(p.amount || p.amountInCurrency || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                </p>
-                                <p className="text-[10px] font-mono font-semibold text-emerald-800">
-                                  LKR {(parseFloat(p.amountLkr || p.convertedAmountLkr || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                </p>
+                                {(() => {
+                                  const itemOtherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/i);
+                                  const itemOther = itemOtherMatch ? parseFloat(itemOtherMatch[1]) || 0 : 0;
+                                  const rawItemAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+                                  const pExRate = parseFloat(p.exchangeRate) || parseFloat(b.exchangeRate) || 1;
+                                  const pLkr = parseFloat(p.amountLkr || p.convertedAmountLkr || 0);
+                                  let dispItemAmt = rawItemAmt;
+                                  if (itemOther > 0 && Math.abs(rawItemAmt - (b.baseRoomPrice || 0)) < 0.01) {
+                                    dispItemAmt = Math.max(0, rawItemAmt - itemOther);
+                                  }
+                                  return (
+                                    <>
+                                      <p className="font-mono font-black text-slate-900 text-xs">
+                                        {p.currencyCode || p.currency || 'USD'} {dispItemAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </p>
+                                      <p className="text-[10px] font-mono font-semibold text-emerald-800">
+                                        LKR {pLkr.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </p>
+                                    </>
+                                  );
+                                })()}
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <button
                                     type="button"

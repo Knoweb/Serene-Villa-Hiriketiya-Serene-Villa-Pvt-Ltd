@@ -566,7 +566,7 @@ const Dashboard = () => {
             {/* Card 2: Web Booking Other Charges (Deductions) */}
             <div className="bg-white border border-amber-100/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition bg-amber-50/10">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Web Other Charges</p>
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Other Charges / Deductions</p>
                 <div className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
                   <Receipt className="h-5 w-5" />
                 </div>

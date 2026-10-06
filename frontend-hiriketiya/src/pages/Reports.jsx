@@ -901,7 +901,7 @@ const Reports = () => {
                             {(data.totalOtherCharges || 0) > 0 && (
                               <tr className="text-amber-700 bg-amber-50/40 font-semibold">
                                 <td className="p-2 flex items-center gap-2">
-                                  <span className="h-2 w-2 rounded-full bg-amber-500"></span> Less: Web Other Charges
+                                  <span className="h-2 w-2 rounded-full bg-amber-500"></span> Less: Other Charges / Deductions
                                 </td>
                                 <td className="p-2 text-right font-mono font-bold">-{formatLKR(data.totalOtherCharges)}</td>
                                 <td className="p-2 text-right font-mono text-slate-400 text-[10px]">-</td>
