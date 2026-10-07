@@ -2150,30 +2150,17 @@ const Registrations = () => {
                         </select>
                       </div>
 
-                      {/* Total Amount & Currency */}
+                      {/* Total Amount */}
                       <div className="space-y-1">
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Amount ({bookingForm.currencyCode || associatedBooking?.currency || 'USD'})</label>
-                        <div className="flex gap-1">
-                          <select
-                            value={bookingForm.currencyCode || associatedBooking?.currency || 'USD'}
-                            onChange={(e) => setBookingForm({ ...bookingForm, currencyCode: e.target.value })}
-                            className="bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold text-slate-700 cursor-pointer"
-                          >
-                            <option value="USD">USD</option>
-                            <option value="LKR">LKR</option>
-                            <option value="EUR">EUR</option>
-                            <option value="AUD">AUD</option>
-                            <option value="GBP">GBP</option>
-                          </select>
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="e.g. 2250"
-                            value={bookingForm.amount}
-                            onChange={(e) => setBookingForm({ ...bookingForm, amount: e.target.value })}
-                            className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 font-mono text-xs"
-                          />
-                        </div>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="e.g. 2250"
+                          value={bookingForm.amount}
+                          onChange={(e) => setBookingForm({ ...bookingForm, amount: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 font-mono text-xs"
+                        />
                       </div>
 
                       {/* Check-In Date */}
@@ -2198,9 +2185,26 @@ const Registrations = () => {
                         />
                       </div>
 
-                      {/* Editable Room Price Table in Edit Mode */}
+                      {/* Editable Room Price Table in Edit Mode with Currency selector right above table */}
                       <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2.5 mt-1">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Room Details & Pricing:</span>
+                        <div className="flex justify-between items-center pb-0.5">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Room Details & Pricing:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Currency:</span>
+                            <select
+                              value={bookingForm.currencyCode || associatedBooking?.currency || 'USD'}
+                              onChange={(e) => setBookingForm({ ...bookingForm, currencyCode: e.target.value })}
+                              className="bg-white border border-slate-200 rounded-md px-2 py-0.5 text-[11px] font-bold text-slate-700 cursor-pointer focus:outline-none focus:border-emerald-500 shadow-2xs"
+                            >
+                              <option value="USD">USD</option>
+                              <option value="LKR">LKR</option>
+                              <option value="EUR">EUR</option>
+                              <option value="AUD">AUD</option>
+                              <option value="GBP">GBP</option>
+                            </select>
+                          </div>
+                        </div>
+
                         {sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0 ? (
                           <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
                             <table className="w-full text-left text-xs border-collapse">
