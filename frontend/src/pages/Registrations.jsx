@@ -396,6 +396,40 @@ const Registrations = () => {
     paymentStatus: 'Pending',
     registrationStatus: 'Pending'
   });
+  const [sidebarAllocatedRooms, setSidebarAllocatedRooms] = useState([]);
+  const [isSidebarRoomDropdownOpen, setIsSidebarRoomDropdownOpen] = useState(false);
+
+  const getRoomsForBooking = (booking) => {
+    if (!booking) return [];
+    if (booking.roomPrices) {
+      try {
+        const parsed = JSON.parse(booking.roomPrices);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    if (booking.roomNumber) {
+      const roomNums = booking.roomNumber.split(',').map(r => r.trim()).filter(Boolean);
+      const numRooms = roomNums.length || 1;
+      const curr = getBookingCurrency(booking);
+      const exRate = parseFloat(booking.exchangeRate || 335) || 335;
+      
+      let total = parseFloat(booking.totalAmount || booking.amount || 0);
+      if (curr === 'USD' && total > 20000 && exRate > 1) {
+        total = total / exRate;
+      }
+
+      return roomNums.map(cleanNum => {
+        const matchedRoom = rooms.find(room => cleanRoomNumber(room.roomNumber) === cleanRoomNumber(cleanNum));
+        return {
+          roomType: matchedRoom ? matchedRoom.roomType : (booking.roomType || 'Room'),
+          roomNumber: cleanRoomNumber(cleanNum),
+          price: (total / numRooms).toFixed(2)
+        };
+      });
+    }
+    return [];
+  };
+
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [isEditingBooking, setIsEditingBooking] = useState(false);
@@ -958,11 +992,13 @@ const Registrations = () => {
     const primaryCandidate = allRelatedBookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/')) 
       || allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
     let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
-    
-    if (associatedBooking) {
+      if (associatedBooking) {
       const parentAmt = (associatedBooking.totalAmount && associatedBooking.totalAmount > 0)
         ? associatedBooking.totalAmount
         : (reg.totalAmount && reg.totalAmount > 0 ? reg.totalAmount : '');
+
+      const initialAllocatedRooms = getRoomsForBooking(associatedBooking);
+      setSidebarAllocatedRooms(initialAllocatedRooms);
 
       setBookingForm({
         roomType: associatedBooking.roomType || reg.roomType || defaultRoomType,
@@ -982,6 +1018,7 @@ const Registrations = () => {
       fetchAdvancePayments(associatedBooking.id);
     } else {
       // Default blank/pre-filled values fallback
+      setSidebarAllocatedRooms([]);
       setBookingForm({
         roomType: defaultRoomType,
         room: '',
@@ -1065,8 +1102,6 @@ const Registrations = () => {
     }
   };
 
-
-
   // Switch Booking Number Prefix Dynamically
   const handleBookingChannelChange = (channel) => {
     let newBookingNumber = bookingForm.bookingNumber;
@@ -1106,16 +1141,55 @@ const Registrations = () => {
     setBookingSuccess(false);
 
     try {
+      const associated = getBookingForReg(selectedReg.id);
+
+      // 1. Determine Room Prices JSON
+      let finalRoomPrices = '';
+      if (sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0) {
+        finalRoomPrices = JSON.stringify(sidebarAllocatedRooms);
+      } else if (associated?.roomPrices) {
+        finalRoomPrices = associated.roomPrices;
+      }
+
+      // 2. Determine Currency
+      const finalCurrency = bookingForm.currencyCode || associated?.currency || 'USD';
+
+      // 3. Determine Total Price / Amount
+      let finalAmount = bookingForm.amount;
+      if (!finalAmount || parseFloat(finalAmount) <= 0) {
+        if (sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0) {
+          finalAmount = sidebarAllocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+        } else if (associated?.totalAmount || associated?.amount) {
+          finalAmount = associated.totalAmount || associated.amount;
+        }
+      }
+
+      // 4. Determine Room & RoomType
+      let finalRoom = bookingForm.room;
+      let finalRoomType = bookingForm.roomType;
+      if (sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0) {
+        finalRoom = sidebarAllocatedRooms.map(r => r.roomNumber).join(', ');
+        finalRoomType = sidebarAllocatedRooms.map(r => r.roomType).join(', ');
+      }
+
+      const payload = {
+        ...bookingForm,
+        room: finalRoom,
+        roomType: finalRoomType,
+        amount: finalAmount,
+        currency: finalCurrency,
+        currencyCode: finalCurrency,
+        tableCurrency: finalCurrency,
+        roomPrices: finalRoomPrices,
+        guestName: selectedReg ? selectedReg.guestName : ''
+      };
+
       const response = await fetch(`${API_BASE}/guest-registrations/${selectedReg.id}/booking-details`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          ...bookingForm,
-          currency: bookingForm.currencyCode || 'USD',
-          currencyCode: bookingForm.currencyCode || 'USD'
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) throw new Error('Failed to update booking details');
@@ -1937,29 +2011,82 @@ const Registrations = () => {
                   /* EDIT MODE INLINE FORM */
                   <form onSubmit={handleBookingSubmit} className="space-y-3 pt-1">
                     <div className="grid grid-cols-2 gap-2.5 text-xs">
-                      {/* Room No */}
+                      {/* Multi-Room Selector */}
                       <div className="space-y-1 col-span-2">
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Room No</label>
-                        <select
-                          value={bookingForm.room}
-                          onChange={(e) => {
-                            const selectedNo = e.target.value;
-                            const matchedRoom = rooms.find(r => String(r.roomNumber) === String(selectedNo));
-                            setBookingForm(prev => ({
-                              ...prev,
-                              room: selectedNo,
-                              roomType: matchedRoom ? matchedRoom.roomType : prev.roomType
-                            }));
-                          }}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-800 text-xs cursor-pointer"
-                        >
-                          <option value="">-- Select Room --</option>
-                          {rooms.map((r) => (
-                            <option key={r.id || r.roomNumber} value={r.roomNumber}>
-                              Room {r.roomNumber} ({r.roomType})
-                            </option>
-                          ))}
-                        </select>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Rooms Allocated</label>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setIsSidebarRoomDropdownOpen(!isSidebarRoomDropdownOpen)}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-bold text-slate-800 text-xs text-left flex justify-between items-center cursor-pointer shadow-2xs hover:border-emerald-500 transition"
+                          >
+                            <span className="truncate">
+                              {sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0
+                                ? sidebarAllocatedRooms.map(r => r.roomNumber.startsWith('Room') ? r.roomNumber : `Room ${r.roomNumber}`).join(', ')
+                                : 'Select Rooms to Allocate...'}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-bold ml-1">▼</span>
+                          </button>
+
+                          {isSidebarRoomDropdownOpen && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setIsSidebarRoomDropdownOpen(false)}></div>
+                              <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-56 overflow-y-auto p-1.5 space-y-0.5 select-none animate-in fade-in zoom-in-95 duration-100">
+                                {rooms.map((room) => {
+                                  const cleanTarget = String(room.roomNumber).replace(/^(Room|Room\s*#?)\s*/i, '').trim();
+                                  const currentAllocated = sidebarAllocatedRooms || [];
+                                  const isChecked = currentAllocated.some(r => String(r.roomNumber).replace(/^(Room|Room\s*#?)\s*/i, '').trim() === cleanTarget);
+
+                                  return (
+                                    <label 
+                                      key={room.id || room.roomNumber} 
+                                      className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-emerald-50/60 rounded-lg cursor-pointer text-xs text-slate-700 font-medium transition"
+                                    >
+                                      <input 
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => {
+                                          let newAllocated;
+                                          if (isChecked) {
+                                            newAllocated = currentAllocated.filter(r => String(r.roomNumber).replace(/^(Room|Room\s*#?)\s*/i, '').trim() !== cleanTarget);
+                                          } else {
+                                            const defaultPrice = parseFloat(room.price || 0) > 0 ? parseFloat(room.price).toFixed(2) : '0.00';
+                                            newAllocated = [
+                                              ...currentAllocated,
+                                              {
+                                                roomType: room.roomType || 'Standard Room',
+                                                roomNumber: cleanTarget,
+                                                price: defaultPrice
+                                              }
+                                            ];
+                                          }
+
+                                          const roomString = newAllocated.map(r => r.roomNumber).join(', ');
+                                          const roomTypeString = newAllocated.map(r => r.roomType).join(', ');
+                                          const totalSum = newAllocated.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+
+                                          setSidebarAllocatedRooms(newAllocated);
+                                          setBookingForm(prev => ({
+                                            ...prev,
+                                            room: roomString,
+                                            roomType: roomTypeString || prev.roomType,
+                                            amount: totalSum > 0 ? totalSum.toFixed(2) : prev.amount
+                                          }));
+                                        }}
+                                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 accent-emerald-600 cursor-pointer"
+                                      />
+                                      <span className="font-mono font-bold text-slate-900">{cleanTarget}</span>
+                                      <span className="text-slate-500 font-normal">- {room.roomType}</span>
+                                      {room.status && (
+                                        <span className="text-[10px] text-slate-400 font-medium ml-auto">({room.status})</span>
+                                      )}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {/* Booking Channel */}
@@ -2051,82 +2178,64 @@ const Registrations = () => {
                         />
                       </div>
 
-                      {/* Room Details Table in Edit Mode */}
+                      {/* Editable Room Price Table in Edit Mode */}
                       <div className="col-span-2 space-y-1.5 border-t border-slate-100/60 pt-2.5 mt-1">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Room Details:</span>
-                        {(() => {
-                          let parsedItems = [];
-                          const currency = bookingForm.currencyCode || associatedBooking?.currency || selectedReg?.currency || 'USD';
-                          const totalAmt = parseFloat(bookingForm.amount || associatedBooking?.totalAmount || selectedReg?.totalAmount || 0);
-
-                          if (associatedBooking?.roomPrices) {
-                            try {
-                              const p = JSON.parse(associatedBooking.roomPrices);
-                              if (Array.isArray(p) && p.length > 0) {
-                                parsedItems = p.map((item, idx) => ({
-                                  roomNumber: item.roomNumber || item.roomNum || `Room ${idx + 1}`,
-                                  price: item.price != null && item.price !== '' ? parseFloat(item.price) : null
-                                }));
-                              }
-                            } catch(e) {}
-                          }
-
-                          if (parsedItems.length === 0) {
-                            const rawRoomNums = (bookingForm.room || associatedBooking?.roomNumber || selectedReg?.roomNumber || '')
-                              .split(',')
-                              .map(r => r.trim())
-                              .filter(Boolean);
-
-                            const rawRoomTypes = (bookingForm.roomType || associatedBooking?.roomType || selectedReg?.roomType || '')
-                              .split(',')
-                              .map(t => t.trim())
-                              .filter(Boolean);
-
-                            const count = Math.max(rawRoomNums.length, rawRoomTypes.length, 1);
-
-                            for (let i = 0; i < count; i++) {
-                              let num = rawRoomNums[i] || (count > 1 ? `Room ${i + 1}` : (rawRoomNums[0] || 'Unallocated'));
-                              if (num !== 'Unallocated' && !num.startsWith('Room')) {
-                                num = `Room ${num}`;
-                              }
-                              parsedItems.push({
-                                roomNumber: num,
-                                price: totalAmt > 0 ? (totalAmt / count) : null
-                              });
-                            }
-                          }
-
-                          return (
-                            <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
-                              <table className="w-full text-left text-xs border-collapse">
-                                <thead>
-                                  <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
-                                    <th className="py-2 px-3 font-extrabold">Room Number</th>
-                                    <th className="py-2 px-3 font-extrabold text-right">Price ({currency})</th>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Allocated Room Details & Pricing:</span>
+                        {sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0 ? (
+                          <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+                            <table className="w-full text-left text-xs border-collapse">
+                              <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[9px] tracking-wider">
+                                  <th className="py-2 px-3 font-extrabold">Room</th>
+                                  <th className="py-2 px-3 font-extrabold">Type</th>
+                                  <th className="py-2 px-3 font-extrabold text-right">Price ({bookingForm.currencyCode || associatedBooking?.currency || 'USD'})</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
+                                {sidebarAllocatedRooms.map((item, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-50/50 transition">
+                                    <td className="py-2 px-3 font-mono font-black text-slate-900">
+                                      <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                                        {item.roomNumber.startsWith('Room') ? item.roomNumber : `Room ${item.roomNumber}`}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 px-3 font-medium text-slate-600 text-xs truncate max-w-[100px]">
+                                      {item.roomType || 'Standard'}
+                                    </td>
+                                    <td className="py-1.5 px-3 text-right">
+                                      <div className="inline-flex items-center gap-1 justify-end">
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={item.price != null ? item.price : ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            const updatedAllocated = [...sidebarAllocatedRooms];
+                                            updatedAllocated[idx] = {
+                                              ...updatedAllocated[idx],
+                                              price: val
+                                            };
+                                            const totalSum = updatedAllocated.reduce((sum, itm) => sum + (parseFloat(itm.price) || 0), 0);
+                                            setSidebarAllocatedRooms(updatedAllocated);
+                                            setBookingForm(prev => ({
+                                              ...prev,
+                                              amount: totalSum > 0 ? totalSum.toFixed(2) : prev.amount
+                                            }));
+                                          }}
+                                          className="w-20 bg-white border border-slate-200 rounded-md px-1.5 py-1 text-right text-slate-800 focus:outline-none focus:border-emerald-500 font-bold font-mono text-xs"
+                                        />
+                                      </div>
+                                    </td>
                                   </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 font-medium text-slate-700 text-[11px]">
-                                  {parsedItems.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50/50 transition">
-                                      <td className="py-2.5 px-3 font-mono font-black text-slate-900">
-                                        <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200/60 px-2.5 py-0.5 rounded text-[11px] font-extrabold">
-                                          {item.roomNumber}
-                                        </span>
-                                      </td>
-                                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs">
-                                        {item.price != null && !isNaN(item.price) ? (
-                                          `${currency} ${item.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-                                        ) : (
-                                          <span className="text-slate-400 font-normal italic">-</span>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          );
-                        })()}
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-amber-50/60 border border-amber-200/60 rounded-xl text-center">
+                            <p className="text-[11px] text-amber-800 font-medium">No rooms allocated yet. Please select room(s) from the dropdown above.</p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Submit Button */}
