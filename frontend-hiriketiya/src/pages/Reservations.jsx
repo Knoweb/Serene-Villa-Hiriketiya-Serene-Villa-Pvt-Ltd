@@ -4398,7 +4398,8 @@ const Reservations = () => {
                         : totalPaidUpToThisBCurr;
 
                       const showExRate = !forceReceiptLkr && (bCurr !== 'LKR') && Boolean(associatedBooking?.showExchangeRateOnBill || receiptData?.showExchangeRateOnBill);
-                      const remBal = isFinalPayment ? 0 : Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
+                      const dispGrossAdvance = otherVal > 0 ? (parseFloat(actualPaidDisplayAmt) + otherDispVal) : parseFloat(actualPaidDisplayAmt);
+                      const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidUpToThisDisplay);
 
                       return (
                         <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">
@@ -4407,20 +4408,6 @@ const Reservations = () => {
                             <span className="font-bold text-slate-800 whitespace-nowrap ml-2">{dispCurr} {totAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
 
-                          {otherVal > 0 && (
-                            <div className="flex justify-between items-center pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-amber-700 bg-amber-50/40 px-1 py-0.5 rounded">
-                              <span className="font-semibold whitespace-nowrap">Other Charge (Adjustment):</span>
-                              <span className="font-bold font-mono whitespace-nowrap ml-2">- {dispCurr} {otherDispVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </div>
-                          )}
-
-                          {otherVal > 0 && (
-                            <div className="flex justify-between items-center pb-0.5 border-b border-emerald-800/20 font-bold text-slate-800">
-                              <span className="text-slate-600 whitespace-nowrap">Net Payable Amount:</span>
-                              <span className="font-mono whitespace-nowrap ml-2">{dispCurr} {dispNetPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </div>
-                          )}
-
                           {/* Advance Payments Received earlier (Shown whenever prior advance exists) */}
                           {dispPriorAdvancePaid > 0 && (
                             <div className="flex justify-between items-center pb-0.5 border-b border-emerald-800/10 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
@@ -4428,20 +4415,37 @@ const Reservations = () => {
                               <span className="font-bold font-mono whitespace-nowrap ml-2">-{dispCurr} {dispPriorAdvancePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                           )}
-                          
+
+                          {/* Advance Payment / Gross Settlement */}
                           {actualPaidDisplayAmt > 0 && (
                             <div className="flex justify-between items-center pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                              <span className="text-slate-500 font-semibold whitespace-nowrap">
+                              <span className="text-slate-600 font-semibold whitespace-nowrap">
                                 {isFinalPayment 
-                                  ? 'Final Payment:' 
+                                  ? 'Final Settlement:' 
                                   : (isExtraNight || isExtraPerson)
-                                  ? 'Paid:'
-                                  : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')
+                                  ? 'Payment Amount:'
+                                  : 'Advance Payment:'
                                 }
                               </span>
                               <span className="font-bold text-emerald-850 print:text-slate-900 whitespace-nowrap ml-2">
-                                {dispCurr} {parseFloat(actualPaidDisplayAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {dispCurr} {dispGrossAdvance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
+                            </div>
+                          )}
+
+                          {/* Other Charge (Deduction / Commission) */}
+                          {otherVal > 0 && (
+                            <div className="flex justify-between items-center pb-0.5 border-b border-emerald-800/10 print:border-slate-200 text-amber-700 bg-amber-50/40 px-1 py-0.5 rounded">
+                              <span className="font-semibold whitespace-nowrap">Other Charge:</span>
+                              <span className="font-bold font-mono whitespace-nowrap ml-2">- {dispCurr} {otherDispVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          )}
+
+                          {/* Down to / Net Paid (Received) */}
+                          {otherVal > 0 && actualPaidDisplayAmt > 0 && (
+                            <div className="flex justify-between items-center pb-0.5 border-b border-emerald-800/20 font-bold text-slate-900 bg-emerald-50/50 px-1 py-0.5 rounded">
+                              <span className="text-slate-700 whitespace-nowrap font-bold">Down to (Paid):</span>
+                              <span className="font-mono whitespace-nowrap ml-2 text-emerald-800 font-extrabold">{dispCurr} {parseFloat(actualPaidDisplayAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                           )}
 
@@ -4453,9 +4457,9 @@ const Reservations = () => {
                                 <span className="font-medium text-slate-700 whitespace-nowrap ml-2">{exRate}</span>
                               </div>
                               <div className="flex justify-between items-center pb-0.5 border-b border-emerald-800/10 print:border-slate-200">
-                                <span className="text-slate-500 font-semibold whitespace-nowrap">Converted Amount (LKR):</span>
+                                <span className="text-slate-500 font-semibold whitespace-nowrap">Exchange Amount (LKR):</span>
                                 <span className="font-bold text-emerald-850 print:text-slate-900 whitespace-nowrap ml-2">
-                                  LKR {(parseFloat(actualPaidDisplayAmt) * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  LKR {(selectedPaymentForReceipt.convertedAmountLkr || (parseFloat(actualPaidDisplayAmt) * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               </div>
                             </>
@@ -4483,15 +4487,6 @@ const Reservations = () => {
                             }
                             return null;
                           })()}
-
-                          {otherVal > 0 && showExRate && (
-                            <div className="flex justify-between pb-0.5 border-b border-emerald-800/10 print:border-slate-200 bg-emerald-50/50 px-1 py-0.5 rounded">
-                              <span className="text-slate-700 font-bold text-[11px]">Next Payment:</span>
-                              <span className="font-bold font-mono text-emerald-800 text-[11px]">
-                                LKR {(selectedPaymentForReceipt.convertedAmountLkr || (parseFloat(actualPaidDisplayAmt) * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                            </div>
-                          )}
 
                           <div className="flex justify-between pt-1 font-bold text-sm border-t border-emerald-805/30 print:border-slate-300">
                             <span className="text-emerald-950 font-black print:text-slate-900 text-xs">Remaining Balance:</span>

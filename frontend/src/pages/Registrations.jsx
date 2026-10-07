@@ -4404,6 +4404,8 @@ const Registrations = () => {
                   // Converted Amount in LKR for this receipt payment (paid room settlement * exchange rate)
                   const convertedAmountLkr = selectedPaymentForReceipt.convertedAmountLkr || (actualPaidDisplayAmt * (bCurr === 'LKR' ? 1 : exRate));
 
+                  const dispGrossAdvance = otherVal > 0 ? (actualPaidDisplayAmt + otherDispVal) : actualPaidDisplayAmt;
+
                   return (
                     <div className="border border-slate-700/60 rounded-lg p-3 bg-white space-y-1.5 shadow-2xs print:border-slate-400">
                       <div className="flex justify-between items-center pb-0.5 border-b border-slate-100">
@@ -4418,22 +4420,6 @@ const Registrations = () => {
                         </div>
                       )}
 
-                      {otherVal > 0 && (
-                        <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-amber-700 bg-amber-50/40 px-1 py-0.5 rounded">
-                          <span className="font-semibold whitespace-nowrap">Other Charge (Adjustment):</span>
-                          <span className="font-bold font-mono whitespace-nowrap ml-2">
-                            - {dispCurr} {otherDispVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      )}
-
-                      {(totalDiscountVal > 0 || otherVal > 0) && (
-                        <div className="flex justify-between items-center pb-0.5 border-b border-slate-200 font-bold text-slate-800">
-                          <span className="text-slate-600 whitespace-nowrap">Net Payable Amount:</span>
-                          <span className="font-mono whitespace-nowrap ml-2">{dispCurr} {dispNetPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                      )}
-
                       {/* Advance Payments Received earlier (Shown whenever prior advance exists) */}
                       {dispPriorAdvancePaid > 0 && (
                         <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-emerald-700 bg-emerald-50/50 px-1 py-0.5 rounded">
@@ -4442,33 +4428,39 @@ const Registrations = () => {
                         </div>
                       )}
 
-                      {/* Current Payment Amount */}
+                      {/* Advance Payment / Gross Settlement */}
                       {actualPaidDisplayAmt > 0 && (
                         <div className="flex justify-between items-center pb-0.5 border-b border-slate-100">
-                          <span className="text-slate-500 font-semibold whitespace-nowrap">
+                          <span className="text-slate-600 font-semibold whitespace-nowrap">
                             {isFinalPayment 
-                              ? 'Final Settlement Paid:' 
+                              ? 'Final Settlement:' 
                               : (isExtraNight || isExtraPerson)
-                              ? 'Paid:'
-                              : (dispPriorAdvancePaid > 0 ? 'Current Advance Paid:' : 'Advance Paid:')
+                              ? 'Payment Amount:'
+                              : 'Advance Payment:'
                             }
                           </span>
-                          <span className="font-bold text-slate-900 whitespace-nowrap ml-2">{dispCurr} {actualPaidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="font-bold text-slate-900 whitespace-nowrap ml-2">
+                            {dispCurr} {dispGrossAdvance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                         </div>
                       )}
 
-                      {/* Web Booking Conversion breakdown ONLY when showExchangeRateOnBill toggle is enabled */}
-                      {showExRate && (
-                        <>
-                          <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-[10px]">
-                            <span className="text-slate-500 whitespace-nowrap">Exchange Rate:</span>
-                            <span className="font-medium text-slate-700 whitespace-nowrap ml-2">{exRate}</span>
-                          </div>
-                          <div className="flex justify-between items-center pb-0.5 border-b border-slate-100">
-                            <span className="text-slate-500 font-semibold whitespace-nowrap">Converted Amount (LKR):</span>
-                            <span className="font-bold text-slate-900 whitespace-nowrap ml-2">LKR {(actualPaidDisplayAmt * exRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                        </>
+                      {/* Other Charge (Deduction / Commission) */}
+                      {otherVal > 0 && (
+                        <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-amber-700 bg-amber-50/40 px-1 py-0.5 rounded">
+                          <span className="font-semibold whitespace-nowrap">Other Charge:</span>
+                          <span className="font-bold font-mono whitespace-nowrap ml-2">
+                            - {dispCurr} {otherDispVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Down to / Net Paid (Received) */}
+                      {otherVal > 0 && actualPaidDisplayAmt > 0 && (
+                        <div className="flex justify-between items-center pb-0.5 border-b border-slate-200 font-bold text-slate-900 bg-slate-50/80 px-1 py-0.5 rounded">
+                          <span className="text-slate-700 whitespace-nowrap font-bold">Down to (Paid):</span>
+                          <span className="font-mono whitespace-nowrap ml-2 text-emerald-700 font-extrabold">{dispCurr} {actualPaidDisplayAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
                       )}
 
                       {cardFeeVal > 0 && (
@@ -4480,13 +4472,20 @@ const Registrations = () => {
                         </div>
                       )}
 
-                      {otherVal > 0 && showExRate && (
-                        <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 bg-emerald-50/50 px-1 py-0.5 rounded">
-                          <span className="text-slate-700 font-bold text-[11px] whitespace-nowrap">Next Payment:</span>
-                          <span className="font-bold font-mono text-emerald-800 text-[11px] whitespace-nowrap ml-2">
-                            LKR {convertedAmountLkr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
+                      {/* Web Booking Conversion breakdown ONLY when showExchangeRateOnBill toggle is enabled */}
+                      {showExRate && (
+                        <>
+                          <div className="flex justify-between items-center pb-0.5 border-b border-slate-100 text-[10px]">
+                            <span className="text-slate-500 whitespace-nowrap">Exchange Rate:</span>
+                            <span className="font-medium text-slate-700 whitespace-nowrap ml-2">{exRate}</span>
+                          </div>
+                          <div className="flex justify-between items-center pb-0.5 border-b border-slate-100">
+                            <span className="text-slate-500 font-semibold whitespace-nowrap">Exchange Amount (LKR):</span>
+                            <span className="font-bold text-slate-900 whitespace-nowrap ml-2">
+                              LKR {(convertedAmountLkr > 0 ? convertedAmountLkr : (actualPaidDisplayAmt * exRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </>
                       )}
 
                       <div className="flex justify-between items-center pt-1 font-bold text-sm border-t-2 border-slate-700/60 mt-1">
