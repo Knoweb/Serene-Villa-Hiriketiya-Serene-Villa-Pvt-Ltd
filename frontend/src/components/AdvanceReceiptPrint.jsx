@@ -542,11 +542,11 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
           if (isFinalPayment) {
             remBal = 0;
           } else if (isExtraNight || isExtraPerson) {
-            remBal = Math.max(0, dispNetPayable - actualPaidDisplayAmt);
+            remBal = Math.max(0, dispGrossTotAmt - (forceLkr ? totalDiscountVal * exRate : totalDiscountVal) - (dispPriorAdvancePaid + dispGrossAdvance));
           } else if (isDiscountAdjusted) {
-            remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
+            remBal = Math.max(0, dispGrossTotAmt - (forceLkr ? totalDiscountVal * exRate : totalDiscountVal) - (dispPriorAdvancePaid + dispGrossAdvance));
           } else {
-            remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
+            remBal = Math.max(0, dispGrossTotAmt - (dispPriorAdvancePaid + dispGrossAdvance));
           }
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           

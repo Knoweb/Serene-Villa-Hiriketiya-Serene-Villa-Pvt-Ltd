@@ -4392,21 +4392,21 @@ const Registrations = () => {
 
                   const showExRate = !forceReceiptLkr && (bCurr !== 'LKR') && Boolean(associatedBooking?.showExchangeRateOnBill || receiptData?.showExchangeRateOnBill);
 
+                  const dispGrossAdvance = otherVal > 0 ? (actualPaidDisplayAmt + otherDispVal) : actualPaidDisplayAmt;
+
                   let remBal = 0;
                   if (isFinalPayment) {
                     remBal = 0;
                   } else if (isExtraNight || isExtraPerson) {
-                    remBal = Math.max(0, dispNetPayable - actualPaidDisplayAmt);
+                    remBal = Math.max(0, dispGrossTotAmt - (forceReceiptLkr && bCurr !== 'LKR' ? totalDiscountVal * exRate : totalDiscountVal) - (dispPriorAdvancePaid + dispGrossAdvance));
                   } else if (isDiscountAdjusted) {
-                    remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
+                    remBal = Math.max(0, dispGrossTotAmt - (forceReceiptLkr && bCurr !== 'LKR' ? totalDiscountVal * exRate : totalDiscountVal) - (dispPriorAdvancePaid + dispGrossAdvance));
                   } else {
-                    remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
+                    remBal = Math.max(0, dispGrossTotAmt - (dispPriorAdvancePaid + dispGrossAdvance));
                   }
                   
                   // Converted Amount in LKR for this receipt payment (paid room settlement * exchange rate)
                   const convertedAmountLkr = selectedPaymentForReceipt.convertedAmountLkr || (actualPaidDisplayAmt * (bCurr === 'LKR' ? 1 : exRate));
-
-                  const dispGrossAdvance = otherVal > 0 ? (actualPaidDisplayAmt + otherDispVal) : actualPaidDisplayAmt;
 
                   return (
                     <div className="border border-slate-700/60 rounded-lg p-3 bg-white space-y-1.5 shadow-2xs print:border-slate-400">
