@@ -1143,16 +1143,20 @@ const Registrations = () => {
     try {
       const associated = getBookingForReg(selectedReg.id);
 
-      // 1. Determine Room Prices JSON
+      // 1. Determine Currency
+      const finalCurrency = bookingForm.currencyCode || associated?.currency || 'USD';
+
+      // 2. Determine Room Prices JSON with currency attached
       let finalRoomPrices = '';
       if (sidebarAllocatedRooms && sidebarAllocatedRooms.length > 0) {
-        finalRoomPrices = JSON.stringify(sidebarAllocatedRooms);
+        const roomsWithCurrency = sidebarAllocatedRooms.map(r => ({
+          ...r,
+          currency: finalCurrency
+        }));
+        finalRoomPrices = JSON.stringify(roomsWithCurrency);
       } else if (associated?.roomPrices) {
         finalRoomPrices = associated.roomPrices;
       }
-
-      // 2. Determine Currency
-      const finalCurrency = bookingForm.currencyCode || associated?.currency || 'USD';
 
       // 3. Determine Total Price / Amount
       let finalAmount = bookingForm.amount;
@@ -1198,6 +1202,16 @@ const Registrations = () => {
       setSelectedReg(updatedReg);
       setBookingSuccess(true);
       setIsEditingBooking(false);
+
+      // Immediately sync paymentForm currency and bankSlip
+      setPaymentForm(prev => ({
+        ...prev,
+        currencyCode: finalCurrency
+      }));
+      setBankSlipForm(prev => ({
+        ...prev,
+        bankKey: getBankKeyForCurrency(finalCurrency)
+      }));
       
       // Refresh list and sync payments history
       const latestBookings = await fetchRegistrations();
@@ -2144,6 +2158,7 @@ const Registrations = () => {
                             <option value="LKR">LKR</option>
                             <option value="EUR">EUR</option>
                             <option value="AUD">AUD</option>
+                            <option value="GBP">GBP</option>
                           </select>
                           <input
                             type="number"
