@@ -262,7 +262,7 @@ const GuestRegistration = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const mandatory = [
-      'roomType', 'guestName', 'checkInDate', 'checkOutDate', 
+      'guestName', 'checkInDate', 'checkOutDate', 
       'passportNumber', 'whatsAppNumber', 'nationality'
     ];
     for (const key of mandatory) {
