@@ -461,15 +461,15 @@ const Handover = () => {
           effectiveRawAmt = Math.max(0, pRawAmt - pOtherCharges);
         }
 
-        // Normalized amount in booking currency
-        let pAmtInBookingCurr = effectiveRawAmt;
+        // Normalized amount in booking currency (gross settlement before payment fee deductions)
+        let pAmtInBookingCurr = pRawAmt + pOtherCharges;
         if (pCurr !== bookingCurr) {
           if (bookingCurr === 'LKR') {
-            pAmtInBookingCurr = pLkr;
+            pAmtInBookingCurr = pLkr + (pOtherCharges * pExRate);
           } else {
             // Target is USD/other foreign currency, convert from LKR or via exchange rate
             const effectiveRate = pExRate > 0 ? pExRate : 1;
-            pAmtInBookingCurr = pCurr === 'LKR' ? (effectiveRawAmt / effectiveRate) : ((effectiveRawAmt * pExRate) / effectiveRate);
+            pAmtInBookingCurr = pCurr === 'LKR' ? ((pRawAmt + pOtherCharges) / effectiveRate) : (((pRawAmt + pOtherCharges) * pExRate) / effectiveRate);
           }
         }
 
@@ -485,10 +485,10 @@ const Handover = () => {
           extraPersonsPaid += pAmtInBookingCurr;
         } else if (isFinal) {
           finalPaid += pAmtInBookingCurr;
-          finalPaidOrig = { amount: pRawAmt, currency: pCurr };
+          finalPaidOrig = { amount: pRawAmt + pOtherCharges, currency: pCurr };
         } else {
           advancePaid += pAmtInBookingCurr;
-          advancePaidOrig = { amount: pRawAmt, currency: pCurr };
+          advancePaidOrig = { amount: pRawAmt + pOtherCharges, currency: pCurr };
         }
       });
 
@@ -514,8 +514,8 @@ const Handover = () => {
 
       const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
       const baseGrossTotal = g.baseRoomPrice;
-      const baseNetPayable = Math.max(0, baseGrossTotal - g.discountVal - (g.otherChargesPrice || 0));
-      const grossBillValue = g.baseRoomPrice; // Keep base gross intact as requested
+      const baseNetPayable = Math.max(0, baseGrossTotal - g.discountVal);
+      const grossBillValue = g.baseRoomPrice; // Keep base gross intact
       const netPayable = baseNetPayable;
       
       const extraNightDue = Math.max(0, g.extraNightsPrice - extraNightsPaid);
