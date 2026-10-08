@@ -3110,10 +3110,21 @@ const Reservations = () => {
                     const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
                       const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
                       const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
-                      if (pCurr === bCurr) return sum + pAmt;
                       const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
                       const pExRate = parseFloat(p.exchangeRate) || 1;
-                      return sum + (pExRate > 0 ? (pLkr / pExRate) : pAmt);
+                      const otherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                      const otherAmt = otherMatch ? parseFloat(otherMatch[1]) : 0;
+
+                      let basePaid = 0;
+                      if (pCurr === bCurr) {
+                        basePaid = pAmt;
+                      } else if (bCurr === 'LKR') {
+                        basePaid = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                      } else {
+                        basePaid = pExRate > 0 ? (pLkr / pExRate) : pAmt;
+                      }
+                      const otherInBCurr = pCurr === bCurr ? otherAmt : (bCurr === 'LKR' ? (otherAmt * pExRate) : (pExRate > 0 ? (otherAmt / pExRate) : otherAmt));
+                      return sum + basePaid + otherInBCurr;
                     }, 0);
                     const remainingBal = Math.max(0, totalAmt - totalPaidInBCurr);
                     const isFullyPaid = totalAmt > 0 && remainingBal <= 0.01;
