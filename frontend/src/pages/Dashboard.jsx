@@ -79,63 +79,176 @@ const Dashboard = () => {
     fetchDiscountRequests();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const regRes = await fetch(`${API_BASE}/guest-registrations?propertyId=1&size=1000&role=${user?.role || 'FRONT_OFFICER'}`);
-        if (regRes.ok) {
-          const regData = await regRes.json();
-          setRegistrations(regData.content || []);
-        }
-        const bookingRes = await fetch(`${API_BASE}/bookings?propertyId=1`);
-        if (bookingRes.ok) {
-          const bookingData = await bookingRes.json();
-          setBookings(bookingData || []);
-        }
-        if (user?.role === 'ADMIN') {
-          const staffRes = await fetch(`${API_BASE}/auth/users?propertyId=1`);
-          if (staffRes.ok) {
-            const staffData = await staffRes.json();
-            setStaff(staffData || []);
-          }
-        }
-        if (user?.role === 'ACCOUNTANT' || user?.role === 'ADMIN') {
-          const handoverRes = await fetch(`${API_BASE}/billing/accountant/pending?propertyId=${currentProperty?.id || 1}`);
-          if (handoverRes.ok) {
-            const handoverData = await handoverRes.json();
-            setPendingHandovers(handoverData || []);
-          }
+  const fetchDashboardDataRef = React.useRef();
 
-          const statsRes = await fetch(`${API_BASE}/accountant/dashboard-stats?propertyId=${currentProperty?.id || 1}`, {
-            headers: {
-              'X-Active-Property': String(currentProperty?.id || 1)
-            }
-          });
-          if (statsRes.ok) {
-            const statsData = await statsRes.json();
-            setAccountantStats(statsData);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-      } finally {
-        setLoading(false);
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const regRes = await fetch(`${API_BASE}/guest-registrations?propertyId=1&size=1000&role=${user?.role || 'FRONT_OFFICER'}`);
+      if (regRes.ok) {
+        const regData = await regRes.json();
+        setRegistrations(regData.content || []);
       }
-    };
-    fetchData();
+      const bookingRes = await fetch(`${API_BASE}/bookings?propertyId=1`);
+      if (bookingRes.ok) {
+        const bookingData = await bookingRes.json();
+        setBookings(bookingData || []);
+      }
+      if (user?.role === 'ADMIN') {
+        const staffRes = await fetch(`${API_BASE}/auth/users?propertyId=1`);
+        if (staffRes.ok) {
+          const staffData = await staffRes.json();
+          setStaff(staffData || []);
+        }
+      }
+      if (user?.role === 'ACCOUNTANT' || user?.role === 'ADMIN') {
+        const handoverRes = await fetch(`${API_BASE}/billing/accountant/pending?propertyId=${currentProperty?.id || 1}`);
+        if (handoverRes.ok) {
+          const handoverData = await handoverRes.json();
+          setPendingHandovers(handoverData || []);
+        }
+
+        const statsRes = await fetch(`${API_BASE}/accountant/dashboard-stats?propertyId=${currentProperty?.id || 1}`, {
+          headers: {
+            'X-Active-Property': String(currentProperty?.id || 1)
+          }
+        });
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setAccountantStats(statsData);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDashboardDataRef.current = fetchDashboardData;
+
+  useEffect(() => {
+    fetchDashboardData();
   }, [user, currentProperty]);
+
+  // Real-time WebSocket connection & Auto-refresh on Window Focus
+  useEffect(() => {
+    let wsUrl = '';
+    try {
+      const url = new URL(API_BASE);
+      const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${url.host}/ws/registrations`;
+    } catch (e) {
+      wsUrl = `ws://${window.location.hostname}:8080/ws/registrations`;
+    }
+
+    let socket;
+    let reconnectTimeout;
+
+    const connect = () => {
+      socket = new WebSocket(wsUrl);
+      socket.onmessage = (event) => {
+        if (event.data === 'update') {
+          if (fetchDashboardDataRef.current) fetchDashboardDataRef.current();
+        }
+      };
+      socket.onclose = () => {
+        reconnectTimeout = setTimeout(connect, 5000);
+      };
+      socket.onerror = () => {
+        socket.close();
+      };
+    };
+
+    connect();
+
+    const handleFocus = () => {
+      if (fetchDashboardDataRef.current) fetchDashboardDataRef.current();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      if (socket) {
+        socket.onclose = null;
+        socket.close();
+      }
+      clearTimeout(reconnectTimeout);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Helper date formatter
+  const formatLocalDate = (dateInput) => {
+    if (!dateInput) return '';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput).split('T')[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Cross-reference booking for registration
+  const getBookingForReg = (reg) => {
+    if (!reg) return null;
+
+    // 1. Match by registration bookingNumber
+    if (reg.bookingNumber && !reg.bookingNumber.includes('/')) {
+      const cleanTargetNum = reg.bookingNumber.trim().toLowerCase();
+      const directMatch = bookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/') && b.bookingNumber.trim().toLowerCase() === cleanTargetNum);
+      if (directMatch) return directMatch;
+    }
+
+    // 2. Match by passportNumber (e.g. SV-D-420 -> D-420)
+    const cleanPassportNum = (reg.passportNumber || '').replace(/^SV-?/i, '').trim().toLowerCase();
+    if (cleanPassportNum && cleanPassportNum !== 'undefined' && cleanPassportNum !== 'null') {
+      const passMatch = bookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/') && b.bookingNumber.trim().toLowerCase() === cleanPassportNum);
+      if (passMatch) return passMatch;
+    }
+
+    // 3. Match by explicit guestRegistrationId link
+    const idMatch = bookings.find(b => b.guestRegistrationId === reg.id && (!b.bookingNumber || !b.bookingNumber.includes('/')));
+    if (idMatch) return idMatch;
+
+    // 4. Match by guest name
+    const cleanName = (reg.guestName || '').trim().toLowerCase();
+    if (cleanName) {
+      const nameMatch = bookings.find(b => b.guestName && b.guestName.trim().toLowerCase() === cleanName && (!b.bookingNumber || !b.bookingNumber.includes('/')));
+      if (nameMatch) return nameMatch;
+    }
+
+    return null;
+  };
 
   // Role Checks
   const isAdmin = user.role === 'ADMIN';
   const isAccountant = user.role === 'ACCOUNTANT';
   const isFrontOfficer = user.role === 'FRONT_OFFICER';
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayGuestsCount = registrations.filter(r => r.checkInDate === todayStr).length;
-  const currentlyStayingCount = registrations.filter(r => r.registrationStatus === 'CheckedIn').length;
-  const todayLeavingCount = registrations.filter(r => r.checkOutDate === todayStr).length;
-  const upcomingBookingsCount = registrations.filter(r => r.registrationStatus === 'Pending' && r.checkInDate > todayStr).length;
+  const todayStr = formatLocalDate(new Date());
+
+  const todayGuestsCount = registrations.filter(r => {
+    const inDate = formatLocalDate(r.checkInDate);
+    return inDate === todayStr;
+  }).length;
+
+  const currentlyStayingCount = registrations.filter(r => {
+    const inDate = formatLocalDate(r.checkInDate);
+    const outDate = formatLocalDate(r.checkOutDate);
+    if (r.registrationStatus === 'CheckedIn') return true;
+    if (r.registrationStatus === 'CheckedOut' || r.registrationStatus === 'Cancelled') return false;
+    return inDate && outDate && inDate <= todayStr && outDate >= todayStr;
+  }).length;
+
+  const todayLeavingCount = registrations.filter(r => {
+    const outDate = formatLocalDate(r.checkOutDate);
+    return outDate === todayStr && r.registrationStatus !== 'Cancelled';
+  }).length;
+
+  const upcomingBookingsCount = registrations.filter(r => {
+    const inDate = formatLocalDate(r.checkInDate);
+    return inDate > todayStr && r.registrationStatus !== 'Cancelled';
+  }).length;
 
   const foCards = {
     todayGuests: todayGuestsCount,
@@ -145,28 +258,27 @@ const Dashboard = () => {
   };
 
   const guestRegistrations = registrations
+    .filter(r => !r.isHiddenFromFrontOffice || isAdmin)
     .map(r => {
-      const b = bookings.find(book => book.guestRegistrationId === r.id);
+      const b = getBookingForReg(r);
       return {
         id: r.id,
-        name: r.guestName,
-        passport: r.passportNumber,
-        phone: r.whatsappNumber,
-        nationality: r.nationality,
-        in: r.checkInDate,
-        out: r.checkOutDate,
-        room: b ? b.roomNumber : 'Unallocated',
-        roomType: b ? b.roomType : 'N/A',
-        status: b ? b.paymentStatus : 'Pending',
+        name: r.guestName || 'Unnamed Guest',
+        passport: r.passportNumber || 'N/A',
+        phone: r.whatsappNumber || r.phone || 'N/A',
+        nationality: r.nationality || 'N/A',
+        in: formatLocalDate(r.checkInDate),
+        out: formatLocalDate(r.checkOutDate),
+        room: b ? (b.roomNumber || 'Unallocated') : 'Unallocated',
+        roomType: b ? (b.roomType || 'N/A') : 'N/A',
+        status: b ? (b.paymentStatus || 'Pending') : 'Pending',
         regStatus: r.registrationStatus || 'Pending'
       };
-    })
-    .filter(g => g.regStatus === 'CheckedIn');
-
+    });
 
   const filteredGuests = guestRegistrations.filter(g => 
-    g.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    g.passport.toLowerCase().includes(searchQuery.toLowerCase())
+    (g.name && g.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
+    (g.passport && g.passport.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -243,36 +355,70 @@ const Dashboard = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase">
+                    <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-xs">
                       <th className="py-3">Guest</th>
                       <th className="py-3">Passport</th>
+                      <th className="py-3">Dates</th>
                       <th className="py-3">Room</th>
-                      <th className="py-3">Status</th>
+                      <th className="py-3">Reg Status</th>
+                      <th className="py-3">Payment</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
-                    {filteredGuests.map((g) => (
-                      <tr 
-                        key={g.id} 
-                        onClick={() => setSelectedGuest(g)}
-                        className={`hover:bg-slate-55/60 cursor-pointer transition ${selectedGuest?.id === g.id ? 'bg-emerald-50/40 text-emerald-800' : ''}`}
-                      >
-                        <td className="py-3.5 font-bold text-slate-800">{g.name}</td>
-                        <td className="py-3.5 font-mono">{g.passport}</td>
-                        <td className="py-3.5">{g.room === 'Unallocated' ? 'Unallocated' : 'Room ' + g.room}</td>
-                        <td className="py-3.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            g.status === 'Paid' 
-                              ? 'bg-emerald-100 text-emerald-800' 
-                              : g.status === 'Pending' 
-                              ? 'bg-amber-100 text-amber-800' 
-                              : 'bg-rose-100 text-rose-800'
-                          }`}>
-                            {g.status}
-                          </span>
+                    {filteredGuests.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="py-8 text-center text-slate-400 text-sm">
+                          No guest registrations found.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredGuests.map((g) => (
+                        <tr 
+                          key={g.id} 
+                          onClick={() => setSelectedGuest(g)}
+                          className={`hover:bg-slate-50/60 cursor-pointer transition ${selectedGuest?.id === g.id ? 'bg-emerald-50/40 text-emerald-800' : ''}`}
+                        >
+                          <td className="py-3.5 font-bold text-slate-800">
+                            <div>{g.name}</div>
+                            <div className="text-xs font-normal text-slate-400">{g.nationality}</div>
+                          </td>
+                          <td className="py-3.5 font-mono text-xs text-slate-600">{g.passport}</td>
+                          <td className="py-3.5 text-xs">
+                            <div className="text-slate-700 font-semibold">{g.in}</div>
+                            <div className="text-slate-400">to {g.out}</div>
+                          </td>
+                          <td className="py-3.5">
+                            <span className="font-semibold text-slate-800">
+                              {g.room === 'Unallocated' ? 'Unallocated' : 'Room ' + g.room}
+                            </span>
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                              g.regStatus === 'CheckedIn'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : g.regStatus === 'CheckedOut'
+                                ? 'bg-slate-100 text-slate-600'
+                                : g.regStatus === 'Confirmed'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {g.regStatus === 'CheckedIn' ? 'Checked In' : g.regStatus === 'CheckedOut' ? 'Checked Out' : g.regStatus}
+                            </span>
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                              g.status === 'Paid' 
+                                ? 'bg-emerald-100 text-emerald-800' 
+                                : g.status === 'Pending' 
+                                ? 'bg-amber-100 text-amber-800' 
+                                : 'bg-rose-100 text-rose-800'
+                            }`}>
+                              {g.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
