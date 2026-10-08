@@ -450,26 +450,19 @@ const Handover = () => {
         if (otherChargesMatch) {
           const rawOther = parseFloat(otherChargesMatch[1]) || 0;
           pOtherCharges = rawOther;
-          if (rawOther > 0 && g.otherChargesPrice === 0) {
-            g.otherChargesPrice += rawOther;
+          if (rawOther > 0) {
+            g.otherChargesPrice = (g.otherChargesPrice || 0) + rawOther;
           }
         }
 
-        // Net amount collected: if record was saved with gross amount, adjust for other charges
-        let effectiveRawAmt = pRawAmt;
-        if (pOtherCharges > 0 && pRawAmt > (pLkr / (pExRate > 0 ? pExRate : 1) - pOtherCharges - 0.01) && Math.abs(pRawAmt - (g.baseRoomPrice || 0)) < 0.01) {
-          effectiveRawAmt = Math.max(0, pRawAmt - pOtherCharges);
-        }
-
-        // Normalized amount in booking currency (gross settlement before payment fee deductions)
-        let pAmtInBookingCurr = pRawAmt + pOtherCharges;
+        // Net cash collected for this payment in booking currency
+        let pNetPaidInBookingCurr = pRawAmt;
         if (pCurr !== bookingCurr) {
           if (bookingCurr === 'LKR') {
-            pAmtInBookingCurr = pLkr + (pOtherCharges * pExRate);
+            pNetPaidInBookingCurr = pLkr;
           } else {
-            // Target is USD/other foreign currency, convert from LKR or via exchange rate
             const effectiveRate = pExRate > 0 ? pExRate : 1;
-            pAmtInBookingCurr = pCurr === 'LKR' ? ((pRawAmt + pOtherCharges) / effectiveRate) : (((pRawAmt + pOtherCharges) * pExRate) / effectiveRate);
+            pNetPaidInBookingCurr = pCurr === 'LKR' ? (pRawAmt / effectiveRate) : ((pRawAmt * pExRate) / effectiveRate);
           }
         }
 
@@ -480,15 +473,15 @@ const Handover = () => {
         const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
 
         if (isExtraNight) {
-          extraNightsPaid += pAmtInBookingCurr;
+          extraNightsPaid += pNetPaidInBookingCurr;
         } else if (isExtraPerson) {
-          extraPersonsPaid += pAmtInBookingCurr;
+          extraPersonsPaid += pNetPaidInBookingCurr;
         } else if (isFinal) {
-          finalPaid += pAmtInBookingCurr;
-          finalPaidOrig = { amount: pRawAmt + pOtherCharges, currency: pCurr };
+          finalPaid += pNetPaidInBookingCurr;
+          finalPaidOrig = { amount: pRawAmt, currency: pCurr };
         } else {
-          advancePaid += pAmtInBookingCurr;
-          advancePaidOrig = { amount: pRawAmt + pOtherCharges, currency: pCurr };
+          advancePaid += pNetPaidInBookingCurr;
+          advancePaidOrig = { amount: pRawAmt, currency: pCurr };
         }
       });
 
@@ -514,9 +507,10 @@ const Handover = () => {
 
       const extrasSubtotal = g.extraNightsPrice + g.extraPersonsPrice;
       const baseGrossTotal = g.baseRoomPrice;
-      const baseNetPayable = Math.max(0, baseGrossTotal - g.discountVal);
       const grossBillValue = g.baseRoomPrice; // Keep base gross intact
-      const netPayable = baseNetPayable;
+      const totalDeductions = (g.discountVal || 0) + (g.otherChargesPrice || 0);
+      const netPayable = Math.max(0, baseGrossTotal - totalDeductions);
+      const baseNetPayable = netPayable;
       
       const extraNightDue = Math.max(0, g.extraNightsPrice - extraNightsPaid);
       const extraPersonDue = Math.max(0, g.extraPersonsPrice - extraPersonsPaid);
