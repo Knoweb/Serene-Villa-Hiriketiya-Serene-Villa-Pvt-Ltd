@@ -241,19 +241,19 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   };
 
   return (
-    <div ref={ref} className="receipt-print-area text-black font-sans bg-white p-4">
-      <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-3 mb-6">
-        <div className="space-y-1">
+    <div ref={ref} className="receipt-print-area text-black font-sans bg-white p-2">
+      <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-2 mb-3">
+        <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <img src={logoImg} alt="Serene Villa Logo" className="h-12 w-12 object-contain" />
+            <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain" />
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Serene Villa</h1>
-              <p className="text-xs text-slate-500 font-semibold">(PVT) LTD - HIRIKETIYA</p>
+              <h1 className="text-lg font-bold text-slate-800 leading-tight">Serene Villa</h1>
+              <p className="text-[10px] text-slate-500 font-semibold">(PVT) LTD - HIRIKETIYA</p>
             </div>
           </div>
-          <p className="text-xs text-slate-600">Pehembiya Road, Hiriketiya, Dickwella.</p>
-          <p className="text-xs text-slate-600">Email: Serenehiriketiya@gmail.com</p>
-          <p className="text-xs text-slate-600">Hotline: +94 41 225 5204 / +94 70 499 8787</p>
+          <p className="text-[11px] text-slate-600">Pehembiya Road, Hiriketiya, Dickwella.</p>
+          <p className="text-[11px] text-slate-600">Email: Serenehiriketiya@gmail.com</p>
+          <p className="text-[11px] text-slate-600">Hotline: +94 41 225 5204 / +94 70 499 8787</p>
         </div>
 
         <div className="text-right space-y-1">
@@ -347,45 +347,45 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
 
         return (
           <>
-            <div style={{ fontSize: '9px', fontWeight: '800', color: '#065f46', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>
+            <div style={{ fontSize: '9px', fontWeight: '800', color: '#065f46', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.05em' }}>
               RESERVATION DETAILS
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 24px', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px', marginBottom: '20px', backgroundColor: '#ffffff' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px 20px', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '10.5px', marginBottom: '10px', backgroundColor: '#ffffff' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Guest Name</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{guestName}</span>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '90px', flexShrink: 0 }}>Guest Name</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '1px' }}>{guestName}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Channel</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{bookingChannel}</span>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '90px', flexShrink: 0 }}>Channel</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '1px' }}>{bookingChannel}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Check - in</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{formatDateDots(checkInDate)}</span>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '90px', flexShrink: 0 }}>Check - in</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '1px' }}>{formatDateDots(checkInDate)}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Check - out</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{formatDateDots(checkOutDate)}</span>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '90px', flexShrink: 0 }}>Check - out</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '1px' }}>{formatDateDots(checkOutDate)}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Nights</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '90px', flexShrink: 0 }}>Nights</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '1px' }}>
                   {String(nights).padStart(2, '0')} nights
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Basis</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>{boardBasis}</span>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '90px', flexShrink: 0 }}>Basis</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '1px' }}>{boardBasis}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Adults</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '90px', flexShrink: 0 }}>Adults</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '1px' }}>
                   {isExtraPerson ? '01 (Extra One Person)' : String(adults).padStart(2, '0')}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600', width: '100px', flexShrink: 0 }}>Children</span>
-                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '2px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', width: '90px', flexShrink: 0 }}>Children</span>
+                <span style={{ color: '#0f172a', fontWeight: '700', borderBottom: '1px dashed #e2e8f0', flex: 1, paddingBottom: '1px' }}>
                   {isExtraPerson ? '00' : String(children).padStart(2, '0')}
                 </span>
               </div>
@@ -395,11 +395,11 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       })()}
 
       {/* Main Breakdown Table */}
-      <table className="w-full text-xs border border-slate-300 mb-6">
+      <table className="w-full text-xs border border-slate-300 mb-3">
         <thead>
           <tr className="bg-emerald-800 text-white font-bold">
-            <th className="p-2 text-left border-r border-emerald-700 w-2/3">DESCRIPTION</th>
-            <th colSpan="2" className="p-2 text-center">AMOUNT</th>
+            <th className="p-1.5 text-left border-r border-emerald-700 w-2/3">DESCRIPTION</th>
+            <th colSpan="2" className="p-1.5 text-center">AMOUNT</th>
           </tr>
           <tr className="bg-slate-100 text-slate-700 text-[10px] font-semibold border-b border-slate-300">
             <th className="border-r border-slate-300"></th>
@@ -410,23 +410,23 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
         <tbody>
           {itemizedRows.map((row, idx) => (
             <tr key={idx} className="border-b border-slate-200">
-              <td className="p-2 border-r border-slate-200">{row.description}</td>
-              <td className="p-2 text-right border-r border-slate-200 font-mono">{row.amountVal}</td>
-              <td className="p-2 text-center font-mono">{row.amountCts}</td>
+              <td className="p-1.5 border-r border-slate-200">{row.description}</td>
+              <td className="p-1.5 text-right border-r border-slate-200 font-mono">{row.amountVal}</td>
+              <td className="p-1.5 text-center font-mono">{row.amountCts}</td>
             </tr>
           ))}
           <tr className="font-bold bg-slate-50 border-t border-slate-300">
-            <td className="p-2 border-r border-slate-300">TOTAL VALUE</td>
-            <td className="p-2 text-right border-r border-slate-300 font-mono text-emerald-800">{Math.floor(dispTotalAmount).toLocaleString()}</td>
-            <td className="p-2 text-center font-mono text-emerald-800">{Math.round((dispTotalAmount - Math.floor(dispTotalAmount)) * 100).toString().padStart(2, '0')}</td>
+            <td className="p-1.5 border-r border-slate-300">TOTAL VALUE</td>
+            <td className="p-1.5 text-right border-r border-slate-300 font-mono text-emerald-800">{Math.floor(dispTotalAmount).toLocaleString()}</td>
+            <td className="p-1.5 text-center font-mono text-emerald-800">{Math.round((dispTotalAmount - Math.floor(dispTotalAmount)) * 100).toString().padStart(2, '0')}</td>
           </tr>
         </tbody>
       </table>
 
       {/* Bottom Section: Payment Reference & Totals Box (Matching User Image 2) */}
-      <div className="grid grid-cols-2 gap-4 text-xs mb-8">
+      <div className="grid grid-cols-2 gap-3 text-xs mb-4">
         {/* Left Column: Reference & Notes */}
-        <div className="border border-slate-250 border-dashed rounded p-3 flex flex-col justify-between">
+        <div className="border border-slate-250 border-dashed rounded p-2.5 flex flex-col justify-between">
           <div>
             <span className="font-bold text-[8px] uppercase tracking-wider block mb-1 text-slate-400">PAYMENT REFERENCE / REMARKS</span>
             <div className="flex justify-between items-center mb-1">
@@ -686,20 +686,20 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
       </div>
 
       {/* Signature Lines */}
-      <div className="flex justify-between items-end mt-16 pb-4">
-        <div className="text-center w-52">
+      <div className="flex justify-between items-end mt-8 pb-2">
+        <div className="text-center w-48">
           <div className="border-b border-slate-400 w-full mb-1"></div>
           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Guest Signature</span>
         </div>
         
-        <div className="text-center w-52">
+        <div className="text-center w-48">
           <div className="border-b border-slate-400 w-full mb-1"></div>
           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Received By</span>
         </div>
       </div>
 
       {/* Metadata & Printed Date */}
-      <div className="flex justify-between text-[8px] text-slate-400 mt-10 pt-2 border-t border-slate-100 font-medium">
+      <div className="flex justify-between text-[8px] text-slate-400 mt-4 pt-1.5 border-t border-slate-100 font-medium">
         <span>Printed: {new Date().toLocaleString()}</span>
         <span>Staff: {receiptData.generatedBy || 'Front Office'}</span>
       </div>

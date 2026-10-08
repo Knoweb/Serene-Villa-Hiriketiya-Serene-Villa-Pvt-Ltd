@@ -92,11 +92,12 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         color: '#1e293b',
         backgroundColor: '#ffffff',
-        padding: '24px 28px',
-        width: '720px',
+        padding: '12px 16px',
+        width: '100%',
+        maxWidth: '720px',
         margin: '0 auto',
         boxSizing: 'border-box',
-        lineHeight: '1.4'
+        lineHeight: '1.35'
       }}
     >
       
@@ -370,24 +371,24 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
       </div>
 
       {/* Signature Lines (Solid matching receipt) */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', marginBottom: '16px' }}>
-        <div style={{ width: '200px', textAlign: 'center' }}>
-          <div style={{ borderBottom: '1px solid #cbd5e1', marginBottom: '4px', width: '100%' }}></div>
-          <div style={{ fontSize: '9px', fontWeight: '850', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Guest Signature</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', marginBottom: '8px' }}>
+        <div style={{ width: '180px', textAlign: 'center' }}>
+          <div style={{ borderBottom: '1px solid #cbd5e1', marginBottom: '3px', width: '100%' }}></div>
+          <div style={{ fontSize: '8.5px', fontWeight: '850', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Guest Signature</div>
         </div>
-        <div style={{ width: '200px', textAlign: 'center' }}>
-          <div style={{ borderBottom: '1px solid #cbd5e1', marginBottom: '4px', width: '100%' }}></div>
-          <div style={{ fontSize: '9px', fontWeight: '850', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Received By</div>
+        <div style={{ width: '180px', textAlign: 'center' }}>
+          <div style={{ borderBottom: '1px solid #cbd5e1', marginBottom: '3px', width: '100%' }}></div>
+          <div style={{ fontSize: '8.5px', fontWeight: '850', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Received By</div>
         </div>
       </div>
 
       {/* Slogan Bordered Box */}
-      <div style={{ border: '1px solid rgba(6, 95, 70, 0.15)', borderRadius: '6px', padding: '6px', textAlign: 'center', fontSize: '9.5px', fontWeight: '700', color: '#065f46', backgroundColor: 'rgba(6, 95, 70, 0.02)', marginTop: '14px', marginBottom: '14px' }}>
+      <div style={{ border: '1px solid rgba(6, 95, 70, 0.15)', borderRadius: '4px', padding: '4px', textAlign: 'center', fontSize: '9px', fontWeight: '700', color: '#065f46', backgroundColor: 'rgba(6, 95, 70, 0.02)', marginTop: '8px', marginBottom: '8px' }}>
         #Welcome Serene Villa # Welcome to the Hiriketiya #Visit of Sri Lanka
       </div>
 
       {/* Footer Meta */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '7.5px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '6px', marginTop: '14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '7.5px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '4px', marginTop: '6px' }}>
         <span>Printed: {new Date().toLocaleString()}</span>
         <span>ID: {bookingNumber}</span>
       </div>

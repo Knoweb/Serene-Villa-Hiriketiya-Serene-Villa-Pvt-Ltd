@@ -52,17 +52,19 @@
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
-    width: 190mm !important;
+    width: 100% !important;
+    max-width: 190mm !important;
     min-height: auto !important;
     height: auto !important;
-    margin: 0 !important;
-    padding: 6mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
     background: white !important;
     color: black !important;
     box-shadow: none !important;
     page-break-before: avoid !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .report-print-area {
@@ -105,7 +107,7 @@
 
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 8mm 10mm;
   }
 
   /* Force background colors (green headers) to render in print/PDF */
