@@ -2014,10 +2014,21 @@ const Reservations = () => {
       const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
         const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
         const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
-        if (pCurr === bCurr) return sum + pAmt;
         const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
         const pExRate = parseFloat(p.exchangeRate) || 1;
-        return sum + (pExRate > 0 ? (pLkr / pExRate) : pAmt);
+        const otherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+        const otherAmt = otherMatch ? parseFloat(otherMatch[1]) : 0;
+        
+        let basePaid = 0;
+        if (pCurr === bCurr) {
+          basePaid = pAmt;
+        } else if (bCurr === 'LKR') {
+          basePaid = pLkr > 0 ? pLkr : (pAmt * pExRate);
+        } else {
+          basePaid = pExRate > 0 ? (pLkr / pExRate) : pAmt;
+        }
+        const otherInBCurr = pCurr === bCurr ? otherAmt : (bCurr === 'LKR' ? (otherAmt * pExRate) : (pExRate > 0 ? (otherAmt / pExRate) : otherAmt));
+        return sum + basePaid + otherInBCurr;
       }, 0);
       const remainingBal = Math.max(0, totalAmt - totalPaidInBCurr);
       const savedRate = parseFloat(associatedBooking.exchangeRate) || (bCurr === 'USD' ? 335 : bCurr === 'EUR' ? 360 : bCurr === 'AUD' ? 220 : 1);
@@ -3015,10 +3026,21 @@ const Reservations = () => {
                     const totalPaidInBCurr = getVisiblePayments(advancePayments).reduce((sum, p) => {
                       const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
                       const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
-                      if (pCurr === bCurr) return sum + pAmt;
                       const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
                       const pExRate = parseFloat(p.exchangeRate) || 1;
-                      return sum + (pExRate > 0 ? (pLkr / pExRate) : pAmt);
+                      const otherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                      const otherAmt = otherMatch ? parseFloat(otherMatch[1]) : 0;
+                      
+                      let basePaid = 0;
+                      if (pCurr === bCurr) {
+                        basePaid = pAmt;
+                      } else if (bCurr === 'LKR') {
+                        basePaid = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                      } else {
+                        basePaid = pExRate > 0 ? (pLkr / pExRate) : pAmt;
+                      }
+                      const otherInBCurr = pCurr === bCurr ? otherAmt : (bCurr === 'LKR' ? (otherAmt * pExRate) : (pExRate > 0 ? (otherAmt / pExRate) : otherAmt));
+                      return sum + basePaid + otherInBCurr;
                     }, 0);
                     const bal = Math.max(0, totalAmt - totalPaidInBCurr);
                     const isFullyPaid = totalAmt > 0 && bal <= 0.01;
@@ -4373,9 +4395,16 @@ const Reservations = () => {
                         const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
                         const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
                         const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
-                        if (pCurr === bCurr.toUpperCase()) return sum + pAmt;
-                        if (bCurr.toUpperCase() === 'LKR') return sum + (pLkr > 0 ? pLkr : (pAmt * pExRate));
-                        return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
+                        const pOtherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                        const pOtherAmt = pOtherMatch ? parseFloat(pOtherMatch[1]) : 0;
+
+                        let bPaid = 0;
+                        if (pCurr === bCurr.toUpperCase()) bPaid = pAmt;
+                        else if (bCurr.toUpperCase() === 'LKR') bPaid = (pLkr > 0 ? pLkr : (pAmt * pExRate));
+                        else bPaid = ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
+
+                        const pOtherBCurr = pCurr === bCurr.toUpperCase() ? pOtherAmt : (bCurr.toUpperCase() === 'LKR' ? (pOtherAmt * pExRate) : (pOtherAmt / (pExRate > 0 ? pExRate : 1)));
+                        return sum + bPaid + pOtherBCurr;
                       }, 0);
 
                       const dispPriorAdvancePaid = forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
@@ -4397,7 +4426,7 @@ const Reservations = () => {
                         ? (forceReceiptLkr ? (basePaidInBookingCurr - otherValBCurr) * exRate : (basePaidInBookingCurr - otherValBCurr))
                         : (forceReceiptLkr ? (bCurr === 'LKR' ? basePaidInBookingCurr : (basePaidInBookingCurr * exRate)) : basePaidInBookingCurr);
 
-                      const totalPaidUpToThisBCurr = priorAdvancePaidBCurr + (basePaidInBookingCurr > netPayableBCurr && otherVal > 0 ? (basePaidInBookingCurr - otherValBCurr) : basePaidInBookingCurr);
+                      const totalPaidUpToThisBCurr = priorAdvancePaidBCurr + basePaidInBookingCurr + otherValBCurr;
                       const totalPaidUpToThisDisplay = forceReceiptLkr
                         ? (bCurr === 'LKR' ? totalPaidUpToThisBCurr : (totalPaidUpToThisBCurr * exRate))
                         : totalPaidUpToThisBCurr;

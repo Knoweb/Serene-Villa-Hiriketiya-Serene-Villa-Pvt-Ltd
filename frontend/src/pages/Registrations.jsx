@@ -2967,21 +2967,27 @@ const Registrations = () => {
                         : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
                       const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
                       const pExRate = parseFloat(p.exchangeRate) || bookingExRate || 1;
+                      const otherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                      const otherAmt = otherMatch ? parseFloat(otherMatch[1]) : 0;
 
                       let convertedAmt = pAmt;
+                      let otherConverted = otherAmt;
                       if (pCurr === bookingCurrency.toUpperCase()) {
                         convertedAmt = pAmt;
+                        otherConverted = otherAmt;
                       } else if (bookingCurrency.toUpperCase() === 'LKR') {
                         convertedAmt = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                        otherConverted = otherAmt * pExRate;
                       } else {
                         if (pExRate > 0) {
                           convertedAmt = (pLkr > 0 ? pLkr : pAmt) / pExRate;
+                          otherConverted = otherAmt / pExRate;
                         }
                       }
 
-                      totalPaidInBookingCurrency += convertedAmt;
+                      totalPaidInBookingCurrency += (convertedAmt + otherConverted);
                       if (p.paymentType === 'ADVANCE' || p.isAdvancePayment) {
-                        advancePaidInBookingCurrency += convertedAmt;
+                        advancePaidInBookingCurrency += (convertedAmt + otherConverted);
                       }
                     });
 
