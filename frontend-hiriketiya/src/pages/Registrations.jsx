@@ -2964,6 +2964,7 @@ const Registrations = () => {
 
                     let totalPaidInBookingCurrency = 0;
                     let advancePaidInBookingCurrency = 0;
+                    let totalOtherChargesInBookingCurrency = 0;
 
                     visiblePays.forEach(p => {
                       const pCurr = (p.currencyCode || p.currency || bookingCurrency).toUpperCase();
@@ -2990,17 +2991,19 @@ const Registrations = () => {
                         }
                       }
 
-                      totalPaidInBookingCurrency += (convertedAmt + otherConverted);
+                      totalPaidInBookingCurrency += convertedAmt;
+                      totalOtherChargesInBookingCurrency += otherConverted;
                       if (p.paymentType === 'ADVANCE' || p.isAdvancePayment) {
-                        advancePaidInBookingCurrency += (convertedAmt + otherConverted);
+                        advancePaidInBookingCurrency += convertedAmt;
                       }
                     });
 
-                    const bal = Math.max(0, baseNetAmt - totalPaidInBookingCurrency);
+                    const netBasePayable = Math.max(0, baseNetAmt - totalOtherChargesInBookingCurrency);
+                    const bal = Math.max(0, netBasePayable - totalPaidInBookingCurrency);
                     let pStatus = 'Unpaid';
-                    if (baseNetAmt > 0 && bal <= 0.01) pStatus = 'Paid';
+                    if (netBasePayable > 0 && bal <= 0.01) pStatus = 'Paid';
                     else if (totalPaidInBookingCurrency > 0) pStatus = 'Partially Paid';
-                    else if (associatedBooking?.paymentStatus === 'Paid' && totalPaidInBookingCurrency === 0 && baseNetAmt === 0) pStatus = 'Paid';
+                    else if (associatedBooking?.paymentStatus === 'Paid' && totalPaidInBookingCurrency === 0 && netBasePayable === 0) pStatus = 'Paid';
 
                     return (
                       <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-2.5 text-xs">
@@ -3024,7 +3027,7 @@ const Registrations = () => {
                         {/* Original Base Rate */}
                         <div className="flex justify-between items-center text-slate-600 py-0.5 font-medium">
                           <span>Base Reservation Charges</span>
-                          <span className={`font-mono font-bold ${totalDiscountDeduction > 0 ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                          <span className={`font-mono font-bold ${(totalDiscountDeduction > 0 || totalOtherChargesInBookingCurrency > 0) ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                             {baseAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                           </span>
                         </div>
@@ -3042,12 +3045,25 @@ const Registrations = () => {
                           </div>
                         )}
 
+                        {/* Other Charges Deductions */}
+                        {totalOtherChargesInBookingCurrency > 0 && (
+                          <div className="flex justify-between items-center text-amber-800 bg-amber-50/70 px-3 py-1.5 rounded-xl border border-amber-200/80">
+                            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+                              <Receipt size={13} className="text-amber-700" />
+                              Other Charges / Deductions
+                            </span>
+                            <span className="font-mono font-black text-amber-800">
+                              -{totalOtherChargesInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                            </span>
+                          </div>
+                        )}
+
                         {/* Net Base Total */}
-                        {totalDiscountDeduction > 0 && (
+                        {(totalDiscountDeduction > 0 || totalOtherChargesInBookingCurrency > 0) && (
                           <div className="flex justify-between items-center font-bold text-slate-800 border-t border-dashed border-slate-200/80 pt-2">
                             <span className="text-[11px] font-bold text-slate-700">Net Base Payable:</span>
                             <span className="font-mono font-extrabold text-slate-900 text-[13px]">
-                              {baseNetAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
+                              {netBasePayable.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
                             </span>
                           </div>
                         )}
@@ -3057,7 +3073,7 @@ const Registrations = () => {
                           <div className="flex justify-between items-center text-emerald-800 bg-emerald-50/70 px-3 py-1.5 rounded-xl border border-emerald-100">
                             <span className="flex items-center gap-1.5 font-semibold text-[11px]">
                               <ShieldCheck size={14} className="text-emerald-600" />
-                              Advance Paid
+                              Advance Paid (Received)
                             </span>
                             <span className="font-mono font-black text-emerald-700">
                               -{advancePaidInBookingCurrency.toLocaleString('en-US', { minimumFractionDigits: 2 })} {bookingCurrency}
@@ -3150,6 +3166,7 @@ const Registrations = () => {
 
                     const visiblePays = getVisiblePayments(advancePayments);
                     let totalPaidInBookingCurrency = 0;
+                    let totalOtherChargesInBookingCurrency = 0;
 
                     visiblePays.forEach(p => {
                       const pCurr = (p.currencyCode || p.currency || bookingCurrency).toUpperCase();
@@ -3158,22 +3175,29 @@ const Registrations = () => {
                         : (p.amount != null && !isNaN(p.amount) ? parseFloat(p.amount) : 0);
                       const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
                       const pExRate = parseFloat(p.exchangeRate) || bookingExRate || 1;
+                      const otherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                      const otherAmt = otherMatch ? parseFloat(otherMatch[1]) : 0;
 
                       let convertedAmt = pAmt;
+                      let otherConverted = otherAmt;
                       if (pCurr === bookingCurrency.toUpperCase()) {
                         convertedAmt = pAmt;
+                        otherConverted = otherAmt;
                       } else if (bookingCurrency.toUpperCase() === 'LKR') {
                         convertedAmt = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                        otherConverted = otherAmt * pExRate;
                       } else {
                         if (pExRate > 0) {
                           convertedAmt = (pLkr > 0 ? pLkr : pAmt) / pExRate;
+                          otherConverted = otherAmt / pExRate;
                         }
                       }
 
                       totalPaidInBookingCurrency += convertedAmt;
+                      totalOtherChargesInBookingCurrency += otherConverted;
                     });
 
-                    const remainingBal = Math.max(0, baseNetAmt - totalPaidInBookingCurrency);
+                    const remainingBal = Math.max(0, baseNetAmt - totalOtherChargesInBookingCurrency - totalPaidInBookingCurrency);
                     const isFullyPaid = baseNetAmt > 0 && remainingBal <= 0.01;
 
                     if (isFullyPaid) return (
