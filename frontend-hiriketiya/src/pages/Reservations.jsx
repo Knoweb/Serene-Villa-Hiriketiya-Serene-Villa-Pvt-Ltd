@@ -4402,16 +4402,22 @@ const Reservations = () => {
                         const pAmt = parseFloat(p.amountInCurrency || p.amount || 0);
                         const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
                         const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
-                        const pOtherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
-                        const pOtherAmt = pOtherMatch ? parseFloat(pOtherMatch[1]) : 0;
 
                         let bPaid = 0;
                         if (pCurr === bCurr.toUpperCase()) bPaid = pAmt;
                         else if (bCurr.toUpperCase() === 'LKR') bPaid = (pLkr > 0 ? pLkr : (pAmt * pExRate));
                         else bPaid = ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
 
+                        return sum + bPaid;
+                      }, 0);
+
+                      const priorOtherChargesBCurr = priorAdvancePays.reduce((sum, p) => {
+                        const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+                        const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+                        const pOtherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                        const pOtherAmt = pOtherMatch ? parseFloat(pOtherMatch[1]) : 0;
                         const pOtherBCurr = pCurr === bCurr.toUpperCase() ? pOtherAmt : (bCurr.toUpperCase() === 'LKR' ? (pOtherAmt * pExRate) : (pOtherAmt / (pExRate > 0 ? pExRate : 1)));
-                        return sum + bPaid + pOtherBCurr;
+                        return sum + pOtherBCurr;
                       }, 0);
 
                       const dispPriorAdvancePaid = forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr;
@@ -4424,8 +4430,7 @@ const Reservations = () => {
                         ? otherVal 
                         : (bCurr.toUpperCase() === 'LKR' ? (otherVal * pExRate) : (otherVal / (pExRate > 0 ? pExRate : 1)));
 
-                      const netPayableBCurr = Math.max(0, (associatedBooking.totalAmount || 0) - otherValBCurr);
-                      const dispNetPayable = forceReceiptLkr ? netPayableBCurr * exRate : netPayableBCurr;
+                      const totalOtherChargesUpToThisBCurr = priorOtherChargesBCurr + otherValBCurr;
 
                       // If the payment recorded amount equals the full gross amount before other charge adjustment,
                       // the net settlement actually paid is (paid - other charges)
@@ -4433,14 +4438,22 @@ const Reservations = () => {
                         ? (forceReceiptLkr ? (basePaidInBookingCurr - otherValBCurr) * exRate : (basePaidInBookingCurr - otherValBCurr))
                         : (forceReceiptLkr ? (bCurr === 'LKR' ? basePaidInBookingCurr : (basePaidInBookingCurr * exRate)) : basePaidInBookingCurr);
 
-                      const totalPaidUpToThisBCurr = priorAdvancePaidBCurr + basePaidInBookingCurr + otherValBCurr;
-                      const totalPaidUpToThisDisplay = forceReceiptLkr
-                        ? (bCurr === 'LKR' ? totalPaidUpToThisBCurr : (totalPaidUpToThisBCurr * exRate))
-                        : totalPaidUpToThisBCurr;
+                      const actualPaidThisBCurr = (isFinalPayment && otherVal > 0 && Math.abs(basePaidInBookingCurr - (associatedBooking.totalAmount || 0)) < 0.01)
+                        ? (basePaidInBookingCurr - otherValBCurr)
+                        : basePaidInBookingCurr;
+
+                      const totalNetPaidUpToThisBCurr = priorAdvancePaidBCurr + actualPaidThisBCurr;
+                      const totalNetPaidUpToThisDisplay = forceReceiptLkr
+                        ? (bCurr === 'LKR' ? totalNetPaidUpToThisBCurr : (totalNetPaidUpToThisBCurr * exRate))
+                        : totalNetPaidUpToThisBCurr;
+
+                      const totalOtherChargesUpToThisDisplay = forceReceiptLkr
+                        ? (bCurr === 'LKR' ? totalOtherChargesUpToThisBCurr : (totalOtherChargesUpToThisBCurr * exRate))
+                        : totalOtherChargesUpToThisBCurr;
 
                       const showExRate = !forceReceiptLkr && (bCurr !== 'LKR') && Boolean(associatedBooking?.showExchangeRateOnBill || receiptData?.showExchangeRateOnBill);
                       const dispGrossAdvance = otherVal > 0 ? (parseFloat(actualPaidDisplayAmt) + otherDispVal) : parseFloat(actualPaidDisplayAmt);
-                      const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalPaidUpToThisDisplay);
+                      const remBal = isFinalPayment ? 0 : Math.max(0, totAmt - totalOtherChargesUpToThisDisplay - totalNetPaidUpToThisDisplay);
 
                       return (
                         <div className="border border-emerald-800/20 rounded-lg p-3 bg-emerald-50/10 space-y-1.5 print:border-slate-300 print:bg-transparent">

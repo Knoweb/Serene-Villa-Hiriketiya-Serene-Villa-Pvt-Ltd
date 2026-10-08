@@ -497,6 +497,15 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
           }, 0);
 
+          const priorOtherChargesBCurr = priorAdvancePays.reduce((sum, p) => {
+            const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+            const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+            const pOtherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+            const pOtherAmt = pOtherMatch ? parseFloat(pOtherMatch[1]) : 0;
+            const pOtherBCurr = pCurr === bCurr.toUpperCase() ? pOtherAmt : (bCurr.toUpperCase() === 'LKR' ? (pOtherAmt * pExRate) : (pOtherAmt / (pExRate > 0 ? pExRate : 1)));
+            return sum + pOtherBCurr;
+          }, 0);
+
           const dispPriorAdvancePaid = isExtraSubBooking ? 0 : (forceLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr);
 
           const pCurr = (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || bCurr).toUpperCase();
@@ -522,6 +531,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             ? otherVal 
             : (bCurr.toUpperCase() === 'LKR' ? (otherVal * pExRate) : (otherVal / (pExRate > 0 ? pExRate : 1)));
 
+          const totalOtherChargesUpToThisBCurr = isExtraSubBooking ? otherValBCurr : (priorOtherChargesBCurr + otherValBCurr);
           const netPayableBCurr = Math.max(0, grossTotAmt - totalDiscountVal - otherValBCurr);
           const dispNetPayable = forceLkr ? netPayableBCurr * exRate : netPayableBCurr;
 
@@ -531,10 +541,18 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             ? (forceLkr ? (basePaidInBookingCurr - otherValBCurr) * exRate : (basePaidInBookingCurr - otherValBCurr))
             : (forceLkr ? (bCurr === 'LKR' ? basePaidInBookingCurr : (basePaidInBookingCurr * exRate)) : basePaidInBookingCurr);
 
-          const totalPaidUpToThisBCurr = priorAdvancePaidBCurr + (basePaidInBookingCurr > netPayableBCurr && otherVal > 0 ? (basePaidInBookingCurr - otherValBCurr) : basePaidInBookingCurr);
-          const totalPaidUpToThisDisplay = forceLkr
-            ? (bCurr === 'LKR' ? totalPaidUpToThisBCurr : (totalPaidUpToThisBCurr * exRate))
-            : totalPaidUpToThisBCurr;
+          const actualPaidThisBCurr = (isFinalPayment && otherVal > 0 && Math.abs(basePaidInBookingCurr - grossTotAmt) < 0.01)
+            ? (basePaidInBookingCurr - otherValBCurr)
+            : basePaidInBookingCurr;
+
+          const totalNetPaidUpToThisBCurr = isExtraSubBooking ? actualPaidThisBCurr : (priorAdvancePaidBCurr + actualPaidThisBCurr);
+          const totalNetPaidUpToThisDisplay = forceLkr
+            ? (bCurr === 'LKR' ? totalNetPaidUpToThisBCurr : (totalNetPaidUpToThisBCurr * exRate))
+            : totalNetPaidUpToThisBCurr;
+
+          const totalOtherChargesUpToThisDisplay = forceLkr
+            ? (bCurr === 'LKR' ? totalOtherChargesUpToThisBCurr : (totalOtherChargesUpToThisBCurr * exRate))
+            : totalOtherChargesUpToThisBCurr;
 
           const showExRate = !forceLkr && (bCurr !== 'LKR') && Boolean(associatedBooking?.showExchangeRateOnBill || receiptData?.showExchangeRateOnBill);
 
@@ -543,10 +561,8 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             remBal = 0;
           } else if (isExtraNight || isExtraPerson) {
             remBal = Math.max(0, dispNetPayable - actualPaidDisplayAmt);
-          } else if (isDiscountAdjusted) {
-            remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
           } else {
-            remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
+            remBal = Math.max(0, dispGrossTotAmt - (forceLkr && bCurr !== 'LKR' ? totalDiscountVal * exRate : totalDiscountVal) - totalOtherChargesUpToThisDisplay - totalNetPaidUpToThisDisplay);
           }
           const currencyCode = selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || 'LKR';
           

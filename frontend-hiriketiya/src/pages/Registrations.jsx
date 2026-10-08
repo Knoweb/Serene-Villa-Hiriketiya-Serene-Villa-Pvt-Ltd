@@ -4488,6 +4488,15 @@ const Registrations = () => {
                     return sum + ((pLkr > 0 ? pLkr : pAmt) / (pExRate > 0 ? pExRate : 1));
                   }, 0);
 
+                  const priorOtherChargesBCurr = priorAdvancePays.reduce((sum, p) => {
+                    const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+                    const pExRate = parseFloat(p.exchangeRate) || exRate || 1;
+                    const pOtherMatch = p.remarks?.match(/\[Other Charges: ([\d.]+)\]/);
+                    const pOtherAmt = pOtherMatch ? parseFloat(pOtherMatch[1]) : 0;
+                    const pOtherBCurr = pCurr === bCurr.toUpperCase() ? pOtherAmt : (bCurr.toUpperCase() === 'LKR' ? (pOtherAmt * pExRate) : (pOtherAmt / (pExRate > 0 ? pExRate : 1)));
+                    return sum + pOtherBCurr;
+                  }, 0);
+
                   const dispPriorAdvancePaid = isExtraSubBooking ? 0 : (forceReceiptLkr && bCurr !== 'LKR' ? (priorAdvancePaidBCurr * exRate) : priorAdvancePaidBCurr);
 
                   const pCurr = (selectedPaymentForReceipt.currencyCode || selectedPaymentForReceipt.currency || bCurr).toUpperCase();
@@ -4513,6 +4522,7 @@ const Registrations = () => {
                     ? otherVal 
                     : (bCurr.toUpperCase() === 'LKR' ? (otherVal * pExRate) : (otherVal / (pExRate > 0 ? pExRate : 1)));
 
+                  const totalOtherChargesUpToThisBCurr = isExtraSubBooking ? otherValBCurr : (priorOtherChargesBCurr + otherValBCurr);
                   const netPayableBCurr = Math.max(0, grossTotAmt - totalDiscountVal - otherValBCurr);
                   const dispNetPayable = forceReceiptLkr ? netPayableBCurr * exRate : netPayableBCurr;
 
@@ -4522,10 +4532,18 @@ const Registrations = () => {
                     ? (forceReceiptLkr ? (basePaidInBookingCurr - otherValBCurr) * exRate : (basePaidInBookingCurr - otherValBCurr))
                     : (forceReceiptLkr ? (bCurr === 'LKR' ? basePaidInBookingCurr : (basePaidInBookingCurr * exRate)) : basePaidInBookingCurr);
 
-                  const totalPaidUpToThisBCurr = priorAdvancePaidBCurr + (basePaidInBookingCurr > netPayableBCurr && otherVal > 0 ? (basePaidInBookingCurr - otherValBCurr) : basePaidInBookingCurr);
-                  const totalPaidUpToThisDisplay = forceReceiptLkr
-                    ? (bCurr === 'LKR' ? totalPaidUpToThisBCurr : (totalPaidUpToThisBCurr * exRate))
-                    : totalPaidUpToThisBCurr;
+                  const actualPaidThisBCurr = (isFinalPayment && otherVal > 0 && Math.abs(basePaidInBookingCurr - grossTotAmt) < 0.01)
+                    ? (basePaidInBookingCurr - otherValBCurr)
+                    : basePaidInBookingCurr;
+
+                  const totalNetPaidUpToThisBCurr = isExtraSubBooking ? actualPaidThisBCurr : (priorAdvancePaidBCurr + actualPaidThisBCurr);
+                  const totalNetPaidUpToThisDisplay = forceReceiptLkr
+                    ? (bCurr === 'LKR' ? totalNetPaidUpToThisBCurr : (totalNetPaidUpToThisBCurr * exRate))
+                    : totalNetPaidUpToThisBCurr;
+
+                  const totalOtherChargesUpToThisDisplay = forceReceiptLkr
+                    ? (bCurr === 'LKR' ? totalOtherChargesUpToThisBCurr : (totalOtherChargesUpToThisBCurr * exRate))
+                    : totalOtherChargesUpToThisBCurr;
 
                   const showExRate = !forceReceiptLkr && (bCurr !== 'LKR') && Boolean(associatedBooking?.showExchangeRateOnBill || receiptData?.showExchangeRateOnBill);
 
@@ -4534,10 +4552,8 @@ const Registrations = () => {
                     remBal = 0;
                   } else if (isExtraNight || isExtraPerson) {
                     remBal = Math.max(0, dispNetPayable - actualPaidDisplayAmt);
-                  } else if (isDiscountAdjusted) {
-                    remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
                   } else {
-                    remBal = Math.max(0, dispNetPayable - totalPaidUpToThisDisplay);
+                    remBal = Math.max(0, dispGrossTotAmt - (forceReceiptLkr && bCurr !== 'LKR' ? totalDiscountVal * exRate : totalDiscountVal) - totalOtherChargesUpToThisDisplay - totalNetPaidUpToThisDisplay);
                   }
                   
                   // Converted Amount in LKR for this receipt payment (paid room settlement * exchange rate)
