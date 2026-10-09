@@ -5927,7 +5927,7 @@ const Reservations = () => {
                   confirmationData={confirmationData}
                   selectedReg={isCreatingNewReservation ? null : selectedReg}
                   associatedBooking={isCreatingNewReservation ? null : associatedBooking}
-                  payments={isCreatingNewReservation ? [] : advancePayments}
+                  payments={[]}
                   forceLkr={forceLkr}
                 />
               </div>
@@ -6109,7 +6109,7 @@ const Reservations = () => {
               confirmationData={confirmationData}
               selectedReg={isCreatingNewReservation ? null : selectedReg}
               associatedBooking={isCreatingNewReservation ? null : associatedBooking}
-              payments={isCreatingNewReservation ? [] : advancePayments}
+              payments={[]}
               hideExchangeRate={true}
             />
           </div>
