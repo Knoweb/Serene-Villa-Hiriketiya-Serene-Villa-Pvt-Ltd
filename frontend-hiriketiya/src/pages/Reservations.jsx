@@ -1880,11 +1880,25 @@ const Reservations = () => {
       ? totalBookingAmount 
       : (totalBookingAmount * bookingExRate);
 
-    const totalPaidSoFar = getVisiblePayments(advancePayments).reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
-    const newTotal = totalPaidSoFar + convertedLkr;
+    const totalPaidInBookingCurrency = getVisiblePayments(advancePayments).reduce((sum, p) => {
+      const pCurr = (p.currencyCode || p.currency || 'LKR').toUpperCase();
+      const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+      const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+      const pExRate = parseFloat(p.exchangeRate) || 1;
+      if (pCurr === bookingCurrency) return sum + pAmt;
+      if (bookingCurrency === 'LKR') return sum + (pLkr > 0 ? pLkr : (pAmt * pExRate));
+      return sum + (pExRate > 0 ? (pLkr > 0 ? pLkr : pAmt) / pExRate : pAmt);
+    }, 0);
+
+    const amountInBookingCurrency = actualCurrency === bookingCurrency 
+      ? netAmount 
+      : (bookingCurrency === 'LKR' ? convertedLkr : (actualExchangeRate > 0 ? netAmount / actualExchangeRate : netAmount));
+
+    const newTotalInBookingCurr = totalPaidInBookingCurrency + amountInBookingCurrency;
     
-    // isFull is true ONLY IF explicitly submitted as FULL OR total paid in LKR meets/exceeds total booking amount in LKR
-    const isFull = tab === 'FULL' || (totalBookingAmountLkr > 0 && newTotal >= (totalBookingAmountLkr - 10));
+    // isFull is true ONLY if explicitly submitted as FULL AND meets remaining balance, or meets total booking amount
+    const isFull = (tab === 'FULL' && (totalBookingAmount <= 0 || newTotalInBookingCurr >= (totalBookingAmount - 0.05)))
+      || (totalBookingAmount > 0 && newTotalInBookingCurr >= (totalBookingAmount - 0.05));
 
     const payload = {
       bookingId: booking.id,
@@ -3210,7 +3224,7 @@ const Reservations = () => {
                                   : 'bg-white text-slate-500 hover:bg-slate-50'
                               }`}
                             >
-                              Full Payment
+                              {totalPaidInBCurr > 0 ? 'Remaining Payment' : 'Full Payment'}
                               {remainingBal > 0 && (
                                 <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full ${
                                   isFull ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'
@@ -3433,7 +3447,7 @@ const Reservations = () => {
                             }`}
                           >
                             {savingPayment ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                            {isFull ? 'Save Full Payment & Mark as Paid' : 'Save Advance Payment'}
+                            {isFull ? (totalPaidInBCurr > 0 ? 'Save Remaining Payment & Mark as Paid' : 'Save Full Payment & Mark as Paid') : 'Save Advance Payment'}
                           </button>
                         </div>
                       </form>
