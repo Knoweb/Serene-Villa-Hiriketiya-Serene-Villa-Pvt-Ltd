@@ -74,7 +74,7 @@ public class PaymentController {
 
                     double totalTarget = b.getTotalAmount() != null ? b.getTotalAmount() : 0.0;
                     String newStatus = "Unpaid";
-                    if (isFullOrFinal || (totalTarget > 0 && totalPaid >= (totalTarget - 0.01))) {
+                    if (totalTarget > 0 ? (totalPaid >= (totalTarget - 0.01)) : isFullOrFinal) {
                         newStatus = "Paid";
                     } else if (totalPaid > 0) {
                         newStatus = "Paid Advance";
