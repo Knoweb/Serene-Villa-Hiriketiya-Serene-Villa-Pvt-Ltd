@@ -237,6 +237,7 @@ const Registrations = () => {
   // State
   const [registrations, setRegistrations] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [allPayments, setAllPayments] = useState([]);
   const [selectedReg, setSelectedReg] = useState(null);
 
   // Cross-reference booking for row display with candidate ranking (prioritizes real manual reservations over auto-drafts)
@@ -762,6 +763,17 @@ const Registrations = () => {
         const bookingData = await bookingRes.json();
         setBookings(bookingData);
         fetchedBookings = bookingData;
+      }
+
+      // Fetch all payments to accurately calculate paid status
+      try {
+        const payRes = await fetch(`${API_BASE}/payments`);
+        if (payRes.ok) {
+          const payData = await payRes.json();
+          setAllPayments(Array.isArray(payData) ? payData : []);
+        }
+      } catch (e) {
+        console.error('Error fetching payments:', e);
       }
     } catch (err) {
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
@@ -1657,20 +1669,57 @@ const Registrations = () => {
                           <td className="p-4 space-y-1">
                             <div className="flex flex-wrap items-center gap-1">
                               {(() => {
-                                const rawStatus = (booking?.paymentStatus || reg.paymentStatus || 'Pending').trim();
-                                const lower = rawStatus.toLowerCase();
-                                let isPaid = lower === 'paid' || lower === 'fully paid';
-                                let isAdvance = lower.includes('advance') || lower.includes('partially');
-                                let isUnpaid = lower === 'unpaid' || lower.includes('non');
+                                const b = booking;
+                                const tot = parseFloat(b?.totalAmount || reg.totalAmount || 0);
+                                const rawStatus = (b?.paymentStatus || reg.paymentStatus || 'Pending').trim();
+                                const status = rawStatus.toLowerCase();
+                                
+                                // Check all payments for this booking/registration to determine true payment status
+                                const bNum = (b?.bookingNumber || reg.bookingNumber || '').split('/')[0].trim().toLowerCase();
+                                const relatedPayments = (allPayments || []).filter(p => {
+                                  if (b && p.bookingId === b.id) return true;
+                                  if (p.guestRegistrationId === reg.id) return true;
+                                  const pRef = (p.referenceNumber || p.bookingRef || '').split('/')[0].trim().toLowerCase();
+                                  return bNum && pRef && pRef === bNum;
+                                });
 
-                                let badgeClass = 'bg-amber-100 text-amber-700';
-                                if (isPaid) badgeClass = 'bg-emerald-100 text-emerald-800 font-black';
-                                else if (isUnpaid) badgeClass = 'bg-rose-100 text-rose-700 font-bold';
-                                else if (isAdvance) badgeClass = 'bg-amber-100 text-amber-800 font-bold';
+                                let totalPaid = 0;
+                                const bCurr = (b?.currency || reg.currency || 'USD').toUpperCase();
+                                const exRate = parseFloat(b?.exchangeRate || 1) || 1;
+
+                                relatedPayments.forEach(p => {
+                                  const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+                                  const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+                                  const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                                  const pExRate = parseFloat(p.exchangeRate || exRate || 1) || 1;
+                                  if (pCurr === bCurr) totalPaid += pAmt;
+                                  else if (bCurr === 'LKR') totalPaid += (pLkr > 0 ? pLkr : pAmt * pExRate);
+                                  else totalPaid += (pLkr > 0 ? pLkr : pAmt) / pExRate;
+                                });
+
+                                let displayStatus = 'Pending';
+                                let colorClass = 'bg-blue-100 text-blue-700';
+
+                                if (tot > 0 && totalPaid >= (tot - 0.05)) {
+                                  displayStatus = 'Paid';
+                                  colorClass = 'bg-emerald-100 text-emerald-800 font-black';
+                                } else if (totalPaid > 0) {
+                                  displayStatus = 'Advance';
+                                  colorClass = 'bg-amber-100 text-amber-800 font-bold';
+                                } else if (status === 'paid' || status === 'fully paid') {
+                                  displayStatus = 'Paid';
+                                  colorClass = 'bg-emerald-100 text-emerald-800 font-black';
+                                } else if (status.includes('paid advance') || status.includes('partially') || status === 'advance') {
+                                  displayStatus = 'Advance';
+                                  colorClass = 'bg-amber-100 text-amber-800 font-bold';
+                                } else if (status === 'unpaid' || status === 'non paid' || status === 'nonpaid' || status.includes('non')) {
+                                  displayStatus = 'Non Paid';
+                                  colorClass = 'bg-rose-100 text-rose-700 font-bold';
+                                }
 
                                 return (
-                                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] ${badgeClass}`}>
-                                    {isPaid ? 'Paid' : isAdvance ? 'Advance' : isUnpaid ? 'Non Paid' : rawStatus}
+                                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] ${colorClass}`}>
+                                    {displayStatus}
                                   </span>
                                 );
                               })()}

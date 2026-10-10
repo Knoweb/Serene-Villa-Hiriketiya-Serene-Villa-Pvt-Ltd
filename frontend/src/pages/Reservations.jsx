@@ -241,6 +241,7 @@ const Reservations = () => {
   // State
   const [registrations, setRegistrations] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [allPayments, setAllPayments] = useState([]);
   const [selectedReg, setSelectedReg] = useState(null);
 
   // Cross-reference booking for row display with candidate ranking (prioritizes real manual reservations over auto-drafts)
@@ -864,6 +865,15 @@ const Reservations = () => {
         const bookingData = await bookingRes.json();
         setBookings(bookingData);
       }
+
+      // Fetch all payments to accurately calculate payment statuses dynamically
+      try {
+        const payRes = await fetch(`${API_BASE}/payments`);
+        if (payRes.ok) {
+          const payData = await payRes.json();
+          setAllPayments(payData);
+        }
+      } catch (payErr) {}
     } catch (err) {
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
         setError('Server is currently offline. Please ensure the backend server is running on port 8080 and try again.');
@@ -2216,12 +2226,44 @@ const Reservations = () => {
                             {/* Payment Status Badge */}
                             <div className="flex flex-wrap items-center gap-1">
                               {(() => {
-                                const rawStatus = (booking?.paymentStatus || reg.paymentStatus || 'Pending').trim();
+                                const b = booking;
+                                const tot = parseFloat(b?.totalAmount || reg.totalAmount || 0);
+                                const rawStatus = (b?.paymentStatus || reg.paymentStatus || 'Pending').trim();
                                 const status = rawStatus.toLowerCase();
+                                
+                                // Check all payments for this booking/registration to determine true payment status
+                                const bNum = (b?.bookingNumber || reg.bookingNumber || '').split('/')[0].trim().toLowerCase();
+                                const relatedPayments = (allPayments || []).filter(p => {
+                                  if (b && p.bookingId === b.id) return true;
+                                  if (p.guestRegistrationId === reg.id) return true;
+                                  const pRef = (p.referenceNumber || p.bookingRef || '').split('/')[0].trim().toLowerCase();
+                                  return bNum && pRef && pRef === bNum;
+                                });
+
+                                let totalPaid = 0;
+                                const bCurr = (b?.currency || reg.currency || 'USD').toUpperCase();
+                                const exRate = parseFloat(b?.exchangeRate || 1) || 1;
+
+                                relatedPayments.forEach(p => {
+                                  const pCurr = (p.currencyCode || p.currency || bCurr).toUpperCase();
+                                  const pAmt = parseFloat(p.amount || p.amountInCurrency || 0);
+                                  const pLkr = parseFloat(p.convertedAmountLkr || p.amountLkr || 0);
+                                  const pExRate = parseFloat(p.exchangeRate || exRate || 1) || 1;
+                                  if (pCurr === bCurr) totalPaid += pAmt;
+                                  else if (bCurr === 'LKR') totalPaid += (pLkr > 0 ? pLkr : pAmt * pExRate);
+                                  else totalPaid += (pLkr > 0 ? pLkr : pAmt) / pExRate;
+                                });
+
                                 let displayStatus = 'Pending';
                                 let colorClass = 'bg-blue-100 text-blue-700';
 
-                                if (status === 'paid') {
+                                if (tot > 0 && totalPaid >= (tot - 0.05)) {
+                                  displayStatus = 'Paid';
+                                  colorClass = 'bg-green-100 text-green-700 font-bold';
+                                } else if (totalPaid > 0) {
+                                  displayStatus = 'Advance';
+                                  colorClass = 'bg-amber-100 text-amber-700 font-bold';
+                                } else if (status === 'paid') {
                                   displayStatus = 'Paid';
                                   colorClass = 'bg-green-100 text-green-700 font-bold';
                                 } else if (status.includes('paid advance') || status.includes('partially') || status === 'advance') {
