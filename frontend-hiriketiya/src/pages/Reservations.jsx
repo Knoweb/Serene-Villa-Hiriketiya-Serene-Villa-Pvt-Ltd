@@ -1896,9 +1896,10 @@ const Reservations = () => {
 
     const newTotalInBookingCurr = totalPaidInBookingCurrency + amountInBookingCurrency;
     
-    // isFull is true ONLY if explicitly submitted as FULL AND meets remaining balance, or meets total booking amount
-    const isFull = (tab === 'FULL' && (totalBookingAmount <= 0 || newTotalInBookingCurr >= (totalBookingAmount - 0.05)))
-      || (totalBookingAmount > 0 && newTotalInBookingCurr >= (totalBookingAmount - 0.05));
+    // isFull is true ONLY if the remaining balance is actually fully covered by this payment
+    const isFull = totalBookingAmount > 0 
+      ? newTotalInBookingCurr >= (totalBookingAmount - 0.05)
+      : (tab === 'FULL');
 
     const payload = {
       bookingId: booking.id,
@@ -3112,31 +3113,44 @@ const Reservations = () => {
                     <div className="space-y-2">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Payment History</p>
                       <div className="space-y-1.5">
-                        {getVisiblePayments(advancePayments).map((payment) => (
-                          <div key={payment.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[11px]">
-                            <div>
-                              <div className="flex items-center gap-1.5 mb-0.5">
-                                <p className="font-bold text-slate-800">
-                                  {payment.amount || payment.amountInCurrency} {payment.currencyCode || payment.currency}
-                                  <span className="text-slate-400 font-normal"> (@ {payment.exchangeRate})</span>
-                                </p>
-                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                                  payment.paymentType === 'FINAL' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                                }`}>
-                                  {payment.paymentType === 'FINAL' ? 'Full' : 'Advance'}
-                                </span>
+                        {getVisiblePayments(advancePayments).map((payment) => {
+                          const isPaymentFull = (() => {
+                            const b = getBookingForReg(selectedReg?.id);
+                            const tot = parseFloat(b?.totalAmount || selectedReg?.totalAmount || 0);
+                            const pAmt = parseFloat(payment.amount || payment.amountInCurrency || 0);
+                            const remMatch = (payment.remarks || '').toUpperCase();
+                            if (remMatch.includes('ADVANCE') || remMatch.includes('ADANVE')) return false;
+                            if (payment.paymentType === 'ADVANCE' || payment.isAdvancePayment) return false;
+                            if (tot > 0 && pAmt < (tot - 0.05)) return false;
+                            return payment.paymentType === 'FINAL' || !payment.isAdvancePayment;
+                          })();
+
+                          return (
+                            <div key={payment.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[11px]">
+                              <div>
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <p className="font-bold text-slate-800">
+                                    {payment.amount || payment.amountInCurrency} {payment.currencyCode || payment.currency}
+                                    <span className="text-slate-400 font-normal"> (@ {payment.exchangeRate})</span>
+                                  </p>
+                                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                                    isPaymentFull ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                                  }`}>
+                                    {isPaymentFull ? 'Full' : 'Advance'}
+                                  </span>
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-semibold">{payment.paymentMethod} • {payment.paymentDate}</p>
                               </div>
-                              <p className="text-[9px] text-slate-400 font-semibold">{payment.paymentMethod} • {payment.paymentDate}</p>
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateReceipt(payment.id)}
+                                className="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-1 rounded-md transition"
+                              >
+                                <Receipt className="h-3 w-3" /> Receipt
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleGenerateReceipt(payment.id)}
-                              className="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-1 rounded-md transition"
-                            >
-                              <Receipt className="h-3 w-3" /> Receipt
-                            </button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -3970,7 +3984,22 @@ const Reservations = () => {
         const associatedBooking = getBookingForReg(selectedReg.id);
         if (!associatedBooking) return null;
         
-        const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
+        const remMatch = (selectedPaymentForReceipt.remarks || '').toUpperCase();
+        const bTot = parseFloat(associatedBooking.totalAmount || selectedReg?.totalAmount || 0);
+        const pAmt = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+        const isActuallyFinal = (() => {
+          if (remMatch.includes('ADVANCE') || remMatch.includes('ADANVE')) return false;
+          if (selectedPaymentForReceipt.paymentType === 'ADVANCE' || selectedPaymentForReceipt.isAdvancePayment) return false;
+          if (bTot > 0 && pAmt < (bTot - 0.05)) {
+            // Check if all payments combined reach the total
+            const allP = advancePayments || [selectedPaymentForReceipt];
+            const sumP = allP.reduce((acc, curr) => acc + parseFloat(curr.amount || curr.amountInCurrency || 0), 0);
+            if (sumP < (bTot - 0.05)) return false;
+          }
+          return selectedPaymentForReceipt.paymentType === 'FINAL' || !selectedPaymentForReceipt.isAdvancePayment;
+        })();
+
+        const isFinalPayment = isActuallyFinal;
         const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
         const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
         const isExtraNight = associatedBooking?.bookingNumber?.includes('/1N') || associatedBooking?.bookingNumber?.includes('/EN') || (selectedPaymentForReceipt.referenceNumber || '').includes('/1N') || (selectedPaymentForReceipt.referenceNumber || '').includes('/EN') || (selectedPaymentForReceipt.remarks || '').toUpperCase().includes('EXTRA NIGHT') || selectedPaymentForReceipt.paymentType === 'EXTRA_NIGHT';

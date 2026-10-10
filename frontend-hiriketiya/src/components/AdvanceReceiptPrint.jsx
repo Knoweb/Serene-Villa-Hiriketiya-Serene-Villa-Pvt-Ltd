@@ -52,7 +52,20 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
   const totalPaidUpToThis = paymentsUpToThis.reduce((sum, p) => sum + (p.convertedAmountLkr || p.amountLkr || 0), 0);
   const remainingBalLkr = Math.max(0, totalBookingAmountLkr - totalPaidUpToThis);
 
-  const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL' || selectedPaymentForReceipt.isFinalPayment;
+  const remMatch = (selectedPaymentForReceipt.remarks || '').toUpperCase();
+  const bTot = parseFloat(totalBookingAmount || associatedBooking?.totalAmount || selectedReg?.totalAmount || 0);
+  const pAmt = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+  const isActuallyFinal = (() => {
+    if (remMatch.includes('ADVANCE') || remMatch.includes('ADANVE')) return false;
+    if (selectedPaymentForReceipt.paymentType === 'ADVANCE' || selectedPaymentForReceipt.isAdvancePayment) return false;
+    if (bTot > 0 && pAmt < (bTot - 0.05)) {
+      const sumP = paymentsList.reduce((acc, curr) => acc + parseFloat(curr.amount || curr.amountInCurrency || 0), 0);
+      if (sumP < (bTot - 0.05)) return false;
+    }
+    return selectedPaymentForReceipt.paymentType === 'FINAL' || selectedPaymentForReceipt.isFinalPayment || !selectedPaymentForReceipt.isAdvancePayment;
+  })();
+
+  const isFinalPayment = isActuallyFinal;
   const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
   const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
   const isConsolidatedBill = isFinalPayment || isDiscountAdjusted || isOriginalBill;

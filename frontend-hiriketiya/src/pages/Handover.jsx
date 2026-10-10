@@ -125,9 +125,12 @@ const Handover = () => {
       checkOutDate: group.checkOut !== '-' ? group.checkOut : (matchedReg.checkOutDate || '')
     };
 
-    const isFinalPayment = p.paymentType === 'FINAL' || (p.remarks || '').toUpperCase().includes('FINAL');
-    const isExtraNight = (p.referenceNumber || '').toUpperCase().includes('/1N') || (p.remarks || '').toUpperCase().includes('EXTRA NIGHT');
-    const isExtraPerson = (p.referenceNumber || '').toUpperCase().includes('/1P') || (p.remarks || '').toUpperCase().includes('EXTRA PERSON');
+    const ref = (p.referenceNumber || p.receiptNumber || p.bookingRef || '').toUpperCase();
+    const rem = (p.remarks || '').toUpperCase();
+    const isAdvanceTagged = rem.includes('ADVANCE') || rem.includes('ADANVE') || p.paymentType === 'ADVANCE' || Boolean(p.isAdvancePayment);
+    const isFinalPayment = !isAdvanceTagged && (p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT'));
+    const isExtraNight = ref.includes('/1N') || ref.includes('/EN') || rem.includes('EXTRA NIGHT');
+    const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
 
     const paymentType = isFinalPayment ? 'FINAL' : isExtraNight ? 'EXTRA_NIGHT' : isExtraPerson ? 'EXTRA_PERSON' : 'ADVANCE';
 
@@ -470,7 +473,8 @@ const Handover = () => {
         const rem = (p.remarks || '').toUpperCase();
         const isExtraNight = ref.includes('/1N') || ref.includes('/EN') || rem.includes('EXTRA NIGHT');
         const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
-        const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
+        const isAdvanceTagged = rem.includes('ADVANCE') || rem.includes('ADANVE') || p.paymentType === 'ADVANCE' || Boolean(p.isAdvancePayment);
+        const isFinal = !isAdvanceTagged && (p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT'));
 
         if (isExtraNight) {
           extraNightsPaid += pNetPaidInBookingCurr;
@@ -1368,7 +1372,8 @@ const Handover = () => {
                           const rem = (p.remarks || '').toUpperCase();
                           const isExtraNight = ref.includes('/1N') || ref.includes('/EN') || rem.includes('EXTRA NIGHT');
                           const isExtraPerson = ref.includes('/1P') || rem.includes('ONE PERSON') || rem.includes('EXTRA PERSON');
-                          const isFinal = p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT');
+                          const isAdvanceTagged = rem.includes('ADVANCE') || rem.includes('ADANVE') || p.paymentType === 'ADVANCE' || Boolean(p.isAdvancePayment);
+                          const isFinal = !isAdvanceTagged && (p.paymentType === 'FINAL' || rem.includes('FINAL') || rem.includes('SETTLEMENT'));
                           
                           const itemTypeLabel = isExtraNight ? 'Extra Night' : isExtraPerson ? 'Extra Person' : isFinal ? 'Final Settlement' : 'Advance Payment';
                           const itemBadgeColor = isExtraNight ? 'bg-indigo-100 text-indigo-800' : isExtraPerson ? 'bg-purple-100 text-purple-800' : isFinal ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800';

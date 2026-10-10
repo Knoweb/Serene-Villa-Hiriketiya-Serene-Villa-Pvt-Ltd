@@ -1332,7 +1332,9 @@ const Registrations = () => {
     const netBookingAmount = Math.max(0, validBaseAmount - totalDiscountDeduction);
 
     const newTotalInBookingCurrency = currentPaidInBookingCurrency + amountInBookingCurrency;
-    const isFull = tab === 'FULL' || (netBookingAmount > 0 && newTotalInBookingCurrency >= (netBookingAmount - 0.01));
+    const isFull = netBookingAmount > 0 
+      ? newTotalInBookingCurrency >= (netBookingAmount - 0.05)
+      : (tab === 'FULL');
 
     let finalRemarks = paymentForm.remarks || '';
     if (paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0) {
@@ -3105,31 +3107,44 @@ const Registrations = () => {
                     <div className="space-y-2">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Payment History</p>
                       <div className="space-y-1.5">
-                        {getVisiblePayments(advancePayments).map((payment) => (
-                          <div key={payment.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[11px]">
-                            <div>
-                              <div className="flex items-center gap-1.5 mb-0.5">
-                                <p className="font-bold text-slate-800">
-                                  {(payment.amountInCurrency || payment.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {payment.currencyCode || payment.currency}
-                                  <span className="text-slate-400 font-normal"> (@ {payment.exchangeRate})</span>
-                                </p>
-                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                                  payment.paymentType === 'FINAL' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                                }`}>
-                                  {payment.paymentType === 'FINAL' ? 'Full' : 'Advance'}
-                                </span>
+                        {getVisiblePayments(advancePayments).map((payment) => {
+                          const isPaymentFull = (() => {
+                            const b = getBookingForReg(selectedReg?.id);
+                            const tot = parseFloat(b?.totalAmount || selectedReg?.totalAmount || 0);
+                            const pAmt = parseFloat(payment.amountInCurrency || payment.amount || 0);
+                            const remMatch = (payment.remarks || '').toUpperCase();
+                            if (remMatch.includes('ADVANCE') || remMatch.includes('ADANVE')) return false;
+                            if (payment.paymentType === 'ADVANCE' || payment.isAdvancePayment) return false;
+                            if (tot > 0 && pAmt < (tot - 0.05)) return false;
+                            return payment.paymentType === 'FINAL' || !payment.isAdvancePayment;
+                          })();
+
+                          return (
+                            <div key={payment.id} className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-[11px]">
+                              <div>
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <p className="font-bold text-slate-800">
+                                    {(payment.amountInCurrency || payment.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {payment.currencyCode || payment.currency}
+                                    <span className="text-slate-400 font-normal"> (@ {payment.exchangeRate})</span>
+                                  </p>
+                                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                                    isPaymentFull ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                                  }`}>
+                                    {isPaymentFull ? 'Full' : 'Advance'}
+                                  </span>
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-semibold">{payment.paymentMethod} • {payment.paymentDate}</p>
                               </div>
-                              <p className="text-[9px] text-slate-400 font-semibold">{payment.paymentMethod} • {payment.paymentDate}</p>
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateReceipt(payment.id)}
+                                className="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-1 rounded-md transition"
+                              >
+                                <Receipt className="h-3 w-3" /> Receipt
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleGenerateReceipt(payment.id)}
-                              className="text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100/80 px-2 py-1 rounded-md transition"
-                            >
-                              <Receipt className="h-3 w-3" /> Receipt
-                            </button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -3876,7 +3891,21 @@ const Registrations = () => {
 
         if (!associatedBooking && !selectedReg) return null;
         
-        const isFinalPayment = selectedPaymentForReceipt.paymentType === 'FINAL';
+        const remMatch = (selectedPaymentForReceipt.remarks || '').toUpperCase();
+        const bTot = parseFloat(associatedBooking?.totalAmount || selectedReg?.totalAmount || 0);
+        const pAmt = parseFloat(selectedPaymentForReceipt.amount || selectedPaymentForReceipt.amountInCurrency || 0);
+        const isActuallyFinal = (() => {
+          if (remMatch.includes('ADVANCE') || remMatch.includes('ADANVE')) return false;
+          if (selectedPaymentForReceipt.paymentType === 'ADVANCE' || selectedPaymentForReceipt.isAdvancePayment) return false;
+          if (bTot > 0 && pAmt < (bTot - 0.05)) {
+            const allP = advancePayments || [selectedPaymentForReceipt];
+            const sumP = allP.reduce((acc, curr) => acc + parseFloat(curr.amount || curr.amountInCurrency || 0), 0);
+            if (sumP < (bTot - 0.05)) return false;
+          }
+          return selectedPaymentForReceipt.paymentType === 'FINAL' || !selectedPaymentForReceipt.isAdvancePayment;
+        })();
+
+        const isFinalPayment = isActuallyFinal;
         const isDiscountAdjusted = selectedPaymentForReceipt.paymentType === 'DISCOUNT_ADJUSTED';
         const isOriginalBill = selectedPaymentForReceipt.paymentType === 'ORIGINAL_BILL';
         const isConsolidatedBill = isFinalPayment || isDiscountAdjusted || isOriginalBill;
