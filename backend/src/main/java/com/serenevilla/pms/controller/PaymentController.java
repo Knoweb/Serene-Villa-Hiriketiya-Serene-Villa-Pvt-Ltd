@@ -33,25 +33,69 @@ public class PaymentController {
 
     private void syncBookingAndRegistrationStatus(Long bookingId, Long guestRegistrationId, boolean isFullOrFinal) {
         try {
-            if (bookingId != null) {
-                bookingRepository.findById(bookingId).ifPresent(b -> {
-                    if (isFullOrFinal) {
-                        b.setPaymentStatus("Paid");
-                        bookingRepository.save(b);
+            Long targetBookingId = bookingId;
+            if (targetBookingId == null && guestRegistrationId != null) {
+                List<com.serenevilla.pms.model.Booking> bList = bookingRepository.findByGuestRegistrationId(guestRegistrationId);
+                if (bList != null && !bList.isEmpty()) {
+                    targetBookingId = bList.get(0).getId();
+                }
+            }
+
+            if (targetBookingId != null) {
+                bookingRepository.findById(targetBookingId).ifPresent(b -> {
+                    List<Payment> pList = paymentRepository.findByBookingId(b.getId());
+                    double totalPaid = 0.0;
+                    String bCurr = b.getCurrency() != null ? b.getCurrency().toUpperCase() : "USD";
+                    double exRate = 1.0;
+                    try {
+                        if (b.getExchangeRate() != null && !b.getExchangeRate().trim().isEmpty()) {
+                            exRate = Double.parseDouble(b.getExchangeRate().trim());
+                        }
+                    } catch (Exception ignored) {}
+
+                    if (pList != null) {
+                        for (Payment p : pList) {
+                            String pCurr = p.getCurrencyCode() != null ? p.getCurrencyCode() : (p.getCurrency() != null ? p.getCurrency() : bCurr);
+                            double pAmt = p.getAmountInCurrency() > 0 ? p.getAmountInCurrency() : (p.getAmount() != null ? p.getAmount() : 0.0);
+                            double pLkr = p.getConvertedAmountLkr() != null && p.getConvertedAmountLkr() > 0 ? p.getConvertedAmountLkr() : p.getAmountLkr();
+                            double pExRate = p.getExchangeRate() > 0 ? p.getExchangeRate() : exRate;
+
+                            double converted = pAmt;
+                            if (pCurr.equalsIgnoreCase(bCurr)) {
+                                converted = pAmt;
+                            } else if ("LKR".equalsIgnoreCase(bCurr)) {
+                                converted = pLkr > 0 ? pLkr : (pAmt * pExRate);
+                            } else {
+                                if (pExRate > 0) converted = (pLkr > 0 ? pLkr : pAmt) / pExRate;
+                            }
+                            totalPaid += converted;
+                        }
                     }
+
+                    double totalTarget = b.getTotalAmount() != null ? b.getTotalAmount() : 0.0;
+                    String newStatus = "Unpaid";
+                    if (isFullOrFinal || (totalTarget > 0 && totalPaid >= (totalTarget - 0.01))) {
+                        newStatus = "Paid";
+                    } else if (totalPaid > 0) {
+                        newStatus = "Paid Advance";
+                    }
+
+                    b.setPaymentStatus(newStatus);
+                    bookingRepository.save(b);
+
                     Long regId = b.getGuestRegistrationId() != null ? b.getGuestRegistrationId() : guestRegistrationId;
                     if (regId != null) {
+                        final String finalStatus = newStatus;
                         guestRegistrationRepository.findById(regId).ifPresent(reg -> {
-                            if (isFullOrFinal) {
-                                reg.setPaymentStatus("Paid");
-                                guestRegistrationRepository.save(reg);
-                            }
+                            reg.setPaymentStatus(finalStatus);
+                            guestRegistrationRepository.save(reg);
                         });
                     }
                 });
-            } else if (guestRegistrationId != null && isFullOrFinal) {
+            } else if (guestRegistrationId != null) {
                 guestRegistrationRepository.findById(guestRegistrationId).ifPresent(reg -> {
-                    reg.setPaymentStatus("Paid");
+                    String newStatus = isFullOrFinal ? "Paid" : "Paid Advance";
+                    reg.setPaymentStatus(newStatus);
                     guestRegistrationRepository.save(reg);
                 });
             }
