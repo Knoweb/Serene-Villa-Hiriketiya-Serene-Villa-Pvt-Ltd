@@ -27,7 +27,11 @@ const Payments = () => {
   });
 
   const saveRates = () => {
-    setExchangeRates({ ...rateEdit });
+    const parsedRates = {};
+    Object.keys(rateEdit).forEach(curr => {
+      parsedRates[curr] = parseFloat(rateEdit[curr]) || 0;
+    });
+    setExchangeRates(parsedRates);
     setEditing(false);
   };
 
@@ -91,8 +95,10 @@ const Payments = () => {
                 {editing ? (
                   <input
                     type="number"
+                    step="any"
                     value={rateEdit[curr]}
-                    onChange={(e) => setRateEdit({ ...rateEdit, [curr]: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setRateEdit({ ...rateEdit, [curr]: e.target.value })}
+                    onWheel={(e) => e.currentTarget.blur()}
                     className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs text-slate-800 font-semibold"
                   />
                 ) : (
@@ -165,11 +171,12 @@ const Payments = () => {
               <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Amount</label>
               <input
                 type="number"
-                step="0.01"
+                step="any"
                 required
                 placeholder="Enter amount in currency"
                 value={newPayment.amountInCurrency}
                 onChange={(e) => setNewPayment({ ...newPayment, amountInCurrency: e.target.value })}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none"
               />
             </div>

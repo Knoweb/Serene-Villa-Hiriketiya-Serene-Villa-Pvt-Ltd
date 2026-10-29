@@ -3359,6 +3359,7 @@ const Registrations = () => {
                                   const autoFee = paymentForm.paymentMethod === 'Card' ? (amt > 0 ? (amt * 0.03).toFixed(2) : '') : paymentForm.cardFee;
                                   setPaymentForm({ ...paymentForm, amount: val, cardFee: autoFee });
                                 }}
+                                onWheel={(e) => e.currentTarget.blur()}
                                 className="w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none bg-white text-slate-700"
                               />
                             </div>
@@ -3372,6 +3373,7 @@ const Registrations = () => {
                                     required
                                     value={paymentForm.exchangeRate}
                                     onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none font-mono font-bold"
                                   />
                                 </div>
@@ -3455,6 +3457,7 @@ const Registrations = () => {
                                       placeholder="0.00 (Optional - enter only if charging guest)"
                                       value={paymentForm.cardFee}
                                       onChange={(e) => setPaymentForm({ ...paymentForm, cardFee: e.target.value })}
+                                      onWheel={(e) => e.currentTarget.blur()}
                                       className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none text-slate-700 pr-14"
                                     />
                                     <span className="absolute right-3 top-2 text-[10px] font-bold text-slate-400">{payCurr}</span>
@@ -3484,6 +3487,7 @@ const Registrations = () => {
                                   placeholder="0.00"
                                   value={paymentForm.otherCharges || ''}
                                   onChange={(e) => setPaymentForm({ ...paymentForm, otherCharges: e.target.value })}
+                                  onWheel={(e) => e.currentTarget.blur()}
                                   className="w-full bg-amber-50/20 border border-amber-300 focus:border-amber-500 rounded-lg px-3 py-2 font-bold font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500 pr-14 text-xs"
                                 />
                                 <span className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-500">

@@ -3333,6 +3333,7 @@ const Reservations = () => {
                                     cardFee: fee !== '' ? fee.toFixed(2) : ''
                                   });
                                 }}
+                                onWheel={(e) => e.currentTarget.blur()}
                                 className={`w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none bg-white text-slate-700`}
                               />
                             </div>
@@ -3346,6 +3347,7 @@ const Reservations = () => {
                                     required
                                     value={paymentForm.exchangeRate}
                                     onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none font-mono font-bold"
                                   />
                                 </div>
@@ -5463,7 +5465,7 @@ const Reservations = () => {
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exchange Rate (to LKR)</label>
                       <input 
                         type="number" 
-                        step="0.01"
+                        step="any"
                         value={confirmationData.exchangeRate}
                         onChange={(e) => {
                           const rateVal = e.target.value;
@@ -5475,6 +5477,7 @@ const Reservations = () => {
                             totalPrice: (usdSum * rate).toFixed(2)
                           });
                         }}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-medium"
                       />
                     </div>
@@ -5854,26 +5857,27 @@ const Reservations = () => {
                         />
                       </div>
                     </div>
-                   {/* Currency Rate */}
-                   <div className="space-y-1.5 col-span-1">
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency Rate</label>
-                     <input 
-                       type="number" 
-                       step="0.01"
-                       value={confirmationData.exchangeRate}
-                       onChange={(e) => {
-                         const rateVal = e.target.value;
-                         const rate = parseFloat(rateVal) || 1;
-                         const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
-                         setConfirmationData({
-                           ...confirmationData,
-                           exchangeRate: rateVal,
-                           totalPrice: (usdSum * rate).toFixed(2)
-                         });
-                       }}
-                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-medium"
-                     />
-                   </div>
+                    {/* Currency Rate */}
+                    <div className="space-y-1.5 col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Currency Rate</label>
+                      <input 
+                        type="number" 
+                        step="any"
+                        value={confirmationData.exchangeRate}
+                        onChange={(e) => {
+                          const rateVal = e.target.value;
+                          const rate = parseFloat(rateVal) || 1;
+                          const usdSum = confirmationData.allocatedRooms ? confirmationData.allocatedRooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0;
+                          setConfirmationData({
+                            ...confirmationData,
+                            exchangeRate: rateVal,
+                            totalPrice: (usdSum * rate).toFixed(2)
+                          });
+                        }}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none font-medium"
+                      />
+                    </div>
 
                    {/* Total Price */}
                    <div className="space-y-1.5 col-span-2">

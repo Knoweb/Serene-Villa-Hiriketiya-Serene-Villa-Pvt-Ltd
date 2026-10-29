@@ -3356,6 +3356,7 @@ const Registrations = () => {
                                   const autoFee = paymentForm.paymentMethod === 'Card' ? (amt > 0 ? (amt * 0.03).toFixed(2) : '') : paymentForm.cardFee;
                                   setPaymentForm({ ...paymentForm, amount: val, cardFee: autoFee });
                                 }}
+                                onWheel={(e) => e.currentTarget.blur()}
                                 className="w-full border border-slate-200 rounded-lg px-2 py-1.5 font-bold font-mono focus:outline-none bg-white text-slate-700"
                               />
                             </div>
@@ -3369,6 +3370,7 @@ const Registrations = () => {
                                     required
                                     value={paymentForm.exchangeRate}
                                     onChange={(e) => setPaymentForm({ ...paymentForm, exchangeRate: e.target.value })}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-medium text-slate-700 focus:outline-none font-mono font-bold"
                                   />
                                 </div>

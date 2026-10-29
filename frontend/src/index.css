@@ -7,19 +7,6 @@
   body {
     @apply bg-emerald-50/40 text-slate-800 font-sans antialiased selection:bg-emerald-100 selection:text-emerald-800;
   }
-
-  /* Chrome, Safari, Edge, Opera */
-  input::-webkit-outer-spin-button,
-  input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  /* Firefox & Standard */
-  input[type="number"] {
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
 }
 
 /* Chrome, Safari, Edge, Opera */
