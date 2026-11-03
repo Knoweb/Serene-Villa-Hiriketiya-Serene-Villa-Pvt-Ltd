@@ -141,7 +141,7 @@ const Handover = () => {
       amountLkr: parseFloat(p.amountLkr || p.convertedAmountLkr || 0),
       currencyCode: p.currencyCode || p.currency || group.currency || 'USD',
       exchangeRate: p.exchangeRate || 335,
-      receiptNumber: p.receiptNumber || p.referenceNumber || `REC-${p.id}`,
+      receiptNumber: p.receiptNumber || p.referenceNumber || `${String((p.paymentDate || p.createdAt ? new Date(p.paymentDate || p.createdAt) : new Date()).getMonth() + 1).padStart(2, '0')}-${String(p.id).slice(-3).padStart(3, '0')}`,
       paymentDate: p.paymentDate || (p.createdAt ? p.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]),
       paymentMethod: p.paymentMethod || 'Cash'
     };

@@ -1,17 +1,34 @@
 package com.serenevilla.pms.config;
 
+import com.serenevilla.pms.model.Receipt;
 import com.serenevilla.pms.model.Role;
 import com.serenevilla.pms.model.User;
+import com.serenevilla.pms.repository.PaymentRepository;
+import com.serenevilla.pms.repository.ReceiptRepository;
 import com.serenevilla.pms.repository.UserRepository;
+import com.serenevilla.pms.service.ReceiptService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 
 @Component
 public class DatabaseSeeder implements CommandLineRunner {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ReceiptRepository receiptRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
+    private ReceiptService receiptService;
 
     @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
@@ -38,6 +55,38 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
         } catch (Exception e) {
             System.err.println("Migration error: " + e.getMessage());
+        }
+
+        // Migration: Update receipt numbers from REC-XXXX to MM-XXX format
+        try {
+            List<Receipt> oldReceipts = receiptRepository.findAll().stream()
+                .filter(r -> r.getReceiptNumber() != null && r.getReceiptNumber().startsWith("REC-"))
+                .sorted(Comparator.comparing(Receipt::getId))
+                .toList();
+
+            if (!oldReceipts.isEmpty()) {
+                System.out.println(">>> Migrating " + oldReceipts.size() + " legacy REC- receipt numbers to MM-XXX format... <<<");
+                for (Receipt r : oldReceipts) {
+                    LocalDateTime date = r.getGeneratedAt() != null ? r.getGeneratedAt() : LocalDateTime.now();
+                    String newNumber = receiptService.generateNextReceiptNumber(date);
+                    String oldNumber = r.getReceiptNumber();
+                    r.setReceiptNumber(newNumber);
+                    receiptRepository.save(r);
+
+                    if (r.getPaymentId() != null) {
+                        paymentRepository.findById(r.getPaymentId()).ifPresent(p -> {
+                            p.setReceiptNumber(newNumber);
+                            paymentRepository.save(p);
+                        });
+                    }
+                    try {
+                        jdbcTemplate.update("UPDATE payments SET receipt_number = ? WHERE receipt_number = ?", newNumber, oldNumber);
+                    } catch (Exception ignored) {}
+                }
+                System.out.println(">>> Receipt migration to MM-XXX completed successfully! <<<");
+            }
+        } catch (Exception e) {
+            System.err.println("Receipt migration note: " + e.getMessage());
         }
 
         // Seed default Admin user if it doesn't exist

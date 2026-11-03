@@ -1453,7 +1453,7 @@ const Registrations = () => {
           // Fallback receipt object if backend returned non-200
           setReceiptData({
             id: paymentId,
-            receiptNumber: p.referenceNumber || p.receiptNumber || `REC-${String(paymentId).padStart(4, '0')}`,
+            receiptNumber: p.receiptNumber || (p.referenceNumber && !p.referenceNumber.startsWith('D-') ? p.referenceNumber : `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(paymentId).slice(-3).padStart(3, '0')}`),
             paymentId: paymentId,
             generatedAt: p.createdAt || p.paymentDate || new Date().toISOString(),
             generatedBy: p.createdBy || 'Front Office'
@@ -1464,7 +1464,7 @@ const Registrations = () => {
         console.warn('Backend receipt fetch failed, using local receipt fallback:', fetchErr);
         setReceiptData({
           id: paymentId,
-          receiptNumber: p.referenceNumber || p.receiptNumber || `REC-${String(paymentId).padStart(4, '0')}`,
+          receiptNumber: p.receiptNumber || (p.referenceNumber && !p.referenceNumber.startsWith('D-') ? p.referenceNumber : `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(paymentId).slice(-3).padStart(3, '0')}`),
           paymentId: paymentId,
           generatedAt: p.createdAt || p.paymentDate || new Date().toISOString(),
           generatedBy: p.createdBy || 'Front Office'
@@ -2833,7 +2833,7 @@ const Registrations = () => {
                                                 paymentType: 'ADVANCE',
                                                 isAdvancePayment: false,
                                                 referenceNumber: extraB.bookingNumber,
-                                                receiptNumber: `REC-${extraB.bookingNumber.replace('/', '-')}`,
+                                                receiptNumber: null,
                                                 remarks: extraB.remarks || `${badgeTitle} Settled`,
                                                 accountantTransferStatus: 'PENDING',
                                                 sentToAccountantAt: new Date().toISOString()
@@ -2929,7 +2929,7 @@ const Registrations = () => {
                                           };
                                           setSelectedPaymentForReceipt(subPaymentMock);
                                           setReceiptData({
-                                            receiptNumber: `REC-${extraB.bookingNumber.replace('/', '-')}`,
+                                            receiptNumber: `BILL-${extraB.bookingNumber.replace('/', '-')}`,
                                             generatedAt: new Date().toISOString(),
                                             guestName: selectedReg.guestName,
                                             bookingRef: extraB.bookingNumber,

@@ -1841,7 +1841,7 @@ const Reservations = () => {
         } else {
           setReceiptData({
             id: paymentId,
-            receiptNumber: p.referenceNumber || p.receiptNumber || `REC-${String(paymentId).padStart(4, '0')}`,
+            receiptNumber: p.receiptNumber || (p.referenceNumber && !p.referenceNumber.startsWith('D-') ? p.referenceNumber : `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(paymentId).slice(-3).padStart(3, '0')}`),
             paymentId: paymentId,
             generatedAt: p.createdAt || p.paymentDate || new Date().toISOString(),
             generatedBy: p.createdBy || 'Front Office'
@@ -1851,7 +1851,7 @@ const Reservations = () => {
         console.warn('Backend receipt fetch failed, using local receipt fallback:', fetchErr);
         setReceiptData({
           id: paymentId,
-          receiptNumber: p.referenceNumber || p.receiptNumber || `REC-${String(paymentId).padStart(4, '0')}`,
+          receiptNumber: p.receiptNumber || (p.referenceNumber && !p.referenceNumber.startsWith('D-') ? p.referenceNumber : `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(paymentId).slice(-3).padStart(3, '0')}`),
           paymentId: paymentId,
           generatedAt: p.createdAt || p.paymentDate || new Date().toISOString(),
           generatedBy: p.createdBy || 'Front Office'

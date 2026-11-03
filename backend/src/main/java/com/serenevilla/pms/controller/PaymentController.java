@@ -28,6 +28,9 @@ public class PaymentController {
     @Autowired
     private com.serenevilla.pms.repository.GuestRegistrationRepository guestRegistrationRepository;
 
+    @Autowired
+    private com.serenevilla.pms.service.ReceiptService receiptService;
+
     @Autowired(required = false)
     private RegistrationWebSocketHandler webSocketHandler;
 
@@ -183,8 +186,6 @@ public class PaymentController {
 
         if (payment.getReferenceNumber() == null && payment.getReceiptNumber() != null) {
             payment.setReferenceNumber(payment.getReceiptNumber());
-        } else if (payment.getReferenceNumber() != null && payment.getReceiptNumber() == null) {
-            payment.setReceiptNumber(payment.getReferenceNumber());
         }
 
         if (payment.getPaymentDate() == null) {
@@ -195,6 +196,14 @@ public class PaymentController {
         }
         
         Payment saved = paymentRepository.save(payment);
+
+        // Auto-generate or link official MM-XXX advance receipt
+        try {
+            com.serenevilla.pms.model.Receipt r = receiptService.getOrCreateAdvanceReceipt(saved);
+            saved.setReceiptNumber(r.getReceiptNumber());
+        } catch (Exception e) {
+            System.err.println("Note: advance receipt generation on payment creation: " + e.getMessage());
+        }
 
         syncBookingAndRegistrationStatus(saved.getBookingId(), saved.getGuestRegistrationId(), isFinalType);
 

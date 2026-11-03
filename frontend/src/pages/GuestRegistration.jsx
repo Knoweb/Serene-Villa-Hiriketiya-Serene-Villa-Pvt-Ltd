@@ -432,7 +432,7 @@ const GuestRegistration = () => {
           amountInCurrency: payAmt,
           paymentMethod: formData.paymentMethod,
           referenceNumber: formData.referenceNumber || `REF-${Date.now().toString().slice(-6)}`,
-          receiptNumber: formData.referenceNumber || `REC-${Date.now().toString().slice(-6)}`,
+          receiptNumber: formData.referenceNumber || null,
           remarks: formData.remarks || '',
           createdBy: 'Public QR Code',
           slipPath: paymentSlipBase64 || '',
@@ -450,7 +450,7 @@ const GuestRegistration = () => {
           const savedPayment = await payRes.json();
           setSelectedPaymentForReceipt(savedPayment);
           setReceiptData({
-            receiptNumber: savedPayment.receiptNumber || ('REC-' + Date.now().toString().slice(-6)),
+            receiptNumber: savedPayment.receiptNumber || (`${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Date.now()).slice(-3)}`),
             generatedAt: new Date().toISOString(),
             generatedBy: 'Guest QR Form'
           });
