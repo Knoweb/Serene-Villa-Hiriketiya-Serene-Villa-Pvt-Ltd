@@ -208,7 +208,7 @@ const Reports = () => {
           text += `${idx + 1}. *${c.guestName}*\n`;
           text += `   • Room: ${c.roomNumber} ${c.roomType ? `(${c.roomType})` : ''}\n`;
           text += `   • Pax: ${c.pax} (${c.adults} Adults${c.children ? `, ${c.children} Kids` : ''})\n`;
-          text += `   • Amount: ${formatLKR(c.amount)}\n`;
+          text += `   • Amount: ${formatLKR(c.amount)}${c.currency && c.currency !== 'LKR' ? ` (${c.currency} ${formatNum(c.originalAmount || 0)})` : ''}\n`;
           text += `   • Source: ${c.bookingSource || 'Direct'}\n\n`;
         });
       } else {
@@ -255,7 +255,7 @@ const Reports = () => {
     if (!data) return;
 
     if (reportType === 'DailyCheckIn') {
-      const headers = ['Guest Name', 'Passport / ID', 'Room Number', 'Room Type', 'Pax (Total)', 'Adults', 'Children', 'Booking Value (LKR)', 'Booking Ref', 'Booking Source', 'Status'];
+      const headers = ['Guest Name', 'Passport / ID', 'Room Number', 'Room Type', 'Pax (Total)', 'Adults', 'Children', 'Booking Value (LKR)', 'Currency', 'Original Amount', 'Booking Ref', 'Booking Source', 'Status'];
       const checkIns = data.checkIns || [];
       const csvRows = [
         headers.join(','),
@@ -268,6 +268,8 @@ const Reports = () => {
           c.adults,
           c.children,
           c.amount,
+          `"${c.currency || 'LKR'}"`,
+          c.originalAmount != null ? c.originalAmount : c.amount,
           `"${c.bookingNumber}"`,
           `"${c.bookingSource}"`,
           `"${c.paymentStatus}"`
@@ -613,7 +615,14 @@ const Reports = () => {
                             </span>
                           </td>
                           <td className="p-2.5 text-right font-mono font-bold text-slate-900">
-                            {formatLKR(checkIn.amount)}
+                            <div>
+                              <span>{formatLKR(checkIn.amount)}</span>
+                              {checkIn.currency && checkIn.currency !== 'LKR' && (
+                                <span className="text-[9px] text-slate-400 font-normal block font-sans">
+                                  ({checkIn.currency} {formatNum(checkIn.originalAmount || 0)})
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-2.5 text-center">
                             <span className="text-[9px] font-bold uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-slate-600">

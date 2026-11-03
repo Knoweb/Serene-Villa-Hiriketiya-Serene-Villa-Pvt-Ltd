@@ -23,4 +23,9 @@ public class DailyCheckInDTO {
     private String bookingNumber;
     private String bookingSource;
     private String paymentStatus;
+
+    // Currency metadata
+    private String currency = "LKR";
+    private Double originalAmount = 0.0;
+    private Double exchangeRate = 1.0;
 }

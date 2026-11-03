@@ -5,10 +5,12 @@ import com.serenevilla.pms.dto.ReportRowDTO;
 import com.serenevilla.pms.dto.ReportSummaryDTO;
 import com.serenevilla.pms.model.Booking;
 import com.serenevilla.pms.model.DiscountRequest;
+import com.serenevilla.pms.model.ExchangeRate;
 import com.serenevilla.pms.model.GuestRegistration;
 import com.serenevilla.pms.model.Payment;
 import com.serenevilla.pms.repository.BookingRepository;
 import com.serenevilla.pms.repository.DiscountRequestRepository;
+import com.serenevilla.pms.repository.ExchangeRateRepository;
 import com.serenevilla.pms.repository.GuestRegistrationRepository;
 import com.serenevilla.pms.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,29 @@ public class ReportService {
 
     @Autowired
     private ReceiptService receiptService;
+
+    @Autowired
+    private ExchangeRateRepository exchangeRateRepository;
+
+    public double computeBookingLkrAmount(Booking booking) {
+        if (booking == null || booking.getTotalAmount() == null) return 0.0;
+        double amtRaw = booking.getTotalAmount();
+        String curr = booking.getCurrency() != null ? booking.getCurrency().trim().toUpperCase() : "LKR";
+        if ("LKR".equals(curr)) return amtRaw;
+
+        double exRate = 1.0;
+        if (booking.getExchangeRate() != null && !booking.getExchangeRate().trim().isEmpty()) {
+            try {
+                exRate = Double.parseDouble(booking.getExchangeRate().trim());
+            } catch (Exception ignored) {}
+        }
+        if (exRate <= 0 && exchangeRateRepository != null) {
+            exRate = exchangeRateRepository.findByCurrencyCode(curr).map(ExchangeRate::getRate).orElse(1.0);
+        }
+        if (exRate <= 0) exRate = 1.0;
+
+        return amtRaw * exRate;
+    }
 
     // Helper to cleanly extract room number from a booking, falling back to roomPrices JSON if needed
     public static String extractRoomNumber(Booking booking) {
@@ -366,7 +391,8 @@ public class ReportService {
                     .filter(d -> "PENDING".equalsIgnoreCase(d.getStatus()))
                     .count();
 
-            double remaining = (booking.getTotalAmount() != null ? booking.getTotalAmount() : 0.0) - totalPaidForBooking - approvedDiscount;
+            double bookingTotalLkr = computeBookingLkrAmount(booking);
+            double remaining = bookingTotalLkr - totalPaidForBooking - approvedDiscount;
             
             totalAdvancePayments += advancePaid;
             approvedDiscountTotal += approvedDiscount;
@@ -404,7 +430,8 @@ public class ReportService {
                     .mapToDouble(DiscountRequest::getDiscountAmount).sum();
             String discountStatus = bookingDiscounts.isEmpty() ? "NONE" : bookingDiscounts.get(0).getStatus();
 
-            double remaining = (booking.getTotalAmount() != null ? booking.getTotalAmount() : 0.0) - totalPaidForBooking - discountAmount;
+            double bookingTotalLkr = computeBookingLkrAmount(booking);
+            double remaining = bookingTotalLkr - totalPaidForBooking - discountAmount;
 
             double pAmountLkr = payment.getAmountLkr();
             double rowCash = 0;
@@ -463,7 +490,7 @@ public class ReportService {
             row.setExchangeRate(payment.getExchangeRate());
             row.setPaidAmount(payment.getAmountInCurrency());
             row.setConvertedAmount(payment.getAmountLkr());
-            row.setInvoiceTotal(booking.getTotalAmount() != null ? booking.getTotalAmount() : 0.0);
+            row.setInvoiceTotal(bookingTotalLkr);
             row.setAdvancePaymentAmount(advancePaid);
             row.setRemainingBalance(remaining > 0 ? remaining : 0.0);
             row.setBookingSource(booking.getBookingType());
@@ -509,7 +536,35 @@ public class ReportService {
 
             String rNumber = extractRoomNumber(matchedBooking);
             String rType = (matchedBooking != null && matchedBooking.getRoomType() != null) ? matchedBooking.getRoomType() : "";
-            double bAmount = (matchedBooking != null && matchedBooking.getTotalAmount() != null) ? matchedBooking.getTotalAmount() : 0.0;
+            double amtRaw = (matchedBooking != null && matchedBooking.getTotalAmount() != null) ? matchedBooking.getTotalAmount() : 0.0;
+            String curr = (matchedBooking != null && matchedBooking.getCurrency() != null && !matchedBooking.getCurrency().trim().isEmpty())
+                    ? matchedBooking.getCurrency().trim().toUpperCase()
+                    : "LKR";
+
+            double exRate = 1.0;
+            if (matchedBooking != null && matchedBooking.getExchangeRate() != null && !matchedBooking.getExchangeRate().trim().isEmpty()) {
+                try {
+                    exRate = Double.parseDouble(matchedBooking.getExchangeRate().trim());
+                } catch (Exception ignored) {}
+            }
+            if (exRate <= 0 && exchangeRateRepository != null && !"LKR".equals(curr)) {
+                exRate = exchangeRateRepository.findByCurrencyCode(curr).map(ExchangeRate::getRate).orElse(1.0);
+            }
+            if (exRate <= 0) exRate = 1.0;
+
+            double bAmount = "LKR".equals(curr) ? amtRaw : (amtRaw * exRate);
+
+            if (matchedBooking != null && matchedBooking.getId() != null) {
+                List<Payment> bPayments = paymentsByBooking.getOrDefault(matchedBooking.getId(), Collections.emptyList());
+                if (!bPayments.isEmpty()) {
+                    Payment firstP = bPayments.get(0);
+                    if (firstP.getExchangeRate() > 0 && exRate == 1.0 && !"LKR".equals(curr)) {
+                        exRate = firstP.getExchangeRate();
+                        bAmount = amtRaw * exRate;
+                    }
+                }
+            }
+
             String bNumber = (matchedBooking != null && matchedBooking.getBookingNumber() != null)
                     ? matchedBooking.getBookingNumber()
                     : (reg.getPassportNumber() != null ? reg.getPassportNumber().replaceFirst("(?i)^SV-?", "") : "N/A");
@@ -541,6 +596,9 @@ public class ReportService {
             checkInDTO.setBookingNumber(bNumber);
             checkInDTO.setBookingSource(bSource);
             checkInDTO.setPaymentStatus(reg.getPaymentStatus());
+            checkInDTO.setCurrency(curr);
+            checkInDTO.setOriginalAmount(amtRaw);
+            checkInDTO.setExchangeRate(exRate);
 
             checkInDTOList.add(checkInDTO);
         }
