@@ -42,10 +42,138 @@ public class ReportService {
     @Autowired
     private ReceiptService receiptService;
 
+    // Helper to cleanly extract room number from a booking, falling back to roomPrices JSON if needed
+    public static String extractRoomNumber(Booking booking) {
+        if (booking == null) return "N/A";
+        String rm = booking.getRoomNumber();
+        if (rm != null && !rm.trim().isEmpty() && !"Unallocated".equalsIgnoreCase(rm.trim()) && !"N/A".equalsIgnoreCase(rm.trim())) {
+            return rm.trim();
+        }
+        if (booking.getRoomPrices() != null && !booking.getRoomPrices().trim().isEmpty()) {
+            try {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"roomNumber\"\\s*:\\s*\"([^\"]+)\"", java.util.regex.Pattern.CASE_INSENSITIVE)
+                        .matcher(booking.getRoomPrices());
+                List<String> list = new ArrayList<>();
+                while (m.find()) {
+                    String r = m.group(1).trim();
+                    if (!r.isEmpty() && !"Unallocated".equalsIgnoreCase(r) && !list.contains(r)) {
+                        list.add(r);
+                    }
+                }
+                if (!list.isEmpty()) {
+                    return String.join(", ", list);
+                }
+            } catch (Exception ignored) {}
+        }
+        return (rm != null && !rm.trim().isEmpty() && !"Unallocated".equalsIgnoreCase(rm.trim())) ? rm.trim() : "N/A";
+    }
+
+    // Smart lookup to find a matching booking for a registration
+    public static Booking findMatchingBooking(GuestRegistration reg, List<Booking> allBookings) {
+        if (reg == null || allBookings == null || allBookings.isEmpty()) return null;
+
+        // 1. Direct match by guestRegistrationId
+        if (reg.getId() != null) {
+            for (Booking b : allBookings) {
+                if (Objects.equals(b.getGuestRegistrationId(), reg.getId()) && (b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))) {
+                    return b;
+                }
+            }
+        }
+
+        // 2. Match by passportNumber (e.g. SV-B-6307864151 -> B-6307864151 or exact)
+        String pass = reg.getPassportNumber();
+        if (pass != null && !pass.trim().isEmpty()) {
+            String cleanPass = pass.replaceFirst("(?i)^SV-?", "").trim();
+            if (!cleanPass.isEmpty() && !"N/A".equalsIgnoreCase(cleanPass) && !"undefined".equalsIgnoreCase(cleanPass) && !"null".equalsIgnoreCase(cleanPass)) {
+                for (Booking b : allBookings) {
+                    if (b.getBookingNumber() != null && !b.getBookingNumber().contains("/")) {
+                        String bNum = b.getBookingNumber().trim();
+                        if (bNum.equalsIgnoreCase(cleanPass) || bNum.equalsIgnoreCase(pass.trim()) ||
+                            cleanPass.equalsIgnoreCase(bNum.replaceFirst("(?i)^SV-?", ""))) {
+                            return b;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Match by guest name AND check-in date
+        if (reg.getGuestName() != null && !reg.getGuestName().trim().isEmpty()) {
+            String gName = reg.getGuestName().trim().toLowerCase();
+            for (Booking b : allBookings) {
+                if (b.getGuestName() != null && b.getGuestName().trim().toLowerCase().equals(gName) && (b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))) {
+                    if (reg.getCheckInDate() == null || b.getCheckInDate() == null || reg.getCheckInDate().equals(b.getCheckInDate())) {
+                        return b;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // Deduplicate registrations: filter out cancelled and merge duplicate draft records
+    public static List<GuestRegistration> deduplicateRegistrations(List<GuestRegistration> list) {
+        if (list == null || list.isEmpty()) return Collections.emptyList();
+
+        Map<String, List<GuestRegistration>> groups = new LinkedHashMap<>();
+        for (GuestRegistration reg : list) {
+            String pass = reg.getPassportNumber() != null ? reg.getPassportNumber().trim() : "";
+            String cleanPass = pass.replaceFirst("(?i)^SV-?", "").trim().toLowerCase();
+            String gName = reg.getGuestName() != null ? reg.getGuestName().trim().toLowerCase() : "";
+            String inDate = reg.getCheckInDate() != null ? reg.getCheckInDate().toString() : "";
+
+            String key;
+            if (!cleanPass.isEmpty() && !cleanPass.equals("n/a") && !cleanPass.startsWith("sv-") && !cleanPass.equals("undefined") && !cleanPass.equals("null")) {
+                key = "pass_" + cleanPass;
+            } else if (!gName.isEmpty()) {
+                key = "name_" + gName + "_" + inDate;
+            } else {
+                key = "id_" + reg.getId();
+            }
+
+            String matchedKey = key;
+            for (Map.Entry<String, List<GuestRegistration>> entry : groups.entrySet()) {
+                for (GuestRegistration existing : entry.getValue()) {
+                    String exPass = existing.getPassportNumber() != null ? existing.getPassportNumber().replaceFirst("(?i)^SV-?", "").trim().toLowerCase() : "";
+                    String exName = existing.getGuestName() != null ? existing.getGuestName().trim().toLowerCase() : "";
+                    String exIn = existing.getCheckInDate() != null ? existing.getCheckInDate().toString() : "";
+
+                    if (!cleanPass.isEmpty() && !exPass.isEmpty() && cleanPass.equals(exPass)) {
+                        matchedKey = entry.getKey();
+                        break;
+                    }
+                    if (!gName.isEmpty() && !exName.isEmpty() && gName.equals(exName) && inDate.equals(exIn)) {
+                        matchedKey = entry.getKey();
+                        break;
+                    }
+                }
+                if (!matchedKey.equals(key)) break;
+            }
+
+            groups.computeIfAbsent(matchedKey, k -> new ArrayList<>()).add(reg);
+        }
+
+        List<GuestRegistration> result = new ArrayList<>();
+        for (List<GuestRegistration> group : groups.values()) {
+            if (group.size() == 1) {
+                result.add(group.get(0));
+            } else {
+                GuestRegistration best = group.stream()
+                        .filter(r -> r.getPassportNumber() != null && !r.getPassportNumber().toUpperCase().startsWith("SV-"))
+                        .findFirst()
+                        .orElse(group.get(group.size() - 1));
+                result.add(best);
+            }
+        }
+        return result;
+    }
+
     public ReportSummaryDTO generateReport(LocalDate startDate, LocalDate endDate, Long propertyId) {
         // Fetch all data
         List<GuestRegistration> allRegistrations = guestRegistrationRepository.findAll();
-        List<Booking> allBookings = propertyId != null ? bookingRepository.findByPropertyId(propertyId) : bookingRepository.findAll();
+        List<Booking> allBookings = bookingRepository.findAll();
         List<Payment> allPayments = paymentRepository.findAll();
         List<DiscountRequest> allDiscounts = discountRequestRepository.findAll();
 
@@ -99,15 +227,23 @@ public class ReportService {
                 })
                 .collect(Collectors.toList());
 
-        // Check-ins in range
-        List<GuestRegistration> checkInsInRange = allRegistrations.stream()
+        // Check-ins in range (exclude hidden and cancelled, and deduplicate placeholder draft registrations)
+        List<GuestRegistration> rawCheckIns = allRegistrations.stream()
                 .filter(r -> r.getCheckInDate() != null && !r.getCheckInDate().isBefore(startDate) && !r.getCheckInDate().isAfter(endDate))
+                .filter(r -> r.getIsHiddenFromFrontOffice() == null || !r.getIsHiddenFromFrontOffice())
+                .filter(r -> !"Cancelled".equalsIgnoreCase(r.getRegistrationStatus()))
                 .collect(Collectors.toList());
 
+        List<GuestRegistration> checkInsInRange = deduplicateRegistrations(rawCheckIns);
+
         // Check-outs in range
-        List<GuestRegistration> checkOutsInRange = allRegistrations.stream()
+        List<GuestRegistration> rawCheckOuts = allRegistrations.stream()
                 .filter(r -> r.getCheckOutDate() != null && !r.getCheckOutDate().isBefore(startDate) && !r.getCheckOutDate().isAfter(endDate))
+                .filter(r -> r.getIsHiddenFromFrontOffice() == null || !r.getIsHiddenFromFrontOffice())
+                .filter(r -> !"Cancelled".equalsIgnoreCase(r.getRegistrationStatus()))
                 .collect(Collectors.toList());
+
+        List<GuestRegistration> checkOutsInRange = deduplicateRegistrations(rawCheckOuts);
 
         // Aggregate core numbers
         long totalBookings = bookingsInRange.size();
@@ -317,7 +453,7 @@ public class ReportService {
             row.setBookingNumber(booking.getBookingNumber());
             row.setGuestName(guestName);
             row.setPassportNumber(passportNumber);
-            row.setRoomName(booking.getRoomNumber());
+            row.setRoomName(extractRoomNumber(booking));
             row.setCheckInDate(checkIn);
             row.setCheckOutDate(checkOut);
             row.setNumberOfNights(nights);
@@ -368,17 +504,23 @@ public class ReportService {
         // Daily Check-ins List for check-in summary view
         List<DailyCheckInDTO> checkInDTOList = new ArrayList<>();
         for (GuestRegistration reg : checkInsInRange) {
-            // Find primary matching booking
-            Booking matchedBooking = allBookings.stream()
-                    .filter(b -> Objects.equals(b.getGuestRegistrationId(), reg.getId()))
-                    .findFirst()
-                    .orElse(null);
+            // Find primary matching booking with smart fallback
+            Booking matchedBooking = findMatchingBooking(reg, allBookings);
 
-            String rNumber = (matchedBooking != null && matchedBooking.getRoomNumber() != null) ? matchedBooking.getRoomNumber() : "N/A";
+            String rNumber = extractRoomNumber(matchedBooking);
             String rType = (matchedBooking != null && matchedBooking.getRoomType() != null) ? matchedBooking.getRoomType() : "";
             double bAmount = (matchedBooking != null && matchedBooking.getTotalAmount() != null) ? matchedBooking.getTotalAmount() : 0.0;
-            String bNumber = matchedBooking != null ? matchedBooking.getBookingNumber() : "N/A";
-            String bSource = matchedBooking != null ? matchedBooking.getBookingType() : "Direct";
+            String bNumber = (matchedBooking != null && matchedBooking.getBookingNumber() != null)
+                    ? matchedBooking.getBookingNumber()
+                    : (reg.getPassportNumber() != null ? reg.getPassportNumber().replaceFirst("(?i)^SV-?", "") : "N/A");
+            String bSource = (matchedBooking != null && matchedBooking.getBookingType() != null)
+                    ? matchedBooking.getBookingType()
+                    : "Direct";
+
+            if (matchedBooking != null && !"N/A".equalsIgnoreCase(rNumber) && (matchedBooking.getRoomNumber() == null || matchedBooking.getRoomNumber().trim().isEmpty() || "Unallocated".equalsIgnoreCase(matchedBooking.getRoomNumber()))) {
+                matchedBooking.setRoomNumber(rNumber);
+                try { bookingRepository.save(matchedBooking); } catch (Exception ignored) {}
+            }
 
             int adults = reg.getAdults() != null ? reg.getAdults() : 1;
             int children = reg.getChildren() != null ? reg.getChildren() : 0;
@@ -387,7 +529,7 @@ public class ReportService {
             DailyCheckInDTO checkInDTO = new DailyCheckInDTO();
             checkInDTO.setId(reg.getId());
             checkInDTO.setGuestName(reg.getGuestName());
-            checkInDTO.setPassportNumber(reg.getPassportNumber());
+            checkInDTO.setPassportNumber(bNumber != null && !bNumber.equals("N/A") ? bNumber : reg.getPassportNumber());
             checkInDTO.setRoomNumber(rNumber);
             checkInDTO.setRoomType(rType);
             checkInDTO.setAmount(bAmount);
@@ -407,6 +549,9 @@ public class ReportService {
         List<com.serenevilla.pms.model.Room> propertyRooms = propertyId != null ?
                 roomRepository.findByPropertyId(propertyId) :
                 roomRepository.findAll();
+        if (propertyRooms.isEmpty() && propertyId != null) {
+            propertyRooms = roomRepository.findAll();
+        }
 
         // Helper to check if a booking contains a specific room number (handles single "101" or comma-separated "101, 102, 103")
         java.util.function.BiFunction<Booking, String, Boolean> bookingHasRoom = (b, targetRoom) -> {

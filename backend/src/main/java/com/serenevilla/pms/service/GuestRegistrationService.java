@@ -268,10 +268,13 @@ public class GuestRegistrationService {
             GuestRegistration savedReg = guestRegistrationRepository.save(reg);
 
             // Find or create associated booking with smart matching (strictly excluding sub-bookings like /1N, /DISC)
+            String regCleanPass = (reg.getPassportNumber() != null) ? reg.getPassportNumber().replaceFirst("(?i)^SV-?", "").trim() : "";
             List<Booking> candidates = bookingRepository.findAll().stream()
                     .filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))
                     .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
-                              || (details.containsKey("bookingNumber") && details.get("bookingNumber") != null && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(String.valueOf(details.get("bookingNumber")).trim())))
+                              || (details.containsKey("bookingNumber") && details.get("bookingNumber") != null && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(String.valueOf(details.get("bookingNumber")).trim()))
+                              || (!regCleanPass.isEmpty() && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(regCleanPass))
+                              || (reg.getGuestName() != null && b.getGuestName() != null && reg.getGuestName().trim().equalsIgnoreCase(b.getGuestName().trim()) && reg.getCheckInDate() != null && b.getCheckInDate() != null && reg.getCheckInDate().equals(b.getCheckInDate())))
                     .sorted((a, b) -> {
                         boolean aIsReal = a.getBookingNumber() != null && (a.getBookingNumber().startsWith("D-789") || (!a.getBookingNumber().startsWith("D-10") && !a.getBookingNumber().startsWith("D-11")));
                         boolean bIsReal = b.getBookingNumber() != null && (b.getBookingNumber().startsWith("D-789") || (!b.getBookingNumber().startsWith("D-10") && !b.getBookingNumber().startsWith("D-11")));
@@ -302,11 +305,37 @@ public class GuestRegistrationService {
                     booking.setRoomType(rt);
                 }
             }
-            if (details.containsKey("room")) {
-                String rm = (String) details.get("room");
-                if (rm != null && !rm.trim().isEmpty()) {
+            if (details.containsKey("room") && details.get("room") != null) {
+                String rm = String.valueOf(details.get("room")).trim();
+                if (!rm.isEmpty() && !"Unallocated".equalsIgnoreCase(rm) && !"N/A".equalsIgnoreCase(rm)) {
                     booking.setRoomNumber(rm);
                 }
+            }
+            if (details.containsKey("roomNumber") && details.get("roomNumber") != null) {
+                String rm = String.valueOf(details.get("roomNumber")).trim();
+                if (!rm.isEmpty() && !"Unallocated".equalsIgnoreCase(rm) && !"N/A".equalsIgnoreCase(rm)) {
+                    booking.setRoomNumber(rm);
+                }
+            }
+            if (details.containsKey("allocatedRooms") && details.get("allocatedRooms") != null) {
+                try {
+                    Object ar = details.get("allocatedRooms");
+                    if (ar instanceof java.util.List) {
+                        java.util.List<?> list = (java.util.List<?>) ar;
+                        java.util.List<String> rList = new java.util.ArrayList<>();
+                        for (Object item : list) {
+                            if (item instanceof java.util.Map) {
+                                Object rn = ((java.util.Map<?, ?>) item).get("roomNumber");
+                                if (rn != null && !String.valueOf(rn).trim().isEmpty()) {
+                                    rList.add(String.valueOf(rn).trim());
+                                }
+                            }
+                        }
+                        if (!rList.isEmpty()) {
+                            booking.setRoomNumber(String.join(", ", rList));
+                        }
+                    }
+                } catch (Exception ignored) {}
             }
             if (details.containsKey("bookingType")) {
                 booking.setBookingType((String) details.get("bookingType"));

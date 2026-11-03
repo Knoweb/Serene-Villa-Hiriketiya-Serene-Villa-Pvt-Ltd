@@ -590,7 +590,9 @@ const Reports = () => {
                           </td>
                           <td className="p-2.5 text-center font-bold text-slate-800">
                             <span className="bg-slate-100 px-2 py-0.5 rounded text-[11px] font-mono border border-slate-200">
-                              {checkIn.roomNumber || 'N/A'}
+                              {checkIn.roomNumber && checkIn.roomNumber !== 'N/A' && checkIn.roomNumber !== 'Unallocated'
+                                ? (checkIn.roomNumber.toString().toLowerCase().startsWith('room') ? checkIn.roomNumber : `Room ${checkIn.roomNumber}`)
+                                : (checkIn.roomType || 'Unassigned')}
                             </span>
                           </td>
                           <td className="p-2.5 text-center">
