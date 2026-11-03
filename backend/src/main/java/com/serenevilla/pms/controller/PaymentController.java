@@ -122,6 +122,17 @@ public class PaymentController {
         payment.setExchangeRate(rate);
         payment.setAmountLkr(payment.getAmountInCurrency() * rate);
         Payment saved = paymentRepository.save(payment);
+
+        if (saved.getReceiptNumber() == null || saved.getReceiptNumber().trim().isEmpty() || saved.getReceiptNumber().startsWith("REC-") || !saved.getReceiptNumber().matches("^\\d{2}-\\d{3,}$")) {
+            try {
+                com.serenevilla.pms.model.Receipt r = receiptService.getOrCreateAdvanceReceipt(saved);
+                if (r != null && r.getReceiptNumber() != null) {
+                    saved.setReceiptNumber(r.getReceiptNumber());
+                }
+            } catch (Exception e) {
+                System.err.println("Note: receipt generation on record payment: " + e.getMessage());
+            }
+        }
         
         boolean isFinal = "FINAL".equalsIgnoreCase(saved.getPaymentType()) || !Boolean.TRUE.equals(saved.getIsAdvancePayment());
         syncBookingAndRegistrationStatus(saved.getBookingId(), saved.getGuestRegistrationId(), isFinal);

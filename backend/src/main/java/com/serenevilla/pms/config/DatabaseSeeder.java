@@ -1,5 +1,6 @@
 package com.serenevilla.pms.config;
 
+import com.serenevilla.pms.model.Payment;
 import com.serenevilla.pms.model.Receipt;
 import com.serenevilla.pms.model.Role;
 import com.serenevilla.pms.model.User;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class DatabaseSeeder implements CommandLineRunner {
@@ -67,7 +69,16 @@ public class DatabaseSeeder implements CommandLineRunner {
             if (!oldReceipts.isEmpty()) {
                 System.out.println(">>> Migrating " + oldReceipts.size() + " legacy REC- receipt numbers to MM-XXX format... <<<");
                 for (Receipt r : oldReceipts) {
-                    LocalDateTime date = r.getGeneratedAt() != null ? r.getGeneratedAt() : LocalDateTime.now();
+                    LocalDateTime date = r.getGeneratedAt();
+                    if (date == null && r.getPaymentId() != null) {
+                        Payment p = paymentRepository.findById(r.getPaymentId()).orElse(null);
+                        if (p != null) {
+                            date = p.getCreatedAt() != null ? p.getCreatedAt() : (p.getPaymentDate() != null ? p.getPaymentDate().atStartOfDay() : null);
+                        }
+                    }
+                    if (date == null) {
+                        date = LocalDateTime.now();
+                    }
                     String newNumber = receiptService.generateNextReceiptNumber(date);
                     String oldNumber = r.getReceiptNumber();
                     r.setReceiptNumber(newNumber);
@@ -87,6 +98,38 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
         } catch (Exception e) {
             System.err.println("Receipt migration note: " + e.getMessage());
+        }
+
+        // Migration: Ensure ALL payments have an official MM-XXX receipt number and Receipt record
+        try {
+            List<Payment> allPayments = paymentRepository.findAll().stream()
+                .sorted(Comparator.comparing(Payment::getId))
+                .toList();
+
+            int updatedCount = 0;
+            for (Payment p : allPayments) {
+                String rNum = p.getReceiptNumber();
+                boolean needsReceipt = (rNum == null || rNum.trim().isEmpty() || rNum.startsWith("REC-") || !rNum.matches("^\\d{2}-\\d{3,}$"));
+
+                Optional<Receipt> receiptOpt = receiptRepository.findByPaymentId(p.getId());
+                if (!receiptOpt.isPresent() || needsReceipt) {
+                    try {
+                        Receipt receipt = receiptService.getOrCreateAdvanceReceipt(p);
+                        if (receipt != null && receipt.getReceiptNumber() != null) {
+                            p.setReceiptNumber(receipt.getReceiptNumber());
+                            paymentRepository.save(p);
+                            updatedCount++;
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("Could not create receipt for payment #" + p.getId() + ": " + ex.getMessage());
+                    }
+                }
+            }
+            if (updatedCount > 0) {
+                System.out.println(">>> Verified & migrated " + updatedCount + " payments to official MM-XXX receipt numbers <<<");
+            }
+        } catch (Exception e) {
+            System.err.println("Payment receipt migration note: " + e.getMessage());
         }
 
         // Seed default Admin user if it doesn't exist

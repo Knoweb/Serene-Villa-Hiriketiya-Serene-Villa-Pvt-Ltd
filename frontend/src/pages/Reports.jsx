@@ -294,7 +294,7 @@ const Reports = () => {
     const csvRows = [
       headers.join(','),
       ...data.rows.map(row => [
-        `"${row.invoiceNumber}"`,
+        `"${row.invoiceNumber || row.receiptNumber || row.referenceNumber || (row.bookingNumber ? `INV-${row.bookingNumber}` : 'INV-001')}"`,
         `"${row.bookingNumber}"`,
         `"${row.guestName}"`,
         `"${row.roomName}"`,
@@ -697,7 +697,7 @@ const Reports = () => {
                       {(data.rows || []).map((row, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/50 transition">
                           <td className="p-2 font-bold text-slate-900 font-mono text-[10px] break-words">
-                            {row.invoiceNumber}
+                            {row.invoiceNumber || row.receiptNumber || row.referenceNumber || (row.bookingNumber ? `INV-${row.bookingNumber}` : 'INV-001')}
                           </td>
                           <td className="p-2 text-slate-700 font-mono text-[10px] break-words">
                             <div>

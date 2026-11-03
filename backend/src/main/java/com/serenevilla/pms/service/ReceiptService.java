@@ -51,6 +51,13 @@ public class ReceiptService {
             }
         }
 
+        List<String> prefixReceipts = receiptRepository.findReceiptNumbersByPrefix(prefixPattern);
+        if (prefixReceipts != null) {
+            for (String num : prefixReceipts) {
+                maxSeq = Math.max(maxSeq, extractSequence(num, prefix));
+            }
+        }
+
         List<String> paymentReceiptNumbers = paymentRepository.findReceiptNumbersByPrefix(prefixPattern);
         if (paymentReceiptNumbers != null) {
             for (String num : paymentReceiptNumbers) {
@@ -93,23 +100,40 @@ public class ReceiptService {
             throw new IllegalArgumentException("Payment and payment ID must not be null");
         }
 
+        LocalDateTime targetDt = payment.getCreatedAt() != null 
+                ? payment.getCreatedAt() 
+                : (payment.getPaymentDate() != null ? payment.getPaymentDate().atStartOfDay() : LocalDateTime.now());
+
         Optional<Receipt> existingOpt = receiptRepository.findByPaymentId(payment.getId());
         if (existingOpt.isPresent()) {
             Receipt existing = existingOpt.get();
-            // If legacy receipt number starts with REC-, migrate to MM-XXX
-            if (existing.getReceiptNumber() != null && existing.getReceiptNumber().startsWith("REC-")) {
-                LocalDateTime dt = existing.getGeneratedAt() != null ? existing.getGeneratedAt() : LocalDateTime.now();
+            String currentNum = existing.getReceiptNumber();
+            if (currentNum == null || currentNum.trim().isEmpty() || currentNum.startsWith("REC-") || !currentNum.matches("^\\d{2}-\\d{3,}$")) {
+                LocalDateTime dt = existing.getGeneratedAt() != null ? existing.getGeneratedAt() : targetDt;
                 String newNumber = generateNextReceiptNumber(dt);
                 existing.setReceiptNumber(newNumber);
+                if (existing.getGeneratedAt() == null) {
+                    existing.setGeneratedAt(targetDt);
+                }
                 existing = receiptRepository.save(existing);
                 payment.setReceiptNumber(newNumber);
                 paymentRepository.save(payment);
+            } else {
+                if (payment.getReceiptNumber() == null || !payment.getReceiptNumber().equals(currentNum)) {
+                    payment.setReceiptNumber(currentNum);
+                    paymentRepository.save(payment);
+                }
             }
             return existing;
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        String receiptNumber = generateNextReceiptNumber(now);
+        String receiptNumber = payment.getReceiptNumber();
+        if (receiptNumber != null) {
+            receiptNumber = receiptNumber.trim();
+        }
+        if (receiptNumber == null || receiptNumber.isEmpty() || receiptNumber.startsWith("REC-") || !receiptNumber.matches("^\\d{2}-\\d{3,}$")) {
+            receiptNumber = generateNextReceiptNumber(targetDt);
+        }
 
         Receipt newReceipt = new Receipt();
         newReceipt.setPaymentId(payment.getId());
@@ -117,7 +141,7 @@ public class ReceiptService {
         newReceipt.setPropertyId(payment.getPropertyId() != null ? payment.getPropertyId() : 1L);
         newReceipt.setReceiptType("ADVANCE");
         newReceipt.setReceiptNumber(receiptNumber);
-        newReceipt.setGeneratedAt(now);
+        newReceipt.setGeneratedAt(targetDt);
         newReceipt.setGeneratedBy(payment.getCreatedBy() != null ? payment.getCreatedBy() : "Front Office");
 
         Receipt saved = receiptRepository.save(newReceipt);
@@ -136,3 +160,4 @@ public class ReceiptService {
         return paymentRepository.findById(paymentId).map(this::getOrCreateAdvanceReceipt);
     }
 }
+

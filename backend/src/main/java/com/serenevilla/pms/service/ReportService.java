@@ -36,6 +36,12 @@ public class ReportService {
     @Autowired
     private com.serenevilla.pms.repository.RoomRepository roomRepository;
 
+    @Autowired
+    private com.serenevilla.pms.repository.ReceiptRepository receiptRepository;
+
+    @Autowired
+    private ReceiptService receiptService;
+
     public ReportSummaryDTO generateReport(LocalDate startDate, LocalDate endDate, Long propertyId) {
         // Fetch all data
         List<GuestRegistration> allRegistrations = guestRegistrationRepository.findAll();
@@ -280,8 +286,34 @@ public class ReportService {
                 rowCash = pAmountLkr;
             }
 
+            String invoiceNum = payment.getReceiptNumber();
+            if (invoiceNum != null) {
+                invoiceNum = invoiceNum.trim();
+            }
+            if (invoiceNum == null || invoiceNum.isEmpty() || invoiceNum.startsWith("REC-") || !invoiceNum.matches("^\\d{2}-\\d{3,}$")) {
+                Optional<com.serenevilla.pms.model.Receipt> receiptOpt = receiptRepository.findByPaymentId(payment.getId());
+                if (receiptOpt.isPresent() && receiptOpt.get().getReceiptNumber() != null && !receiptOpt.get().getReceiptNumber().trim().isEmpty() && !receiptOpt.get().getReceiptNumber().startsWith("REC-")) {
+                    invoiceNum = receiptOpt.get().getReceiptNumber().trim();
+                    payment.setReceiptNumber(invoiceNum);
+                    try { paymentRepository.save(payment); } catch (Exception ignored) {}
+                } else {
+                    try {
+                        com.serenevilla.pms.model.Receipt r = receiptService.getOrCreateAdvanceReceipt(payment);
+                        if (r != null && r.getReceiptNumber() != null && !r.getReceiptNumber().trim().isEmpty()) {
+                            invoiceNum = r.getReceiptNumber().trim();
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            if (invoiceNum == null || invoiceNum.isEmpty()) {
+                int m = (payment.getCreatedAt() != null) ? payment.getCreatedAt().getMonthValue() : (payment.getPaymentDate() != null ? payment.getPaymentDate().getMonthValue() : LocalDate.now().getMonthValue());
+                long pId = payment.getId() != null ? payment.getId() : 1L;
+                invoiceNum = String.format("%02d-%03d", m, (pId % 1000));
+            }
+
             ReportRowDTO row = new ReportRowDTO();
-            row.setInvoiceNumber(payment.getReceiptNumber() != null ? payment.getReceiptNumber() : "INV-" + payment.getId());
+            row.setInvoiceNumber(invoiceNum);
             row.setBookingNumber(booking.getBookingNumber());
             row.setGuestName(guestName);
             row.setPassportNumber(passportNumber);

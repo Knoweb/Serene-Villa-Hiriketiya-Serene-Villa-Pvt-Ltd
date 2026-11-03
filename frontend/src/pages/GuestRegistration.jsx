@@ -432,7 +432,7 @@ const GuestRegistration = () => {
           amountInCurrency: payAmt,
           paymentMethod: formData.paymentMethod,
           referenceNumber: formData.referenceNumber || `REF-${Date.now().toString().slice(-6)}`,
-          receiptNumber: formData.referenceNumber || null,
+          receiptNumber: (formData.referenceNumber && /^\d{2}-\d{3,}$/.test(formData.referenceNumber.trim())) ? formData.referenceNumber.trim() : null,
           remarks: formData.remarks || '',
           createdBy: 'Public QR Code',
           slipPath: paymentSlipBase64 || '',

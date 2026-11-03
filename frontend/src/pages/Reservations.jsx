@@ -1925,8 +1925,8 @@ const Reservations = () => {
       amountLkr: convertedLkr,
       amountInCurrency: netAmount,
       paymentMethod: paymentForm.paymentMethod,
-      referenceNumber: paymentForm.referenceNumber,
-      receiptNumber: paymentForm.referenceNumber,
+      referenceNumber: paymentForm.referenceNumber || null,
+      receiptNumber: (paymentForm.referenceNumber && /^\d{2}-\d{3,}$/.test(paymentForm.referenceNumber.trim())) ? paymentForm.referenceNumber.trim() : null,
       remarks: (() => {
         let r = paymentForm.remarks || '';
         if (paymentForm.paymentMethod === 'Card' && parseFloat(paymentForm.cardFee) > 0) {
