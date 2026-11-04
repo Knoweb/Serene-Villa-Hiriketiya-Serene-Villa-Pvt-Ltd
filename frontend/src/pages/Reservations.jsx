@@ -1333,8 +1333,6 @@ const Reservations = () => {
     });
     fetchAdvancePayments(b.id);
   };
-    setBookingSuccess(false);
-  };
 
   const handlePreviewDraftSlip = () => {
     if (!selectedReg) return;
