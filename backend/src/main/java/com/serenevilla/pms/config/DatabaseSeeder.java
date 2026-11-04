@@ -143,72 +143,41 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.err.println("Payment receipt migration note: " + e.getMessage());
         }
 
-        // Migration: Link unlinked bookings to registrations, heal missing room numbers, and hide superseded drafts
+        // Safe heal: Ensure registrations are visible and heal missing room numbers from roomPrices JSON
         try {
-            List<Booking> allB = bookingRepository.findAll();
-            List<GuestRegistration> allG = guestRegistrationRepository.findAll();
-
-            int healedCount = 0;
-            for (Booking b : allB) {
-                // If roomNumber is missing or unallocated, resolve from roomPrices
-                if (b.getRoomNumber() == null || b.getRoomNumber().trim().isEmpty() || "Unallocated".equalsIgnoreCase(b.getRoomNumber().trim()) || "N/A".equalsIgnoreCase(b.getRoomNumber().trim())) {
-                    String resolvedRoom = ReportService.extractRoomNumber(b);
-                    if (!"N/A".equalsIgnoreCase(resolvedRoom)) {
-                        b.setRoomNumber(resolvedRoom);
-                        bookingRepository.save(b);
-                        healedCount++;
+            if (bookingRepository != null) {
+                List<Booking> allB = bookingRepository.findAll();
+                int healedCount = 0;
+                for (Booking b : allB) {
+                    if (b.getRoomNumber() == null || b.getRoomNumber().trim().isEmpty() || "Unallocated".equalsIgnoreCase(b.getRoomNumber().trim()) || "N/A".equalsIgnoreCase(b.getRoomNumber().trim())) {
+                        String resolvedRoom = ReportService.extractRoomNumber(b);
+                        if (!"N/A".equalsIgnoreCase(resolvedRoom)) {
+                            b.setRoomNumber(resolvedRoom);
+                            bookingRepository.save(b);
+                            healedCount++;
+                        }
                     }
                 }
-
-                // If guestRegistrationId is null, link to matching registration
-                if (b.getGuestRegistrationId() == null) {
-                    GuestRegistration matched = allG.stream()
-                            .filter(g -> {
-                                String cleanPass = g.getPassportNumber() != null ? g.getPassportNumber().replaceFirst("(?i)^SV-?", "").trim() : "";
-                                if (b.getBookingNumber() != null && cleanPass.equalsIgnoreCase(b.getBookingNumber().trim())) return true;
-                                if (g.getGuestName() != null && b.getGuestName() != null &&
-                                    g.getGuestName().trim().equalsIgnoreCase(b.getGuestName().trim()) &&
-                                    g.getCheckInDate() != null && b.getCheckInDate() != null &&
-                                    g.getCheckInDate().equals(b.getCheckInDate())) return true;
-                                return false;
-                            })
-                            .findFirst()
-                            .orElse(null);
-
-                    if (matched != null) {
-                        b.setGuestRegistrationId(matched.getId());
-                        bookingRepository.save(b);
-                        healedCount++;
-                    }
+                if (healedCount > 0) {
+                    System.out.println(">>> Healed " + healedCount + " booking room allocations <<<");
                 }
             }
-
-            // Also hide orphaned/superseded SV- draft registrations if a real online registration exists
-            for (GuestRegistration draft : allG) {
-                if (draft.getPassportNumber() != null && draft.getPassportNumber().startsWith("SV-")) {
-                    String cleanPass = draft.getPassportNumber().replaceFirst("(?i)^SV-?", "").trim().toLowerCase();
-                    boolean hasReal = allG.stream().anyMatch(real -> 
-                        real.getId() != null && !real.getId().equals(draft.getId()) &&
-                        real.getPassportNumber() != null && !real.getPassportNumber().startsWith("SV-") &&
-                        ((!cleanPass.isEmpty() && cleanPass.equalsIgnoreCase(real.getPassportNumber().trim())) ||
-                         (real.getGuestName() != null && draft.getGuestName() != null && 
-                          real.getGuestName().trim().equalsIgnoreCase(draft.getGuestName().trim()) &&
-                          real.getCheckInDate() != null && draft.getCheckInDate() != null &&
-                          real.getCheckInDate().equals(draft.getCheckInDate())))
-                    );
-                    if (hasReal && (draft.getIsHiddenFromFrontOffice() == null || !draft.getIsHiddenFromFrontOffice())) {
-                        draft.setHiddenFromFrontOffice(true);
-                        guestRegistrationRepository.save(draft);
-                        healedCount++;
+            if (guestRegistrationRepository != null) {
+                List<GuestRegistration> allG = guestRegistrationRepository.findAll();
+                int unhidden = 0;
+                for (GuestRegistration g : allG) {
+                    if (Boolean.TRUE.equals(g.getIsHiddenFromFrontOffice())) {
+                        g.setHiddenFromFrontOffice(false);
+                        guestRegistrationRepository.save(g);
+                        unhidden++;
                     }
                 }
-            }
-
-            if (healedCount > 0) {
-                System.out.println(">>> Healed " + healedCount + " booking room allocations and registration links <<<");
+                if (unhidden > 0) {
+                    System.out.println(">>> Restored visibility for " + unhidden + " registrations <<<");
+                }
             }
         } catch (Exception e) {
-            System.err.println("Booking-registration healing note: " + e.getMessage());
+            System.err.println("Booking room & registration visibility check note: " + e.getMessage());
         }
 
         // Seed default Admin user if it doesn't exist

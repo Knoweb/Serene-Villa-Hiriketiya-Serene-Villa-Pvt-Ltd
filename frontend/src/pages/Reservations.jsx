@@ -243,6 +243,74 @@ const Reservations = () => {
   const [bookings, setBookings] = useState([]);
   const [allPayments, setAllPayments] = useState([]);
   const [selectedReg, setSelectedReg] = useState(null);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
+
+  // Helper to reliably find all bookings for a registration/guest
+  const getAllBookingsForReg = (reg) => {
+    if (!reg) return [];
+    const cleanPassport = (reg.passportNumber || '').replace(/^SV-?/i, '').trim().toLowerCase();
+    const cleanRegNum = (reg.bookingNumber || '').trim().toLowerCase();
+    const cleanGuestName = (reg.guestName || '')
+      .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+      .replace(/^mr\s*\/\s*mrs\s*/i, '')
+      .trim().toLowerCase();
+    const cleanPhone = (reg.whatsappNumber || reg.whatsAppNumber || reg.phone || '').replace(/\D/g, '');
+    const cleanEmail = (reg.email || '').trim().toLowerCase();
+
+    const matched = [];
+    const seenBookingIds = new Set();
+
+    (bookings || []).forEach(b => {
+      if (!b || !b.id || seenBookingIds.has(b.id)) return;
+      const bNum = (b.bookingNumber || '').trim().toLowerCase();
+      const bName = (b.guestName || '')
+        .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+        .replace(/^mr\s*\/\s*mrs\s*/i, '')
+        .trim().toLowerCase();
+      const bEmail = (b.email || '').trim().toLowerCase();
+      
+      const isDirectLink = b.guestRegistrationId && b.guestRegistrationId === reg.id;
+      const isNumMatch = bNum && (bNum === cleanRegNum || bNum === cleanPassport);
+      const isVerifiedGuestMatch = cleanGuestName && bName && cleanGuestName === bName && (
+        (cleanEmail && bEmail && cleanEmail === bEmail) ||
+        (cleanPhone && cleanPhone.length >= 6)
+      );
+
+      if (isDirectLink || isNumMatch || isVerifiedGuestMatch) {
+        seenBookingIds.add(b.id);
+        matched.push(b);
+      }
+    });
+
+    if (cleanPhone && cleanPhone.length >= 6) {
+      const siblingRegs = (registrations || []).filter(r => {
+        if (!r || r.id === reg.id) return false;
+        const rPhone = (r.whatsappNumber || r.whatsAppNumber || r.phone || '').replace(/\D/g, '');
+        const rName = (r.guestName || '').replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '').trim().toLowerCase();
+        return rPhone === cleanPhone && rName === cleanGuestName;
+      });
+
+      siblingRegs.forEach(sib => {
+        const sibPass = (sib.passportNumber || '').replace(/^SV-?/i, '').trim().toLowerCase();
+        const sibNum = (sib.bookingNumber || '').trim().toLowerCase();
+        (bookings || []).forEach(b => {
+          if (!b || !b.id || seenBookingIds.has(b.id)) return;
+          const bNum = (b.bookingNumber || '').trim().toLowerCase();
+          if (b.guestRegistrationId === sib.id || (bNum && (bNum === sibPass || bNum === sibNum))) {
+            seenBookingIds.add(b.id);
+            matched.push(b);
+          }
+        });
+      });
+    }
+
+    return matched.sort((a, b) => {
+      const d1 = a.checkInDate || '';
+      const d2 = b.checkInDate || '';
+      if (d1 && d2) return d1.localeCompare(d2);
+      return (a.id || 0) - (b.id || 0);
+    });
+  };
 
   // Cross-reference booking for row display with candidate ranking (prioritizes real manual reservations over auto-drafts)
   const getBookingForReg = (regId) => {
@@ -851,7 +919,7 @@ const Reservations = () => {
     try {
       // Fetch registrations for Property 1
       const regRes = await fetch(
-        `${API_BASE}/guest-registrations?propertyId=1&search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&source=Staff&page=${page}&size=${pageSize}`
+        `${API_BASE}/guest-registrations?propertyId=1&search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&page=${page}&size=${pageSize}`
       );
       if (!regRes.ok) throw new Error('Failed to fetch registrations');
       const regData = await regRes.json();
@@ -1115,7 +1183,7 @@ const Reservations = () => {
   };
 
   // Select Guest and Populate Booking Form
-  const handleSelectGuest = async (reg) => {
+  const handleSelectGuest = async (reg, bookingId = null) => {
     setSelectedReg(reg);
     setIsEditingBooking(false);
 
@@ -1130,34 +1198,39 @@ const Reservations = () => {
       console.error('Error fetching full registration details in reservations:', err);
     }
 
-    const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
-    const primaryCandidate = allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && !b.bookingNumber?.includes('-DISC') && !b.bookingNumber?.includes('1N') && !b.bookingNumber?.includes('1P') && (parseFloat(b.totalAmount || b.amount || 0) >= 0))
-      || allRelatedBookings.find(b => (!b.bookingNumber || !b.bookingNumber.includes('/')) && !b.bookingNumber?.includes('-DISC') && !b.bookingNumber?.includes('1N') && !b.bookingNumber?.includes('1P'));
-    let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
+    const allRelatedBookings = getAllBookingsForReg(reg);
+    let chosenBooking = null;
+    if (bookingId) {
+      chosenBooking = allRelatedBookings.find(b => b.id === bookingId);
+    }
+    if (!chosenBooking) {
+      chosenBooking = allRelatedBookings[0] || getBookingForReg(reg.id);
+    }
     
-    if (associatedBooking) {
-      const bCurr = getBookingCurrency(associatedBooking);
+    if (chosenBooking) {
+      setSelectedBookingId(chosenBooking.id);
+      const bCurr = getBookingCurrency(chosenBooking);
       let defaultRate = 1;
       if (bCurr === 'USD') defaultRate = 300;
       else if (bCurr === 'EUR') defaultRate = 325;
       else if (bCurr === 'AUD') defaultRate = 220;
       else if (bCurr === 'LKR') defaultRate = 1;
 
-      const initialAllocatedRooms = getRoomsForBooking(associatedBooking);
+      const initialAllocatedRooms = getRoomsForBooking(chosenBooking);
       setSidebarAllocatedRooms(initialAllocatedRooms);
 
       setBookingForm({
-        roomType: associatedBooking.roomType || defaultRoomType,
-        room: associatedBooking.roomNumber || '',
-        bookingType: associatedBooking.bookingType || 'Direct Booking',
-        bookingNumber: associatedBooking.bookingNumber || '',
-        boardBasis: associatedBooking.boardBasis || 'Room Only',
-        remarks: associatedBooking.remarks || '',
-        amount: associatedBooking.totalAmount || '',
-        paymentStatus: reg.paymentStatus || 'Pending',
+        roomType: chosenBooking.roomType || defaultRoomType,
+        room: chosenBooking.roomNumber || '',
+        bookingType: chosenBooking.bookingType || 'Direct Booking',
+        bookingNumber: chosenBooking.bookingNumber || '',
+        boardBasis: chosenBooking.boardBasis || 'Room Only',
+        remarks: chosenBooking.remarks || '',
+        amount: chosenBooking.totalAmount || '',
+        paymentStatus: chosenBooking.paymentStatus || reg.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: reg.checkInDate || associatedBooking.checkInDate || '',
-        checkOutDate: reg.checkOutDate || associatedBooking.checkOutDate || '',
+        checkInDate: chosenBooking.checkInDate || reg.checkInDate || '',
+        checkOutDate: chosenBooking.checkOutDate || reg.checkOutDate || '',
         whatsappNumber: reg.whatsappNumber || reg.whatsAppNumber || '',
         adults: reg.adults || 1,
         children: reg.children || 0
@@ -1165,7 +1238,7 @@ const Reservations = () => {
       setPaymentForm(prev => ({
         ...prev,
         currencyCode: bCurr,
-        exchangeRate: parseFloat(associatedBooking.exchangeRate) || defaultRate
+        exchangeRate: parseFloat(chosenBooking.exchangeRate) || defaultRate
       }));
       setBankSlipForm({
         bankKey: getBankKeyForCurrency(bCurr),
@@ -1175,8 +1248,9 @@ const Reservations = () => {
         fileName: ''
       });
       setSelectedSlipPreview(null);
-      fetchAdvancePayments(associatedBooking.id);
+      fetchAdvancePayments(chosenBooking.id);
     } else {
+      setSelectedBookingId(null);
       setSidebarAllocatedRooms([]);
       // Default blank/pre-filled values fallback
       setBookingForm({
@@ -1210,6 +1284,55 @@ const Reservations = () => {
       setSelectedSlipPreview(null);
       setAdvancePayments([]);
     }
+    setBookingSuccess(false);
+  };
+
+  const handleSwitchBooking = (b) => {
+    if (!b) return;
+    setSelectedBookingId(b.id);
+    setIsEditingBooking(false);
+    setBookingSuccess(false);
+
+    const bCurr = getBookingCurrency(b);
+    let defaultRate = 1;
+    if (bCurr === 'USD') defaultRate = 300;
+    else if (bCurr === 'EUR') defaultRate = 325;
+    else if (bCurr === 'AUD') defaultRate = 220;
+    else if (bCurr === 'LKR') defaultRate = 1;
+
+    const initialAllocatedRooms = getRoomsForBooking(b);
+    setSidebarAllocatedRooms(initialAllocatedRooms);
+
+    setBookingForm({
+      roomType: b.roomType || defaultRoomType,
+      room: b.roomNumber || '',
+      bookingType: b.bookingType || 'Direct Booking',
+      bookingNumber: b.bookingNumber || '',
+      boardBasis: b.boardBasis || 'Room Only',
+      remarks: b.remarks || '',
+      amount: b.totalAmount || '',
+      paymentStatus: b.paymentStatus || selectedReg?.paymentStatus || 'Pending',
+      registrationStatus: selectedReg?.registrationStatus || 'Pending',
+      checkInDate: b.checkInDate || selectedReg?.checkInDate || '',
+      checkOutDate: b.checkOutDate || selectedReg?.checkOutDate || '',
+      whatsappNumber: selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || '',
+      adults: selectedReg?.adults || 1,
+      children: selectedReg?.children || 0
+    });
+    setPaymentForm(prev => ({
+      ...prev,
+      currencyCode: bCurr,
+      exchangeRate: parseFloat(b.exchangeRate) || defaultRate
+    }));
+    setBankSlipForm({
+      bankKey: getBankKeyForCurrency(bCurr),
+      paidDate: new Date().toISOString().split('T')[0],
+      paymentType: 'Advance Payment',
+      slipUrl: '',
+      fileName: ''
+    });
+    fetchAdvancePayments(b.id);
+  };
     setBookingSuccess(false);
   };
 
@@ -1751,6 +1874,7 @@ const Reservations = () => {
 
       const payload = {
         ...bookingForm,
+        bookingId: associated?.id,
         room: finalRoom,
         roomType: finalRoomType,
         amount: finalAmount,
@@ -2028,7 +2152,19 @@ const Reservations = () => {
     window.open(whatsappUrl, '_blank');
   };
 
-  const associatedBooking = selectedReg ? getBookingForReg(selectedReg.id) : null;
+  const relatedBookings = React.useMemo(() => {
+    if (!selectedReg) return [];
+    return getAllBookingsForReg(selectedReg);
+  }, [selectedReg, bookings, registrations]);
+
+  const associatedBooking = React.useMemo(() => {
+    if (!selectedReg) return null;
+    if (selectedBookingId) {
+      const found = (bookings || []).find(b => b.id === selectedBookingId);
+      if (found) return found;
+    }
+    return relatedBookings[0] || getBookingForReg(selectedReg.id);
+  }, [selectedReg, selectedBookingId, relatedBookings, bookings]);
 
   // Auto-populate remaining balance into paymentForm when associatedBooking or payments change
   useEffect(() => {
@@ -2176,7 +2312,7 @@ const Reservations = () => {
                       return (
                         <tr 
                           key={reg.id} 
-                          onClick={() => handleSelectGuest(reg)}
+                          onClick={() => handleSelectGuest(reg, booking?.id)}
                           className={`hover:bg-slate-50/20 cursor-pointer transition ${
                             isSelected ? 'bg-emerald-50/30 hover:bg-emerald-50/40' : ''
                           }`}
@@ -2336,7 +2472,7 @@ const Reservations = () => {
                                 <Download className="h-3.5 w-3.5 text-amber-700" />
                               </button>
                               <button
-                                onClick={() => handleSelectGuest(reg)}
+                                onClick={() => handleSelectGuest(reg, booking?.id)}
                                 className="inline-flex items-center py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-sm cursor-pointer"
                               >
                                 Manage
@@ -2455,6 +2591,53 @@ const Reservations = () => {
                 </p>
               </div>
 
+              {/* Multi-Reservation Selector */}
+              {relatedBookings.length > 1 && (
+                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                      <Calendar className="h-3 w-3 text-emerald-600" />
+                      Guest Reservations ({relatedBookings.length})
+                    </span>
+                    <span className="text-[9px] font-medium text-emerald-700">Click to switch</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {relatedBookings.map((b) => {
+                      const isCurrent = associatedBooking && associatedBooking.id === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => handleSwitchBooking(b)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between border ${
+                            isCurrent 
+                              ? 'bg-emerald-600 text-white font-bold border-emerald-600 shadow-sm'
+                              : 'bg-white text-slate-700 hover:bg-emerald-50 border-emerald-100 hover:border-emerald-300 cursor-pointer'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`font-mono font-bold text-xs ${isCurrent ? 'text-white' : 'text-slate-900'}`}>
+                              {b.bookingNumber}
+                            </span>
+                            <span className={`text-[10px] ${isCurrent ? 'text-emerald-100' : 'text-slate-500'}`}>
+                              {b.bookingType || 'Direct'}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-[11px] font-mono font-bold ${isCurrent ? 'text-white' : 'text-slate-800'}`}>
+                              {b.checkInDate || 'N/A'} → {b.checkOutDate || 'N/A'}
+                            </span>
+                            <span className={`block text-[9px] ${isCurrent ? 'text-emerald-100' : 'text-slate-400'}`}>
+                              {b.roomNumber ? `Room ${b.roomNumber}` : 'Unallocated'} • {b.currency || 'USD'} {Number(b.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Guest Core Details */}
               <div className="space-y-4 text-xs bg-slate-50/50 border border-slate-100/50 p-5 rounded-2xl shadow-xs">
                 <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2">Guest Information</h4>
@@ -2464,7 +2647,7 @@ const Reservations = () => {
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Reservation ID</p>
                     <p className="font-mono font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                      <FileText className="h-3.5 w-3.5 text-slate-400" /> {(selectedReg.passportNumber || '').replace(/^SV-?/i, '')}
+                      <FileText className="h-3.5 w-3.5 text-slate-400" /> {associatedBooking?.bookingNumber || (selectedReg.passportNumber || '').replace(/^SV-?/i, '')}
                     </p>
                   </div>
 
@@ -4029,7 +4212,9 @@ const Reservations = () => {
 
       {/* Receipt Modal */}
       {showReceiptModal && receiptData && selectedPaymentForReceipt && (() => {
-        const associatedBooking = getBookingForReg(selectedReg.id);
+        const associatedBooking = bookings.find(b => b.id === selectedPaymentForReceipt.bookingId) 
+          || (selectedBookingId ? bookings.find(b => b.id === selectedBookingId) : null)
+          || getBookingForReg(selectedReg.id);
         if (!associatedBooking) return null;
         
         const remMatch = (selectedPaymentForReceipt.remarks || '').toUpperCase();
@@ -4780,7 +4965,7 @@ const Reservations = () => {
 
       {/* Create Advance Request Modal */}
       {showAdvanceModal && selectedReg && (() => {
-        const associatedB = getBookingForReg(selectedReg.id);
+        const associatedB = (selectedBookingId ? bookings.find(b => b.id === selectedBookingId) : null) || getBookingForReg(selectedReg.id);
 
         const handleDownloadAdvancePDF = async () => {
           const element = advancePrintRef.current;

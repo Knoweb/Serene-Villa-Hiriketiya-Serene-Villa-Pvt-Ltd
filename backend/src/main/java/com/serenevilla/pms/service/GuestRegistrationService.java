@@ -267,24 +267,50 @@ public class GuestRegistrationService {
 
             GuestRegistration savedReg = guestRegistrationRepository.save(reg);
 
-            // Find or create associated booking with smart matching (strictly excluding sub-bookings like /1N, /DISC)
-            String regCleanPass = (reg.getPassportNumber() != null) ? reg.getPassportNumber().replaceFirst("(?i)^SV-?", "").trim() : "";
-            List<Booking> candidates = bookingRepository.findAll().stream()
-                    .filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))
-                    .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
-                              || (details.containsKey("bookingNumber") && details.get("bookingNumber") != null && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(String.valueOf(details.get("bookingNumber")).trim()))
-                              || (!regCleanPass.isEmpty() && b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(regCleanPass))
-                              || (reg.getGuestName() != null && b.getGuestName() != null && reg.getGuestName().trim().equalsIgnoreCase(b.getGuestName().trim()) && reg.getCheckInDate() != null && b.getCheckInDate() != null && reg.getCheckInDate().equals(b.getCheckInDate())))
-                    .sorted((a, b) -> {
-                        boolean aIsReal = a.getBookingNumber() != null && (a.getBookingNumber().startsWith("D-789") || (!a.getBookingNumber().startsWith("D-10") && !a.getBookingNumber().startsWith("D-11")));
-                        boolean bIsReal = b.getBookingNumber() != null && (b.getBookingNumber().startsWith("D-789") || (!b.getBookingNumber().startsWith("D-10") && !b.getBookingNumber().startsWith("D-11")));
-                        if (aIsReal && !bIsReal) return -1;
-                        if (!aIsReal && bIsReal) return 1;
-                        return (int) (b.getId() - a.getId());
-                    })
-                    .toList();
+            // Find or create associated booking with targeted matching by ID/bookingNumber first to avoid cross-over
+            Booking booking = null;
+            if (details.containsKey("bookingId") && details.get("bookingId") != null) {
+                try {
+                    Long targetBId = Long.parseLong(String.valueOf(details.get("bookingId")).trim());
+                    booking = bookingRepository.findById(targetBId).orElse(null);
+                } catch (Exception ignored) {}
+            }
 
-            Booking booking = candidates.isEmpty() ? null : candidates.get(0);
+            if (booking == null && details.containsKey("bookingNumber") && details.get("bookingNumber") != null) {
+                String targetBNum = String.valueOf(details.get("bookingNumber")).trim();
+                if (!targetBNum.isEmpty()) {
+                    booking = bookingRepository.findAll().stream()
+                            .filter(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(targetBNum)
+                                      && (savedReg.getPropertyId() == null || b.getPropertyId() == null || b.getPropertyId().equals(savedReg.getPropertyId())))
+                            .findFirst().orElse(null);
+                }
+            }
+
+            String regCleanPass = (reg.getPassportNumber() != null) ? reg.getPassportNumber().replaceFirst("(?i)^SV-?", "").trim() : "";
+            if (booking == null && !regCleanPass.isEmpty()) {
+                booking = bookingRepository.findAll().stream()
+                        .filter(b -> b.getBookingNumber() != null && b.getBookingNumber().equalsIgnoreCase(regCleanPass)
+                                  && (savedReg.getPropertyId() == null || b.getPropertyId() == null || b.getPropertyId().equals(savedReg.getPropertyId())))
+                        .findFirst().orElse(null);
+            }
+
+            if (booking == null) {
+                List<Booking> candidates = bookingRepository.findAll().stream()
+                        .filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))
+                        .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
+                                  || (reg.getGuestName() != null && b.getGuestName() != null && reg.getGuestName().trim().equalsIgnoreCase(b.getGuestName().trim()) && reg.getCheckInDate() != null && b.getCheckInDate() != null && reg.getCheckInDate().equals(b.getCheckInDate())))
+                        .sorted((a, b) -> {
+                            boolean aIsReal = a.getBookingNumber() != null && (a.getBookingNumber().startsWith("D-789") || (!a.getBookingNumber().startsWith("D-10") && !a.getBookingNumber().startsWith("D-11")));
+                            boolean bIsReal = b.getBookingNumber() != null && (b.getBookingNumber().startsWith("D-789") || (!b.getBookingNumber().startsWith("D-10") && !b.getBookingNumber().startsWith("D-11")));
+                            if (aIsReal && !bIsReal) return -1;
+                            if (!aIsReal && bIsReal) return 1;
+                            return (int) (b.getId() - a.getId());
+                        })
+                        .toList();
+                if (!candidates.isEmpty()) {
+                    booking = candidates.get(0);
+                }
+            }
             if (booking == null) {
                 booking = new Booking();
                 booking.setStatus("Confirmed");

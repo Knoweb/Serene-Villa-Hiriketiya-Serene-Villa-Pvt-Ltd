@@ -239,6 +239,74 @@ const Registrations = () => {
   const [bookings, setBookings] = useState([]);
   const [allPayments, setAllPayments] = useState([]);
   const [selectedReg, setSelectedReg] = useState(null);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
+
+  // Helper to reliably find all bookings for a registration/guest
+  const getAllBookingsForReg = (reg) => {
+    if (!reg) return [];
+    const cleanPassport = (reg.passportNumber || '').replace(/^SV-?/i, '').trim().toLowerCase();
+    const cleanRegNum = (reg.bookingNumber || '').trim().toLowerCase();
+    const cleanGuestName = (reg.guestName || '')
+      .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+      .replace(/^mr\s*\/\s*mrs\s*/i, '')
+      .trim().toLowerCase();
+    const cleanPhone = (reg.whatsappNumber || reg.whatsAppNumber || reg.phone || '').replace(/\D/g, '');
+    const cleanEmail = (reg.email || '').trim().toLowerCase();
+
+    const matched = [];
+    const seenBookingIds = new Set();
+
+    (bookings || []).forEach(b => {
+      if (!b || !b.id || seenBookingIds.has(b.id)) return;
+      const bNum = (b.bookingNumber || '').trim().toLowerCase();
+      const bName = (b.guestName || '')
+        .replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '')
+        .replace(/^mr\s*\/\s*mrs\s*/i, '')
+        .trim().toLowerCase();
+      const bEmail = (b.email || '').trim().toLowerCase();
+      
+      const isDirectLink = b.guestRegistrationId && b.guestRegistrationId === reg.id;
+      const isNumMatch = bNum && (bNum === cleanRegNum || bNum === cleanPassport);
+      const isVerifiedGuestMatch = cleanGuestName && bName && cleanGuestName === bName && (
+        (cleanEmail && bEmail && cleanEmail === bEmail) ||
+        (cleanPhone && cleanPhone.length >= 6)
+      );
+
+      if (isDirectLink || isNumMatch || isVerifiedGuestMatch) {
+        seenBookingIds.add(b.id);
+        matched.push(b);
+      }
+    });
+
+    if (cleanPhone && cleanPhone.length >= 6) {
+      const siblingRegs = (registrations || []).filter(r => {
+        if (!r || r.id === reg.id) return false;
+        const rPhone = (r.whatsappNumber || r.whatsAppNumber || r.phone || '').replace(/\D/g, '');
+        const rName = (r.guestName || '').replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '').trim().toLowerCase();
+        return rPhone === cleanPhone && rName === cleanGuestName;
+      });
+
+      siblingRegs.forEach(sib => {
+        const sibPass = (sib.passportNumber || '').replace(/^SV-?/i, '').trim().toLowerCase();
+        const sibNum = (sib.bookingNumber || '').trim().toLowerCase();
+        (bookings || []).forEach(b => {
+          if (!b || !b.id || seenBookingIds.has(b.id)) return;
+          const bNum = (b.bookingNumber || '').trim().toLowerCase();
+          if (b.guestRegistrationId === sib.id || (bNum && (bNum === sibPass || bNum === sibNum))) {
+            seenBookingIds.add(b.id);
+            matched.push(b);
+          }
+        });
+      });
+    }
+
+    return matched.sort((a, b) => {
+      const d1 = a.checkInDate || '';
+      const d2 = b.checkInDate || '';
+      if (d1 && d2) return d1.localeCompare(d2);
+      return (a.id || 0) - (b.id || 0);
+    });
+  };
 
   // Cross-reference booking for row display with candidate ranking (prioritizes real manual reservations over auto-drafts)
   const getBookingForReg = (regId) => {
@@ -982,7 +1050,7 @@ const Registrations = () => {
   };
 
   // Select Guest and Populate Booking Form
-  const handleSelectGuest = async (reg) => {
+  const handleSelectGuest = async (reg, bookingId = null) => {
     setSelectedReg(reg);
     setSelectedSlipPreview(null);
     setBankSlipForm({
@@ -1004,36 +1072,42 @@ const Registrations = () => {
       console.error('Error fetching full registration details:', err);
     }
     
-    const allRelatedBookings = bookings.filter(b => b.guestRegistrationId === reg.id);
-    const primaryCandidate = allRelatedBookings.find(b => b.bookingNumber && !b.bookingNumber.includes('/')) 
-      || allRelatedBookings.find(b => !b.bookingNumber || !b.bookingNumber.includes('/'));
-    let associatedBooking = primaryCandidate || getBookingForReg(reg.id);
+    const allRelatedBookings = getAllBookingsForReg(reg);
+    let chosenBooking = null;
+    if (bookingId) {
+      chosenBooking = allRelatedBookings.find(b => b.id === bookingId);
+    }
+    if (!chosenBooking) {
+      chosenBooking = allRelatedBookings[0] || getBookingForReg(reg.id);
+    }
     
-    if (associatedBooking) {
-      const parentAmt = (associatedBooking.totalAmount && associatedBooking.totalAmount > 0)
-        ? associatedBooking.totalAmount
+    if (chosenBooking) {
+      setSelectedBookingId(chosenBooking.id);
+      const parentAmt = (chosenBooking.totalAmount && chosenBooking.totalAmount > 0)
+        ? chosenBooking.totalAmount
         : (reg.totalAmount && reg.totalAmount > 0 ? reg.totalAmount : '');
 
-      const initialAllocatedRooms = getRoomsForBooking(associatedBooking);
+      const initialAllocatedRooms = getRoomsForBooking(chosenBooking);
       setSidebarAllocatedRooms(initialAllocatedRooms);
 
       setBookingForm({
-        roomType: associatedBooking.roomType || reg.roomType || defaultRoomType,
-        room: associatedBooking.roomNumber || reg.roomNumber || reg.room || '',
-        bookingType: associatedBooking.bookingType || 'Direct',
-        bookingNumber: associatedBooking.bookingNumber || '',
-        boardBasis: associatedBooking.boardBasis || 'Room Only',
-        remarks: associatedBooking.remarks || '',
+        roomType: chosenBooking.roomType || reg.roomType || defaultRoomType,
+        room: chosenBooking.roomNumber || reg.roomNumber || reg.room || '',
+        bookingType: chosenBooking.bookingType || 'Direct',
+        bookingNumber: chosenBooking.bookingNumber || '',
+        boardBasis: chosenBooking.boardBasis || 'Room Only',
+        remarks: chosenBooking.remarks || '',
         amount: parentAmt,
-        currencyCode: associatedBooking.currency || reg.currency || reg.currencyCode || 'USD',
-        paymentStatus: reg.paymentStatus || associatedBooking.paymentStatus || 'Pending',
+        currencyCode: chosenBooking.currency || reg.currency || reg.currencyCode || 'USD',
+        paymentStatus: reg.paymentStatus || chosenBooking.paymentStatus || 'Pending',
         registrationStatus: reg.registrationStatus || 'Pending',
-        checkInDate: formatLocalDate(associatedBooking.checkInDate || reg.checkInDate),
-        checkOutDate: formatLocalDate(associatedBooking.checkOutDate || reg.checkOutDate),
-        numberOfNights: associatedBooking.numberOfNights || reg.numberOfNights || reg.nights || 0
+        checkInDate: formatLocalDate(chosenBooking.checkInDate || reg.checkInDate),
+        checkOutDate: formatLocalDate(chosenBooking.checkOutDate || reg.checkOutDate),
+        numberOfNights: chosenBooking.numberOfNights || reg.numberOfNights || reg.nights || 0
       });
-      fetchAdvancePayments(associatedBooking.id);
+      fetchAdvancePayments(chosenBooking.id);
     } else {
+      setSelectedBookingId(null);
       // Default blank/pre-filled values fallback
       setSidebarAllocatedRooms([]);
       setBookingForm({
@@ -1054,10 +1128,10 @@ const Registrations = () => {
       setAdvancePayments([]);
     }
 
-    const guestCurrency = getBookingCurrency(associatedBooking, reg);
+    const guestCurrency = getBookingCurrency(chosenBooking, reg);
     let guestExRate = 1;
-    if (associatedBooking?.exchangeRate && parseFloat(associatedBooking.exchangeRate) > 0) {
-      guestExRate = parseFloat(associatedBooking.exchangeRate);
+    if (chosenBooking?.exchangeRate && parseFloat(chosenBooking.exchangeRate) > 0) {
+      guestExRate = parseFloat(chosenBooking.exchangeRate);
     } else if (guestCurrency === 'USD') {
       guestExRate = 300;
     } else if (guestCurrency === 'EUR') {
@@ -1078,6 +1152,57 @@ const Registrations = () => {
     }));
     setBookingSuccess(false);
     setIsEditingBooking(false);
+  };
+
+  const handleSwitchBooking = (b) => {
+    if (!b) return;
+    setSelectedBookingId(b.id);
+    setIsEditingBooking(false);
+    setBookingSuccess(false);
+
+    const parentAmt = (b.totalAmount && b.totalAmount > 0)
+      ? b.totalAmount
+      : (selectedReg?.totalAmount && selectedReg?.totalAmount > 0 ? selectedReg.totalAmount : '');
+
+    const initialAllocatedRooms = getRoomsForBooking(b);
+    setSidebarAllocatedRooms(initialAllocatedRooms);
+
+    setBookingForm({
+      roomType: b.roomType || selectedReg?.roomType || defaultRoomType,
+      room: b.roomNumber || selectedReg?.roomNumber || selectedReg?.room || '',
+      bookingType: b.bookingType || 'Direct',
+      bookingNumber: b.bookingNumber || '',
+      boardBasis: b.boardBasis || 'Room Only',
+      remarks: b.remarks || '',
+      amount: parentAmt,
+      currencyCode: b.currency || selectedReg?.currency || selectedReg?.currencyCode || 'USD',
+      paymentStatus: selectedReg?.paymentStatus || b.paymentStatus || 'Pending',
+      registrationStatus: selectedReg?.registrationStatus || 'Pending',
+      checkInDate: formatLocalDate(b.checkInDate || selectedReg?.checkInDate),
+      checkOutDate: formatLocalDate(b.checkOutDate || selectedReg?.checkOutDate),
+      numberOfNights: b.numberOfNights || selectedReg?.numberOfNights || selectedReg?.nights || 0
+    });
+
+    const bCurr = getBookingCurrency(b, selectedReg);
+    let bRate = 1;
+    if (b.exchangeRate && parseFloat(b.exchangeRate) > 0) {
+      bRate = parseFloat(b.exchangeRate);
+    } else if (bCurr === 'USD') bRate = 300;
+    else if (bCurr === 'EUR') bRate = 325;
+    else if (bCurr === 'AUD') bRate = 220;
+
+    setPaymentForm(prev => ({
+      ...prev,
+      currencyCode: bCurr,
+      exchangeRate: bRate,
+      amount: ''
+    }));
+    setBankSlipForm(prev => ({
+      ...prev,
+      bankKey: getBankKeyForCurrency(bCurr)
+    }));
+
+    fetchAdvancePayments(b.id);
   };
 
   // Upload or replace Passport/NIC photo
@@ -1193,6 +1318,7 @@ const Registrations = () => {
 
       const payload = {
         ...bookingForm,
+        bookingId: associated?.id,
         room: finalRoom,
         roomType: finalRoomType,
         amount: finalAmount,
@@ -1508,7 +1634,19 @@ const Registrations = () => {
     window.open(whatsappUrl, '_blank');
   };
 
-  const associatedBooking = selectedReg ? getBookingForReg(selectedReg.id) : null;
+  const relatedBookings = React.useMemo(() => {
+    if (!selectedReg) return [];
+    return getAllBookingsForReg(selectedReg);
+  }, [selectedReg, bookings, registrations]);
+
+  const associatedBooking = React.useMemo(() => {
+    if (!selectedReg) return null;
+    if (selectedBookingId) {
+      const found = (bookings || []).find(b => b.id === selectedBookingId);
+      if (found) return found;
+    }
+    return relatedBookings[0] || getBookingForReg(selectedReg.id);
+  }, [selectedReg, selectedBookingId, relatedBookings, bookings]);
 
   return (
     <div className="space-y-6">
@@ -1616,11 +1754,12 @@ const Registrations = () => {
                   <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
                     {(() => {
                       const displayRegistrations = [];
-                      const seenKeys = new Set();
-                      registrations.forEach(reg => {
-                        const key = (reg.passportNumber || reg.bookingNumber || reg.guestName || '').toLowerCase().trim();
-                        if (!key || !seenKeys.has(key)) {
-                          if (key) seenKeys.add(key);
+                      const seenIds = new Set();
+                      (registrations || []).forEach(reg => {
+                        if (reg && reg.id != null && !seenIds.has(reg.id)) {
+                          seenIds.add(reg.id);
+                          displayRegistrations.push(reg);
+                        } else if (reg && reg.id == null) {
                           displayRegistrations.push(reg);
                         }
                       });
@@ -1632,7 +1771,7 @@ const Registrations = () => {
                       return (
                         <tr 
                           key={reg.id} 
-                          onClick={() => handleSelectGuest(reg)}
+                          onClick={() => handleSelectGuest(reg, booking?.id)}
                           className={`hover:bg-slate-50/20 cursor-pointer transition ${
                             isSelected ? 'bg-emerald-50/30 hover:bg-emerald-50/40' : ''
                           }`}
@@ -1778,7 +1917,7 @@ const Registrations = () => {
                               )}
 
                               <button
-                                onClick={() => handleSelectGuest(reg)}
+                                onClick={() => handleSelectGuest(reg, booking?.id)}
                                 className="inline-flex items-center py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-755 text-white text-[11px] font-bold transition shadow-sm cursor-pointer"
                               >
                                 Manage
@@ -1897,6 +2036,53 @@ const Registrations = () => {
                   <Globe className="h-3.5 w-3.5 text-slate-400" /> {selectedReg.country || selectedReg.nationality || 'Not Specified'}
                 </p>
               </div>
+
+              {/* Multi-Reservation Selector */}
+              {relatedBookings.length > 1 && (
+                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                      <Calendar className="h-3 w-3 text-emerald-600" />
+                      Guest Reservations ({relatedBookings.length})
+                    </span>
+                    <span className="text-[9px] font-medium text-emerald-700">Click to switch</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {relatedBookings.map((b) => {
+                      const isCurrent = associatedBooking && associatedBooking.id === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => handleSwitchBooking(b)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between border ${
+                            isCurrent 
+                              ? 'bg-emerald-600 text-white font-bold border-emerald-600 shadow-sm'
+                              : 'bg-white text-slate-700 hover:bg-emerald-50 border-emerald-100 hover:border-emerald-300 cursor-pointer'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`font-mono font-bold text-xs ${isCurrent ? 'text-white' : 'text-slate-900'}`}>
+                              {b.bookingNumber}
+                            </span>
+                            <span className={`text-[10px] ${isCurrent ? 'text-emerald-100' : 'text-slate-500'}`}>
+                              {b.bookingType || 'Direct'}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-[11px] font-mono font-bold ${isCurrent ? 'text-white' : 'text-slate-800'}`}>
+                              {b.checkInDate || 'N/A'} → {b.checkOutDate || 'N/A'}
+                            </span>
+                            <span className={`block text-[9px] ${isCurrent ? 'text-emerald-100' : 'text-slate-400'}`}>
+                              {b.roomNumber ? `Room ${b.roomNumber}` : 'Unallocated'} • {b.currency || 'USD'} {Number(b.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Guest Core Details */}
               <div className="space-y-3 text-xs bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl">
