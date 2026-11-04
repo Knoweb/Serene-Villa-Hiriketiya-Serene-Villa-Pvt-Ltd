@@ -919,7 +919,7 @@ const Reservations = () => {
     try {
       // Fetch registrations for Property 1
       const regRes = await fetch(
-        `${API_BASE}/guest-registrations?propertyId=1&search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&page=${page}&size=${pageSize}`
+        `${API_BASE}/guest-registrations?propertyId=1&search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter}&role=${user.role}&source=Staff&page=${page}&size=${pageSize}`
       );
       if (!regRes.ok) throw new Error('Failed to fetch registrations');
       const regData = await regRes.json();
