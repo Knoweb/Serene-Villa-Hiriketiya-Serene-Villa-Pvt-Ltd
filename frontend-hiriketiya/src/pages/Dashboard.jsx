@@ -46,6 +46,22 @@ const Dashboard = () => {
   const [pendingDiscounts, setPendingDiscounts] = useState([]);
   const [pendingHandovers, setPendingHandovers] = useState([]);
   const [accountantStats, setAccountantStats] = useState(null);
+  const [selectedPropertyFilter, setSelectedPropertyFilter] = useState('CURRENT');
+
+  const activePropertyId = (() => {
+    if (user?.role !== 'ADMIN') return currentProperty?.id || 2;
+    if (selectedPropertyFilter === 'ALL') return null;
+    if (selectedPropertyFilter === '1') return 1;
+    if (selectedPropertyFilter === '2') return 2;
+    return currentProperty?.id || 2;
+  })();
+
+  const activePropertyName = (() => {
+    if (activePropertyId === 1) return 'Serene Villa - Hiriketiya (Property 1)';
+    if (activePropertyId === 2) return 'Serene Villa (Pvt) Ltd - Hiriketiya (Property 2)';
+    if (activePropertyId === null) return 'All Properties (Consolidated)';
+    return currentProperty?.name || 'Active Property';
+  })();
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8080/api`;
 
@@ -53,7 +69,8 @@ const Dashboard = () => {
     // Load rooms count from database
     const fetchRoomsCount = async () => {
       try {
-        const res = await fetch(`${API_BASE}/rooms?propertyId=2`);
+        const propParam = activePropertyId ? `?propertyId=${activePropertyId}` : '';
+        const res = await fetch(`${API_BASE}/rooms${propParam}`);
         if (res.ok) {
           const data = await res.json();
           setRoomsCount(data.length);
@@ -67,7 +84,8 @@ const Dashboard = () => {
     // Load discount requests from server database
     const fetchDiscountRequests = async () => {
       try {
-        const res = await fetch(`${API_BASE}/discount-requests?status=Pending&propertyId=2`);
+        const propParam = activePropertyId ? `&propertyId=${activePropertyId}` : '';
+        const res = await fetch(`${API_BASE}/discount-requests?status=Pending${propParam}`);
         if (res.ok) {
           const data = await res.json();
           setPendingDiscounts(data);
@@ -77,41 +95,43 @@ const Dashboard = () => {
       }
     };
     fetchDiscountRequests();
-  }, []);
+  }, [activePropertyId]);
 
   const fetchDashboardDataRef = React.useRef();
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const regRes = await fetch(`${API_BASE}/guest-registrations?propertyId=2&size=1000&role=${user?.role || 'FRONT_OFFICER'}`);
+      const propParam = activePropertyId ? `?propertyId=${activePropertyId}` : '';
+      const regPropParam = activePropertyId ? `propertyId=${activePropertyId}&` : '';
+
+      const regRes = await fetch(`${API_BASE}/guest-registrations?${regPropParam}size=1000&role=${user?.role || 'FRONT_OFFICER'}`);
       if (regRes.ok) {
         const regData = await regRes.json();
         setRegistrations(regData.content || []);
       }
-      const bookingRes = await fetch(`${API_BASE}/bookings?propertyId=2`);
+      const bookingRes = await fetch(`${API_BASE}/bookings${propParam}`);
       if (bookingRes.ok) {
         const bookingData = await bookingRes.json();
         setBookings(bookingData || []);
       }
       if (user?.role === 'ADMIN') {
-        const staffRes = await fetch(`${API_BASE}/auth/users?propertyId=2`);
+        const staffRes = await fetch(`${API_BASE}/auth/users${propParam}`);
         if (staffRes.ok) {
           const staffData = await staffRes.json();
           setStaff(staffData || []);
         }
       }
       if (user?.role === 'ACCOUNTANT' || user?.role === 'ADMIN') {
-        const handoverRes = await fetch(`${API_BASE}/billing/accountant/pending?propertyId=${currentProperty?.id || 2}`);
+        const handoverRes = await fetch(`${API_BASE}/billing/accountant/pending${propParam}`);
         if (handoverRes.ok) {
           const handoverData = await handoverRes.json();
           setPendingHandovers(handoverData || []);
         }
 
-        const statsRes = await fetch(`${API_BASE}/accountant/dashboard-stats?propertyId=${currentProperty?.id || 2}`, {
-          headers: {
-            'X-Active-Property': String(currentProperty?.id || 2)
-          }
+        const statsHeaders = activePropertyId ? { 'X-Active-Property': String(activePropertyId) } : {};
+        const statsRes = await fetch(`${API_BASE}/accountant/dashboard-stats${propParam}`, {
+          headers: statsHeaders
         });
         if (statsRes.ok) {
           const statsData = await statsRes.json();
@@ -129,7 +149,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user, currentProperty]);
+  }, [user, currentProperty, selectedPropertyFilter]);
 
   // Real-time WebSocket connection & Auto-refresh on Window Focus
   useEffect(() => {
@@ -526,9 +546,24 @@ const Dashboard = () => {
       {/* -------------------- ADMIN DASHBOARD -------------------- */}
       {isAdmin && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Admin Control Panel</h2>
-            <p className="text-xs text-slate-500 font-medium mt-1">Property Management Systems & Settings</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Admin Control Panel</h2>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Active Scope: <span className="font-bold text-emerald-700">{activePropertyName}</span></p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Property Filter:</span>
+              <select
+                value={selectedPropertyFilter}
+                onChange={(e) => setSelectedPropertyFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm"
+              >
+                <option value="CURRENT">Default Property ({currentProperty?.name})</option>
+                <option value="2">Property 2: Serene Villa (Pvt) Ltd - Hiriketiya</option>
+                <option value="1">Property 1: Serene Villa - Hiriketiya</option>
+                <option value="ALL">All Properties (Consolidated)</option>
+              </select>
+            </div>
           </div>
 
           {/* Calculations */}
@@ -726,15 +761,27 @@ const Dashboard = () => {
       {/* -------------------- FINANCIAL ANALYTICS & ACCOUNTANT SECTION (ADMIN & ACCOUNTANT) -------------------- */}
       {(isAccountant || isAdmin) && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
             <div>
               <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
                 {isAdmin ? 'Property Financial Analytics & Reconciliation' : 'Accountant Financial Analytics'}
               </h2>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">Property Scope: <span className="font-bold text-emerald-700">{currentProperty?.name || 'Active Property'}</span></p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Property Scope: <span className="font-bold text-emerald-700">{activePropertyName}</span></p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-lg">
+              {isAdmin && (
+                <select
+                  value={selectedPropertyFilter}
+                  onChange={(e) => setSelectedPropertyFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm"
+                >
+                  <option value="CURRENT">Default Property ({currentProperty?.name})</option>
+                  <option value="2">Property 2: Serene Villa (Pvt) Ltd - Hiriketiya</option>
+                  <option value="1">Property 1: Serene Villa - Hiriketiya</option>
+                  <option value="ALL">All Properties (Consolidated)</option>
+                </select>
+              )}
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-3 py-1.5 rounded-lg whitespace-nowrap">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Property Scoped
               </span>
             </div>

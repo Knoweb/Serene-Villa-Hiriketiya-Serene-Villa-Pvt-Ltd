@@ -218,7 +218,7 @@ const formatLocalDate = (dateInput) => {
 };
 
 const Registrations = () => {
-  const { user } = useAuth();
+  const { user, currentProperty } = useAuth();
   const { showConfirm, showAlert } = useModal();
   const navigate = useNavigate();
   const isAdmin = user.role === 'ADMIN';
@@ -525,7 +525,7 @@ const Registrations = () => {
   // Fetch bank slips from Backend DB on mount / focus
   const fetchDbBankSlips = async () => {
     try {
-      const res = await fetch(`${API_BASE}/bank-slips`);
+      const res = await fetch(`${API_BASE}/bank-slips?propertyId=${currentProperty?.id || 2}`);
       if (res.ok) {
         const dbSlips = await res.json();
         const grouped = {};
@@ -599,7 +599,8 @@ const Registrations = () => {
         paidDate: bankSlipForm.paidDate,
         paymentType: bankSlipForm.paymentType,
         slipUrl: bankSlipForm.slipUrl,
-        fileName: bankSlipForm.fileName || 'bank_slip.png'
+        fileName: bankSlipForm.fileName || 'bank_slip.png',
+        propertyId: currentProperty?.id || 2
       };
       const dbRes = await fetch(`${API_BASE}/bank-slips`, {
         method: 'POST',
@@ -833,7 +834,7 @@ const Registrations = () => {
 
       // Fetch all payments to accurately calculate payment statuses dynamically
       try {
-        const payRes = await fetch(`${API_BASE}/payments`);
+        const payRes = await fetch(`${API_BASE}/payments?propertyId=${currentProperty?.id || 2}`);
         if (payRes.ok) {
           const payData = await payRes.json();
           setAllPayments(payData);
@@ -1483,6 +1484,7 @@ const Registrations = () => {
     const payload = {
       bookingId: booking.id,
       guestRegistrationId: selectedReg.id,
+      propertyId: booking?.propertyId || currentProperty?.id || 2,
       paymentType: isFull ? 'FINAL' : 'ADVANCE',
       amount: netEnteredAmount,
       currencyCode: enteredCurrency,
@@ -3008,6 +3010,7 @@ const Registrations = () => {
                                               const paymentPayload = {
                                                 bookingId: extraB.id,
                                                 guestRegistrationId: selectedReg.id,
+                                                propertyId: extraB.propertyId || currentProperty?.id || 2,
                                                 amount: extraAmount,
                                                 amountInCurrency: extraAmount,
                                                 currency: bCurr,

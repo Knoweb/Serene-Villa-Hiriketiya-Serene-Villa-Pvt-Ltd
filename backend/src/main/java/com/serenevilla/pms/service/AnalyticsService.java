@@ -49,8 +49,28 @@ public class AnalyticsService {
 
         // 1. Total Revenue: Strictly sum of actual collected payments for the property
         List<Payment> allPayments = paymentRepository.findAll();
+        Map<Long, Long> bookingPropMap = bookingRepository.findAll().stream()
+                .filter(b -> b.getId() != null && b.getPropertyId() != null)
+                .collect(Collectors.toMap(Booking::getId, Booking::getPropertyId, (p1, p2) -> p1));
+        Map<Long, Long> regPropMap = guestRegistrationRepository.findAll().stream()
+                .filter(r -> r.getId() != null && r.getPropertyId() != null)
+                .collect(Collectors.toMap(GuestRegistration::getId, GuestRegistration::getPropertyId, (p1, p2) -> p1));
+
         List<Payment> propertyPayments = allPayments.stream()
-                .filter(p -> propertyId == null || p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
+                .filter(p -> {
+                    if (propertyId == null) return true;
+                    Long pPropId = p.getPropertyId();
+                    if (pPropId == null && p.getBookingId() != null) {
+                        pPropId = bookingPropMap.get(p.getBookingId());
+                    }
+                    if (pPropId == null && p.getGuestRegistrationId() != null) {
+                        pPropId = regPropMap.get(p.getGuestRegistrationId());
+                    }
+                    if (pPropId == null) {
+                        pPropId = 1L;
+                    }
+                    return propertyId.equals(pPropId);
+                })
                 .collect(Collectors.toList());
 
         double totalPaymentRev = 0;
@@ -282,9 +302,6 @@ public class AnalyticsService {
         List<Booking> allBookings = (targetPropertyId != null) ?
                 bookingRepository.findByPropertyId(targetPropertyId) :
                 bookingRepository.findAll();
-        if (allBookings.isEmpty() && targetPropertyId != null) {
-            allBookings = bookingRepository.findAll();
-        }
 
         String targetRoomNum = room.getRoomNumber() != null ? room.getRoomNumber().trim() : "";
 
@@ -328,7 +345,24 @@ public class AnalyticsService {
         // 2. Fetch payments made within the requested date period
         List<Payment> allPayments = paymentRepository.findAll();
         List<Payment> paymentsInPeriod = allPayments.stream()
-                .filter(p -> targetPropertyId == null || p.getPropertyId() == null || targetPropertyId.equals(p.getPropertyId()) || (targetPropertyId.equals(1L) && p.getPropertyId() == null))
+                .filter(p -> {
+                    if (targetPropertyId == null) return true;
+                    Long pPropId = p.getPropertyId();
+                    if (pPropId == null && p.getBookingId() != null) {
+                        Booking b = roomBookingsById.get(p.getBookingId());
+                        if (b != null) pPropId = b.getPropertyId();
+                        else {
+                            Booking foundB = bookingRepository.findById(p.getBookingId()).orElse(null);
+                            if (foundB != null) pPropId = foundB.getPropertyId();
+                        }
+                    }
+                    if (pPropId == null && p.getGuestRegistrationId() != null) {
+                        GuestRegistration r = regMap.get(p.getGuestRegistrationId());
+                        if (r != null) pPropId = r.getPropertyId();
+                    }
+                    if (pPropId == null) pPropId = 1L;
+                    return targetPropertyId.equals(pPropId);
+                })
                 .filter(p -> {
                     if (startDate == null || endDate == null) return true;
                     LocalDate pDate = p.getPaymentDate();

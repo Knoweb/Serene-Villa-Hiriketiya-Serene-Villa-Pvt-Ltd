@@ -18,7 +18,7 @@ public class Receipt {
     private Long id;
 
     @Column(name = "property_id")
-    private Long propertyId = 1L;
+    private Long propertyId;
 
     @Column(name = "receipt_number", nullable = false, unique = true)
     private String receiptNumber;

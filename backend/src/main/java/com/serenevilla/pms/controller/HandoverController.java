@@ -21,8 +21,11 @@ public class HandoverController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DailyHandover>> getHandovers() {
-        return ResponseEntity.ok(dailyHandoverRepository.findAll());
+    public ResponseEntity<List<DailyHandover>> getHandovers(@RequestParam(name = "propertyId", required = false) Long propertyId) {
+        if (propertyId != null) {
+            return ResponseEntity.ok(dailyHandoverRepository.findByPropertyIdOrderBySubmittedAtDesc(propertyId));
+        }
+        return ResponseEntity.ok(dailyHandoverRepository.findAllByOrderBySubmittedAtDesc());
     }
 
     @PutMapping("/{id}/review")

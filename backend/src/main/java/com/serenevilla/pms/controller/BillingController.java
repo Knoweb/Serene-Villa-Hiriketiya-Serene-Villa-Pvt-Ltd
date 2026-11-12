@@ -67,13 +67,32 @@ public class BillingController {
         return ResponseEntity.ok(Map.of("message", "Transactions sent to accountant successfully."));
     }
 
+    private boolean matchesProperty(Payment p, Long propertyId) {
+        if (propertyId == null) return true;
+        Long pPropId = p.getPropertyId();
+        if (pPropId == null && p.getBookingId() != null) {
+            pPropId = bookingRepository.findById(p.getBookingId())
+                    .map(com.serenevilla.pms.model.Booking::getPropertyId)
+                    .orElse(null);
+        }
+        if (pPropId == null && p.getGuestRegistrationId() != null) {
+            pPropId = guestRegistrationRepository.findById(p.getGuestRegistrationId())
+                    .map(com.serenevilla.pms.model.GuestRegistration::getPropertyId)
+                    .orElse(null);
+        }
+        if (pPropId == null) {
+            pPropId = 1L;
+        }
+        return propertyId.equals(pPropId);
+    }
+
     @GetMapping("/pending")
     public ResponseEntity<List<Payment>> getPendingTransactions(@RequestParam(name = "propertyId", required = false) Long propertyId) {
         List<Payment> pendingPayments = paymentRepository.findByAccountantTransferStatus(AccountantTransferStatus.PENDING);
         populatePaymentDetails(pendingPayments);
         if (propertyId != null) {
             pendingPayments = pendingPayments.stream()
-                .filter(p -> p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
+                .filter(p -> matchesProperty(p, propertyId))
                 .collect(Collectors.toList());
         }
         return ResponseEntity.ok(pendingPayments);
@@ -96,7 +115,7 @@ public class BillingController {
         populatePaymentDetails(historyPayments);
         if (propertyId != null) {
             historyPayments = historyPayments.stream()
-                .filter(p -> p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
+                .filter(p -> matchesProperty(p, propertyId))
                 .collect(Collectors.toList());
         }
         // Sort newest first
@@ -131,7 +150,7 @@ public class BillingController {
         populatePaymentDetails(eligiblePayments);
         if (propertyId != null) {
             eligiblePayments = eligiblePayments.stream()
-                .filter(p -> p.getPropertyId() == null || propertyId.equals(p.getPropertyId()) || (propertyId.equals(1L) && p.getPropertyId() == null))
+                .filter(p -> matchesProperty(p, propertyId))
                 .collect(Collectors.toList());
         }
         return ResponseEntity.ok(eligiblePayments);

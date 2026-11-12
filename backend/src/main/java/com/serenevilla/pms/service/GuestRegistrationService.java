@@ -297,6 +297,7 @@ public class GuestRegistrationService {
             if (booking == null) {
                 List<Booking> candidates = bookingRepository.findAll().stream()
                         .filter(b -> b.getBookingNumber() == null || !b.getBookingNumber().contains("/"))
+                        .filter(b -> savedReg.getPropertyId() == null || b.getPropertyId() == null || b.getPropertyId().equals(savedReg.getPropertyId()))
                         .filter(b -> (b.getGuestRegistrationId() != null && b.getGuestRegistrationId().equals(id))
                                   || (reg.getGuestName() != null && b.getGuestName() != null && reg.getGuestName().trim().equalsIgnoreCase(b.getGuestName().trim()) && reg.getCheckInDate() != null && b.getCheckInDate() != null && reg.getCheckInDate().equals(b.getCheckInDate())))
                         .sorted((a, b) -> {
@@ -319,7 +320,7 @@ public class GuestRegistrationService {
                 booking.setCheckOutDate(savedReg.getCheckOutDate());
                 booking.setNumberOfNights(savedReg.getNumberOfNights());
                 booking.setGuestName(savedReg.getGuestName());
-            } else if (booking.getPropertyId() == null && savedReg.getPropertyId() != null) {
+            } else if (savedReg.getPropertyId() != null && (booking.getPropertyId() == null || !booking.getPropertyId().equals(savedReg.getPropertyId()))) {
                 booking.setPropertyId(savedReg.getPropertyId());
             }
 

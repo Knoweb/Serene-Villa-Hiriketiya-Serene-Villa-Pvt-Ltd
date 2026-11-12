@@ -217,11 +217,55 @@ public class ReportService {
     }
 
     public ReportSummaryDTO generateReport(LocalDate startDate, LocalDate endDate, Long propertyId) {
-        // Fetch all data
-        List<GuestRegistration> allRegistrations = guestRegistrationRepository.findAll();
-        List<Booking> allBookings = bookingRepository.findAll();
-        List<Payment> allPayments = paymentRepository.findAll();
-        List<DiscountRequest> allDiscounts = discountRequestRepository.findAll();
+        // Fetch all data filtered strictly by propertyId (or all if propertyId == null)
+        List<GuestRegistration> allRegistrations = (propertyId != null) 
+                ? guestRegistrationRepository.findByPropertyId(propertyId) 
+                : guestRegistrationRepository.findAll();
+        if (propertyId != null && allRegistrations.isEmpty()) {
+            allRegistrations = guestRegistrationRepository.findAll().stream()
+                    .filter(r -> propertyId.equals(r.getPropertyId()) || (propertyId.equals(1L) && r.getPropertyId() == null))
+                    .collect(Collectors.toList());
+        }
+
+        List<Booking> allBookings = (propertyId != null)
+                ? bookingRepository.findByPropertyId(propertyId)
+                : bookingRepository.findAll();
+        if (propertyId != null && allBookings.isEmpty()) {
+            allBookings = bookingRepository.findAll().stream()
+                    .filter(b -> propertyId.equals(b.getPropertyId()) || (propertyId.equals(1L) && b.getPropertyId() == null))
+                    .collect(Collectors.toList());
+        }
+
+        Map<Long, Long> bookingPropMap = bookingRepository.findAll().stream()
+                .filter(b -> b.getId() != null && b.getPropertyId() != null)
+                .collect(Collectors.toMap(Booking::getId, Booking::getPropertyId, (p1, p2) -> p1));
+        Map<Long, Long> regPropMap = guestRegistrationRepository.findAll().stream()
+                .filter(r -> r.getId() != null && r.getPropertyId() != null)
+                .collect(Collectors.toMap(GuestRegistration::getId, GuestRegistration::getPropertyId, (p1, p2) -> p1));
+
+        List<Payment> allPayments = paymentRepository.findAll().stream()
+                .filter(p -> {
+                    if (propertyId == null) return true;
+                    Long pPropId = p.getPropertyId();
+                    if (pPropId == null && p.getBookingId() != null) {
+                        pPropId = bookingPropMap.get(p.getBookingId());
+                    }
+                    if (pPropId == null && p.getGuestRegistrationId() != null) {
+                        pPropId = regPropMap.get(p.getGuestRegistrationId());
+                    }
+                    if (pPropId == null) pPropId = 1L;
+                    return propertyId.equals(pPropId);
+                })
+                .collect(Collectors.toList());
+
+        List<DiscountRequest> allDiscounts = (propertyId != null)
+                ? discountRequestRepository.findByPropertyIdOrderByRequestedAtDesc(propertyId)
+                : discountRequestRepository.findAll();
+        if (propertyId != null && allDiscounts.isEmpty()) {
+            allDiscounts = discountRequestRepository.findAll().stream()
+                    .filter(d -> propertyId.equals(d.getPropertyId()) || (propertyId.equals(1L) && d.getPropertyId() == null))
+                    .collect(Collectors.toList());
+        }
 
         // Map registrations by ID for fast lookup
         Map<Long, GuestRegistration> registrationMap = allRegistrations.stream()
@@ -697,9 +741,6 @@ public class ReportService {
         List<com.serenevilla.pms.model.Room> propertyRooms = propertyId != null
                 ? roomRepository.findByPropertyId(propertyId)
                 : roomRepository.findAll();
-        if (propertyRooms.isEmpty() && propertyId != null) {
-            propertyRooms = roomRepository.findAll();
-        }
 
         // Helper to check if a booking contains a specific room number (handles single
         // "101" or comma-separated "101, 102, 103")

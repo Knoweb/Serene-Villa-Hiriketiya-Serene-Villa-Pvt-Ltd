@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -107,11 +109,32 @@ public class PaymentController {
         }
     }
 
+    private void enforcePropertyId(Payment payment) {
+        if (payment == null) return;
+        Long propId = null;
+        if (payment.getBookingId() != null) {
+            propId = bookingRepository.findById(payment.getBookingId())
+                    .map(com.serenevilla.pms.model.Booking::getPropertyId)
+                    .orElse(null);
+        }
+        if (propId == null && payment.getGuestRegistrationId() != null) {
+            propId = guestRegistrationRepository.findById(payment.getGuestRegistrationId())
+                    .map(com.serenevilla.pms.model.GuestRegistration::getPropertyId)
+                    .orElse(null);
+        }
+        if (propId != null) {
+            payment.setPropertyId(propId);
+        } else if (payment.getPropertyId() == null) {
+            payment.setPropertyId(1L);
+        }
+    }
+
     @PostMapping
     public ResponseEntity<Payment> recordPayment(@RequestBody Payment payment) {
         if (payment.getAccountantTransferStatus() == null) {
             payment.setAccountantTransferStatus(com.serenevilla.pms.model.AccountantTransferStatus.NONE);
         }
+        enforcePropertyId(payment);
         // Compute LKR equivalent at standard rate or custom rate
         double rate = 1.0;
         if (!"LKR".equalsIgnoreCase(payment.getCurrency())) {
@@ -206,6 +229,7 @@ public class PaymentController {
             payment.setCreatedAt(java.time.LocalDateTime.now());
         }
         
+        enforcePropertyId(payment);
         Payment saved = paymentRepository.save(payment);
 
         // Auto-generate or link official MM-XXX advance receipt
@@ -255,7 +279,22 @@ public class PaymentController {
 
     // Get all payments
     @GetMapping
-    public ResponseEntity<List<Payment>> getAllPayments() {
+    public ResponseEntity<List<Payment>> getAllPayments(@RequestParam(name = "propertyId", required = false) Long propertyId) {
+        if (propertyId != null) {
+            Map<Long, Long> bookingPropMap = bookingRepository.findAll().stream()
+                    .filter(b -> b.getId() != null && b.getPropertyId() != null)
+                    .collect(Collectors.toMap(com.serenevilla.pms.model.Booking::getId, com.serenevilla.pms.model.Booking::getPropertyId, (p1, p2) -> p1));
+            return ResponseEntity.ok(paymentRepository.findAll().stream()
+                    .filter(p -> {
+                        Long pPropId = p.getPropertyId();
+                        if (pPropId == null && p.getBookingId() != null) {
+                            pPropId = bookingPropMap.get(p.getBookingId());
+                        }
+                        if (pPropId == null) pPropId = 1L;
+                        return propertyId.equals(pPropId);
+                    })
+                    .collect(Collectors.toList()));
+        }
         return ResponseEntity.ok(paymentRepository.findAll());
     }
 

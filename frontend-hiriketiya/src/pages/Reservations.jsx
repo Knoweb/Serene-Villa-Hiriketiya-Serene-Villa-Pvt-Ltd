@@ -223,7 +223,7 @@ const getBookingCurrency = (booking, reg = null, form = null) => {
 };
 
 const Reservations = () => {
-  const { user } = useAuth();
+  const { user, currentProperty } = useAuth();
   const { showConfirm, showAlert } = useModal();
   const navigate = useNavigate();
   const isAdmin = user.role === 'ADMIN';
@@ -934,7 +934,7 @@ const Reservations = () => {
 
       // Fetch all payments to accurately calculate payment statuses dynamically
       try {
-        const payRes = await fetch(`${API_BASE}/payments`);
+        const payRes = await fetch(`${API_BASE}/payments?propertyId=${currentProperty?.id || 2}`);
         if (payRes.ok) {
           const payData = await payRes.json();
           setAllPayments(payData);
@@ -2033,6 +2033,7 @@ const Reservations = () => {
     const payload = {
       bookingId: booking.id,
       guestRegistrationId: selectedReg.id,
+      propertyId: booking.propertyId || currentProperty?.id || 2,
       paymentType: isFull ? 'FINAL' : 'ADVANCE',
       amount: netAmount,
       currencyCode: actualCurrency,

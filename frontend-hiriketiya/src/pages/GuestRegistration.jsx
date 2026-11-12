@@ -388,7 +388,8 @@ const GuestRegistration = () => {
         paymentStatus: formData.paymentType !== 'NONE' 
           ? (formData.paymentType === 'FULL' ? 'Paid' : 'Paid Advance') 
           : (lookedUpBooking?.paymentStatus || 'Confirm'),
-        registrationStatus: 'Pending'
+        registrationStatus: 'Pending',
+        propertyId: 2
       };
 
       const bookingRes = await fetch(`${API_BASE}/guest-registrations/${savedReg.id}/booking-details`, {
@@ -401,7 +402,7 @@ const GuestRegistration = () => {
 
       let createdBooking = null;
       if (bookingRes.ok) {
-        const allBookingsRes = await fetch(`${API_BASE}/bookings`);
+        const allBookingsRes = await fetch(`${API_BASE}/bookings?propertyId=2`);
         if (allBookingsRes.ok) {
           const allBookings = await allBookingsRes.json();
           createdBooking = allBookings.find(b => b.guestRegistrationId === savedReg.id);

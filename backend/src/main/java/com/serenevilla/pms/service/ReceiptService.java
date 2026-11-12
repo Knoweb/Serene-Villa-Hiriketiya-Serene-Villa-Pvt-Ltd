@@ -23,6 +23,9 @@ public class ReceiptService {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @Autowired
+    private com.serenevilla.pms.repository.BookingRepository bookingRepository;
+
     private static final Pattern LEADING_DIGITS = Pattern.compile("^\\d+");
 
     /**
@@ -104,9 +107,21 @@ public class ReceiptService {
                 ? payment.getCreatedAt() 
                 : (payment.getPaymentDate() != null ? payment.getPaymentDate().atStartOfDay() : LocalDateTime.now());
 
+        Long rPropId = payment.getPropertyId();
+        if (payment.getBookingId() != null && bookingRepository != null) {
+            rPropId = bookingRepository.findById(payment.getBookingId())
+                    .map(com.serenevilla.pms.model.Booking::getPropertyId)
+                    .orElse(rPropId);
+        }
+        if (rPropId == null) rPropId = 1L;
+
         Optional<Receipt> existingOpt = receiptRepository.findByPaymentId(payment.getId());
         if (existingOpt.isPresent()) {
             Receipt existing = existingOpt.get();
+            if (existing.getPropertyId() == null || !rPropId.equals(existing.getPropertyId())) {
+                existing.setPropertyId(rPropId);
+                receiptRepository.save(existing);
+            }
             String currentNum = existing.getReceiptNumber();
             if (currentNum == null || currentNum.trim().isEmpty() || currentNum.startsWith("REC-") || !currentNum.matches("^\\d{2}-\\d{3,}$")) {
                 LocalDateTime dt = existing.getGeneratedAt() != null ? existing.getGeneratedAt() : targetDt;
@@ -138,7 +153,7 @@ public class ReceiptService {
         Receipt newReceipt = new Receipt();
         newReceipt.setPaymentId(payment.getId());
         newReceipt.setBookingId(payment.getBookingId() != null ? payment.getBookingId() : 0L);
-        newReceipt.setPropertyId(payment.getPropertyId() != null ? payment.getPropertyId() : 1L);
+        newReceipt.setPropertyId(rPropId);
         newReceipt.setReceiptType("ADVANCE");
         newReceipt.setReceiptNumber(receiptNumber);
         newReceipt.setGeneratedAt(targetDt);

@@ -73,6 +73,28 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.err.println("Property name migration note: " + e.getMessage());
         }
 
+        // Migration: Auto-heal payments, receipts, and bookings property isolation
+        try {
+            int healedPaymentsFromBookings = jdbcTemplate.update(
+                "UPDATE payments p JOIN bookings b ON p.booking_id = b.id SET p.property_id = b.property_id WHERE p.property_id IS NULL OR p.property_id <> b.property_id"
+            );
+            int healedPaymentsFromRegs = jdbcTemplate.update(
+                "UPDATE payments p JOIN guest_registrations g ON p.guest_registration_id = g.id SET p.property_id = g.property_id WHERE (p.booking_id IS NULL OR p.booking_id = 0) AND (p.property_id IS NULL OR p.property_id <> g.property_id)"
+            );
+            int healedReceipts = jdbcTemplate.update(
+                "UPDATE receipts r JOIN bookings b ON r.booking_id = b.id SET r.property_id = b.property_id WHERE r.property_id IS NULL OR r.property_id <> b.property_id"
+            );
+            int healedReceiptsFromPayments = jdbcTemplate.update(
+                "UPDATE receipts r JOIN payments p ON r.payment_id = p.id SET r.property_id = p.property_id WHERE (r.booking_id IS NULL OR r.booking_id = 0) AND (r.property_id IS NULL OR r.property_id <> p.property_id)"
+            );
+            if (healedPaymentsFromBookings > 0 || healedPaymentsFromRegs > 0 || healedReceipts > 0 || healedReceiptsFromPayments > 0) {
+                System.out.println(">>> Auto-healed property isolation: " + healedPaymentsFromBookings + " payments from bookings, " 
+                    + healedPaymentsFromRegs + " payments from registrations, " + healedReceipts + " receipts <<<");
+            }
+        } catch (Exception e) {
+            System.err.println("Property auto-healing migration note: " + e.getMessage());
+        }
+
         // Migration: Update manually created reservations with created_by = 'Staff'
         try {
             int updatedRows = jdbcTemplate.update(

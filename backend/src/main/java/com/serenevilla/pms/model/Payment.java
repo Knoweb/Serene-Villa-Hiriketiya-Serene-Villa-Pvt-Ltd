@@ -30,7 +30,7 @@ public class Payment {
     private Long id;
 
     @Column(name = "property_id")
-    private Long propertyId = 1L;
+    private Long propertyId;
 
     @Column(name = "booking_id", nullable = false)
     private Long bookingId;
