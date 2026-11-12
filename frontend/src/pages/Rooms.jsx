@@ -370,7 +370,8 @@ const Rooms = () => {
       image: roomImages.length > 0 ? roomImages[0] : (roomType.toLowerCase().includes('suite') ? '/suite.png' : '/deluxe.png'),
       images: roomImages,
       facilities: facilitiesArray,
-      status
+      status,
+      propertyId: 1
     };
 
     try {

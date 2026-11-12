@@ -145,8 +145,8 @@ const Discounts = () => {
 
     try {
       const endpoint = type === 'DISCOUNTS'
-        ? `${API_BASE}/discount-requests/clear-all`
-        : `${API_BASE}/delete-requests/clear-all`;
+        ? `${API_BASE}/discount-requests/clear-all?propertyId=1`
+        : `${API_BASE}/delete-requests/clear-all?propertyId=1`;
 
       const res = await fetch(endpoint, { method: 'DELETE' });
       if (res.ok) {

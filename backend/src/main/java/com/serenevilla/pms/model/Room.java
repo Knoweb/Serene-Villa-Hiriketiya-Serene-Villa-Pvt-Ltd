@@ -55,5 +55,5 @@ public class Room {
     private String status = "Available"; // Available, Occupied, Maintenance
 
     @Column(name = "property_id")
-    private Long propertyId = 1L;
+    private Long propertyId;
 }

@@ -107,8 +107,13 @@ public class DeleteRequestController {
 
     // Clear all delete requests (Admin Only)
     @DeleteMapping("/clear-all")
-    public ResponseEntity<?> clearAllDeleteRequests() {
-        deleteRequestRepository.deleteAll();
+    public ResponseEntity<?> clearAllDeleteRequests(@RequestParam(name = "propertyId", required = false) Long propertyId) {
+        if (propertyId != null) {
+            List<DeleteRequest> list = deleteRequestRepository.findByPropertyIdOrderByRequestedAtDesc(propertyId);
+            deleteRequestRepository.deleteAll(list);
+        } else {
+            deleteRequestRepository.deleteAll();
+        }
         return ResponseEntity.ok(Map.of("message", "All delete requests cleared successfully"));
     }
 }

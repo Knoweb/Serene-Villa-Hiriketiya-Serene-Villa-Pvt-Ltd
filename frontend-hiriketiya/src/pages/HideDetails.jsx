@@ -21,7 +21,7 @@ const HideDetails = () => {
     setLoading(true);
     try {
       // Fetch registrations
-      const regRes = await fetch(`${API_BASE}/guest-registrations?size=1000`);
+      const regRes = await fetch(`${API_BASE}/guest-registrations?propertyId=2&size=1000`);
       let regData = [];
       if (regRes.ok) {
         const pageResult = await regRes.json();
@@ -29,14 +29,14 @@ const HideDetails = () => {
       }
 
       // Fetch bookings
-      const bookRes = await fetch(`${API_BASE}/bookings`);
+      const bookRes = await fetch(`${API_BASE}/bookings?propertyId=2`);
       let bookData = [];
       if (bookRes.ok) {
         bookData = await bookRes.json();
       }
 
       // Fetch payments
-      const payRes = await fetch(`${API_BASE}/payments`);
+      const payRes = await fetch(`${API_BASE}/payments?propertyId=2`);
       let payData = [];
       if (payRes.ok) {
         payData = await payRes.json();

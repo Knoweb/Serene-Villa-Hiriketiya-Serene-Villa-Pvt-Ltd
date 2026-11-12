@@ -209,8 +209,13 @@ public class DiscountRequestController {
     }
 
     @DeleteMapping("/clear-all")
-    public ResponseEntity<?> clearAllDiscountRequests() {
-        discountRequestRepository.deleteAll();
+    public ResponseEntity<?> clearAllDiscountRequests(@RequestParam(name = "propertyId", required = false) Long propertyId) {
+        if (propertyId != null) {
+            List<DiscountRequest> list = discountRequestRepository.findByPropertyIdOrderByRequestedAtDesc(propertyId);
+            discountRequestRepository.deleteAll(list);
+        } else {
+            discountRequestRepository.deleteAll();
+        }
         if (webSocketHandler != null) {
             webSocketHandler.broadcast("update");
         }
