@@ -193,7 +193,7 @@ const Reports = () => {
   const handleShareWhatsApp = () => {
     if (!data) return;
 
-    let text = `🏨 *SERENE VILLA - HIRIKETIYA*\n`;
+    let text = `🏨 *SERENE VILLA (PVT) LTD - HIRIKETIYA*\n`;
     text += `📋 *${getReportTitle().toUpperCase()}*\n`;
     text += `📅 *Period / Date:* ${getReportPeriod()}\n`;
     text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
@@ -235,7 +235,7 @@ const Reports = () => {
 
     text += `━━━━━━━━━━━━━━━━━━━━━\n`;
     text += `_Generated on ${new Date().toLocaleString()}_\n`;
-    text += `Serene Villa Pvt Ltd Hiriketiya`;
+    text += `Serene Villa (Pvt) Ltd - Hiriketiya`;
 
     const encodedText = encodeURIComponent(text);
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
@@ -519,7 +519,7 @@ const Reports = () => {
                 <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                   <span className="text-emerald-800">SERENE VILLA</span>
                   <span className="text-slate-300 font-normal">|</span>
-                  <span className="text-slate-600 text-xs font-bold tracking-wider">HIRIKETIYA</span>
+                  <span className="text-slate-600 text-xs font-bold tracking-wider">(PVT) LTD - HIRIKETIYA</span>
                 </h1>
                 <p className="text-[9px] text-slate-500 font-medium">
                   Hiriketiya Beach Road, Dikwella, Sri Lanka | info@serenevillahiriketiya.com | +94 77 123 4567
@@ -975,7 +975,7 @@ const Reports = () => {
 
           {/* Report Footer */}
           <div className="text-center pt-4 border-t border-slate-100 text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-            Confidential Document - Serene Villa Pvt Ltd Hiriketiya © {new Date().getFullYear()}
+            Confidential Document - Serene Villa (Pvt) Ltd - Hiriketiya © {new Date().getFullYear()}
           </div>
 
         </div>

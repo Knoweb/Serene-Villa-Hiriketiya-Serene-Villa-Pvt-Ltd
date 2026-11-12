@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
 
   const [currentProperty, setCurrentProperty] = useState({
     id: 2,
-    name: 'Serene Villa Hiriketiya',
+    name: 'Serene Villa (Pvt) Ltd - Hiriketiya',
     totalRooms: 11,
     invoiceStartNumber: 0,
   });

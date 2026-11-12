@@ -243,7 +243,7 @@ const Reports = () => {
 
     text += `━━━━━━━━━━━━━━━━━━━━━\n`;
     text += `_Generated on ${new Date().toLocaleString()}_\n`;
-    text += `Serene Villa Pvt Ltd Hiriketiya`;
+    text += `Serene Villa - Hiriketiya`;
 
     const encodedText = encodeURIComponent(text);
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
@@ -983,7 +983,7 @@ const Reports = () => {
 
           {/* Report Footer */}
           <div className="text-center pt-4 border-t border-slate-100 text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-            Confidential Document - Serene Villa Pvt Ltd Hiriketiya © {new Date().getFullYear()}
+            Confidential Document - Serene Villa - Hiriketiya © {new Date().getFullYear()}
           </div>
 
         </div>

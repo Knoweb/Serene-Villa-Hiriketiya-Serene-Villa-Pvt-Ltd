@@ -58,6 +58,21 @@ public class DatabaseSeeder implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE rooms DROP INDEX uk_room_number");
         } catch (Exception ignored) {}
 
+        // Migration: Update property names for Property 1 and Property 2
+        try {
+            int p1Updated = jdbcTemplate.update(
+                "UPDATE properties SET name = 'Serene Villa - Hiriketiya' WHERE id = 1 AND name <> 'Serene Villa - Hiriketiya'"
+            );
+            int p2Updated = jdbcTemplate.update(
+                "UPDATE properties SET name = 'Serene Villa (Pvt) Ltd - Hiriketiya' WHERE id = 2 AND name <> 'Serene Villa (Pvt) Ltd - Hiriketiya'"
+            );
+            if (p1Updated > 0 || p2Updated > 0) {
+                System.out.println(">>> Updated property names in database <<<");
+            }
+        } catch (Exception e) {
+            System.err.println("Property name migration note: " + e.getMessage());
+        }
+
         // Migration: Update manually created reservations with created_by = 'Staff'
         try {
             int updatedRows = jdbcTemplate.update(

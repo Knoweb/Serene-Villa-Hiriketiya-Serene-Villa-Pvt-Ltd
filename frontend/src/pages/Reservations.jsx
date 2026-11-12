@@ -3051,7 +3051,7 @@ const Reservations = () => {
                     const bCurr = getBookingCurrency(booking || selectedReg);
                     const totalPrice = parseFloat(booking?.totalAmount || selectedReg.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     
-                    const message = `Hi ${guestName}, how are you? 😊🌴\n\nCould you please let us know what time you’re planning to arrive for check-in? We’ll be delighted to welcome you! 🌺✨\n\n📋 *Reservation Details:*\n🔖 • *Booking Reference:* ${bookingNumber}\n📅 • *Check-in Date:* ${checkIn}\n📅 • *Check-out Date:* ${checkOut}\n🛏️ • *Room Type:* ${roomType}\n👥 • *Number of Guests:* ${guestsStr}\n💰 • *Total Price:* ${bCurr} ${totalPrice}\n\n📲 Once you arrive at the hotel, please enter your *Booking Reference number* in the *Auto Fill section of the QR Check-in Form*, and then complete the remaining details. It will make your check-in process smooth & fast! 😊🏨\n\n⚠️ *Remark:* Foreign currency will be converted to LKR using the *exchange rate on the day of payment*.\n\nThank you, and we look forward to welcoming you to *Serene Villa Hiriketiya*! 🌴🌺\n\nWarm regards,\n*Reservation Department*\nSerene Villa Hiriketiya`;
+                    const message = `Hi ${guestName}, how are you? 😊🌴\n\nCould you please let us know what time you’re planning to arrive for check-in? We’ll be delighted to welcome you! 🌺✨\n\n📋 *Reservation Details:*\n🔖 • *Booking Reference:* ${bookingNumber}\n📅 • *Check-in Date:* ${checkIn}\n📅 • *Check-out Date:* ${checkOut}\n🛏️ • *Room Type:* ${roomType}\n👥 • *Number of Guests:* ${guestsStr}\n💰 • *Total Price:* ${bCurr} ${totalPrice}\n\n📲 Once you arrive at the hotel, please enter your *Booking Reference number* in the *Auto Fill section of the QR Check-in Form*, and then complete the remaining details. It will make your check-in process smooth & fast! 😊🏨\n\n⚠️ *Remark:* Foreign currency will be converted to LKR using the *exchange rate on the day of payment*.\n\nThank you, and we look forward to welcoming you to *Serene Villa - Hiriketiya*! 🌴🌺\n\nWarm regards,\n*Reservation Department*\nSerene Villa - Hiriketiya`;
                     
                     window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`, '_blank');
                   }}
@@ -4292,9 +4292,9 @@ const Reservations = () => {
 
           let text = '';
           if (isFinalPayment) {
-            text = `🌴 SERENE VILLA – FINAL PAYMENT RECEIPT 🌴\n\nDear, Mr./Mrs., ${selectedReg.guestName || 'Guest'}\n\nThank you for your payment! 😊\nPlease find your official payment receipt below:\n\n📄 Receipt No: ${receiptData.receiptNumber}\n🔖 Booking Ref: ${associatedBooking.bookingNumber}\n🗓 Check-in & Check-out: ${checkInOutFormatted}\n🌙 Stay: ${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'}\n\n💳 Payment Method: ${selectedPaymentForReceipt.paymentMethod}\n💵 Amount Paid: ${amountPaidStr}\n💰 Remaining Balance: ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa Hiriketiya! 🌴😊\n\nBest regards,\nReservation Department\nSerene Villa Hiriketiya`;
+            text = `🌴 SERENE VILLA – FINAL PAYMENT RECEIPT 🌴\n\nDear, Mr./Mrs., ${selectedReg.guestName || 'Guest'}\n\nThank you for your payment! 😊\nPlease find your official payment receipt below:\n\n📄 Receipt No: ${receiptData.receiptNumber}\n🔖 Booking Ref: ${associatedBooking.bookingNumber}\n🗓 Check-in & Check-out: ${checkInOutFormatted}\n🌙 Stay: ${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'}\n\n💳 Payment Method: ${selectedPaymentForReceipt.paymentMethod}\n💵 Amount Paid: ${amountPaidStr}\n💰 Remaining Balance: ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa - Hiriketiya! 🌴😊\n\nBest regards,\nReservation Department\nSerene Villa - Hiriketiya`;
           } else {
-            text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴\n\nDear Mr./Mrs. *${selectedReg.guestName || 'Guest'}*,\n\nThank you for your payment! Here is your official payment receipt:\n\n📄 *Receipt No:* ${receiptData.receiptNumber}\n🔖 *Booking Ref:* ${associatedBooking.bookingNumber}\n🗓 *Check-in - Check-out:* ${shareCheckIn} to ${shareCheckOut}\n🌙 *Stay:* ${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'}${isExtraNight ? ' (Extra Night)' : ''}\n\n💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}\n💵 *Amount Paid:* ${amountPaidStr}\n💰 *Remaining Balance:* ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\n*Reservation Department*\nSerene Villa Hiriketiya`;
+            text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴\n\nDear Mr./Mrs. *${selectedReg.guestName || 'Guest'}*,\n\nThank you for your payment! Here is your official payment receipt:\n\n📄 *Receipt No:* ${receiptData.receiptNumber}\n🔖 *Booking Ref:* ${associatedBooking.bookingNumber}\n🗓 *Check-in - Check-out:* ${shareCheckIn} to ${shareCheckOut}\n🌙 *Stay:* ${nightsCount} ${nightsCount === 1 ? 'Night' : 'Nights'}${isExtraNight ? ' (Extra Night)' : ''}\n\n💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}\n💵 *Amount Paid:* ${amountPaidStr}\n💰 *Remaining Balance:* ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\n*Reservation Department*\nSerene Villa - Hiriketiya`;
           }
 
           let rawPhone = selectedReg?.whatsappNumber || selectedReg?.whatsAppNumber || selectedReg?.mobileNumber || selectedReg?.phone || associatedBooking?.contactNumber || associatedBooking?.phone || '';
@@ -4473,7 +4473,7 @@ const Reservations = () => {
                     <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain" />
                     <div>
                       <h2 className="text-lg font-extrabold text-emerald-800 tracking-tight leading-none">Serene Villa</h2>
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">(Pvt) Ltd - Hiriketiya</p>
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Hiriketiya</p>
                     </div>
                   </div>
                   
@@ -5048,7 +5048,7 @@ const Reservations = () => {
                     CREATE ADVANCE PAYMENT REQUEST
                   </h3>
                   <p className="text-[10px] text-emerald-200 font-medium mt-0.5">
-                    Direct Booking - Serene Villa Hiriketiya
+                    Direct Booking - Serene Villa - Hiriketiya
                   </p>
                 </div>
                 <button 

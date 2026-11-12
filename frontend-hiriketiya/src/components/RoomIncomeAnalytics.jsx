@@ -280,7 +280,7 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
                 <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                   <span className="text-emerald-800">SERENE VILLA</span>
                   <span className="text-slate-300 font-normal">|</span>
-                  <span className="text-slate-600 text-xs font-bold tracking-wider">HIRIKETIYA</span>
+                  <span className="text-slate-600 text-xs font-bold tracking-wider">(PVT) LTD - HIRIKETIYA</span>
                 </h1>
                 <p className="text-[9px] text-slate-500 font-medium">
                   Hiriketiya Beach Road, Dikwella, Sri Lanka | info@serenevillahiriketiya.com | +94 77 123 4567
@@ -462,7 +462,7 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
 
           {/* 7. Statement Footer */}
           <div className="text-center pt-2 text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-            Confidential Document - Serene Villa Pvt Ltd Hiriketiya © {new Date().getFullYear()}
+            Confidential Document - Serene Villa (Pvt) Ltd - Hiriketiya © {new Date().getFullYear()}
           </div>
         </div>
       ) : (

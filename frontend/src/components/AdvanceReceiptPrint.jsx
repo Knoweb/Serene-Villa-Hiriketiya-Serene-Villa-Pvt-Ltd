@@ -261,7 +261,7 @@ const AdvanceReceiptPrint = React.forwardRef(({ receiptData, selectedPaymentForR
             <img src={logoImg} alt="Serene Villa Logo" className="h-10 w-10 object-contain" />
             <div>
               <h1 className="text-lg font-bold text-slate-800 leading-tight">Serene Villa</h1>
-              <p className="text-[10px] text-slate-500 font-semibold">(PVT) LTD - HIRIKETIYA</p>
+              <p className="text-[10px] text-slate-500 font-semibold">HIRIKETIYA</p>
             </div>
           </div>
           <p className="text-[11px] text-slate-600">Pehembiya Road, Hiriketiya, Dickwella.</p>

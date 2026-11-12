@@ -520,9 +520,9 @@ const GuestRegistration = () => {
 
     let text = '';
     if (isFinalPayment) {
-      text = `🌴 SERENE VILLA – FINAL PAYMENT RECEIPT 🌴\n\nDear, Mr./Mrs., ${formData.guestName || 'Guest'}\n\nThank you for your payment! 😊\nPlease find your official payment receipt below:\n\n📄 Receipt No: ${receiptData.receiptNumber}\n🔖 Booking Ref: ${associatedBookingData.bookingNumber}\n🗓 Check-in & Check-out: ${checkInOutFormatted}\n🌙 Stay: ${nights} ${nights === 1 ? 'Night' : 'Nights'}\n\n💳 Payment Method: ${selectedPaymentForReceipt.paymentMethod}\n💵 Amount Paid: ${amountPaidStr}\n💰 Remaining Balance: ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa Hiriketiya! 🌴😊\n\nBest regards,\nReservation Department\nSerene Villa Hiriketiya`;
+      text = `🌴 SERENE VILLA – FINAL PAYMENT RECEIPT 🌴\n\nDear, Mr./Mrs., ${formData.guestName || 'Guest'}\n\nThank you for your payment! 😊\nPlease find your official payment receipt below:\n\n📄 Receipt No: ${receiptData.receiptNumber}\n🔖 Booking Ref: ${associatedBookingData.bookingNumber}\n🗓 Check-in & Check-out: ${checkInOutFormatted}\n🌙 Stay: ${nights} ${nights === 1 ? 'Night' : 'Nights'}\n\n💳 Payment Method: ${selectedPaymentForReceipt.paymentMethod}\n💵 Amount Paid: ${amountPaidStr}\n💰 Remaining Balance: ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa (Pvt) Ltd - Hiriketiya! 🌴😊\n\nBest regards,\nReservation Department\nSerene Villa (Pvt) Ltd - Hiriketiya`;
     } else {
-      text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴\n\nDear Mr./Mrs. *${formData.guestName || 'Guest'}*,\n\nThank you for your payment! Here is your official payment receipt:\n\n📄 *Receipt No:* ${receiptData.receiptNumber}\n🔖 *Booking Ref:* ${associatedBookingData.bookingNumber}\n🗓 *Check-in - Check-out:* ${formData.checkInDate} to ${formData.checkOutDate}\n🌙 *Stay:* ${nights} ${nights === 1 ? 'Night' : 'Nights'}\n\n💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}\n💵 *Amount Paid:* ${amountPaidStr}\n💰 *Remaining Balance:* ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\n*Reservation Department*\nSerene Villa Hiriketiya`;
+      text = `🌴 *SERENE VILLA - ${receiptTitle.toUpperCase()}* 🌴\n\nDear Mr./Mrs. *${formData.guestName || 'Guest'}*,\n\nThank you for your payment! Here is your official payment receipt:\n\n📄 *Receipt No:* ${receiptData.receiptNumber}\n🔖 *Booking Ref:* ${associatedBookingData.bookingNumber}\n🗓 *Check-in - Check-out:* ${formData.checkInDate} to ${formData.checkOutDate}\n🌙 *Stay:* ${nights} ${nights === 1 ? 'Night' : 'Nights'}\n\n💳 *Payment Method:* ${selectedPaymentForReceipt.paymentMethod}\n💵 *Amount Paid:* ${amountPaidStr}\n💰 *Remaining Balance:* ${balanceStr}\n\nWe look forward to welcoming you to Serene Villa! 😊\n\nBest regards,\n*Reservation Department*\nSerene Villa (Pvt) Ltd - Hiriketiya`;
     }
 
     let rawPhone = formData?.mobileNumber || formData?.whatsappNumber || formData?.whatsAppNumber || formData?.phone || associatedBookingData?.contactNumber || associatedBookingData?.phone || '';
@@ -584,7 +584,7 @@ const GuestRegistration = () => {
           )}
           <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-1">
             <img src={logoImg} alt="Serene Villa Logo" className="h-7 object-contain opacity-80" />
-            <p className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider">Serene Villa Pvt Ltd</p>
+            <p className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider">Serene Villa (Pvt) Ltd - Hiriketiya</p>
           </div>
         </div>
 
@@ -1372,7 +1372,7 @@ const GuestRegistration = () => {
 
       {/* Footer copyright */}
       <footer className="w-full text-center py-4 bg-white border-t border-slate-100 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-        © {new Date().getFullYear()} Serene Villa Pvt Ltd. All rights reserved.
+        © {new Date().getFullYear()} Serene Villa (Pvt) Ltd - Hiriketiya. All rights reserved.
       </footer>
     </div>
   );

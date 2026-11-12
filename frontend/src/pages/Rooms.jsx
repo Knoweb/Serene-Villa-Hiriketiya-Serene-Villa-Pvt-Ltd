@@ -447,7 +447,7 @@ const Rooms = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Room Inventory & Management</h2>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">Total rooms: {rooms.length} (Serene Villa Pvt Ltd)</p>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">Total rooms: {rooms.length} (Serene Villa - Hiriketiya)</p>
         </div>
         
         {isAdmin && (
@@ -525,7 +525,7 @@ const Rooms = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-base font-bold text-slate-900">Room {selectedRoom.roomNumber} - {selectedRoom.roomType}</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Property: Serene Villa Pvt Ltd</p>
+                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Property: Serene Villa - Hiriketiya</p>
                   </div>
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
                     selectedRoom.status === 'Available' 

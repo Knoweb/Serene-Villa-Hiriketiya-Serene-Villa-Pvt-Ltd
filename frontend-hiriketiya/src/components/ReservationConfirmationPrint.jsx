@@ -364,8 +364,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
           <p style={{ margin: '0 0 2px 0', fontWeight: '700', color: '#1e293b' }}>{confirmationData.senderName || associatedBooking?.senderName || localStorage.getItem('pms_sender_name') || ''}</p>
           <p style={{ margin: '0', fontSize: '8px', color: '#64748b' }}>
             Reservation Department<br />
-            Serene Villa Hiriketiya<br />
-            Serene Villa (Pvt) Ltd
+            Serene Villa (Pvt) Ltd - Hiriketiya
           </p>
         </div>
       </div>

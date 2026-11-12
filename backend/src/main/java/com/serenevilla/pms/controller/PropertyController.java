@@ -20,7 +20,7 @@ public class PropertyController {
     public void seedInitialProperties() {
         if (propertyRepository.count() == 0) {
             Property p1 = new Property();
-            p1.setName("Serene Villa Pvt Ltd");
+            p1.setName("Serene Villa - Hiriketiya");
             p1.setCode("SV_PL");
             p1.setAddress("Pehembiya Road, Hiriketiya, Dickwella");
             p1.setPhone("+94 41 225 5204");
@@ -30,7 +30,7 @@ public class PropertyController {
             propertyRepository.save(p1);
 
             Property p2 = new Property();
-            p2.setName("Serene Villa Hiriketiya");
+            p2.setName("Serene Villa (Pvt) Ltd - Hiriketiya");
             p2.setCode("SV_HK");
             p2.setAddress("Hiriketiya Beach Road, Dickwella");
             p2.setPhone("+94 70 499 8787");

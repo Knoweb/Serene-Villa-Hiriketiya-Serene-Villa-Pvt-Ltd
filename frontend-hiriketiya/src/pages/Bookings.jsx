@@ -368,7 +368,7 @@ const Bookings = () => {
         <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-55 flex items-center justify-center p-4">
           <div className="bg-white text-slate-900 w-full max-w-sm p-6 rounded-2xl shadow-xl relative border-t-8 border-emerald-600 font-mono text-[11px]">
             <div className="text-center space-y-1 mb-6">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">Serene Villa Pvt Ltd</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">Serene Villa (Pvt) Ltd - Hiriketiya</h4>
               <p className="text-[9px] text-slate-405 font-bold uppercase">Advance Receipt</p>
             </div>
             <div className="space-y-2 border-y border-dashed border-slate-250 py-4 mb-6">
@@ -396,7 +396,7 @@ const Bookings = () => {
         <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-55 flex items-center justify-center p-4">
           <div className="bg-white text-slate-900 w-full max-w-md p-6 rounded-2xl shadow-xl relative border-t-8 border-emerald-600 font-mono text-[11px]">
             <div className="text-center space-y-1 mb-6">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">Serene Villa Pvt Ltd</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">Serene Villa (Pvt) Ltd - Hiriketiya</h4>
               <p className="text-[9px] text-slate-405 font-bold uppercase">Official Checkout Invoice</p>
             </div>
             

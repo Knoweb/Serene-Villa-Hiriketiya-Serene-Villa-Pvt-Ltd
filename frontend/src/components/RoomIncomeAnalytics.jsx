@@ -462,7 +462,7 @@ const RoomIncomeAnalytics = ({ currentProperty }) => {
 
           {/* 7. Statement Footer */}
           <div className="text-center pt-2 text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-            Confidential Document - Serene Villa Pvt Ltd Hiriketiya © {new Date().getFullYear()}
+            Confidential Document - Serene Villa - Hiriketiya © {new Date().getFullYear()}
           </div>
         </div>
       ) : (

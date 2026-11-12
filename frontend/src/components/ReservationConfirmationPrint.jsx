@@ -109,7 +109,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
             <img src={logoImg} alt="Serene Villa Logo" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
             <div>
               <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#065f46', margin: '0', tracking: '-0.025em', lineHeight: '1' }}>Serene Villa</h2>
-              <p style={{ fontSize: '8.5px', textTransform: 'uppercase', color: '#64748b', fontWeight: '700', margin: '2px 0 0 0', letterSpacing: '0.05em' }}>(Pvt) Ltd - Hiriketiya</p>
+              <p style={{ fontSize: '8.5px', textTransform: 'uppercase', color: '#64748b', fontWeight: '700', margin: '2px 0 0 0', letterSpacing: '0.05em' }}>Hiriketiya</p>
             </div>
           </div>
           
@@ -364,8 +364,7 @@ const ReservationConfirmationPrint = React.forwardRef(({ confirmationData, selec
           <p style={{ margin: '0 0 2px 0', fontWeight: '700', color: '#1e293b' }}>{confirmationData.senderName || associatedBooking?.senderName || localStorage.getItem('pms_sender_name') || ''}</p>
           <p style={{ margin: '0', fontSize: '8px', color: '#64748b' }}>
             Reservation Department<br />
-            Serene Villa Hiriketiya<br />
-            Serene Villa (Pvt) Ltd
+            Serene Villa - Hiriketiya
           </p>
         </div>
       </div>
